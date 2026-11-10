@@ -1,0 +1,227 @@
+---
+import Badge from "../Badge.astro";
+import Button from "../Button.astro";
+import Callout from "../Callout.astro";
+import Count from "../Count.astro";
+import Disclosure from "../Disclosure.astro";
+import Field from "../Field.astro";
+import FormError from "../FormError.astro";
+import Menu from "../Menu.astro";
+import Modal from "../Modal.astro";
+import PageHead from "../PageHead.astro";
+import Panel from "../Panel.astro";
+import Skeleton from "../Skeleton.astro";
+import ColumnEditor from "./ColumnEditor.astro";
+import { t } from "../../i18n";
+import "../../styles/boards-settings.css";
+---
+
+<div id="bs" class="bs" data-can-edit>
+  <section id="bs-list-view" class="bs-view" aria-labelledby="bs-list-title">
+    {
+      /* No visible heading: the page's h1 already names the section. The
+         list's own h2 is for screen readers; the bar holds what the list is
+         for and the button that adds to it. */
+    }
+    <div class="bs-list-bar">
+      <h2 id="bs-list-title" class="visually-hidden">{t("settings.boards.list.title")}</h2>
+      <p class="bs-list-lede">{t("settings.boards.list.intro")}</p>
+      <Button id="bs-new" class="bs-edit-only" variant="primary" icon="plus"
+        >{t("settings.boards.list.new")}</Button
+      >
+    </div>
+    <FormError id="bs-list-error" />
+    <div id="bs-cards" class="bs-cards" aria-busy="true">
+      <Skeleton shape="block" tag="div" class="bs-card-skeleton" />
+      <Skeleton shape="block" tag="div" class="bs-card-skeleton" />
+    </div>
+  </section>
+
+  <section id="bs-detail-view" class="bs-view" aria-labelledby="bs-detail-title" hidden>
+    <PageHead
+      level="section"
+      flush
+      title={t("settings.boards.detail.loading")}
+      titleId="bs-detail-title"
+      back={{ href: "/settings/#boards", label: t("settings.boards.detail.back") }}
+    >
+      <Badge id="bs-default-badge" slot="status" tone="accent" hidden
+        >{t("settings.boards.card.default")}</Badge
+      >
+      <span slot="sub" id="bs-detail-meta"></span>
+      <Fragment slot="actions">
+        <Button id="bs-open-board" href="/tasks/" icon="board"
+          >{t("settings.boards.detail.open_board")}</Button
+        >
+        <Button id="bs-make-default" hidden>{t("settings.boards.menu.make_default")}</Button>
+        <span id="bs-detail-more" class="bs-more" hidden>
+          <Button
+            iconOnly
+            icon="more"
+            size="lg"
+            label={t("settings.boards.detail.more")}
+            data-board-menu
+            aria-haspopup="menu"
+            aria-expanded="false"
+          />
+        </span>
+      </Fragment>
+    </PageHead>
+    <FormError id="bs-detail-error" />
+
+    <Panel
+      as="h3"
+      title={t("settings.boards.detail.about")}
+      titleId="bs-about-title"
+      aria-labelledby="bs-about-title"
+      pad="md"
+      bodyClass="bs-about"
+    >
+      <span id="bs-head-status" slot="aside" role="status"></span>
+      <Field label={t("settings.boards.detail.name")} for="bs-name" errorId="bs-name-error">
+        <input id="bs-name" maxlength="64" autocomplete="off" />
+      </Field>
+      <Field
+        label={t("settings.boards.detail.description")}
+        for="bs-desc"
+        help={t("settings.boards.detail.description_hint")}
+        helpId="bs-desc-hint"
+        errorId="bs-desc-error"
+      >
+        <textarea
+          id="bs-desc"
+          rows="2"
+          maxlength="280"
+          placeholder={t("settings.boards.detail.description_placeholder")}
+          aria-describedby="bs-desc-hint"></textarea>
+      </Field>
+    </Panel>
+
+    <Panel
+      as="h3"
+      title={t("settings.boards.columns.title")}
+      titleId="bs-cols-title"
+      aria-labelledby="bs-cols-title"
+      pad="md"
+    >
+      <Count n="" pill id="bs-cols-count" slot="status" hidden />
+      <p class="panel-lede">{t("settings.boards.columns.intro")}</p>
+      <div id="bs-warnings" class="bs-warnings" role="status" hidden></div>
+      <div id="bs-columns" class="bs-columns"></div>
+    </Panel>
+
+    <Panel
+      as="h3"
+      title={t("settings.boards.types.title")}
+      titleId="bs-types-title"
+      aria-labelledby="bs-types-title"
+      pad="md"
+    >
+      <span id="bs-types-status" slot="aside" role="status"></span>
+      <p class="panel-lede">{t("settings.boards.types.intro")}</p>
+      <div id="bs-types" class="bs-types"></div>
+      <Callout id="bs-types-fix" tone="warn" icon="warn" class="bs-fix" role="alert" hidden
+        ><div id="bs-types-fix-body" class="bs-fix-body"></div></Callout
+      >
+      <FormError id="bs-types-error" />
+      <form id="bs-type-add" class="bs-type-add bs-edit-only" novalidate>
+        <Field
+          label={t("settings.boards.types.add_label")}
+          for="bs-type-name"
+          help={t("settings.boards.types.slug_empty")}
+          helpId="bs-type-slug"
+          errorId="bs-type-error"
+        >
+          <div class="bs-type-add-row">
+            <input
+              id="bs-type-name"
+              maxlength="64"
+              autocomplete="off"
+              placeholder={t("settings.boards.types.add_placeholder")}
+              aria-describedby="bs-type-slug"
+            />
+            <Button type="submit">{t("settings.boards.types.add")}</Button>
+          </div>
+        </Field>
+      </form>
+      <div id="bs-type-templates" class="bs-templates" hidden>
+        <span class="field-help">{t("settings.boards.types.templates")}</span>
+        <div class="bs-templates-list"></div>
+      </div>
+    </Panel>
+  </section>
+
+  <Menu id="bs-menu" floating label={t("settings.boards.detail.more")} />
+
+  <Modal
+    id="bs-new-modal"
+    title={t("settings.boards.new.title")}
+    icon="columns"
+    cancel
+    primary={{
+      label: t("settings.boards.new.submit"),
+      id: "bs-new-submit",
+      type: "submit",
+      form: "bs-new-form",
+    }}
+  >
+    <form id="bs-new-form" class="form-stack" novalidate>
+      <Field label={t("settings.boards.new.name")} for="bs-new-name" errorId="bs-new-name-error">
+        <input
+          id="bs-new-name"
+          maxlength="64"
+          autocomplete="off"
+          required
+          placeholder={t("settings.boards.new.name_placeholder")}
+          aria-describedby="bs-new-slug"
+        />
+        <p id="bs-new-slug" class="field-help" aria-live="polite">
+          {t("settings.boards.new.slug_empty")}
+        </p>
+      </Field>
+      <Field
+        label={t("settings.boards.new.from")}
+        for="bs-new-from"
+        help={t("settings.boards.new.from_hint")}
+      >
+        <select id="bs-new-from" aria-describedby="bs-new-from-help"></select>
+      </Field>
+      <Field label={t("settings.boards.detail.description")} for="bs-new-desc">
+        <textarea
+          id="bs-new-desc"
+          rows="2"
+          maxlength="280"
+          placeholder={t("settings.boards.detail.description_placeholder")}></textarea>
+      </Field>
+      <Disclosure variant="fields" summary={t("settings.boards.new.advanced")}>
+        <Field
+          label={t("settings.boards.new.id")}
+          for="bs-new-id"
+          help={t("settings.boards.new.id_hint")}
+          helpId="bs-new-id-hint"
+        >
+          <input
+            id="bs-new-id"
+            class="mono"
+            maxlength="32"
+            autocomplete="off"
+            spellcheck="false"
+            aria-describedby="bs-new-id-hint"
+          />
+        </Field>
+      </Disclosure>
+      <FormError id="bs-new-error" />
+    </form>
+  </Modal>
+
+  <ColumnEditor />
+</div>
+
+<script>
+  import { mountBoardsSettings } from "../../lib/boards-settings";
+  import { onPage } from "../../lib/page";
+
+  onPage("/settings", (signal) => {
+    mountBoardsSettings(signal);
+  });
+</script>

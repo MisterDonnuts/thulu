@@ -1,0 +1,29 @@
+{
+  "resets": "Se renueva el {date}",
+  "no_limit": "Sin tope",
+  "names": {
+    "free": "Free",
+    "team": "Team",
+    "business": "Business",
+    "enterprise": "Enterprise",
+    "self_hosted": "Self-hosted"
+  },
+  "facts": {
+    "runs": "Corridas de agente del mes",
+    "concurrency": "Agentes a la vez",
+    "seats": "Miembros",
+    "storage": "Adjuntos"
+  },
+  "values": {
+    "runs": "{used} de {limit}",
+    "concurrency": {
+      "one": "{count} a la vez",
+      "other": "{count} a la vez"
+    },
+    "seats": {
+      "one": "{count} persona",
+      "other": "{count} personas"
+    },
+    "storage": "{used} de {limit}"
+  }
+}

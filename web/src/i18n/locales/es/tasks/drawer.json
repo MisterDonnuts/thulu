@@ -1,0 +1,334 @@
+{
+  "labels": {
+    "more_actions": "Más acciones",
+    "close_esc": "Cerrar (Esc)",
+    "remove_item": "Quitar {name}",
+    "breadcrumb": "Dónde está esta tarea",
+    "prev_sibling": "Subtarea anterior",
+    "prev_sibling_key": "Subtarea anterior ([)",
+    "next_sibling": "Subtarea siguiente",
+    "next_sibling_key": "Subtarea siguiente (])",
+    "expand": "Agrandar el panel",
+    "expand_key": "Agrandar (F)",
+    "shrink": "Achicar el panel",
+    "shrink_key": "Achicar (F)",
+    "more_actions_key": "Más acciones (.)",
+    "tabs": "Secciones de la tarea"
+  },
+  "menu": {
+    "more_turns": "Más turnos",
+    "more_turns_sub": "Vuelve a correr el agente de esta etapa con el doble de turnos que tuvo la última corrida.",
+    "force_pr": "Forzar PR",
+    "force_pr_sub": "Sube la rama y abre un PR en cada repo vinculado que no tenga uno.",
+    "fork": "Bifurcar la tarea",
+    "fork_sub": "Guarda una foto del estado completo y saca un worktree nuevo desde HEAD.",
+    "clone": "Clonar la tarea",
+    "clone_sub": "Copia título, descripción, repos y asignaciones. Sin comentarios ni historial.",
+    "delete": "Eliminar la tarea",
+    "delete_sub": "Elimina la tarea y limpia sus worktrees. No se puede deshacer.",
+    "copy_link": "Copiar el enlace",
+    "copy_link_sub": "Un enlace que abre esta tarea.",
+    "add_subtask": "Agregar subtarea",
+    "add_subtask_sub": "Trabaja en la rama de esta tarea y entra en su PR.",
+    "archive": "Archivar",
+    "archive_sub": "La saca del tablero. Comentarios, corridas y rama quedan; se devuelve desde Archivadas.",
+    "archive_sub_kids": {
+      "one": "La saca del tablero junto con su subtarea. Se devuelve desde Archivadas.",
+      "other": "La saca del tablero junto con sus {count} subtareas. Se devuelve desde Archivadas."
+    },
+    "unarchive": "Devolver al tablero",
+    "unarchive_sub": "Vuelve a su columna con sus subtareas.",
+    "delete_sub_kids": {
+      "one": "También elimina su subtarea. No se puede deshacer.",
+      "other": "También elimina sus {count} subtareas. No se puede deshacer."
+    },
+    "delete_admin_only": "Sólo un administrador puede eliminar tareas. Archivala para sacarla del tablero."
+  },
+  "tabs": {
+    "approvals": "Aprobaciones",
+    "reports": "Reportes",
+    "chat": "Chat",
+    "timeline": "Historial",
+    "task": "Tarea"
+  },
+  "body": {
+    "unsaved": "sin guardar",
+    "saved": "guardado",
+    "checklist_failed": "no se pudo actualizar la checklist",
+    "uploading": "subiendo {file}…",
+    "placeholder": "¿De qué se trata esta tarea?\n\n# Título\n**negrita** · *cursiva* · `código` · [enlace](https://example.com)\n\n- viñeta\n- lista\n\n| col | col |\n|-----|-----|\n| val | val |\n\n> cita\n\n```\nbloque de código\n```\n\nPegá una captura desde el portapapeles y se sube sola."
+  },
+  "props": {
+    "untyped": "Sin tipo",
+    "edit_projects": "Editar los proyectos vinculados",
+    "agent": "Agente",
+    "edit_agents": "Editar el agente asignado a cada etapa",
+    "type": "Tipo",
+    "change_type": "Cambiar el tipo de tarea",
+    "edit_deps": "Editar las dependencias",
+    "priority": "Prioridad",
+    "set_priority": "Elegir la prioridad",
+    "tags": "Etiquetas",
+    "edit_tags": "Editar las etiquetas",
+    "label": "Propiedades",
+    "stage": "Etapa",
+    "change_stage_named": "Etapa {stage}, cambiarla",
+    "projects": "Proyectos",
+    "branch": "Rama y PR",
+    "blocked_by": "Bloqueada por",
+    "blocks": "Bloquea a",
+    "runs": "Corridas",
+    "created": "Creada",
+    "updated": "Actualizada",
+    "show_all": "Ver todas las propiedades",
+    "show_less": "Ver menos",
+    "summary_no_agent": "sin agente",
+    "summary_no_agent_long": "Sin agente",
+    "summary_more": {
+      "one": "{list}, {count} más",
+      "other": "{list}, {count} más"
+    },
+    "no_priority": "Sin prioridad",
+    "no_tags": "Sin etiquetas",
+    "no_date": "—",
+    "sandbox": "Sandbox",
+    "sandbox_idle": "inactivo {time}",
+    "sandbox_port": "Puerto {port}",
+    "sandbox_kill": "Matar",
+    "sandbox_kill_title": "¿Matar el sandbox?",
+    "sandbox_killed": "Sandbox eliminado",
+    "sandbox_kill_failed": "No se pudo matar: {error}",
+    "orphan": "Contenedor",
+    "orphan_badge": "Huérfano",
+    "orphan_line": "{agent} corre sin una corrida de esta tarea · {time}",
+    "orphan_line_untimed": "{agent} corre sin una corrida de esta tarea",
+    "orphan_hint": "Un contenedor de agente trabaja en esta tarea, pero ninguna corrida de la tarea lo lanzó: su corrida se borró o un reinicio lo dejó colgado. Quitarlo deja la tarea como está.",
+    "orphan_remove": "Quitar",
+    "orphan_remove_named": "Quitar el contenedor {name}",
+    "orphan_remove_title": "¿Quitar el contenedor huérfano?",
+    "orphan_remove_message": "Se borra {name}. Ninguna corrida de la tarea depende de él, así que la tarea queda como está.",
+    "orphan_removed": "Contenedor huérfano quitado",
+    "orphan_remove_failed": "No se pudo quitar: {error}",
+    "summary_orphans": {
+      "one": "{count} contenedor huérfano",
+      "other": "{count} contenedores huérfanos"
+    }
+  },
+  "priority": {
+    "none": "Ninguna",
+    "low": "Baja",
+    "medium": "Media",
+    "high": "Alta",
+    "urgent": "Urgente",
+    "set_failed": "No se pudo cambiar la prioridad"
+  },
+  "test_cases_label": "Casos de prueba",
+  "attachments": {
+    "origin_comment_by": "comentario · {author}",
+    "origin_comment": "comentario",
+    "origin_body": "descripción",
+    "origin_upload": "subida",
+    "delete_title": "Eliminar este adjunto",
+    "delete_label": "Eliminar el adjunto",
+    "added_from": "Agregado desde: {origin}",
+    "delete_confirm_title": "¿Eliminar el adjunto?",
+    "delete_confirm_message": "\"{file}\" se quita de la tarea y se borra el archivo. Donde esté embebido (la descripción, un comentario) va a quedar un enlace roto.",
+    "delete_failed": "No se pudo eliminar el adjunto"
+  },
+  "projects": {
+    "search_placeholder": "Buscá o creá…",
+    "hint": "Elegí una opción o creá una",
+    "create": "Crear el proyecto “{name}”",
+    "unlink_failed": "No se pudo desvincular el proyecto",
+    "link_failed": "No se pudo vincular el proyecto"
+  },
+  "agents": {
+    "pick_for": "Elegir el agente de {stage}",
+    "none_option": "— Ninguno",
+    "none_installed": "Todavía no hay agentes instalados. Los agrega quien opera la instalación, en Agentes.",
+    "save_failed": "No se pudo guardar la asignación de agente"
+  },
+  "subtasks": {
+    "created": {
+      "one": "{count} subtarea creada",
+      "other": "{count} subtareas creadas"
+    },
+    "title": "Subtareas",
+    "hide_done": "Ocultar las hechas",
+    "show_done": {
+      "one": "Ver {count} hecha",
+      "other": "Ver {count} hechas"
+    },
+    "add": "Agregar subtarea",
+    "add_short": "Agregar",
+    "placeholder": "Título de la subtarea, o pegá una lista",
+    "order_hint": "Para cambiar el orden, arrastrá una fila o usá Subir y Bajar en su menú.",
+    "more_options": "Más opciones",
+    "start_in": "Empieza en",
+    "waits_for": "Espera a",
+    "waits_reason": "Espera a sólo aplica a una subtarea que empieza en la primera etapa.",
+    "agents": "Agentes",
+    "inherits": "Hereda los proyectos, el tablero, el tipo y los agentes de la madre.",
+    "no_siblings": "Todavía no hay otras subtareas",
+    "inherit_agent": "De la madre: {agent}",
+    "inherit_none": "Sin agente",
+    "row_actions": "Acciones de {title}",
+    "drag": "Arrastrá para reordenar",
+    "adding": "Agregando…",
+    "create_failed": "No se pudo crear {title}: {error}",
+    "create_n": {
+      "one": "Crear {count} subtarea",
+      "other": "Crear {count} subtareas"
+    },
+    "reordered": "Orden guardado",
+    "reorder_failed": "No se pudo guardar el orden: {error}",
+    "deleted": "{title} eliminada",
+    "waits_hard": "No puede empezar hasta que estas terminen.",
+    "waits_soft": "Ya empezó, así que quedan como aviso y no la bloquean.",
+    "menu": {
+      "open": "Abrir",
+      "move": "Mover de etapa",
+      "mark_done": "Marcar como hecha",
+      "waits": "Espera a…",
+      "up": "Subir",
+      "down": "Bajar",
+      "delete": "Eliminar",
+      "move_to": "Mover a",
+      "waits_for": "Espera a"
+    },
+    "create_failed_many": {
+      "one": "No se pudo crear {title}: {error}. {count} título no se creó y volvió a la lista.",
+      "other": "No se pudo crear {title}: {error}. {count} títulos no se crearon y volvieron a la lista."
+    },
+    "paste_head": {
+      "one": "{count} subtarea de la lista pegada. Editá o quitá la que quieras antes de crearla.",
+      "other": "{count} subtareas de la lista pegada. Editá o quitá las que quieras antes de crearlas."
+    },
+    "paste_title": "Subtarea {n}",
+    "paste_drop": "Quitar {title}"
+  },
+  "deps": {
+    "add_label": "Tareas de las que puede depender",
+    "search_placeholder": "Buscá la tarea de la que depende…",
+    "kind_hard": "bloqueante",
+    "kind_soft": "aviso",
+    "empty": "Todavía no hay dependencias.",
+    "meta": "{kind}, {stage}",
+    "meta_blocked": "{kind}, {stage}, todavía abierta",
+    "blocked_by": "Bloqueada por",
+    "remove_failed": "No se pudo quitar: {error}",
+    "hard_initial_only": "Una dependencia bloqueante sólo frena la tarea mientras está en {stage}. Después, agregala como aviso.",
+    "kind_label": "Tipo de dependencia",
+    "siblings": "Misma tarea madre",
+    "other_tasks": "Otras tareas"
+  },
+  "tags": {
+    "create": "Crear la etiqueta “{tag}”",
+    "placeholder": "Agregá una etiqueta…",
+    "empty": "Todavía no hay etiquetas.",
+    "remove_failed": "No se pudo quitar la etiqueta",
+    "add_failed": "No se pudo agregar la etiqueta"
+  },
+  "usage": {
+    "empty": "Todavía no hay corridas",
+    "context": "Contexto · último turno",
+    "live": "en vivo",
+    "summary": "tokens en total · {runs} · {turns}",
+    "runs": {
+      "one": "{count} corrida",
+      "other": "{count} corridas"
+    },
+    "turns": {
+      "one": "{count} turno",
+      "other": "{n} turnos"
+    },
+    "input": "entrada",
+    "output": "salida",
+    "cache_read": "lectura de caché",
+    "cache_write": "escritura de caché"
+  },
+  "title_hint": "Enter guarda, Esc cancela.",
+  "attention_label": "Te espera a vos",
+  "header": {
+    "archived": "Archivada",
+    "archived_title": "Está fuera del tablero y no se mueve de etapa. Restaurala desde el menú ⋯ para volver a trabajarla.",
+    "open_parent_key": "Abrir la tarea madre (U)",
+    "copy_link": "Copiar un enlace a esta tarea",
+    "sibling_pos": "{index} de {total}",
+    "stage_label": "Etapa {stage}, cambiarla",
+    "stage_key": "Cambiar de etapa (S)",
+    "rollup": "{done} de {total} subtareas hechas",
+    "answer": "Responder",
+    "review": "Revisar",
+    "more_turns": "Más turnos",
+    "retry": "Reintentar",
+    "review_retry": "Revisar y reintentar",
+    "relaunch_stage": "Relanzar etapa",
+    "credentials": "Abrir Credenciales",
+    "pick_agent": "Elegir agente"
+  },
+  "move_failed": "No se pudo mover la tarea",
+  "move_network_error": "Error de red, la tarea no se movió",
+  "moved": "{title} pasó a {stage}",
+  "brief": {
+    "title": "Descripción",
+    "edit": "Editar",
+    "edit_key": "Editar la descripción (E)",
+    "discard": "Descartar los cambios",
+    "done": "Listo",
+    "empty": "Todavía no tiene descripción.",
+    "write": "Escribir la descripción",
+    "written_by": "De {agent}, {ago}",
+    "show_all": "Ver todo",
+    "show_less": "Ver menos",
+    "open_subtask": "Abrir la subtarea {title}, en {stage}",
+    "make_subtask": "Hacerla subtarea",
+    "saved": "Guardado",
+    "saving": "Guardando…",
+    "unsaved": "Cambios sin guardar",
+    "saved_seconds": {
+      "one": "Guardado hace {count} segundo",
+      "other": "Guardado hace {count} segundos"
+    },
+    "saved_ago": "Guardado hace {ago}",
+    "not_saved": "No se guardó.",
+    "retry": "Reintentar",
+    "discard_title": "¿Descartar tus cambios?",
+    "discard_message": "La descripción vuelve a como estaba cuando empezaste a editar.",
+    "hint_html": "{paste} pega una imagen, {save} guarda, {esc} guarda y cierra",
+    "add_sections": "Agregar secciones",
+    "add_sections_title": "Agrega al final las secciones que leen los agentes y faltan: Goal, Context, Definition of Done y Out of Scope. Los títulos van en inglés porque son la dirección de cada sección."
+  },
+  "files": {
+    "title": "Archivos",
+    "add": "Agregar archivos",
+    "upload_failed": "No se pudo subir {file}: {error}",
+    "uploaded": {
+      "one": "{count} archivo subido",
+      "other": "{count} archivos subidos"
+    },
+    "kinds": {
+      "video": {
+        "one": "{count} video",
+        "other": "{count} videos"
+      },
+      "image": {
+        "one": "{count} imagen",
+        "other": "{count} imágenes"
+      },
+      "other": {
+        "one": "{count} archivo más",
+        "other": "{count} archivos más"
+      }
+    },
+    "group_count": {
+      "one": "{count} archivo",
+      "other": "{count} archivos"
+    }
+  },
+  "attention_more": {
+    "one": "{count} más",
+    "other": "{count} más"
+  },
+  "attention_less": "Ver menos"
+}

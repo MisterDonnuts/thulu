@@ -1,0 +1,48 @@
+{
+  "errors": {
+    "github_app_token_failed": "github app token",
+    "invalid_kind_or_stage": "invalid kind or stage",
+    "invalid_path": "invalid path",
+    "name_and_repo_required": "name and repo_url are required",
+    "project_not_found": "project not found: {project}",
+    "repo_url_not_a_repository": "repo_url does not name a repository (want https://<github>/<owner>/<repo>)",
+    "stage_file_missing": "file does not exist",
+    "unknown_stage": "unknown stage {stage:%q}",
+    "init_revision_invalid": "revision {rev:%q} must be a positive integer",
+    "name_required": "name is required",
+    "upload_multipart": "the upload must be a multipart/form-data body",
+    "upload_meta_first": "the first part of the upload must be \"meta\", the project's fields as JSON",
+    "upload_archive_missing": "the upload has no \"archive\" part with the folder",
+    "upload_read": "the upload was cut off before it finished",
+    "reupload_mode": "mode {mode} is not one of merge or replace",
+    "main_moved": "the default branch moved since the folder was downloaded",
+    "reupload_conflict": "the folder clashes with what changed on the default branch"
+  },
+  "hints": {
+    "pre_launch_hooks": "Script that runs inside the task's copy before the agent starts. What it prints and its exit code are added to the agent's prompt.",
+    "stage_prompts": "Text added to the agent's prompt when it works in that stage on this project."
+  },
+  "labels": {
+    "pre_launch_hooks": "Pre-launch hooks",
+    "stage_prompts": "Stage prompts"
+  },
+  "log": {
+    "create_failed": "project create failed: {err}",
+    "creating": "creating project: {name} (repo: {repo}, credential={credential}, token={token}, installation={installation})",
+    "delete_environments": "delete environments for project {project}",
+    "delete_metric_mappings": "delete metric mappings for environment {environment}",
+    "list_environments": "list environments for deleted project {project}",
+    "revoke_environment_grants": "revoke credential grants for environment {environment}",
+    "revoke_project_grants": "revoke credential grants for deleted project {project}",
+    "unlink_tasks": "unlink tasks from deleted project {project}",
+    "unlinked_tasks": "project {project} deleted: unlinked from {count} task(s)",
+    "creating_upload": "creating project from an upload: {name}",
+    "remove_upload": "remove the received upload {path}",
+    "archive_stream": "send the zip of project {project}, branch {branch}",
+    "task_branches": "list the task branches of project {project}"
+  },
+  "audit": {
+    "init_script_saved": "Init script of {project} saved as revision {revision}",
+    "init_script_restored": "Init script of {project} restored from revision {from} as revision {revision}"
+  }
+}

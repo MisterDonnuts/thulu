@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "title": "SHOP-142 · SAVE10 takes 10% off the order total",
+  "base_url": "https://staging.shop.example",
+  "viewport": { "width": 1440, "height": 900 },
+  "timezone": "UTC",
+  "locale": "en-US",
+  "redact_css": ["[data-testid=\"account-menu\"] .email"],
+  "steps": [
+    { "kind": "use", "flow": "login", "params": { "email": "qa@shop.example" } },
+    { "kind": "use", "flow": "add-to-cart", "params": { "product": "blue-mug" } },
+    { "kind": "verify", "case": "TC-1", "expected": "$100.00", "check": "text", "target": "@order_total",
+      "label": "Before the coupon the total is $100" },
+    { "kind": "fill", "target": "@coupon", "value": "SAVE10", "label": "Type the SAVE10 coupon" },
+    { "kind": "click", "target": "@apply_coupon", "label": "Apply it" },
+    { "kind": "wait_for_response", "url_part": "/api/cart/coupon" },
+    { "kind": "verify", "case": "TC-2", "expected": "$90.00", "check": "text", "target": "@order_total",
+      "label": "The total drops to $90" },
+    { "kind": "verify", "case": "TC-3", "expected": "hidden", "check": "hidden", "target": "@coupon_error",
+      "label": "No error under the field" },
+    { "kind": "shot", "label": "The discount, marked",
+      "shot": {
+        "name": "total-with-coupon",
+        "title": "SHOP-142 · total with SAVE10",
+        "spotlight": [
+          { "target": "@coupon", "note": "SAVE10 applied" },
+          { "target": "@order_total", "note": "$100 → $90", "tone": "ok" }
+        ],
+        "keep_clean": true
+      } },
+    { "kind": "beat", "ms": 1200 }
+  ]
+}

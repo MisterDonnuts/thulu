@@ -1,0 +1,116 @@
+{
+  "title": "MCPs",
+  "subtitle": "Servidores de herramientas MCP siempre activos: los agentes llegan a ellos a través del daemon.",
+  "header": {
+    "up": "activos",
+    "use_in_agent": "Usar en un agente",
+    "use_in_agent_title": "Los servidores se conceden por agente y etapa, en la pestaña MCP de Agentes",
+    "unchecked": {
+      "one": "{count} sin comprobar",
+      "other": "{count} sin comprobar"
+    }
+  },
+  "buttons": {
+    "add": "Agregar MCP",
+    "register": "Registrar"
+  },
+  "panels": {
+    "services": "Servicios"
+  },
+  "columns": {
+    "name": "Nombre",
+    "source": "Origen",
+    "endpoint": "Endpoint",
+    "status": "Estado",
+    "health": "Salud",
+    "uptime": "Tiempo activo",
+    "actions": "Acciones"
+  },
+  "empty": {
+    "none": "No se encontraron servicios MCP"
+  },
+  "modal": {
+    "register_title": "Registrar MCP",
+    "edit_title": "Editar {name}",
+    "intro_html": "Registra un servidor MCP que ya corre en otro lado, por Streamable HTTP o SSE. Los agentes llegan a él a través del daemon, que agrega la credencial por su cuenta; después lo concedés por etapa en la pestaña MCP de cada agente.",
+    "name": "Nombre",
+    "name_hint_html": "minúsculas, separadas por guiones. Ejemplo: <code>my-mcp</code>",
+    "name_invalid": "De 3 a 64 minúsculas, dígitos o guiones; empieza con una letra y no termina en guion.",
+    "url": "URL",
+    "url_hint": "la llama el daemon; los agentes sólo ven el proxy del daemon",
+    "url_invalid": "Una dirección que empiece con http:// o https://.",
+    "probe": "Detectar",
+    "probe_running": "Revisando…",
+    "probe_http": "Responde Streamable HTTP.",
+    "probe_sse": "Responde SSE.",
+    "probe_unknown": "No respondió como un servidor MCP (HTTP {http}, SSE {sse}).",
+    "probe_auth": "Pide autenticación: elegí una credencial guardada.",
+    "probe_oauth": "Pide iniciar sesión con OAuth (metadata en {url}). Registralo con credencial guardada y después usá Conectar en su fila.",
+    "probe_failed": "No se pudo revisar: {error}",
+    "transport": "Transporte",
+    "transport_hint": "lo que habla el servidor",
+    "transport_http": "Streamable HTTP",
+    "transport_sse": "SSE",
+    "auth": "Autenticación",
+    "auth_help": "Una credencial guardada se busca por nombre en el workspace de la corrida que llama, y se usa sólo si está concedida a la tarea, el proyecto o el entorno de esa corrida. Los agentes nunca la reciben.",
+    "auth_none": "Ninguna",
+    "auth_credential": "Credencial guardada",
+    "credential_ref": "Credencial",
+    "credential_ref_hint": "su nombre en la página Credenciales de cada workspace que use este servidor",
+    "credential_ref_invalid": "Indicá con qué credencial se autentica este servidor.",
+    "header_template": "Plantilla de encabezados",
+    "header_template_help": "Un \"Nombre: valor\" por línea, con {field} o {base64} tomando los campos de la credencial. Vacía manda el encabezado propio de la credencial (sólo credenciales de encabezado HTTP).",
+    "description": "Descripción",
+    "description_hint": "opcional — se muestra en la lista",
+    "description_placeholder": "Acceso de sólo lectura al gestor de tickets",
+    "forward_key": "Actúa sobre Thulu en nombre del agente",
+    "forward_key_hint": "Le pasa a este servidor la clave de API de la corrida, así que puede hacer lo mismo que el agente que lo llama. Dejalo apagado para todo lo que no le hable de vuelta a Thulu.",
+    "docs_link": "Cómo registrar uno"
+  },
+  "source": {
+    "runtime": "runtime",
+    "registered": "registrado",
+    "env": "env",
+    "env_title": "Definido en el entorno del daemon. Cambialo donde se configura la instalación (deploy/.env o los valores de Helm)."
+  },
+  "endpoint": {
+    "from_env": "de {key}",
+    "oauth": "OAuth: {status}"
+  },
+  "actions": {
+    "start": "Iniciar",
+    "stop": "Detener",
+    "restart": "Reiniciar",
+    "edit": "Editar URL",
+    "unregister": "Quitar registro",
+    "connect": "Conectar"
+  },
+  "readonly": {
+    "lead": "El registro de MCP y sus servidores los comparten todos los espacios de trabajo de esta instalación."
+  },
+  "confirm": {
+    "unregister_title": "¿Quitar el registro de {name}?",
+    "unregister_message": "Saca la URL del MCP de la tabla de reenvío del daemon. Los agentes que se lancen después dejan de ver {env_key}, o reciben el valor propio del daemon si su entorno define uno. El servidor de origen no se toca.",
+    "stop_title": "¿Detener {name}?",
+    "stop_message": "Detiene el contenedor del MCP. Los agentes en curso que dependan de él van a fallar hasta que lo vuelvas a iniciar."
+  },
+  "toasts": {
+    "write_failed": "{what} — {error}",
+    "updated": "{name}: actualizado",
+    "registered": "{name}: registrado",
+    "unregistered": "{name}: registro quitado",
+    "save_failed": "No se pudo guardar",
+    "save_failed_detail": "No se pudo guardar: {error}",
+    "delete_failed": "{name}: no se pudo eliminar",
+    "start_ok": "{name}: iniciado",
+    "stop_ok": "{name}: detenido",
+    "restart_ok": "{name}: reiniciado",
+    "start_failed": "{name}: no se pudo iniciar",
+    "stop_failed": "{name}: no se pudo detener",
+    "restart_failed": "{name}: no se pudo reiniciar",
+    "refresh_failed": "No se pudo actualizar: {error}"
+  },
+  "health": {
+    "unchecked_title": "El daemon prueba estas URL sólo para el workspace operador. Sin comprobar no quiere decir caído."
+  }
+}

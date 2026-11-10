@@ -1,0 +1,17 @@
+{
+  "errors": {
+    "no_output_mount": "no se encontró el montaje de salida"
+  },
+  "log": {
+    "synced_existing_agent": "agente existente sincronizado: {name} ({id}) salida={output}",
+    "event_stream_error": "error en el stream de eventos: {err} — reconecto en 5s",
+    "inspect_failed": "falló la inspección de {container}: {err}",
+    "agent_started": "agente iniciado: {name} ({id})",
+    "agent_exited": "agente terminado: {name} ({id}) motivo={reason}",
+    "parse_start_time": "[watcher] no se puede leer la hora de inicio del contenedor {started_at:%q}",
+    "backfill_labels": "[watcher] completar etiquetas de {id}",
+    "obsidian_create_failed": "obsidian: no se puede crear {dir}: {err}",
+    "obsidian_write_failed": "[watcher] obsidian: no se puede escribir {file} en {dir}",
+    "obsidian_initialized": "obsidian: bóveda inicializada en {dir}"
+  }
+}

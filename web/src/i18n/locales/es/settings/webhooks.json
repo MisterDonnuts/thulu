@@ -1,0 +1,62 @@
+{
+  "add": {
+    "title": "Agregar webhook",
+    "submit": "Agregar webhook"
+  },
+  "labels": {
+    "endpoint_url": "URL del endpoint",
+    "events": "Eventos",
+    "all_events": "Todos los eventos",
+    "all_events_help": "Todos los de abajo, y los que se agreguen después (*)."
+  },
+  "placeholders": {
+    "endpoint_url": "https://example.com/hooks/thulu"
+  },
+  "endpoints": {
+    "secret_name": "el secreto de firma",
+    "title": "Endpoints"
+  },
+  "row": {
+    "legacy_signing": "firma con clave derivada",
+    "test": "Probar",
+    "test_title": "Enviar una entrega de prueba",
+    "rotate": "Rotar secreto",
+    "rotate_title": "Reemplazar el secreto de firma",
+    "delete_aria": "Eliminar webhook",
+    "deliveries": "Entregas",
+    "deliveries_title": "Los últimos intentos de entrega a este endpoint"
+  },
+  "deliveries": {
+    "empty": "Todavía no hubo entregas.",
+    "load_failed": "No se pudieron cargar las entregas.",
+    "when": "Cuándo",
+    "event": "Evento",
+    "result": "Resultado",
+    "duration": "Tiempo",
+    "retry": "Reintentar",
+    "retried": "Entrega en cola de nuevo",
+    "retry_failed": "No se pudo volver a encolar la entrega",
+    "attempt": "Intento",
+    "state": "Estado",
+    "actions": "Acciones"
+  },
+  "confirm": {
+    "rotate_title": "¿Rotar el secreto de firma?",
+    "rotate_message": "{url} recibe un secreto nuevo ahora, y el anterior deja de verificar desde la próxima entrega. Actualizá el receptor con el secreto nuevo enseguida.",
+    "rotate": "Rotar"
+  },
+  "toasts": {
+    "added": "Webhook agregado",
+    "deleted": "Webhook eliminado",
+    "secret_rotated": "Secreto rotado: ¡copialo ahora!"
+  },
+  "errors": {
+    "add_failed": "No se pudo agregar el webhook",
+    "rotate_failed": "No se pudo rotar el secreto",
+    "delete_failed": "No se pudo eliminar"
+  },
+  "empty": {
+    "none": "No hay webhooks configurados.",
+    "load_failed": "No se pudieron cargar los webhooks."
+  }
+}

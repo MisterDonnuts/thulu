@@ -1,0 +1,595 @@
+{
+  "title": "Evidencia",
+  "subtitle": "Lo que tiene que funcionar en tu app, grabado una vez por un agente y repetido en cada entorno.",
+  "summary": {
+    "passing": "pasan",
+    "failing": "fallan",
+    "blocked": "bloqueados"
+  },
+  "tabs": {
+    "aria": "Secciones de Evidencia",
+    "cases": "Casos",
+    "runs": "Corridas",
+    "environments": "Entornos",
+    "tasks": "Desde tareas"
+  },
+  "actions": {
+    "menu_aria": "Acciones del caso",
+    "more_aria": "Más acciones para {key}",
+    "new_case": "Nuevo caso",
+    "record": "Grabar con agente",
+    "record_again": "Volver a grabar",
+    "run_all": "Correr todo en…",
+    "run_on": "Correr en…"
+  },
+  "status": {
+    "draft": "Falta grabar",
+    "ready": "Sin correr",
+    "queued": "En espera",
+    "running": "Corriendo",
+    "pass": "Pasó",
+    "fail": "Falló",
+    "blocked": "Bloqueado",
+    "error": "No se pudo correr",
+    "canceled": "Cancelado"
+  },
+  "status_hint": {
+    "draft": "Ningún agente lo grabó todavía, así que no puede correr.",
+    "ready": "Está grabado y espera su primera corrida.",
+    "queued": "Espera que se libere un runner.",
+    "running": "Está corriendo ahora.",
+    "pass": "Pasaron todos los chequeos en la última corrida.",
+    "fail": "Falló un chequeo en la última corrida.",
+    "blocked": "Falló un paso antes de que pudiera correr un chequeo.",
+    "error": "La corrida no llegó a probar nada. Abrila para ver por qué.",
+    "canceled": "Alguien canceló la corrida."
+  },
+  "batch_status": {
+    "queued": "En espera",
+    "running": "Corriendo",
+    "done": "Terminó",
+    "canceled": "Cancelada",
+    "error": "No se pudo correr",
+    "all_passed": "Pasaron todos",
+    "blocked": "Algunos bloqueados",
+    "problems": "Algo falló"
+  },
+  "case_form": {
+    "new_title": "Nuevo caso",
+    "edit_title": "Editar {key}",
+    "title": "Título",
+    "title_placeholder": "El checkout aplica un código de descuento",
+    "title_required": "Ponele un título al caso.",
+    "description": "Qué tiene que funcionar",
+    "description_hint": "con tus palabras, como se lo contarías a alguien del equipo",
+    "description_placeholder": "Alguien con un código válido ve el descuento antes de pagar.",
+    "steps": "Pasos",
+    "steps_hint": "uno por línea, opcional",
+    "steps_placeholder": "1. Agregá un producto al carrito\n2. Escribí SAVE10 en el campo de descuento\n3. Tocá Aplicar",
+    "expected": "Resultado esperado",
+    "expected_placeholder": "El total baja un 10% y el código figura como aplicado.",
+    "no_project": "Sin proyecto",
+    "tags": "Etiquetas",
+    "tags_hint": "separadas por comas",
+    "tags_placeholder": "checkout, smoke",
+    "saved": "{key} guardado.",
+    "created": "{key} creado. Ahora pedile a un agente que lo grabe."
+  },
+  "cases": {
+    "all": "Todos",
+    "env_result_aria": "{env}: {status}, {when}",
+    "filter_status": "Filtrar por estado",
+    "more_envs": {
+      "one": "+{count} entorno más",
+      "other": "+{count} entornos más"
+    },
+    "no_matches": "Ningún caso coincide con estos filtros.",
+    "no_video_yet": "Todavía sin video",
+    "not_recorded": "Todavía sin grabar",
+    "not_run_here": "No corrió acá",
+    "view_aria": "Vista",
+    "view_grid": "Tarjetas",
+    "view_list": "Lista",
+    "status_on": "{status} en {env}"
+  },
+  "columns": {
+    "actions": "Acciones",
+    "case": "Caso",
+    "key": "Clave",
+    "priority": "Prioridad",
+    "project": "Proyecto",
+    "result": "Último resultado"
+  },
+  "counts": {
+    "passed": {
+      "one": "{count} pasó",
+      "other": "{count} pasaron"
+    },
+    "failed": {
+      "one": "{count} falló",
+      "other": "{count} fallaron"
+    },
+    "blocked": {
+      "one": "{count} bloqueado",
+      "other": "{count} bloqueados"
+    },
+    "errored": {
+      "one": "{count} no se pudo correr",
+      "other": "{count} no se pudieron correr"
+    },
+    "canceled": {
+      "one": "{count} cancelada",
+      "other": "{count} canceladas"
+    },
+    "pending": {
+      "one": "falta {count}",
+      "other": "faltan {count}"
+    },
+    "none": "Sin corridas"
+  },
+  "delete": {
+    "title": "¿Borrar {key}?",
+    "message": "«{title}» se va con todas sus corridas, videos y capturas. No se puede deshacer.",
+    "done": "{key} borrado.",
+    "confirm": "Borrar caso"
+  },
+  "deploy": {
+    "label": "Después de cada deploy de {repo} a {environment}"
+  },
+  "detail": {
+    "all_envs": "Todos",
+    "capture_aria": "Captura {n} de {total}",
+    "capture_count": "{n} de {total}",
+    "capture_next": "Captura siguiente",
+    "capture_open": "Abrir en tamaño completo",
+    "capture_prev": "Captura anterior",
+    "captures": "Capturas",
+    "captures_count": {
+      "one": "Capturas ({count})",
+      "other": "Capturas ({count})"
+    },
+    "checks": "Chequeos",
+    "checks_passed": "Pasaron {passed} de {total} chequeos",
+    "col_actions": "Acciones",
+    "col_check": "Chequeo",
+    "col_duration": "Duró",
+    "col_env": "Entorno",
+    "col_expected": "Esperado",
+    "col_how": "Cómo",
+    "col_observed": "Qué pasó",
+    "col_result": "Resultado",
+    "col_trigger": "La arrancó",
+    "col_when": "Cuándo",
+    "download_take": "Descargar grabación (JSON)",
+    "draft_title": "Nadie grabó este caso todavía",
+    "draft_body": "Un agente abre la app en el entorno que elijas, sigue los pasos y los filma una vez. Desde ahí el caso corre solo, sin el agente.",
+    "draft_no_env": "Primero agregá un entorno en la pestaña Entornos: ahí es donde graba el agente.",
+    "env_filter": "Ver resultados de",
+    "expected": "Resultado esperado",
+    "failures": "Qué salió mal",
+    "history": "Historial",
+    "in_progress": "Esta corrida está en curso. El video aparece cuando termine.",
+    "latest_run": "Última corrida",
+    "measured": "Medido",
+    "never_ran": "Está grabado pero todavía no corrió. Corrélo en un entorno para tener un video.",
+    "no_checks": "Esta corrida no tiene chequeos.",
+    "no_history": "Todavía no hay corridas.",
+    "no_runs": "Todavía no hay corridas.",
+    "no_video": "Esta corrida no dejó video.",
+    "observed_by_agent": "Lo vio el agente",
+    "on_env": "en {env}",
+    "priority": "Prioridad {priority}",
+    "recording": "Grabación",
+    "report": "Informe completo",
+    "show": "Ver",
+    "showing": "Viendo",
+    "step": "Paso {step}",
+    "steps": "Pasos",
+    "take_agent": "Lo grabó un agente {when}.",
+    "take_none": "Todavía sin grabar.",
+    "take_ready": "Grabado {when}.",
+    "take_task": "Copiado de una tarea {when}.",
+    "take_upload": "Subido {when}.",
+    "took": "duró {duration}",
+    "video_aria": "Video de la última corrida de {key}",
+    "what": "Qué tiene que funcionar"
+  },
+  "empty": {
+    "title": "Empezá tu biblioteca de casos",
+    "step1_title": "Escribí qué tiene que funcionar",
+    "step1_body": "Con palabras simples: qué hace una persona y qué tendría que ver. Sin código.",
+    "step2_title": "Un agente lo graba una vez",
+    "step2_body": "Abre tu app en un entorno, sigue los pasos y los filma con chequeos.",
+    "step3_title": "Corre solo",
+    "step3_body": "Después de cada deploy, con un horario o cuando tocás Correr. Cada corrida deja un video y un pasó o falló.",
+    "cta": "Escribí tu primer caso"
+  },
+  "env_form": {
+    "new_title": "Nuevo entorno",
+    "edit_title": "Editar {name}",
+    "name": "Nombre",
+    "name_placeholder": "Staging",
+    "name_required": "Ponele un nombre.",
+    "base_url": "Dirección",
+    "base_url_placeholder": "https://staging.ejemplo.com",
+    "url_invalid": "Escribí una dirección completa que empiece con http:// o https://.",
+    "hosts": "Otros sitios que puede abrir",
+    "hosts_hint": "uno por línea: proveedor de login, CDN",
+    "hosts_placeholder": "auth.ejemplo.com",
+    "logins": "Logins de prueba",
+    "logins_hint": "Cuentas que el agente y las corridas escriben cuando la app las pide. Usá solo cuentas de prueba: una vez guardado, nadie puede volver a leer el valor.",
+    "login_add": "Agregar login de prueba",
+    "login_drop": "Quitar",
+    "login_name": "Nombre",
+    "login_name_placeholder": "ADMIN_PASSWORD",
+    "login_value": "Valor",
+    "login_value_placeholder": "Valor",
+    "login_new_value": "Valor nuevo",
+    "login_new_value_aria": "Valor nuevo para {name}",
+    "login_remove": "Quitar",
+    "login_removing": "Se quita al guardar",
+    "login_replace": "Reemplazar",
+    "login_set": "••• cargado",
+    "login_undo": "Deshacer",
+    "login_invalid": "Cada login de prueba necesita un nombre (mayúsculas, números y _) y un valor.",
+    "schedule": "Horario",
+    "repeat": "Repetir",
+    "time": "A las",
+    "minute": "Minuto",
+    "cron": "Cron",
+    "cron_hint": "minuto hora día mes día de la semana",
+    "cron_invalid": "Escribí cinco campos separados por espacios, por ejemplo 0 9 * * 1-5.",
+    "timezone": "Zona horaria",
+    "preview": "Corre: {label}",
+    "preview_off": "Corre solo cuando alguien lo arranca o después de un deploy.",
+    "deploy": "Después de un deploy",
+    "deploy_on": "Correr todos los casos grabados después de un deploy exitoso en GitHub",
+    "hook": "Desde tu CI",
+    "hook_after_save": "Guardá el entorno para tener su id. El comando va a quedar así:",
+    "hook_hint": "Cualquier pipeline puede arrancar las corridas con este comando. Guardá una API key en OCTOPUS_API_KEY.",
+    "hook_copy_label": "el comando para el CI",
+    "hook_key_link": "Crear una API key (se abre en otra pestaña)",
+    "created": "{name} agregado.",
+    "saved": "{name} guardado.",
+    "kind": "Dónde corre",
+    "kind_project": "Un entorno de un proyecto",
+    "kind_project_hint": "Corre los casos del proyecto y los que no tienen proyecto, y aparece en la página del proyecto.",
+    "kind_standalone": "Otro sitio",
+    "kind_standalone_hint": "Cualquier dirección. Acá puede correr cualquier caso.",
+    "slug": "Nombre corto",
+    "slug_hint": "en minúsculas, no se cambia",
+    "slug_invalid": "Usá minúsculas, números, puntos, guiones o _, empezando con letra o número (40 como máximo).",
+    "production": "Es producción",
+    "production_hint": "Solo quienes administran el espacio de trabajo pueden cambiar un entorno de producción, y las corridas no lo eligen solas.",
+    "production_on_project": "Marcalo como producción en la página del proyecto.",
+    "production_on_project_ask": "Solo quienes administran el espacio de trabajo pueden marcarlo como producción, en la página del proyecto.",
+    "sandbox_title": "Sandbox de {project}",
+    "sandbox_lead": "El Sandbox arranca de cero en cada tanda con el script de inicio del proyecto. Acá elegís los otros sitios que puede abrir y los logins de prueba.",
+    "deploy_info": "Escucha los deploys de {repo} al entorno de GitHub {environment}.",
+    "deploy_new": "Escucha los deploys del repositorio del proyecto al entorno de GitHub con este nombre corto.",
+    "delete_on_project": "Este entorno es del proyecto. Borralo desde ahí.",
+    "delete_on_project_link": "Abrir la página del proyecto",
+    "schedule_project": "Casos de",
+    "schedule_project_all": "Todos los proyectos",
+    "schedule_tag": "Con la etiqueta",
+    "schedule_tag_hint": "vacío corre todas",
+    "hook_id_placeholder": "ID_DEL_ENTORNO"
+  },
+  "envs": {
+    "delete_aria": "Borrar {name}",
+    "delete_title": "¿Borrar {name}?",
+    "delete_message": "Se cortan su horario y sus corridas después de cada deploy. No se puede deshacer.",
+    "deleted": "{name} borrado.",
+    "empty_title": "Todavía no hay entornos",
+    "empty_body": "Un entorno es una copia de tu app donde corren los casos, como staging o producción. Agregá uno para grabar y correr casos.",
+    "intro": "Dónde corren tus casos y cuándo corren solos.",
+    "logins_count": {
+      "one": "{count} login de prueba",
+      "other": "{count} logins de prueba"
+    },
+    "no_logins": "Sin logins de prueba",
+    "manual_only": "Corre solo cuando alguien lo arranca",
+    "never_ran": "Todavía no corrió nada acá.",
+    "new": "Nuevo entorno",
+    "run_here": "Correr todo acá",
+    "view": "Ver",
+    "label_with_project": "{env} · {project}",
+    "no_url": "Todavía sin dirección",
+    "open_project": "Abrir proyecto",
+    "other": "Otros sitios",
+    "other_hint": "Sitios fuera de tus proyectos. Acá puede correr cualquier caso.",
+    "production": "Producción",
+    "production_note": "Solo quienes administran el espacio de trabajo pueden cambiar un entorno de producción.",
+    "project_empty": "Este proyecto todavía no tiene entornos.",
+    "schedule_scope": {
+      "all": {
+        "one": "Corre el caso grabado de todos los proyectos.",
+        "other": "Corre los {count} casos grabados de todos los proyectos."
+      },
+      "project": {
+        "one": "Corre el caso grabado de {project}.",
+        "other": "Corre los {count} casos grabados de {project}."
+      },
+      "tag": {
+        "one": "Corre el caso grabado con la etiqueta {tag}.",
+        "other": "Corre los {count} casos grabados con la etiqueta {tag}."
+      },
+      "project_tag": {
+        "one": "Corre el caso grabado de {project} con la etiqueta {tag}.",
+        "other": "Corre los {count} casos grabados de {project} con la etiqueta {tag}."
+      }
+    },
+    "schedule_scope_none": {
+      "all": "Todavía no hay casos grabados: el horario no va a correr nada hasta que grabes uno.",
+      "project": "{project} no tiene casos grabados: el horario no va a correr nada hasta que tenga uno.",
+      "tag": "Ningún caso grabado tiene la etiqueta {tag}: el horario no va a correr nada. Revisá la etiqueta.",
+      "project_tag": "Ningún caso grabado de {project} tiene la etiqueta {tag}: el horario no va a correr nada. Revisá la etiqueta."
+    },
+    "delete_confirm": "Borrar entorno"
+  },
+  "errors": {
+    "add_to_library": "No se pudo agregar a la biblioteca.",
+    "cancel": "No se pudo cancelar.",
+    "case_gone": "{key} ya no existe.",
+    "delete_case": "No se pudo borrar el caso.",
+    "delete_env": "No se pudo borrar el entorno.",
+    "load_case": "No se pudo cargar el caso.",
+    "load_cases": "No se pudieron cargar los casos.",
+    "load_envs": "No se pudieron cargar los entornos.",
+    "load_runs": "No se pudieron cargar las corridas.",
+    "record": "No se pudo arrancar la grabación.",
+    "refresh": "No se pudo actualizar: {error}",
+    "run": "No se pudieron arrancar las corridas.",
+    "save_case": "No se pudo guardar el caso.",
+    "save_env": "No se pudo guardar el entorno.",
+    "save_logins": "El entorno quedó guardado, pero los logins de prueba no: {error}"
+  },
+  "filters": {
+    "all_projects": "Todos los proyectos",
+    "all_tags": "Todas las etiquetas",
+    "aria": "Filtros",
+    "clear": "Limpiar filtros",
+    "project": "Proyecto",
+    "search": "Buscar",
+    "search_placeholder": "Clave, título o palabras del caso",
+    "tag": "Etiqueta",
+    "env": "Entorno",
+    "any_env": "Cualquier entorno",
+    "all_on": "Todos en {env}",
+    "priority": "Prioridad",
+    "any_priority": "Cualquier prioridad",
+    "add_tag": "Sumar etiqueta",
+    "remove_tag": "Quitar la etiqueta {tag}",
+    "tags_aria": "Etiquetas elegidas",
+    "tags_all": "Muestra los casos que tienen todas estas etiquetas.",
+    "sort": "Orden",
+    "sort_newest": "Más nuevos primero",
+    "sort_priority": "Prioridad",
+    "sort_status": "Estado"
+  },
+  "kbd": {
+    "close": "Cerrar, o limpiar la búsqueda",
+    "new_case": "Nuevo caso"
+  },
+  "pickers": {
+    "no_envs": "Todavía no hay entornos. Agregá uno primero: ahí se graban y corren los casos.",
+    "none_for_case": "Ningún entorno corre este caso. Agregá uno a su proyecto o agregá otro sitio."
+  },
+  "record": {
+    "title": "Grabar con agente",
+    "env": "Dónde grabar",
+    "agent": "Agente",
+    "agent_auto": "Elegí uno por mí",
+    "agent_hint": "uno con etapa de chat; la grabación le suma el navegador",
+    "lead": "Un agente abre la app, sigue los pasos de {key} · {title} y los filma. Podés mirarlo y guiarlo en el chat.",
+    "lead_again": "Un agente vuelve a grabar {key} · {title} y reemplaza la grabación actual.",
+    "note": "Cuando el agente guarda, el caso corre una vez en el mismo entorno para que veas si pasa.",
+    "start": "Empezar a grabar",
+    "starting": "Arrancando…",
+    "started": "El agente está grabando {key} en {env}. Seguilo en el chat.",
+    "agent_no_key": "{name} (sin credencial de modelo)",
+    "auto_picks": "Va a grabar {name}.",
+    "no_agent": "Ningún agente tiene la etapa de chat, que hace falta para grabar.",
+    "go_agents": "Abrir Agentes",
+    "no_credential": "{name} no tiene una credencial de modelo.",
+    "go_credentials": "Abrir Motores de IA",
+    "agent_no_prompt": "{name} (sin prompt de chat)",
+    "no_prompt": "{name} no tiene prompt para la etapa Chat, y la grabación arranca con un chat.",
+    "go_prompts": "Cargar el prompt"
+  },
+  "redirect": {
+    "title": "QA ahora es Evidencia",
+    "moved": "QA ahora es Evidencia.",
+    "link": "Ir a Evidencia"
+  },
+  "run": {
+    "title": "Correr en un entorno",
+    "env": "Correr en",
+    "lead_case": "Corre {key} · {title} sin agente y deja un video.",
+    "lead_list": {
+      "one": "Corre el caso grabado de la lista.",
+      "other": "Corre los {count} casos grabados de la lista."
+    },
+    "lead_list_skipped": {
+      "one": "1 caso grabado de la lista no corre en este entorno y queda afuera.",
+      "other": "{count} casos grabados de la lista no corren en este entorno y quedan afuera."
+    },
+    "lead_list_drafts": {
+      "one": "Falta grabar 1 caso, que se saltea.",
+      "other": "Faltan grabar {count} casos, que se saltean."
+    },
+    "lead_env": "Corre todos los casos grabados en el entorno que elijas.",
+    "nothing": "No hay nada para correr en {env}: ningún caso grabado coincide.",
+    "start": "Correr",
+    "starting": "Arrancando…",
+    "started": {
+      "one": "Arrancó 1 corrida en {env}.",
+      "other": "Arrancaron {count} corridas en {env}."
+    },
+    "branch": "Rama",
+    "branch_hint": "El Sandbox arranca desde esta rama.",
+    "branch_required": "Escribí la rama desde donde arrancar."
+  },
+  "runs": {
+    "all_envs": "Todos los entornos",
+    "env_filter": "Entorno",
+    "live": "Actualizando en vivo",
+    "cancel": "Cancelar",
+    "cancel_title": "¿Cancelar estas corridas?",
+    "cancel_message": "Las corridas que no arrancaron se cancelan. La que está corriendo termina.",
+    "cancel_confirm": "Cancelar corridas",
+    "canceling": "Cancelando…",
+    "canceled": "Cancelado.",
+    "checks_short": "{passed}/{total} chequeos",
+    "empty_title": "Todavía no corrió nada",
+    "empty_body": "Las corridas aparecen acá cuando alguien las arranca, con un horario, después de un deploy o desde tu CI.",
+    "no_runs": "Esta tanda no tiene corridas.",
+    "open": "Abrir",
+    "watch": "Ver video",
+    "unknown_env": "Entorno borrado"
+  },
+  "saving": "Guardando…",
+  "schedule": {
+    "off": "Apagado",
+    "hourly": "Cada hora",
+    "daily": "Todos los días a las…",
+    "weekdays": "De lunes a viernes a las…",
+    "custom": "A medida (cron)",
+    "label_off": "Apagado",
+    "label_hourly": "Cada hora",
+    "label_hourly_at": "Cada hora a los :{minute}",
+    "label_daily": "Todos los días a las {time} ({tz})",
+    "label_weekdays": "De lunes a viernes a las {time} ({tz})",
+    "label_custom": "{cron} ({tz})"
+  },
+  "tasks": {
+    "intro": "Los casos de prueba escritos dentro de las tareas. Agregá a la biblioteca los que valga la pena conservar, así corren en cada entorno.",
+    "aria": {
+      "status_totals": "Totales por estado",
+      "filter_by_status": "Filtrar por estado"
+    },
+    "filters": {
+      "board": "Tablero",
+      "all_boards": "Todos los tableros",
+      "search_placeholder": "Clave, título o tarea",
+      "uncovered_only": "Solo sin cubrir"
+    },
+    "panel": "Casos de prueba",
+    "columns": {
+      "title": "Título",
+      "status": "Estado",
+      "covered": "Cubierto",
+      "last_run": "Última corrida",
+      "runs": "Corridas"
+    },
+    "showing": "Mostrando {shown} de {total} · {covered} cubiertos",
+    "covered_note": "{covered} de {total} cubiertos",
+    "no_matches": "Ningún caso de prueba coincide con estos filtros.",
+    "none_yet": "Todavía no hay casos de prueba. Agregalos desde el panel de una tarea.",
+    "load_failed": "No se pudieron cargar los casos de prueba.",
+    "adding": "Agregando…",
+    "added": "Quedó en la biblioteca como {key}. Falta que un agente lo grabe.",
+    "added_recorded": "Quedó en la biblioteca como {key}, con su grabación."
+  },
+  "trigger": {
+    "manual": "A mano",
+    "manual_by": "La corrió {who}",
+    "schedule": "Por horario",
+    "deploy": "Después de un deploy",
+    "deploy_ref": "Después del deploy {ref}",
+    "api": "Desde el CI",
+    "recording": "Primera corrida después de grabar",
+    "recording_by": "Primera corrida después de que {who} lo grabó"
+  },
+  "can": {
+    "viewer": "Con tu rol podés mirar pero no cambiar nada acá.",
+    "production": "Solo quienes administran el espacio de trabajo pueden cambiar producción.",
+    "admin_only": "Solo quienes administran el espacio de trabajo pueden hacer esto.",
+    "delete_on_project": "Borralo desde la página del proyecto.",
+    "sandbox_fixed": "El Sandbox viene con el proyecto y no se borra.",
+    "sandbox_no_record": "El Sandbox dura una tanda. Grabá en un entorno con dirección.",
+    "no_url": "Todavía no tiene dirección.",
+    "no_init_script": "El proyecto no tiene script de inicio, así que el Sandbox no puede arrancar.",
+    "no_preview_port": "El script de inicio no dice en qué puerto escucha la app.",
+    "sandbox_unavailable": "El Sandbox no puede arrancar ahora.",
+    "repo_not_github": "Correr después de un deploy funciona solo con repositorios de GitHub.",
+    "unknown": "No podés hacer esto acá."
+  },
+  "picker": {
+    "label": "Proyecto",
+    "option": {
+      "one": "{project} ({count} caso)",
+      "other": "{project} ({count} casos)"
+    },
+    "with_unassigned": {
+      "one": "También muestra 1 caso sin proyecto.",
+      "other": "También muestra {count} casos sin proyecto."
+    },
+    "no_project": "Sin proyecto",
+    "cases_count": {
+      "one": "{count} caso",
+      "other": "{count} casos"
+    }
+  },
+  "link": {
+    "action": "Pasar a un proyecto",
+    "action_aria": "Pasar {name} a un proyecto",
+    "title": "Pasar a un entorno de proyecto",
+    "lead": "{name} pasa a ser el entorno que elijas y conserva sus corridas, logins de prueba y horario.",
+    "target": "Entorno del proyecto",
+    "hint": "Solo entornos que todavía no corrieron.",
+    "option_ran": "{env} (ya tiene corridas)",
+    "none": "Todos los entornos de proyecto ya tienen corridas. Primero agregá uno nuevo en la página del proyecto.",
+    "save": "Pasar",
+    "done": "{name} pasó al proyecto."
+  },
+  "sandbox": {
+    "name": "Sandbox",
+    "badge": "A pedido",
+    "about": "Una copia nueva de {project} para cada tanda, desde la rama que elijas. Se borra cuando termina la tanda.",
+    "default_branch": "Arranca desde {branch} salvo que elijas otra rama",
+    "port": "App en el puerto {port}",
+    "run": "Correr en una rama",
+    "option_sub": "Copia nueva desde {branch}",
+    "write_script": "Escribir el script de inicio",
+    "edit_script": "Arreglar el script de inicio",
+    "ask_admin_write": "Pedile a quien administra el espacio de trabajo que lo escriba.",
+    "ask_admin_fix": "Pedile a quien administra el espacio de trabajo que lo arregle.",
+    "starting": "Levantando el Sandbox",
+    "steps_aria": "Levantando el Sandbox",
+    "phase_room": "Consiguiendo una máquina",
+    "phase_source": "Bajando el código",
+    "phase_setup": "Corriendo el script de inicio",
+    "phase_start": "Arrancando la app",
+    "failed_short": "No levantó",
+    "failed_title": "El Sandbox no levantó, así que no corrió ningún caso.",
+    "failed_unknown": "El Sandbox se cortó antes de que la app respondiera.",
+    "failed_note": "Revisá el script de inicio y probá de nuevo.",
+    "failed_note_ask": "Pedile a quien administra el espacio de trabajo que revise el script de inicio, y probá de nuevo.",
+    "failed_note_branch": "Revisá que la rama exista y probá de nuevo.",
+    "failed_note_busy": "Todos los sandboxes estaban ocupados. Probá de nuevo en unos minutos.",
+    "failed_note_octopus": "El problema está del lado de Thulu. Probá de nuevo, y si vuelve a fallar, avisale a quien administra Thulu.",
+    "show_log": "Ver lo que imprimió el script de inicio",
+    "show_details": "Ver detalles",
+    "retry": "Probar de nuevo",
+    "retried": "Probando de nuevo en {env}.",
+    "source_title": "Código de la rama {branch}",
+    "not_run": "Sin correr",
+    "not_run_count": {
+      "one": "1 caso sin correr",
+      "other": "{count} casos sin correr"
+    },
+    "queued": {
+      "one": "1 corrida espera que el Sandbox arranque desde {branch}.",
+      "other": "{count} corridas esperan que el Sandbox arranque desde {branch}."
+    }
+  },
+  "cause": {
+    "browser_image": "Thulu no pudo bajar la imagen del navegador; avisale a quien administra la instalación.",
+    "runner_start": "Thulu no pudo arrancar el runner; avisale a quien administra la instalación.",
+    "runner_exit": "El runner se cortó antes de terminar. Probá correrlo de nuevo; si se repite, avisale a quien administra la instalación.",
+    "deadline": "La tanda pasó su tiempo límite y se cortó.",
+    "daemon_restarted": "Thulu se reinició mientras corría esta tanda. Correlo de nuevo.",
+    "runner_lost": "El runner se detuvo antes de terminar esta corrida. Correlo de nuevo."
+  }
+}

@@ -1,0 +1,47 @@
+---
+// Markup must match fileRowHTML() in lib/ui/catalog.ts.
+import Dot from "./Dot.astro";
+import ListRow from "./ListRow.astro";
+import {
+  fileRowRow,
+  fileStatusClasses,
+  type FileRowVariant,
+  type FileTone,
+} from "../lib/ui/catalog";
+
+interface Props {
+  label: string;
+  labelMono?: boolean;
+  status?: string;
+  tone?: FileTone;
+  statusMono?: boolean;
+  variant?: FileRowVariant;
+  as?: "div" | "li";
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  label,
+  labelMono,
+  status,
+  tone,
+  statusMono,
+  variant,
+  as,
+  class: extra,
+  ...rest
+} = Astro.props;
+const row = fileRowRow({ label, labelMono, status, tone, statusMono, variant, as, cls: extra });
+---
+
+<ListRow as={row.as} boxed={row.boxed} title={row.title} mono={row.mono} class={row.cls} {...rest}>
+  {
+    status !== undefined && (
+      <span slot="meta" class={fileStatusClasses(statusMono)} data-tone={tone}>
+        {tone && <Dot tone={tone} />}
+        <span class="file-status-text">{status}</span>
+      </span>
+    )
+  }
+  <slot name="actions" slot="actions" />
+</ListRow>

@@ -1,0 +1,333 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-width: 0;
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+a.row {
+  text-decoration: none;
+}
+button.row {
+  width: 100%;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+a.row:hover,
+button.row:hover,
+.row-reveal:hover {
+  background: var(--surface-2);
+}
+a.row:focus-visible,
+button.row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+button.row:disabled {
+  cursor: default;
+  color: var(--fg-3);
+}
+button.row:disabled:hover {
+  background: none;
+}
+
+.row[aria-current]:not([aria-current="false"]),
+.row[aria-selected="true"] {
+  background: var(--surface-2);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.row-boxed {
+  border: 1px solid var(--line);
+  background: var(--surface-1);
+}
+.row-boxed + .row-boxed {
+  margin-top: var(--s-2);
+}
+
+.row-group-boxed {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-1);
+}
+.row-group-boxed-edge {
+  border-inline-start: 3px solid var(--row-edge, var(--fg-5));
+}
+.row-group-boxed > .row {
+  border-radius: 0;
+}
+
+.row-sm {
+  gap: var(--s-2);
+  min-height: var(--control-h-lg);
+  padding: var(--s-1) var(--s-2);
+}
+.row-sm .row-title {
+  font-size: var(--t-sm);
+}
+.row-sm .row-meta {
+  font-size: var(--t-xs);
+}
+
+.row-wrap .row-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: var(--lh-snug);
+}
+
+.row-wrap-all .row-title {
+  display: block;
+  -webkit-line-clamp: none;
+  line-clamp: none;
+}
+
+.row-clamp-1 .row-meta,
+.row-clamp-2 .row-meta {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.row-clamp-1 .row-meta {
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+}
+.row-clamp-2 .row-meta {
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.row-inline .row-main {
+  flex-direction: row;
+  align-items: baseline;
+  gap: var(--s-3);
+}
+.row-inline .row-top {
+  flex: 0 1 auto;
+}
+.row-inline .row-top:not(:last-child) {
+  max-width: 70%;
+}
+.row-inline .row-meta {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row-dim .row-title,
+.row-dim .row-lead {
+  color: var(--fg-3);
+}
+.row-dim .row-meta {
+  color: var(--fg-4);
+}
+
+.row-caret,
+.row-lead {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  color: var(--fg-3);
+}
+.row-caret .ico {
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.row[aria-expanded="true"] .row-caret .ico {
+  transform: rotate(90deg);
+}
+.row-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: calc(var(--s-1) / 2);
+  min-width: 0;
+}
+.row-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+  min-width: 0;
+}
+.row-title {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--t-md);
+  color: var(--fg);
+}
+.row > .row-title {
+  flex: 1;
+}
+.row-title-mono {
+  font-family: var(--font-mono);
+  font-size: var(--t-sm);
+}
+a.row-title {
+  text-decoration: none;
+}
+a.row-title:hover {
+  text-decoration: underline;
+}
+a.row-title:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+.row-meta {
+  color: var(--fg-3);
+  font-size: var(--t-sm);
+  line-height: var(--lh-snug);
+  overflow-wrap: anywhere;
+}
+.row-meta a {
+  color: var(--accent);
+}
+.row-meta a:hover {
+  text-decoration: none;
+}
+.row-meta a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+.row-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1);
+  margin-top: var(--s-1);
+}
+.row-aside {
+  flex: none;
+  color: var(--fg-3);
+  font-size: var(--t-sm);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+.row-actions {
+  flex: none;
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--s-2);
+}
+
+.row-reveal .row-actions {
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+.row-reveal:hover .row-actions,
+.row-reveal:focus-within .row-actions {
+  opacity: 1;
+}
+@media (hover: none) {
+  .row-reveal .row-actions {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .row:not(.row-sm):has(> .row-actions) {
+    flex-wrap: wrap;
+  }
+  .row:not(.row-sm) > .row-actions {
+    flex-basis: 100%;
+    justify-content: flex-start;
+  }
+}
+
+.row-detail {
+  padding: var(--s-3) var(--s-4);
+  background: var(--surface-2);
+  font-size: var(--t-sm);
+}
+
+.row-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.row-list > .row:not(.row-boxed) {
+  border-radius: 0;
+}
+.row-list > :not(.row-boxed) + :not(.row-boxed) {
+  border-top: 1px solid var(--line-soft);
+}
+
+.group-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-3);
+  min-width: 0;
+  padding: var(--s-2) var(--s-4);
+  color: var(--fg-3);
+  font-size: var(--t-sm);
+  text-align: start;
+}
+.group-head-band {
+  background: var(--surface-2);
+  border-block: 1px solid var(--line);
+}
+.group-head > .ico {
+  flex: none;
+}
+.group-head-title {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--fg);
+}
+.group-head-link {
+  color: inherit;
+  text-decoration: none;
+}
+.group-head-link:hover {
+  text-decoration: underline;
+}
+.group-head-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+.group-head-kicker {
+  margin-inline-end: var(--s-1);
+  font-weight: 400;
+  color: var(--fg-3);
+}
+.group-head-meta {
+  font-variant-numeric: tabular-nums;
+}
+.group-head-extra {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+  margin-inline-start: auto;
+}
+.group-head-row > th {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-weight: 400;
+}

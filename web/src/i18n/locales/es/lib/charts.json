@@ -1,0 +1,17 @@
+{
+  "delta": {
+    "no_previous": "sin ventana anterior",
+    "vs_previous": "{arrow} {pct}% contra la anterior"
+  },
+  "columns": {
+    "group": "Grupo",
+    "value": "Valor"
+  },
+  "empty": {
+    "unknown_type": "tipo de gráfico desconocido \"{type}\"",
+    "no_data": "no hay datos en esta ventana"
+  },
+  "range": {
+    "last": "últimas {span}"
+  }
+}

@@ -1,0 +1,65 @@
+---
+// Markup must match chipHTML() in lib/ui/toolbar.ts.
+import Count from "./Count.astro";
+import Dot from "./Dot.astro";
+import Icon from "./Icon.astro";
+import { type DotTone } from "../lib/ui/badge";
+import { chipA11y, chipClasses, type ChipSize } from "../lib/ui/toolbar";
+
+interface Props {
+  label: string;
+  labelId?: string;
+  size?: ChipSize;
+  pressed?: boolean;
+  menu?: boolean;
+  controls?: string;
+  expanded?: boolean;
+  active?: boolean;
+  icon?: string;
+  dot?: DotTone;
+  count?: number | string;
+  countId?: string;
+  hideZero?: boolean;
+  disabled?: boolean;
+  title?: string;
+  id?: string;
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  label,
+  labelId,
+  size = "sm",
+  pressed,
+  menu = false,
+  controls,
+  expanded = false,
+  active = false,
+  icon,
+  dot,
+  count,
+  countId,
+  hideZero = false,
+  disabled = false,
+  title,
+  id,
+  class: extra,
+  ...rest
+} = Astro.props;
+---
+
+<button
+  {id}
+  class={chipClasses({ size, menu, active, cls: extra })}
+  type="button"
+  {...chipA11y({ menu, pressed, controls, expanded })}
+  {title}
+  {disabled}
+  {...rest}
+>
+  {icon && <Icon name={icon} size="sm" />}
+  {dot && <Dot tone={dot} />}
+  <span class="chip-label" id={labelId}>{label}</span>
+  {count !== undefined && <Count n={count} class="chip-count" id={countId} hideZero={hideZero} />}
+  {menu && <Icon name="chevron-down" size="sm" class="chip-chevron" />}
+</button>

@@ -1,0 +1,16 @@
+{
+  "name": "octopus-api",
+  "version": "0.1.0",
+  "description": "Thulu MCP server: wrapper over the Thulu REST API",
+  "license": "AGPL-3.0-only",
+  "private": true,
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "express": "^4.21.1"
+  }
+}

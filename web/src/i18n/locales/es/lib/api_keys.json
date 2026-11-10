@@ -1,0 +1,75 @@
+{
+  "groups": {
+    "tasks": "Tareas",
+    "flows": "Tableros y etapas",
+    "projects": "Proyectos",
+    "agents": "Agentes",
+    "runs": "Corridas y uso",
+    "credentials": "Credenciales",
+    "settings": "Configuración",
+    "members": "Miembros"
+  },
+  "extras": {
+    "mint_keys": "Emitir claves",
+    "mint_keys_hint": "Permite que esta clave cree otras claves",
+    "service_routes": "Rutas de servicio",
+    "service_routes_hint": "Las rutas /internal/* que llaman los servidores MCP de los agentes"
+  },
+  "labels": {
+    "read": "{group}: lectura",
+    "write": "{group}: escritura",
+    "expires": "Vence el {date}",
+    "no_expiry": "No vence",
+    "expired": "Venció el {date}",
+    "created_by": "emitida por {email}",
+    "last_used": "último uso: {date}",
+    "never_used": "nunca",
+    "grace_until": "La reemplazó otra; funciona hasta el {date}",
+    "replaced_on": "Dejó de funcionar el {date}, al rotarla"
+  },
+  "errors": {
+    "expiry_not_whole": "El vencimiento tiene que ser un número entero de días.",
+    "expiry_over_cap": {
+      "one": "Esta instalación limita las API keys a {count} día (OCTOPUS_API_KEY_MAX_TTL).",
+      "other": "Esta instalación limita las API keys a {count} días (OCTOPUS_API_KEY_MAX_TTL)."
+    },
+    "expiry_under_day": "Esta instalación limita las API keys a menos de un día (OCTOPUS_API_KEY_MAX_TTL); dejá el vencimiento en blanco."
+  },
+  "hints": {
+    "no_cap": "Esta instalación no pone tope (OCTOPUS_API_KEY_MAX_TTL=0): dejá el vencimiento en blanco para una clave que no vence nunca.",
+    "under_day": "En esta instalación las claves duran menos de un día; dejá el vencimiento en blanco.",
+    "cap": {
+      "one": "En esta instalación las claves duran como máximo {count} día; en blanco significa el máximo.",
+      "other": "En esta instalación las claves duran como máximo {count} días; en blanco significa el máximo."
+    },
+    "cap_unknown": "Dejalo en blanco para el máximo de la instalación (90 días salvo que OCTOPUS_API_KEY_MAX_TTL diga otra cosa)."
+  },
+  "granted": {
+    "nothing": "nada",
+    "never": "{role} en este espacio de trabajo · {granted} · no vence nunca.",
+    "expires": "{role} en este espacio de trabajo · {granted} · vence el {date}."
+  },
+  "summary": {
+    "everything": "Todo",
+    "none": "sin permisos",
+    "read": "Lectura: {groups}",
+    "write": "Escritura: {groups}"
+  },
+  "rotate": {
+    "grace_none": "Termina ya",
+    "grace_hours": {
+      "one": "{count} hora",
+      "other": "{count} horas"
+    },
+    "grace_days": {
+      "one": "{count} día",
+      "other": "{count} días"
+    },
+    "old_revoked": "La clave anterior ya no funciona.",
+    "old_until": "La clave anterior funciona hasta el {date}; cambiala donde esté configurada antes de esa hora."
+  },
+  "run": {
+    "expires_in": "vence {when}",
+    "expired": "vencida"
+  }
+}

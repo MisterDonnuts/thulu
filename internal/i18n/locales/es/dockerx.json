@@ -1,0 +1,13 @@
+{
+  "log": {
+    "driver_lookup_failed": "falló la consulta del driver de logs; los logs de los contenedores no se rotan: {err}",
+    "invalid_option": "{key}={value:%q} no es válido; se usa {default}",
+    "close_install_id_dir": "cerrar el directorio del id de la instalación"
+  },
+  "errors": {
+    "install_id_dir": "abrir el directorio de datos para el id de la instalación",
+    "install_id_read": "leer el id de la instalación",
+    "install_id_generate": "generar el id de la instalación",
+    "install_id_save": "guardar el id de la instalación"
+  }
+}

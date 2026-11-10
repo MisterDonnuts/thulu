@@ -1,0 +1,50 @@
+---
+// Markup must match crumbsHTML() in lib/ui/page-head.ts.
+import Icon from "./Icon.astro";
+import {
+  checkCrumbs,
+  crumbClasses,
+  crumbsClasses,
+  crumbsLabel,
+  type Crumb,
+  type CrumbsSize,
+} from "../lib/ui/page-head";
+
+interface Props {
+  crumbs: Crumb[];
+  label?: string;
+  id?: string;
+  size?: CrumbsSize;
+  line?: boolean;
+}
+const { crumbs, label, id, size, line } = Astro.props;
+checkCrumbs(crumbs);
+---
+
+<nav class={crumbsClasses({ size, line })} id={id} aria-label={crumbsLabel(label)}>
+  <ol class="crumbs-list">
+    {
+      crumbs.map((c, i) => (
+        <li class={crumbClasses(c)}>
+          {i > 0 && <Icon name="chevron-right" size="sm" class="crumb-sep" />}
+          {c.href ? (
+            <a href={c.href} id={c.id} {...c.attrs}>
+              {c.label}
+            </a>
+          ) : (
+            <span id={c.id} aria-current="page" {...c.attrs}>
+              {c.label}
+            </span>
+          )}
+        </li>
+      ))
+    }
+  </ol>
+  {
+    Astro.slots.has("action") && (
+      <span class="crumbs-action">
+        <slot name="action" />
+      </span>
+    )
+  }
+</nav>

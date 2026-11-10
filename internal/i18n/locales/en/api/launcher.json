@@ -1,0 +1,30 @@
+{
+  "errors": {
+    "missing_instance_id": "kubelauncher: env is missing INSTANCE_ID",
+    "run_not_tracked": "kubelauncher: run {run} is not tracked by this daemon",
+    "ensure_namespace": "kubelauncher: ensure namespace",
+    "steer_exec_create": "steer exec create",
+    "steer_exec_attach": "steer exec attach",
+    "steer_write": "steer write",
+    "steer_drain": "steer drain",
+    "steer_exec_exited": "steer exec exited {code}",
+    "browser_image": "per-run browser image {image}",
+    "browser_create": "create the per-run browser for agent container {agent}",
+    "browser_start": "start the per-run browser for agent container {agent}"
+  },
+  "log": {
+    "container_exited": "container {id} exited ({code}, {reason}) outDir={dir}",
+    "reap_failed": "reap agent container {id}: {err}",
+    "reaped": "reaped agent container {id}",
+    "inspect_failed": "inspect exited container {id}: {err}",
+    "no_output_dir": "no run output dir for container {id} (instance {instance:%q}, runs root {root:%q})",
+    "copy_out_failed": "copy-out outputs for {id}: {err}",
+    "copy_out_exited": "copy-out outputs of exited container {id}",
+    "steer_half_close": "[task] half-close steer exec stdin",
+    "delete_pod_failed": "delete pod {namespace}/{pod} after exit: {err}",
+    "read_logs_failed": "read logs for {namespace}/{pod}: {err}",
+    "drain_logs_failed": "drain logs for {namespace}/{pod}: {err}",
+    "browser_list_failed": "list per-run browser containers: {err}",
+    "browser_remove_failed": "remove per-run browser container {id}: {err}"
+  }
+}

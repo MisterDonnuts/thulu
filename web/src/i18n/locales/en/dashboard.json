@@ -1,0 +1,70 @@
+{
+  "title": "Dashboard",
+  "subtitle": "Agents work each stage; a person decides what merges.",
+  "buttons": {
+    "open_board": "Open board"
+  },
+  "metrics": {
+    "open_tasks": "Open tasks",
+    "live_runs": "Active runs",
+    "cost_all_time": "Cost · all time",
+    "rate_limit": "Rate limit",
+    "tasks_sub": "{in_progress} in progress · {review} in review",
+    "runs_sub": {
+      "one": "{total} total · {count} finished",
+      "other": "{total} total · {count} finished"
+    },
+    "cost_sub": "{sessions} · {tokens} tok without cache",
+    "sessions": {
+      "one": "{count} session",
+      "other": "{count} sessions"
+    },
+    "rate": {
+      "high": "near limit",
+      "mid": "warming up",
+      "low": "plenty of room",
+      "none": "no data from the engine"
+    },
+    "runs_month": "Runs this month",
+    "aria": "Workspace at a glance"
+  },
+  "panels": {
+    "runs": "Runs",
+    "recent_tasks": "Recent tasks",
+    "view_all": "View all",
+    "usage": "Usage"
+  },
+  "first_steps": {
+    "title": "First steps",
+    "all": "Full checklist",
+    "intro": "What this workspace still needs before an agent can work. Each step links to the page where you finish it.",
+    "until_then": "Until then: {effect}"
+  },
+  "agents": {
+    "stopped": "Stopped {name}",
+    "stop_failed": "Couldn't stop {name}",
+    "removed": "Removed {name}",
+    "remove_failed": "Couldn't remove {name}",
+    "stop_short": "Stop",
+    "remove_short": "Remove",
+    "stop_named": "Stop {name}",
+    "remove_named": "Remove {name}",
+    "none": "No runs",
+    "exit": "exit {code}",
+    "running": "running",
+    "fallback_name": "agent"
+  },
+  "tasks": {
+    "empty": "No tasks yet.",
+    "open_board": "Open the board"
+  },
+  "usage": {
+    "tokens_uncached": "Tokens (no cache)",
+    "output": "Output",
+    "total_cost": "Total cost",
+    "avg_cost": "Avg / session",
+    "sessions": "Sessions",
+    "turns": "Turns",
+    "empty": "No usage data yet"
+  }
+}

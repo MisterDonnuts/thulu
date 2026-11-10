@@ -1,0 +1,28 @@
+{
+  "summary": {
+    "one": "Aprobaciones requeridas · {count}",
+    "other": "Aprobaciones requeridas · {count}"
+  },
+  "intro": "Cada tarea que entra a esta etapa recibe una aprobación por fila, y no puede avanzar hasta que cada una esté aprobada o salteada. Decide cualquier Developer; la etiqueta dice a quién le toca.",
+  "label_placeholder": "Etiqueta, por ejemplo Diseño",
+  "key_placeholder": "clave",
+  "key_title": "Identificador, minúsculas [a-z0-9_]. Si lo dejás vacío, sale de la etiqueta",
+  "reset": "Reiniciar con commits nuevos",
+  "reset_title": "Una corrida de agente que deja commits nuevos en esta etapa vuelve la aprobación a pendiente",
+  "types": "Sólo para:",
+  "types_title": "Tipos de tarea a los que aplica. Ninguno marcado = todas las tareas",
+  "add": "+ Agregar aprobación",
+  "on_changes_label": "Al \"pedir cambios\"",
+  "on_changes_title": "Qué pasa cuando alguien pide cambios en una de estas aprobaciones",
+  "on_changes": {
+    "resume": "retomar el agente con el feedback",
+    "kick_back": "devolver la tarea",
+    "stay": "quedarse acá, decide una persona"
+  },
+  "kick_back_to": "a",
+  "errors": {
+    "label": "La aprobación \"{key}\" necesita una etiqueta",
+    "key": "La clave \"{key}\" tiene que ser minúsculas [a-z0-9_], hasta 32 caracteres",
+    "duplicate": "Dos aprobaciones comparten la clave \"{key}\""
+  }
+}

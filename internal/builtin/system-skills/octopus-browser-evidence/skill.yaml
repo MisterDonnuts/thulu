@@ -1,0 +1,9 @@
+name: octopus-browser-evidence
+description: How to produce evidence of a web app with thulu-browser. Video with cursor, captions and pass/fail verdicts, annotated screenshots, side-by-side before/after and a report on the task. Use when you have to prove a flow works, show a bug, close a ticket's test cases or deliver visual QA.
+type: knowledge
+enforcement: on_demand
+requires: []
+# Bump on every change: the daemon syncs this skill at boot only when version exceeds the stored
+# one.
+version: 7
+mcp: thulu-browser

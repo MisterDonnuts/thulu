@@ -1,0 +1,58 @@
+---
+import {
+  taskCardClasses,
+  taskCardHandleTitle,
+  taskCardKidsId,
+  taskCardMenuButton,
+  type TaskCardFlag,
+} from "../lib/ui/task-card";
+import Button from "./Button.astro";
+import Icon from "./Icon.astro";
+
+interface Props {
+  id: string;
+  flags?: TaskCardFlag[];
+  class?: string;
+  [key: string]: unknown;
+}
+const { id, flags = [], class: extra, ...rest } = Astro.props;
+const menu = taskCardMenuButton();
+const kids = taskCardKidsId(id);
+---
+
+<div class={taskCardClasses(flags, extra)} data-id={id} tabindex="0" {...rest}>
+  <div class="task-card-tools">
+    <span class="task-card-handle" title={taskCardHandleTitle()} aria-hidden="true"
+      ><Icon name="grip" /></span
+    >
+    <Button
+      iconOnly
+      icon={menu.icon}
+      label={menu.label}
+      size={menu.size}
+      variant={menu.variant}
+      class={menu.cls}
+      {...menu.attrs}
+    />
+  </div>
+  <div class="task-card-part" hidden></div>
+  <div class="task-card-title-row">
+    <span class="task-card-type"></span><span class="task-card-title"></span><span
+      class="task-card-prio"></span>
+  </div>
+  <div class="task-card-state" hidden></div>
+  <div class="task-card-meta" hidden></div>
+  <div class="task-card-foot">
+    <span class="task-card-progress"></span>
+    <button
+      type="button"
+      class="task-card-expand"
+      data-card-expand
+      aria-expanded="false"
+      aria-controls={kids}
+      hidden><Icon name="chevron-down" /></button
+    >
+    <span class="task-card-foot-rest"></span>
+  </div>
+  <ul class="task-card-kids" id={kids} hidden></ul>
+</div>

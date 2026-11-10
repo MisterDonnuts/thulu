@@ -1,0 +1,22 @@
+{
+  "errors": {
+    "project_store_unavailable": "project store not configured",
+    "dispatcher_unavailable": "dispatcher not configured",
+    "mcp_manager_unavailable": "mcp manager not configured",
+    "settings_store_unavailable": "settings store not configured",
+    "secrets_store_unavailable": "secrets store not configured",
+    "auth_disabled": "auth not enabled",
+    "event_hub_unavailable": "event hub not configured",
+    "metrics_token_required": "metrics token required",
+    "invalid_body": "invalid body",
+    "invalid_cursor": "invalid cursor"
+  },
+  "log": {
+    "mcp_registry_seed_failed": "mcp registry seed: {err}",
+    "sso_load_failed": "SSO providers failed to load: {err}",
+    "sso_loaded": "SSO providers loaded: {count}",
+    "saas_agent_cap": "SaaS mode with agent.max_containers=0: capping concurrent agent runs at {cap} ({cpus} CPUs - 2, minimum 2). Set agent.max_containers to choose another cap.",
+    "listening": "listening on {addr}",
+    "listening_tls": "listening on {addr} (TLS)"
+  }
+}

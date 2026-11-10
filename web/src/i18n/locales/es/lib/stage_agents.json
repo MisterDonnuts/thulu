@@ -1,0 +1,26 @@
+{
+  "drop_runs": "Arranca {agent}",
+  "drop_blocked": "Bloqueada: espera a sus bloqueantes",
+  "drop_none": "Sin agente para esta tarea",
+  "next_runs": "{stage}: {agent}",
+  "next_none": "{stage} sin agente",
+  "next_none_title": "Al pasar a {stage} no arranca nada: la tarea no tiene agente para esa columna.",
+  "next_runs_title": "Al pasar a {stage} arranca {agent}.",
+  "moved_runs": "→ {stage} · {agent} arranca en {seconds} s, o ya si salís de la página",
+  "moved_started": "→ {stage} · arrancó {agent}",
+  "moved": "→ {stage}",
+  "undo": "Deshacer",
+  "undone": "Vuelve a {stage}",
+  "apply_template": "Aplicar la plantilla de {project}",
+  "apply_template_msg": {
+    "one": "{project} tiene agente para {count} columna que esta tarea tiene vacía.",
+    "other": "{project} tiene agentes para {count} columnas que esta tarea tiene vacías."
+  },
+  "applied": "Plantilla de {project} aplicada",
+  "from_template": "Los agentes de una tarea nueva salen de la plantilla de etapas de su proyecto.",
+  "template_link": "Plantilla de {project}",
+  "no_project": "Esta tarea no tiene proyecto: el agente de cada columna se elige acá.",
+  "new_copies": "Agentes que copia de la plantilla: {list}.",
+  "new_none": "La plantilla de etapas de {projects} no tiene agentes: la tarea arranca sin ninguno.",
+  "new_no_project": "Sin proyecto, la tarea arranca sin agentes. Se eligen después, en la tarea, en Agente."
+}

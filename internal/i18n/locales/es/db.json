@@ -1,0 +1,16 @@
+{
+  "errors": {
+    "unsupported_dsn": "db.Open: sólo se aceptan DSN postgres:// (llegó {dsn:%q})",
+    "open": "abrir postgres",
+    "parse_dsn": "db.Open: interpretar el DSN",
+    "delete_batch": "borrar de {table}",
+    "delete_rows_affected": "borrar de {table}: filas afectadas",
+    "ping": "hacer ping a postgres",
+    "not_ready": "postgres no respondió: se abandonó tras {attempts} intentos en {budget}",
+    "wait_canceled": "se dejó de esperar a postgres (último error: {last})"
+  },
+  "log": {
+    "waiting_for_database": "postgres todavía no responde (intento {attempt}), se reintenta en {retry_in}: {err}",
+    "ready_after_retries": "postgres respondió tras {attempts} intentos"
+  }
+}

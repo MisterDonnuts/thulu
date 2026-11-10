@@ -1,0 +1,52 @@
+{
+  "title": "Pull requests",
+  "load_failed": "Could not read the pull requests from GitHub. Retrying shortly.",
+  "loading": "Loading the pull request of {project}",
+  "pr_of": "PR · {project}",
+  "open_on_github": "Open on GitHub",
+  "ready": "Ready",
+  "ready_hint": "Approved, CI passed and GitHub can merge it",
+  "files_count": {
+    "one": "{count} file changed",
+    "other": "{count} files changed"
+  },
+  "state": {
+    "open": "Open",
+    "draft": "Draft",
+    "merged": "Merged",
+    "closed": "Closed"
+  },
+  "review": {
+    "none": "No review requested",
+    "pending": "Review pending",
+    "approved": "Approved",
+    "changes_requested": "Changes requested"
+  },
+  "mergeable": {
+    "ready": "Can be merged",
+    "blocked": "Blocked by the branch's rules (reviews or required checks)",
+    "behind": "Behind the base branch",
+    "conflicts": "Conflicts with the base branch",
+    "unknown": "GitHub has not worked it out yet"
+  },
+  "ci": {
+    "tooltip": "CI: {passed} of {total} passed, {failed} failed, {running} running",
+    "detail": "{passed} passed · {failed} failed · {running} running · {total} total",
+    "none": "No CI on the last commit",
+    "actions_only": "Only GitHub Actions: add Checks: read to the GitHub App to see every check."
+  },
+  "facts": {
+    "project": "Project",
+    "files": "Files",
+    "lines": "Lines",
+    "commits": "Commits",
+    "branch": "Branch",
+    "ci": "CI",
+    "review": "Review",
+    "mergeable": "Merge",
+    "updated": "Updated"
+  },
+  "pr_number": "PR #{number}",
+  "no_credential": "No GitHub credential for this project.",
+  "add_credential": "Add one"
+}

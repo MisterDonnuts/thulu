@@ -1,0 +1,35 @@
+{
+  "title": "Registro de auditoría",
+  "all_events": "Todos los eventos",
+  "kind_aria": "Tipo de evento",
+  "columns": {
+    "time": "Hora",
+    "event": "Evento",
+    "actor": "Actor",
+    "resource": "Recurso",
+    "summary": "Resumen"
+  },
+  "empty": "No hay entradas de auditoría.",
+  "load_more": "Cargar más",
+  "load_failed": "No se pudo cargar el registro de auditoría.",
+  "load_more_failed": "No se pudieron cargar más entradas.",
+  "export": {
+    "csv": "Exportar CSV",
+    "csv_title": "Exportar el registro filtrado como CSV",
+    "json": "Exportar NDJSON",
+    "json_title": "Exportar el registro filtrado como NDJSON: un objeto JSON por línea",
+    "needs_ee": "Exportar la auditoría requiere una licencia Enterprise Edition",
+    "failed_status": "Falló la exportación — HTTP {status}",
+    "done": "Registro de auditoría exportado ({format})",
+    "failed": "Falló la exportación de la auditoría",
+    "ce_note_html": "Exportar el registro requiere una licencia Enterprise: definí <code>OCTOPUS_LICENSE_KEY</code> en el entorno del daemon y reinicialo. En Community el registro se guarda y se muestra acá igual."
+  },
+  "chain": {
+    "not_verified": "El registro es una cadena de hashes; verificala para ver cuántas entradas cubre y su hash de cabeza.",
+    "verify": "Verificar",
+    "verify_title": "Recalcula el hash de cada entrada (lee el registro entero)",
+    "verifying": "Verificando…",
+    "verify_failed": "No se pudo verificar la cadena.",
+    "goto": "Ir a la entrada"
+  }
+}

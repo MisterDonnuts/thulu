@@ -1,0 +1,38 @@
+{
+  "cli": {
+    "restoring": "Restoring from {archive}...",
+    "restore_warning": "    WARNING: This will replace every Thulu table in the target database\n    ({database}) and overwrite the data directory ({dir}).",
+    "confirm": "    Continue? [y/N] ",
+    "restoring_db": "   restoring Postgres database...",
+    "restoring_data": "   restoring data directory...",
+    "restore_complete": "Restore complete.",
+    "backing_up": "Backing up Thulu...",
+    "dumping_db": "   dumping the Postgres database...",
+    "copying_data": "   copying the data directory from {from} (without logs/ and runs/)...",
+    "backup_complete": "Backup complete: {archive} ({size})",
+    "secretbox_reminder": "   The archive does not hold OCTOPUS_SECRETBOX_KEY. Keep that key apart from it: without the key the credentials in the dump cannot be read back.",
+    "pruned": {
+      "one": "   pruned {count} backup beyond the newest {keep}.",
+      "other": "   pruned {count} backups beyond the newest {keep}."
+    },
+    "encrypting": "   encrypting the offsite copy for {recipient}...",
+    "pushing": "   copying to {remote}...",
+    "remote_pruned": {
+      "one": "   pruned {count} offsite backup beyond the newest {keep}.",
+      "other": "   pruned {count} offsite backups beyond the newest {keep}."
+    }
+  },
+  "errors": {
+    "database_url_required": "OCTOPUS_DATABASE_URL is required (postgres:// DSN).",
+    "restore_usage": "Usage: RESTORE=1 ./backup.sh <archive.tar.gz>",
+    "no_data_source": "No data directory to back up. Set OCTOPUS_DATA_DIR (a directory on this machine), OCTOPUS_COMPOSE_FILE (the compose stack's file) or OCTOPUS_BACKUP_SOURCE=kubernetes.",
+    "unknown_source": "OCTOPUS_BACKUP_SOURCE must be host, compose or kubernetes, got '{source}'.",
+    "compose_file_missing": "The compose file '{file}' does not exist.",
+    "data_dir_missing": "The data directory {dir} does not exist. Nothing was backed up: point OCTOPUS_DATA_DIR at the directory that holds projects/ and task-attachments/.",
+    "data_dir_unreadable": "The data directory {dir} cannot be read by this user. Nothing was backed up; run it as the directory's owner, or as root.",
+    "pvc_path": "Could not find where PVC {pvc} (namespace {namespace}) keeps its files. Run this on the k3s node, or set OCTOPUS_DATA_DIR to the volume's directory.",
+    "empty_dump": "pg_dump wrote nothing, so no archive was made.",
+    "remote_failed": "Could not copy the backup to {remote}. The local archive {archive} is complete.",
+    "status_not_written": "Could not write {file}; Settings → Updates will not show this backup. The archive is complete."
+  }
+}

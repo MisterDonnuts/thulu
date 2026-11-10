@@ -1,0 +1,10 @@
+{
+  "errors": {
+    "unavailable": "la ingesta de telemetría no está configurada en esta instancia",
+    "token_not_found": "no existe el token",
+    "token_not_found_or_revoked": "el token no existe o ya fue revocado"
+  },
+  "hints": {
+    "secret_shown_once": "Es la única vez que se muestra el secreto. Guardalo ahora."
+  }
+}

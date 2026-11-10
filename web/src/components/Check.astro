@@ -1,0 +1,98 @@
+---
+// Markup must match checkHTML() in lib/ui/check.ts.
+import Icon from "./Icon.astro";
+import { checkClasses, checkIds, checkReason, checkType, type CheckType } from "../lib/ui/check";
+
+interface Props {
+  type?: CheckType;
+  name?: string;
+  value?: string;
+  label?: string;
+  hint?: string;
+  checked?: boolean;
+  disabled?: boolean;
+  reason?: string;
+  card?: boolean;
+  head?: boolean;
+  icon?: string;
+  id?: string;
+  error?: string;
+  errorId?: string;
+  inputClass?: string;
+  inputAttrs?: Record<string, unknown>;
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  type,
+  name,
+  value,
+  label,
+  hint,
+  checked,
+  disabled,
+  reason,
+  card,
+  head,
+  icon,
+  id,
+  error,
+  errorId,
+  inputClass,
+  inputAttrs,
+  class: extra,
+  ...rest
+} = Astro.props;
+const inputType = checkType(type);
+checkReason(reason, disabled);
+const hasHint = hint !== undefined || Astro.slots.has("hint");
+const ids = checkIds({ id, hint: hasHint, reason: !!reason, errorId });
+const hasTrailing = Astro.slots.has("trailing");
+---
+
+<label class={checkClasses({ card, head, cls: extra })} {...rest}>
+  <input
+    type={inputType}
+    class={["check-input", inputClass].filter(Boolean).join(" ")}
+    {id}
+    {name}
+    {value}
+    checked={checked || undefined}
+    disabled={disabled || undefined}
+    aria-labelledby={ids.labelledBy}
+    aria-describedby={ids.describedBy}
+    {...inputAttrs}
+  />
+  {icon && <Icon name={icon} class="check-ico" />}
+  <span class="check-body">
+    <span class="check-label" id={ids.label}>{label ?? <slot />}</span>
+    {
+      hasHint && (
+        <span class="check-hint" id={ids.hint}>
+          <slot name="hint">{hint}</slot>
+        </span>
+      )
+    }
+    {
+      reason && (
+        <span class="check-reason" id={ids.reason}>
+          {reason}
+        </span>
+      )
+    }
+    {
+      (error || errorId) && (
+        <span class="check-error" id={errorId} role="alert" hidden={!error}>
+          {error}
+        </span>
+      )
+    }
+  </span>
+  {
+    hasTrailing && (
+      <span class="check-trailing">
+        <slot name="trailing" />
+      </span>
+    )
+  }
+</label>

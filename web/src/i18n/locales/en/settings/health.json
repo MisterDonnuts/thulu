@@ -1,0 +1,32 @@
+{
+  "title": "Daemon checks",
+  "checking": "checking",
+  "refresh_aria": "Refresh health",
+  "system": "System",
+  "empty": "No health data returned.",
+  "offline": "offline",
+  "license": {
+    "title": "License",
+    "edition": "Edition",
+    "licensee": "Licensee",
+    "expires": "Expires",
+    "expired": "Expired",
+    "expires_in": {
+      "one": "License expires in {count} day",
+      "other": "License expires in {count} days"
+    },
+    "features": "Features",
+    "ce_note_html": "You're running the <strong>Community Edition</strong>. An Enterprise license (<code>OCTOPUS_LICENSE_KEY</code>) adds the audit-log export, as CSV or NDJSON. Everything else works the same on both.",
+    "unknown": "unknown",
+    "load_failed": "Could not load license information."
+  },
+  "retention": {
+    "title": "Retention and cleanup",
+    "intro": "The janitor deletes what runs leave behind once it is older than its window, on a schedule and early when the disk runs low. 0 keeps it forever; an empty field goes back to the default.",
+    "saved": {
+      "one": "Saved {count} change",
+      "other": "Saved {count} changes"
+    },
+    "save_failed": "Could not save the retention settings."
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "errors": {
+    "bad_command": "bad command {command:%q}",
+    "bad_pkt_length": "bad pkt-line length {length}",
+    "bad_pkt_length_text": "bad pkt-line length {length:%q}",
+    "gzip": "gzip",
+    "malformed_push": "malformed push",
+    "push_delete_ref": "a task may not delete {ref}",
+    "push_foreign_ref": "a task may only push its own branch ({allowed}), not {ref}",
+    "read_pkt_length": "read pkt-line length",
+    "read_pkt_line": "read pkt-line",
+    "signed_push_unsupported": "signed pushes are not supported",
+    "too_many_ref_updates": "more than {max} ref updates in one push"
+  },
+  "log": {
+    "enable_receivepack_failed": "enable receivepack on {dir}: {err}",
+    "publish_comment_failed": "comment the failed publish on task {task}: {err}",
+    "publish_failed": "publish the branch of task {task} (project {project}) after the agent's push: {err}",
+    "refresh_default_failed": "refresh the default branch of project {project} for task {task}: {err}",
+    "transport_disabled": "worktree transport disabled: {err}",
+    "transport_mounted": "worktree transport mounted at {path}"
+  },
+  "comments": {
+    "publish_failed": "Thulu received the agent's push but could not publish the branch of project {project} to GitHub: {err}"
+  }
+}

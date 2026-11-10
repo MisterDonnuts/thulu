@@ -1,0 +1,18 @@
+{
+  "interrupted": "interrupted: the daemon restarted while it ran",
+  "tools_unavailable": "snapshot written, but the image has no mise: the declared tools were not installed",
+  "errors": {
+    "unavailable": "prewarms need the sandbox runtime, which this install does not run",
+    "not_eligible": "the init script needs a setup phase and cache.paths before there is anything to prewarm"
+  },
+  "log": {
+    "cleanup_failed": "clean up a previous prewarm",
+    "closed_stale": "closed {count} prewarms interrupted by a restart",
+    "list_failed": "list projects for prewarms",
+    "fetch_failed": "fetch the default branch of project {project} for a prewarm",
+    "key_failed": "compute the setup key of project {project}",
+    "record_failed": "record a prewarm of project {project}",
+    "started": "prewarm of {project} started: key {key}, reason {reason}",
+    "finished": "prewarm of {project}: {status} {error}"
+  }
+}

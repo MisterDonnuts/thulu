@@ -1,0 +1,39 @@
+customRules:
+  octopus-sandbox-rules.yaml: |-
+    - macro: octopus_sandbox
+      condition: (k8s.ns.name startswith "tenant-")
+
+    - rule: Thulu sandbox wrote below a sensitive host path
+      desc: A tenant sandbox process modified a file under a sensitive host mount — a hostPath escape attempt (which PSA/VAP already block; this catches a bypass).
+      condition: >
+        open_write and octopus_sandbox and
+        (fd.name startswith /host or fd.name startswith /proc/sysrq-trigger or
+         fd.name startswith /var/run/docker.sock or fd.name startswith /etc/kubernetes)
+      output: >
+        Sandbox wrote to a sensitive host path (ns=%k8s.ns.name pod=%k8s.pod.name
+        file=%fd.name proc=%proc.cmdline user=%user.name)
+      priority: CRITICAL
+      tags: [octopus, sandbox, escape]
+
+    - rule: Thulu sandbox attempted privilege escalation
+      desc: A setuid/capset in a tenant sandbox — attempting to gain privileges the drop-ALL/no-escalation security context forbids.
+      condition: >
+        octopus_sandbox and
+        ((evt.type=setuid and evt.dir=> and (evt.arg.uid=0 or evt.arg.uid=root)) or
+         evt.type=capset)
+      output: >
+        Sandbox privilege escalation attempt (ns=%k8s.ns.name pod=%k8s.pod.name
+        proc=%proc.cmdline user=%user.name)
+      priority: CRITICAL
+      tags: [octopus, sandbox, privesc]
+
+    - rule: Thulu sandbox spawned a container runtime client
+      desc: A tenant sandbox invoked docker/kubectl/crictl — an attempt to reach the node's container runtime or the K8s API for lateral movement.
+      condition: >
+        spawned_process and octopus_sandbox and
+        proc.name in (docker, kubectl, crictl, ctr, runc, nerdctl)
+      output: >
+        Sandbox spawned a container/orchestrator client (ns=%k8s.ns.name
+        pod=%k8s.pod.name proc=%proc.cmdline)
+      priority: WARNING
+      tags: [octopus, sandbox, lateral-movement]

@@ -1,0 +1,18 @@
+{
+  "errors": {
+    "run_key_required": "el bundle de corrida necesita la API key de la corrida que el dispatcher inyecta en ella",
+    "agent_not_in_catalog": "el tipo de agente {agent:%q} no está en el catálogo",
+    "stage_not_slug": "stage tiene que ser un slug ([a-z0-9_], 32 caracteres como máximo)",
+    "task_not_found": "no existe la tarea {task}",
+    "no_agent_for_stage": "la tarea {task} no tiene agente asignado para la etapa {stage:%q}, y esta key es anterior a la identidad por corrida: relanzá la corrida para emitir una que nombre a su agente",
+    "close_tar": "cerrar el tar: {cause}",
+    "close_gzip": "cerrar el gzip: {cause}",
+    "read_owner": "leer {kind} {owner:%q}: {cause}",
+    "too_large": "el bundle supera los {max} bytes en {path}",
+    "tar_header": "encabezado tar de {path}: {cause}",
+    "tar_body": "contenido tar de {path}: {cause}"
+  },
+  "log": {
+    "write_failed": "bundle de la corrida {run:%q} (agente {agent:%q}): {err}"
+  }
+}

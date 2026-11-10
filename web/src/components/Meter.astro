@@ -1,0 +1,43 @@
+---
+import {
+  meterA11y,
+  meterClasses,
+  meterFillStyle,
+  meterToneOf,
+  type MeterThresholds,
+  type ProgressSize,
+  type ProgressTone,
+} from "../lib/ui/progress";
+
+interface Props {
+  value: number;
+  label?: string;
+  labelledBy?: string;
+  valueText?: string;
+  tone?: ProgressTone;
+  thresholds?: MeterThresholds | boolean;
+  size?: ProgressSize;
+  inline?: boolean;
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  value,
+  label,
+  labelledBy,
+  valueText,
+  tone,
+  thresholds,
+  size = "sm",
+  inline = false,
+  class: extra,
+  ...rest
+} = Astro.props;
+---
+
+<span
+  class={meterClasses({ size, inline, cls: extra })}
+  data-tone={meterToneOf(value, { tone, thresholds })}
+  {...meterA11y({ value, label, labelledBy, valueText })}
+  {...rest}><span class="meter-bar-fill" style={meterFillStyle(value)}></span></span
+>

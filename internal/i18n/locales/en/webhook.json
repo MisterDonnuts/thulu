@@ -1,0 +1,38 @@
+{
+  "errors": {
+    "endpoint_not_found": "endpoint not found",
+    "endpoint_inactive": "endpoint is inactive",
+    "marshal_payload": "marshal payload",
+    "build_request": "build request",
+    "schema": "webhook schema",
+    "seal_secret": "seal webhook secret",
+    "marshal_events": "marshal events",
+    "unmarshal_events": "unmarshal events",
+    "delete_rows": "delete {table}",
+    "open_signing_secret": "open webhook signing secret"
+  },
+  "log": {
+    "process_outbox_failed": "process outbox: {err}",
+    "marshal_payload_failed": "marshal payload: {err}",
+    "list_endpoints_failed": "list endpoints for workspace {workspace}: {err}",
+    "enqueue_failed": "enqueue outbox for endpoint {endpoint}: {err}",
+    "park_orphaned": "webhook: park orphaned delivery {id}",
+    "mark_delivered": "webhook: mark delivered {id}",
+    "park_dead_letter": "webhook: park dead-letter {id}",
+    "reschedule": "webhook: reschedule {id}",
+    "unmarshal_events": "webhook: unmarshal events for endpoint {endpoint}",
+    "unmarshal_outbox_payload": "webhook: unmarshal outbox payload {id}",
+    "marshal_delivery_log": "webhook: marshal payload for delivery log (endpoint={endpoint})",
+    "record_delivery_failed": "record delivery: {err}"
+  },
+  "delivery": {
+    "blocked": "Could not connect: the egress policy blocks {host} (a private or loopback address)",
+    "no_such_host": "Could not connect: {host} did not resolve",
+    "dns_failed": "Could not connect: could not resolve {host} (the daemon's DNS failed)",
+    "refused": "Could not connect: {host} refused the connection",
+    "unreachable": "Could not connect: there is no network route to {host}",
+    "tls": "Could not connect: the TLS certificate of {host} is not valid",
+    "timeout": "Could not connect: {host} did not answer in time",
+    "failed": "Could not connect to {host}: {err}"
+  }
+}

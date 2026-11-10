@@ -1,0 +1,21 @@
+{
+  "kind": {
+    "question": "Question",
+    "blocker": "Blocked",
+    "question_working": "Question, still working"
+  },
+  "more_questions": {
+    "one": "{question} (+{count} more)",
+    "other": "{question} (+{count} more)"
+  },
+  "changes_requested": "changes requested",
+  "approve": "Approve",
+  "stalled_hint": {
+    "resume_failed": "The answers are saved. Open the task and use Relaunch stage.",
+    "retry": "Open the task to see why and use Retry.",
+    "more_turns": "Open the task and use More turns.",
+    "blocked": "Read the auditor's verdict on the task and use Review and retry.",
+    "credentials": "Renew the credential in Credentials and retry.",
+    "no_agent": "Pick an agent in the task's Agent field."
+  }
+}

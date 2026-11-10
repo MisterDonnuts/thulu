@@ -1,0 +1,49 @@
+{
+  "empty": "No approvals. Ask for one when a person has to sign off.",
+  "status": {
+    "pending": "pending",
+    "approved": "approved",
+    "changes_requested": "changes requested",
+    "waived": "waived"
+  },
+  "source": {
+    "stage": "stage",
+    "agent": "agent",
+    "system": "system",
+    "person": "person",
+    "stage_named": "asked by {stage}"
+  },
+  "decided": {
+    "approved": "Approved by {who} · {when}",
+    "changes_requested": "Changes requested by {who} · {when}",
+    "waived": "Waived by {who} · {when}"
+  },
+  "approve": "Approve",
+  "request_changes": "Request changes",
+  "waive": "Waive",
+  "changes_placeholder": "What has to change (required)",
+  "waive_placeholder": "Why this approval is skipped (required)",
+  "confirm_changes": "Request changes",
+  "confirm_waive": "Waive",
+  "add_title": "Ask for an approval",
+  "label_placeholder": "Who signs off, e.g. Design",
+  "reason_placeholder": "e.g. touches the checkout totals",
+  "add": "Ask",
+  "label_label": "Who signs off",
+  "reason_label": "Why (optional)",
+  "note_label": "Note",
+  "note_hint": "Needed to request changes or waive.",
+  "note_placeholder": "What has to change, or why it is skipped",
+  "more_actions": "More actions for {label}",
+  "key_title": "Key: {key}",
+  "effect": {
+    "resume": "Requesting changes resumes {agent} with your note.",
+    "resume_unnamed": "Requesting changes resumes the stage with your note.",
+    "kick_back": "Requesting changes sends the task back to {stage}.",
+    "resume_deferred": "A run is working on the task: requesting changes resumes {agent} with your note when it ends.",
+    "resume_unnamed_deferred": "A run is working on the task: requesting changes resumes the stage with your note when it ends.",
+    "kick_back_deferred": "A run is working on the task: requesting changes sends it back to {stage} when the run ends.",
+    "stay": "Requesting changes keeps the task in {stage}: a person decides what comes next.",
+    "record": "Requesting changes is only recorded: this approval belongs to another stage."
+  }
+}

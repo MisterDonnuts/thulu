@@ -1,0 +1,160 @@
+{
+  "just_now": "just now",
+  "today": "Today",
+  "yesterday": "Yesterday",
+  "you": "You",
+  "an_agent": "An agent",
+  "octopus": "Thulu",
+  "someone": "Someone",
+  "the_agent": "the agent",
+  "show_earlier": {
+    "one": "Show {count} earlier item",
+    "other": "Show {count} earlier items"
+  },
+  "group": {
+    "stage": {
+      "one": "{count} stage move",
+      "other": "{count} stage moves"
+    },
+    "run": {
+      "one": "{count} run",
+      "other": "{count} runs"
+    },
+    "dep": {
+      "one": "{count} dependency change",
+      "other": "{count} dependency changes"
+    },
+    "subtask": {
+      "one": "{count} subtask change",
+      "other": "{count} subtask changes"
+    },
+    "other": {
+      "one": "{count} update",
+      "other": "{count} updates"
+    },
+    "note": {
+      "one": "{count} notice",
+      "other": "{count} notices"
+    }
+  },
+  "sys": {
+    "stage": "Moved from {from} to {to}",
+    "run": "{agent} finished a run in {stage}, {duration}",
+    "subtask_added": "Subtask added:",
+    "run_nostage": "{agent} finished a run, {duration}",
+    "pr_by_agent": "The agent opened a pull request",
+    "pr_by_force": "Force PR opened a pull request",
+    "pr_discovered": "Linked a pull request that was already open",
+    "pr_by_octopus": "Thulu opened a pull request",
+    "merged": "Merged {branch} into {target} ({commit})",
+    "merged_nocommit": "Merged {branch} into {target}"
+  },
+  "run": {
+    "state": {
+      "running": "Running",
+      "queued": "Queued",
+      "done": "Done",
+      "failed": "Failed",
+      "ended": "Ended",
+      "not_started": "Did not start",
+      "stopped": "Stopped",
+      "out_of_turns": "Out of turns"
+    },
+    "title": "Run {number}: {agent} in {stage}",
+    "title_nostage": "Run {number}: {agent}",
+    "queued_title": "Next run: {agent} in {stage}",
+    "queued_title_nostage": "Next run: {agent}",
+    "for": "for {duration}",
+    "took": "took {duration}",
+    "queued_wait": "Waiting for room to start",
+    "exit": "Exit code {code}",
+    "view_log": "View log",
+    "open_chat": "Open chat",
+    "stop": "Stop",
+    "attempt_title": "{agent} in {stage}",
+    "attempt_title_nostage": "{agent}",
+    "attempt_title_noagent": "No agent in {stage}",
+    "attempt_title_noagent_nostage": "No agent",
+    "not_started_why": "The run did not get a container.",
+    "used_every_turn": "It used every turn it had.",
+    "turns_of": "{used} of {max} turns",
+    "turns": {
+      "one": "{count} turn",
+      "other": "{count} turns"
+    },
+    "stopped_by": "Stopped by {who}",
+    "stopped_by_you": "Stopped by you",
+    "stopped_by_someone": "Stopped by a person",
+    "cancel_wait": "Cancel wait"
+  },
+  "thread": {
+    "reply": "Reply",
+    "resolve": "Resolve thread",
+    "reopen": "Reopen",
+    "send_to": "Send to {agent}",
+    "send_to_stage": "Send to the stage's agent",
+    "send_to_title": "Send this thread to {agent} to carry out",
+    "make_subtask": "Make subtask",
+    "hide": "Hide",
+    "show": "Show",
+    "show_label": "Show the resolved thread {excerpt}",
+    "show_earlier": {
+      "one": "Show {count} earlier reply",
+      "other": "Show {count} earlier replies"
+    },
+    "resolved_line": {
+      "one": "Resolved: \"{excerpt}\" by {who}, {count} reply",
+      "other": "Resolved: \"{excerpt}\" by {who}, {count} replies"
+    },
+    "resolved_line_nobody": {
+      "one": "Resolved: \"{excerpt}\", {count} reply",
+      "other": "Resolved: \"{excerpt}\", {count} replies"
+    },
+    "send_to_agent_gone": "{agent}, the agent that worked on this task, no longer exists: there is no session to hand the thread to.",
+    "send_to_never_ran": "This task has not run yet, so there is no session to hand the thread to. The first agent reads the thread in its brief.",
+    "apply_note_label": "Instruction for {agent}",
+    "apply_note_placeholder": "Instruction (optional): what to do with what was decided",
+    "apply_hint": "{agent} gets the whole thread and carries out what was concluded."
+  },
+  "filter": {
+    "all": "All",
+    "comments": "Comments",
+    "runs": "Agent runs",
+    "system": "System"
+  },
+  "question": {
+    "waiting": "{agent} is waiting for your answer",
+    "waiting_unnamed": "An agent is waiting for your answer",
+    "pinned": "Pinned",
+    "asked_working": "{agent} asked and keeps working",
+    "asked_working_unnamed": "An agent asked and keeps working"
+  },
+  "audience": {
+    "workspace": "Visible to the workspace.",
+    "replies_one": "{who} replies to it.",
+    "replies_many": "{who} reply to it.",
+    "notified": "{agent} reads it when its current turn ends."
+  },
+  "thread_event": {
+    "thread": "the thread \"{title}\"",
+    "thread_unnamed": "a thread",
+    "resolved": "{who} resolved {thread}",
+    "reopened": "{who} reopened {thread}",
+    "applied": "Sent {thread} to {agent}",
+    "applied_steered": "Sent {thread} to {agent}, who reads it when the current turn ends",
+    "applied_queued": "Sent {thread} to {agent}: it goes in when the current run ends",
+    "applied_continuation": "Sent {thread} to {agent}, who resumes its session with it",
+    "applied_unreachable": "Sent {thread} to {agent}: there was no session to resume",
+    "applied_nobody": "Sent {thread}: there was no session to resume",
+    "mention_started": "{agent} started answering in {thread}",
+    "mention_silent": "{agent} finished without answering in {thread}",
+    "mention_failed": "{agent} could not answer in {thread} (code {code})",
+    "mention_answered": "{agent} answered in {thread}"
+  },
+  "link": {
+    "credentials": "Open Credentials",
+    "ai_engines": "Open AI engines",
+    "agents": "Open Agents"
+  },
+  "automation": "An automation"
+}

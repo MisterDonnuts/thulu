@@ -1,0 +1,14 @@
+---
+// Markup must match inlineStatusHTML() in lib/ui/form.ts.
+import { inlineStatusAttrs, type InlineStatusTone } from "../lib/ui/form";
+
+interface Props {
+  id?: string;
+  tone?: InlineStatusTone;
+  text?: string;
+  class?: string;
+}
+const { id, tone, text, class: extra } = Astro.props;
+---
+
+<span {...inlineStatusAttrs({ id, tone, text, cls: extra })}>{text}</span>

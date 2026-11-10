@@ -1,0 +1,39 @@
+{
+  "tiles": {
+    "uptime": "Uptime"
+  },
+  "disk_free_detail": "{size} free",
+  "status": {
+    "ok": "OK",
+    "warn": "Warning",
+    "degraded": "Degraded",
+    "fail": "Failing"
+  },
+  "checks": {
+    "docker": "Docker",
+    "disk": "Disk",
+    "db": "Database: {name}"
+  },
+  "stores": {
+    "usage": "usage",
+    "projects": "projects",
+    "tasks": "tasks",
+    "settings": "settings",
+    "sandbox": "sandbox",
+    "secrets": "secrets",
+    "credentials": "credentials",
+    "chat": "chat",
+    "chatruntime": "chat containers",
+    "auth": "sign-in",
+    "audit": "audit",
+    "webhooks": "webhooks",
+    "stages": "stages",
+    "automations": "automations",
+    "evidence": "evidence"
+  },
+  "system": {
+    "go_version": "Go version",
+    "goroutines": "Goroutines",
+    "disk_free": "Free disk"
+  }
+}

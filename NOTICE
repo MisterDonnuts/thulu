@@ -1,0 +1,24 @@
+Thulu
+https://github.com/MisterDonnuts/thulu
+
+Copyright 2026 Mister.D LLC and the Thulu contributors.
+
+Each contributor keeps the copyright in their own contributions. The git
+history of the repository records who wrote each change.
+
+Licenses:
+
+- Everything outside ee/ (the core): GNU Affero General Public License,
+  version 3 only (LICENSE), with the additional permission in
+  LICENSE-EXCEPTION, which allows combining the core with ee/ and
+  distributing the result.
+  SPDX: AGPL-3.0-only WITH AdditionRef-Thulu-Enterprise-Modules-Exception-1.0
+
+- ee/: the Thulu Enterprise License (ee/LICENSE).
+  SPDX: LicenseRef-Thulu-Enterprise
+
+- Third-party software included in the binary and the web dashboard: the
+  licenses of their authors, reproduced in THIRD_PARTY_NOTICES.
+
+A source file that carries its own copyright or license notice is covered by
+that notice.

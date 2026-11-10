@@ -1,0 +1,35 @@
+{
+  "reject": {
+    "ip_not_allowed": "address not on the allowlist",
+    "revoked": "token revoked",
+    "bad_token": "token not recognised",
+    "refused": "refused"
+  },
+  "empty": {
+    "tokens": "No token yet. Create one and point a collector at it.",
+    "sources": "Nothing has connected yet."
+  },
+  "labels": {
+    "any_address": "any address"
+  },
+  "status": {
+    "revoked": "revoked",
+    "active": "active"
+  },
+  "buttons": {
+    "allowed": "Allowed addresses",
+    "revoke": "Revoke",
+    "revoke_aria": "Revoke token"
+  },
+  "columns": {
+    "token": "Token",
+    "allowed_from": "Allowed from",
+    "status": "Status",
+    "last_used": "Last used",
+    "address": "Address",
+    "accepted": "Accepted",
+    "refused": "Refused",
+    "last_seen": "Last seen",
+    "actions": "Actions"
+  }
+}

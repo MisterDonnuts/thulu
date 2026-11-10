@@ -1,0 +1,94 @@
+---
+// Markup must match fieldHTML() in lib/ui/form.ts.
+import {
+  fieldClasses,
+  fieldIds,
+  fieldOptionalText,
+  type FieldLayout,
+  type FieldSize,
+} from "../lib/ui/form";
+
+interface Props {
+  label: string;
+  for?: string;
+  optional?: boolean;
+  hint?: string;
+  help?: string;
+  helpId?: string;
+  warn?: string;
+  warnId?: string;
+  error?: string;
+  errorId?: string;
+  layout?: FieldLayout;
+  size?: FieldSize;
+  grow?: boolean;
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  label,
+  for: htmlFor,
+  optional = false,
+  hint,
+  help,
+  helpId: givenHelpId,
+  warn,
+  warnId: givenWarnId,
+  error,
+  errorId: givenErrorId,
+  layout = "stacked",
+  size = "md",
+  grow = false,
+  class: extra,
+  ...rest
+} = Astro.props;
+const hasHint = Boolean(hint) || Astro.slots.has("hint");
+const hasHelp = Boolean(help) || Astro.slots.has("help");
+const hasError = Boolean(error) || givenErrorId !== undefined;
+const hasWarn = Boolean(warn) || givenWarnId !== undefined;
+const { helpId, warnId, errorId } = fieldIds({
+  for: htmlFor,
+  helpId: givenHelpId,
+  warnId: givenWarnId,
+  errorId: givenErrorId,
+  help: hasHelp,
+  warn: hasWarn,
+  error: hasError,
+});
+---
+
+<div class={fieldClasses({ layout, size, grow, cls: extra })} {...rest}>
+  <label class="field-label" for={htmlFor}
+    >{label}{optional && " "}{
+      optional && <span class="field-optional">{fieldOptionalText()}</span>
+    }{hasHint && " "}{
+      hasHint && (
+        <span class="field-hint">
+          <slot name="hint">{hint}</slot>
+        </span>
+      )
+    }</label
+  >
+  <slot />
+  {
+    hasHelp && (
+      <p class="field-help" id={helpId}>
+        <slot name="help">{help}</slot>
+      </p>
+    )
+  }
+  {
+    hasWarn && (
+      <p class="field-warn" id={warnId} hidden={!warn}>
+        {warn}
+      </p>
+    )
+  }
+  {
+    hasError && (
+      <p class="field-error" id={errorId} hidden={!error}>
+        {error}
+      </p>
+    )
+  }
+</div>

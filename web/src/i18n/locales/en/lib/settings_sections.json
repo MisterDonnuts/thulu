@@ -1,0 +1,43 @@
+{
+  "team": {
+    "title": "Members",
+    "subtitle": "Who has access to this workspace and with which role.",
+    "subtitle_named": "Who has access to {workspace} and with which role."
+  },
+  "boards": {
+    "title": "Boards",
+    "subtitle": "Boards, their columns and task types."
+  },
+  "llm": {
+    "title": "AI engines",
+    "subtitle": "The key and model each engine runs with, the profiles agents can pick, and how long a run may take."
+  },
+  "webhooks": {
+    "title": "Webhooks",
+    "subtitle": "Endpoints that receive task and run events."
+  },
+  "api": {
+    "title": "API",
+    "subtitle": "API keys, the OpenAPI spec and the telemetry address."
+  },
+  "health": {
+    "title": "Health",
+    "subtitle": "The daemon's Docker, database and disk checks, the license, and how long data is kept."
+  },
+  "updates": {
+    "title": "Updates",
+    "subtitle": "The running version, newer releases and how to move to them."
+  },
+  "audit": {
+    "title": "Audit log",
+    "subtitle": "Who did what, and when."
+  },
+  "language": {
+    "title": "Language",
+    "subtitle": "The dashboard's language in this browser."
+  },
+  "account": {
+    "title": "Account",
+    "subtitle": "Your profile and active sessions."
+  }
+}

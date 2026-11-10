@@ -1,0 +1,364 @@
+.col-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  border-bottom: 1px solid var(--line);
+}
+.col-head::after {
+  content: "";
+  position: absolute;
+  left: var(--col-head-inset, var(--s-2));
+  right: var(--col-head-inset, var(--s-2));
+  bottom: -1px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--col-color, var(--accent));
+  opacity: 0.55;
+}
+.col-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--fg);
+}
+.col-title::before {
+  content: "";
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-pill);
+  background: var(--col-color, var(--fg-3));
+}
+.col-grip,
+.col-menu-btn {
+  display: none;
+  flex: none;
+  margin: calc(-1 * var(--s-1)) 0;
+  position: relative;
+}
+.col-grip {
+  align-items: center;
+  justify-content: center;
+  width: var(--control-h);
+  height: var(--control-h);
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--fg-3);
+  cursor: pointer;
+}
+.col-grip::before,
+.col-menu-btn::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+}
+.col-grip:hover {
+  background: var(--color-tint-3);
+  border-color: var(--line);
+  color: var(--fg);
+}
+[data-can-edit] .col-menu-btn {
+  display: inline-flex;
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+[data-can-edit] .col:hover .col-menu-btn,
+[data-can-edit] .col:focus-within .col-menu-btn,
+[data-can-edit] .col.ce-menu-open .col-menu-btn,
+[data-editing] .col-menu-btn {
+  opacity: 1;
+}
+@media (pointer: coarse) {
+  [data-can-edit] .col-menu-btn {
+    opacity: 1;
+  }
+  .col-grip::before,
+  .col-menu-btn::before {
+    inset: -8px;
+  }
+}
+[data-editing] .col-grip {
+  display: inline-flex;
+  cursor: grab;
+}
+.col-grip-dots {
+  width: 8px;
+  height: 14px;
+  background-image: radial-gradient(circle, currentColor 1.2px, transparent 1.6px);
+  background-size: 4px 4px;
+  background-position: 0 0;
+  opacity: 0.9;
+}
+
+[data-editing] .col-head {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+[data-editing] .col .col-list {
+  opacity: 0.55;
+  pointer-events: none;
+}
+[data-editing] .col-add {
+  display: none;
+}
+[data-editing] .col[data-stage] {
+  border-style: solid;
+  border-color: var(--line-strong);
+}
+[data-can-edit] .col[data-flow-warning] {
+  border-color: var(--warn-line);
+}
+/* Four classes to beat the board page's `.col:hover:not(.drop-active)`, which clears the background of the dragged column. */
+.col.dragging.ce-dragging:not(.drop-active) {
+  z-index: 20;
+  border-color: var(--accent-line);
+  background: var(--surface-2);
+  box-shadow: var(--shadow-drag);
+  cursor: grabbing;
+}
+.col.ce-dragging .col-head {
+  cursor: grabbing;
+}
+.col.ce-picked {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+body.ce-grabbing,
+body.ce-grabbing * {
+  cursor: grabbing !important;
+  user-select: none;
+}
+
+.ce-rename {
+  flex: 1;
+  min-width: 0;
+  height: 26px;
+  margin: -3px 0;
+  padding: 0 var(--s-2);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--r-sm);
+  background: var(--surface-4);
+  color: var(--fg);
+  font: inherit;
+  font-size: var(--t-sm);
+  font-weight: 600;
+}
+.ce-rename:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.col.col-ghost,
+.col.col-draft {
+  border: 1px dashed var(--line-strong);
+  background: transparent;
+  padding: var(--s-3);
+}
+.col-ghost-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-3);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--s-3);
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--fg-2);
+  font: inherit;
+  font-size: var(--t-sm);
+  font-weight: 500;
+  cursor: pointer;
+}
+.col-ghost-btn:hover {
+  background: var(--color-tint-2);
+  color: var(--fg);
+}
+.col.col-draft {
+  border-style: solid;
+  border-color: var(--accent-line);
+}
+.col-draft ~ .col-ghost {
+  display: none;
+}
+
+.ce-modal input[type="checkbox"]:not(.check-input),
+.ce-modal input[type="radio"]:not(.segmented-input, .check-input) {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  margin: 0;
+  accent-color: var(--accent);
+}
+.ce-section {
+  padding: var(--s-4) 0;
+  border-top: 1px solid var(--line);
+}
+.ce-section-title {
+  margin: 0 0 var(--s-3);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--fg);
+}
+.ce-section-desc {
+  margin: 0 0 var(--s-3);
+  font-size: var(--t-sm);
+  color: var(--fg-2);
+}
+.ce-agent select {
+  max-width: 320px;
+}
+.ce-approvals-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--s-3);
+  margin-top: var(--s-3);
+}
+.ce-approvals-foot .field-error {
+  flex: 1;
+  margin: 0;
+}
+.ce-ra-status {
+  margin-left: auto;
+  font-size: var(--t-xs);
+  color: var(--fg-3);
+}
+.ce-ra-status:empty {
+  display: none;
+}
+.ce-elsewhere {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1) var(--s-4);
+  margin: 0;
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--line);
+  font-size: var(--t-sm);
+  color: var(--fg-2);
+}
+.ce-elsewhere a {
+  color: var(--accent);
+}
+.st-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.st-spacer {
+  flex: 1;
+}
+.ra-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-3);
+  font-size: var(--t-sm);
+  color: var(--fg-2);
+}
+.ra-intro {
+  margin: 0;
+  color: var(--fg-2);
+  max-width: 72ch;
+  line-height: var(--lh-snug);
+}
+.ra-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  align-self: stretch;
+}
+.ra-rows:empty {
+  display: none;
+}
+.ra-row {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  padding: var(--s-3);
+  background: var(--surface-2);
+}
+.ra-row-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-3);
+}
+.ce-modal .ra-row input[type="text"],
+.ce-modal .ra-changes select {
+  width: auto;
+  height: 30px;
+  padding: 0 var(--s-3);
+  font-size: var(--t-sm);
+}
+.ce-modal .ra-label {
+  flex: 1;
+  min-width: 140px;
+}
+.ce-modal .ra-key {
+  width: 110px;
+  font-family: var(--font-mono);
+  font-size: var(--t-xs);
+}
+.ra-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1) var(--s-4);
+  margin-top: var(--s-2);
+}
+.ra-types-k {
+  color: var(--fg-2);
+}
+.ra-changes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-4);
+  align-items: center;
+}
+.ce-modal .ra-changes .st-flag {
+  flex-wrap: wrap;
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+}
+.ce-modal .ra-changes select {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.edit-board-short {
+  display: none;
+}
+@media (max-width: 720px) {
+  #edit-board-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  #edit-board-btn[aria-pressed="true"] .edit-board-short {
+    display: inline;
+  }
+}
+.board-warnings {
+  margin: 0 0 var(--s-3);
+}
+.board-head-main #board-sub {
+  max-width: 80ch;
+  color: var(--fg-2);
+}

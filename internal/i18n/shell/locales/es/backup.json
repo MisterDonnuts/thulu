@@ -1,0 +1,38 @@
+{
+  "cli": {
+    "restoring": "Restaurando desde {archive}...",
+    "restore_warning": "    ATENCIÓN: esto reemplaza todas las tablas de Thulu en la base de destino\n    ({database}) y pisa el directorio de datos ({dir}).",
+    "confirm": "    ¿Seguir? [s/N] ",
+    "restoring_db": "   restaurando la base de Postgres...",
+    "restoring_data": "   restaurando el directorio de datos...",
+    "restore_complete": "Restauración completa.",
+    "backing_up": "Haciendo backup de Thulu...",
+    "dumping_db": "   volcando la base de Postgres...",
+    "copying_data": "   copiando el directorio de datos desde {from} (sin logs/ ni runs/)...",
+    "backup_complete": "Backup completo: {archive} ({size})",
+    "secretbox_reminder": "   El archivo no incluye OCTOPUS_SECRETBOX_KEY. Guardá esa clave aparte: sin ella las credenciales del volcado no se pueden volver a leer.",
+    "pruned": {
+      "one": "   se borró {count} backup además de los {keep} más nuevos.",
+      "other": "   se borraron {count} backups además de los {keep} más nuevos."
+    },
+    "encrypting": "   cifrando la copia externa para {recipient}...",
+    "pushing": "   copiando a {remote}...",
+    "remote_pruned": {
+      "one": "   se borró {count} backup externo además de los {keep} más nuevos.",
+      "other": "   se borraron {count} backups externos además de los {keep} más nuevos."
+    }
+  },
+  "errors": {
+    "database_url_required": "OCTOPUS_DATABASE_URL es obligatorio (DSN postgres://).",
+    "restore_usage": "Uso: RESTORE=1 ./backup.sh <archivo.tar.gz>",
+    "no_data_source": "No hay directorio de datos para respaldar. Definí OCTOPUS_DATA_DIR (un directorio de esta máquina), OCTOPUS_COMPOSE_FILE (el archivo del stack de compose) u OCTOPUS_BACKUP_SOURCE=kubernetes.",
+    "unknown_source": "OCTOPUS_BACKUP_SOURCE tiene que ser host, compose o kubernetes, y vale '{source}'.",
+    "compose_file_missing": "El archivo de compose '{file}' no existe.",
+    "data_dir_missing": "El directorio de datos {dir} no existe. No se respaldó nada: apuntá OCTOPUS_DATA_DIR al directorio que tiene projects/ y task-attachments/.",
+    "data_dir_unreadable": "Este usuario no puede leer el directorio de datos {dir}. No se respaldó nada; corrélo como dueño del directorio o como root.",
+    "pvc_path": "No se encontró dónde guarda sus archivos el PVC {pvc} (namespace {namespace}). Corrélo en el nodo de k3s o definí OCTOPUS_DATA_DIR con el directorio del volumen.",
+    "empty_dump": "pg_dump no escribió nada, así que no se armó ningún archivo.",
+    "remote_failed": "No se pudo copiar el backup a {remote}. El archivo local {archive} está completo.",
+    "status_not_written": "No se pudo escribir {file}; Configuración → Actualizaciones no va a mostrar este backup. El archivo está completo."
+  }
+}

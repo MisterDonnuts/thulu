@@ -1,0 +1,81 @@
+{{- if eq .Values.agentRuntime.mode "kubernetes" -}}
+# pods/exec, pods/attach and pods/portforward are withheld on purpose. Secrets/ConfigMaps come only
+# from tenant-secrets, bound per namespace.
+# Without admission-policy.yaml this role is cluster-admin-equivalent (create pods anywhere = read
+# any Secret).
+# get/list pods exposes every pod's env cluster-wide: never put credentials in plain pod env on this
+# cluster.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "octopus.fullname" . }}-agent-runtime
+  labels:
+    {{- include "octopus.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list", "watch", "create", "update", "delete"]
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["rolebindings"]
+    verbs: ["get", "create", "update"]
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["clusterroles"]
+    verbs: ["bind"]
+    resourceNames: [{{ include "octopus.tenantSecretsRole" . | quote }}]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list", "watch", "create", "update", "delete"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    # update: the startup reconcile labels claims an older release made (ee/kuberuntime/converge.go).
+    verbs: ["get", "list", "create", "update", "delete"]
+  - apiGroups: [""]
+    resources: ["resourcequotas", "limitranges"]
+    verbs: ["get", "list", "create", "update", "delete"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["networkpolicies"]
+    verbs: ["get", "list", "create", "update", "delete"]
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list"]
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["nodes", "pods"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "octopus.fullname" . }}-agent-runtime
+  labels:
+    {{- include "octopus.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "octopus.fullname" . }}-agent-runtime
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "octopus.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+---
+# Bound only per namespace by the daemon. Never bind with a ClusterRoleBinding: that is cluster-wide
+# Secret read.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "octopus.tenantSecretsRole" . }}
+  labels:
+    {{- include "octopus.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "create", "update", "delete"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "create", "update"]
+{{- end -}}

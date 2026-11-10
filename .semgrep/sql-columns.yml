@@ -1,0 +1,33 @@
+# Rollback runs release N-1 on release N's schema: SELECT * and column-less INSERT break on an added
+# column, only on rollback.
+# Test files are excluded: they run against the schema they were written for.
+rules:
+  - id: octopus.sql.select-star
+    languages: [go]
+    severity: ERROR
+    message: >-
+      SELECT * breaks the previous release once a column is added (rollback,
+      docs/migrations.md). Name the columns.
+    pattern-regex: (?i)\bselect\s+(?:distinct\s+)?(?:[a-z_][a-z0-9_]*\.)?\*\s+from\b
+    paths:
+      exclude: ["*_test.go"]
+
+  - id: octopus.sql.returning-star
+    languages: [go]
+    severity: ERROR
+    message: >-
+      RETURNING * breaks the previous release once a column is added (rollback,
+      docs/migrations.md). Name the columns.
+    pattern-regex: (?i)\breturning\s+\*
+    paths:
+      exclude: ["*_test.go"]
+
+  - id: octopus.sql.insert-without-columns
+    languages: [go]
+    severity: ERROR
+    message: >-
+      INSERT without a column list breaks the previous release once a column
+      is added (rollback, docs/migrations.md). List the columns.
+    pattern-regex: (?i)\binsert\s+into\s+[a-z_."][a-z0-9_."]*\s+(?:values|select)\b
+    paths:
+      exclude: ["*_test.go"]

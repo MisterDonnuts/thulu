@@ -1,0 +1,523 @@
+name: Thulu CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Outside contributions sign off every commit (CONTRIBUTING.md). Maintainers' pull requests come
+  # from branches of this repository, so the job skips them.
+  dco:
+    name: DCO sign-off
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Every commit is signed off by its author
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          missing=0
+          for c in $(git rev-list --no-merges "$BASE..$HEAD"); do
+            author=$(git log -1 --format='%ae' "$c")
+            if ! git log -1 --format='%(trailers:key=Signed-off-by,valueonly)' "$c" | grep -qiF "<$author>"; then
+              echo "::error::$(git log -1 --format='%h %s' "$c"): no Signed-off-by for $author"
+              missing=1
+            fi
+          done
+          exit $missing
+
+  # The matrix must list every shard `scripts/ci/go-test-shard.sh shards` prints; the coverage merge
+  # fails on a missing one.
+  go-test-shard:
+    name: Go test (${{ matrix.shard }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [api-1, api-2, rest]
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
+        env:
+          POSTGRES_USER: octopus
+          POSTGRES_PASSWORD: octopus
+          POSTGRES_DB: octopus
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U octopus -d octopus"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      OCTOPUS_TEST_POSTGRES_DSN: postgres://octopus:octopus@localhost:5433/octopus?sslmode=disable
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      # web/embed.go uses //go:embed all:dist, so Go compilation fails unless
+      # web/dist/ exists. It's gitignored (built on demand). The production
+      # image (deploy/Dockerfile) builds the frontend first; we mirror that
+      # here so the Go build sees the same tree. About 15 s per shard, less
+      # than an artifact round trip from a separate job would cost.
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build frontend (for go:embed)
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+
+      - name: Test (race detector + coverage)
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: scripts/ci/go-test-shard.sh run "$SHARD"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: go-coverage-${{ matrix.shard }}
+          path: coverage-${{ matrix.shard }}.out
+          if-no-files-found: error
+
+  # always() so a failed shard turns this red; a skipped required check counts as passing.
+  go-test:
+    name: Go test
+    runs-on: ubuntu-latest
+    needs: go-test-shard
+    if: always()
+    steps:
+      - name: Every shard passed
+        env:
+          RESULT: ${{ needs.go-test-shard.result }}
+        run: |
+          echo "Go test shards: $RESULT"
+          [ "$RESULT" = success ]
+
+  coverage-gate:
+    name: Coverage gate (≥ 55%)
+    runs-on: ubuntu-latest
+    needs: go-test-shard
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: go-coverage-*
+          merge-multiple: true
+
+      - name: Merge the shards' profiles
+        run: make coverage-merge
+
+      - name: Enforce minimum coverage
+        run: make coverage-gate
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: go-coverage
+          path: coverage.out
+
+  # .golangci.yml disables govet for _test.go, so this is the only vet over tests, run with
+  # CGO_ENABLED=0 like the release binaries.
+  go-vet:
+    name: Go vet
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build frontend (for go:embed)
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+
+      - name: go vet (CGO_ENABLED=0)
+        run: make vet
+      - name: go vet without ee/ (-tags foss)
+        run: make vet-foss
+      - name: THIRD_PARTY_NOTICES is current
+        run: make notices-check
+
+  go-lint:
+    name: Go lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      # golangci-lint's typecheck pass compiles the tree; without web/dist/
+      # the //go:embed in web/embed.go fails. Same setup as the Go test shards.
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build frontend (for go:embed)
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+
+      - name: golangci-lint
+        run: make lint-go
+
+  secret-scan:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0  # full history — gitleaks scans all commits
+          persist-credentials: false
+
+      # Not gitleaks-action: it ignores regex [[allowlists]] blocks in .gitleaks.toml.
+      - name: gitleaks
+        run: make secrets
+
+  semgrep:
+    name: SAST (semgrep)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write  # upload SARIF to Code Scanning
+      actions: read           # upload-sarif reads workflow-run metadata
+    container:
+      # Keep SEMGREP_VERSION in the Makefile in step with this digest.
+      image: semgrep/semgrep:1.163.0@sha256:7cad2bc2d1e44f87f0bf4be6d1fa23aa90fb72015bebc89fb91385d813987a03
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      # Flags match the Makefile `semgrep` target; change both together.
+      # Exclusions are deliberate: octopus_csrf must be JS-readable (double-submit), OIDC redirects
+      # are allowlisted,
+      # root images drop privileges in their entrypoints, and Secure is set per request so http dev
+      # logins work.
+      - name: Semgrep scan
+        run: |
+          semgrep scan \
+            --config p/golang \
+            --config p/owasp-top-ten \
+            --config p/jwt \
+            --config p/secrets \
+            --config .semgrep/ \
+            --exclude-rule go.lang.security.audit.net.cookie-missing-httponly.cookie-missing-httponly \
+            --exclude-rule go.lang.security.injection.open-redirect.open-redirect \
+            --exclude-rule dockerfile.security.missing-user.missing-user \
+            --exclude-rule dockerfile.security.missing-user-entrypoint.missing-user-entrypoint \
+            --exclude-rule go.lang.security.audit.net.cookie-missing-secure.cookie-missing-secure \
+            --metrics off \
+            --sarif --output semgrep.sarif \
+            --error
+
+      # continue-on-error: the upload fails on repos without Code Scanning enabled; the scan step is
+      # the gate.
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@3ea06614dafe36dec890db3446326e0d40ce53d4 # v3.38.1
+        if: always()  # still publish results even when the scan failed
+        continue-on-error: true
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+  vuln-scan:
+    name: Vulnerability scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: govulncheck (Go deps)
+        run: make vuln
+
+      - name: npm audit (Node deps — fail on high+)
+        run: make audit
+
+  container-scan:
+    name: Container scan (trivy)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write  # upload SARIF to Code Scanning
+      actions: read           # upload-sarif reads workflow-run metadata
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Trivy — Dockerfile + Helm misconfiguration scan
+        run: make trivy-config
+
+      - name: Trivy — filesystem scan (gates the job)
+        run: make trivy-fs
+
+      - name: Trivy — filesystem scan (sarif — for code scanning tab)
+        if: always()
+        run: make trivy-fs TRIVY_FS_ARGS="--format sarif --output trivy-fs.sarif --exit-code 0"
+
+      - name: Upload Trivy SARIF
+        uses: github/codeql-action/upload-sarif@3ea06614dafe36dec890db3446326e0d40ce53d4 # v3.38.1
+        if: always()
+        continue-on-error: true
+        with:
+          sarif_file: trivy-fs.sarif
+          category: trivy
+
+  frontend-lint:
+    name: Frontend lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - run: npm ci
+
+      - name: ESLint (zero warnings)
+        run: npm run lint
+
+      - name: Prettier check
+        run: npm run format:check
+
+      - name: Astro type check
+        run: npm run typecheck
+
+  frontend-build:
+    name: Frontend build
+    runs-on: ubuntu-latest
+    needs: frontend-lint
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - run: npm ci
+      - run: npm run build
+      - name: Frontend tests (vitest)
+        working-directory: .
+        run: make test-web
+      - name: MCP server and agent snippet tests (node --test)
+        working-directory: .
+        run: make test-tools
+
+  check-source:
+    name: Source hygiene
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: No NUL bytes in tracked source
+        run: make check-source
+
+  migrations-lock:
+    name: Migrations lock
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - name: Published migrations are immutable
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: make migrations-check MIGRATIONS_BASE="$BASE"
+
+  migrations-lint:
+    name: Migrations lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - name: Expand/contract lint
+        run: make migrations-lint
+
+  # Always runs so it can be a required check; octopus-release.yml's ci-gate tells PR runs that did
+  # the work from ones that skipped it.
+  compat:
+    name: Compat (previous release ⇄ HEAD)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read   # pull the previous release's image from ghcr.io
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+          fetch-depth: 0   # tags: the previous release is the latest v* tag before HEAD
+
+      - name: Does this change touch the daemon?
+        id: scope
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+        # Same rule as the Makefile's compat target: no v* tag yet means no previous release.
+        run: |
+          if [ -z "$(git tag -l 'v*')" ]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=compat::no previous release in this repository: compat skipped"
+            exit 0
+          fi
+          if [ "$EVENT" != pull_request ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if git diff --name-only "$BASE"...HEAD \
+              | grep -qE '^(internal/|main\.go$|go\.(mod|sum)$|deploy/|test/compat/|scripts/compat\.sh$|cmd/migrations/|\.github/workflows/octopus-ci\.yml$|Makefile$)'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "No daemon, deploy or migration change: compat skipped."
+          fi
+
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        if: steps.scope.outputs.run == 'true'
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - name: Log in to ghcr.io (read-only)
+        if: steps.scope.outputs.run == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.actor }}
+        run: echo "$GH_TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
+
+      # The daemons get their own dind engine so the janitor and reconcilers never touch the
+      # runner's Docker.
+      # octopus-release.yml finds this step by name (COMPAT_STEP); rename both together.
+      - name: prev → HEAD → prev → HEAD
+        if: steps.scope.outputs.run == 'true'
+        env:
+          COMPAT_ARTIFACTS: ${{ runner.temp }}/compat-logs
+        run: make compat
+
+      - name: Upload daemon and Postgres logs
+        if: always() && steps.scope.outputs.run == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: compat-logs
+          path: ${{ runner.temp }}/compat-logs
+          if-no-files-found: ignore
+          retention-days: 14
+
+  helm-lint:
+    name: Helm lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Lint + render chart
+        run: make helm-lint
+
+  k8s-lint:
+    name: K8s data-plane lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Install YAML + envsubst
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq gettext-base
+          python3 -m pip install --quiet pyyaml
+
+      - name: Validate data-plane manifests
+        run: make k8s-lint

@@ -1,0 +1,201 @@
+{
+  "title": "Workshop",
+  "open": "Workshop",
+  "export": "Export",
+  "export_hint": "Download a JSON with this and the skills it uses, to import it into another workspace",
+  "export_failed": "Could not export: {error}",
+  "tabs": {
+    "agents": "Agents",
+    "skills": "Skills"
+  },
+  "search": {
+    "label": "Search the Workshop",
+    "placeholder": "Search by name, description or tag",
+    "tags": "Filter by tag"
+  },
+  "import": {
+    "button": "Import file",
+    "drop": "Drop the JSON file to import it",
+    "too_large": "The file is larger than 3 MB.",
+    "not_json": "The file is not valid JSON."
+  },
+  "status": {
+    "available": "Available",
+    "installed": "Installed",
+    "update": "Update",
+    "changed": "You have another",
+    "reserved": "Reserved name"
+  },
+  "list": {
+    "no_match": "Nothing matches the search.",
+    "empty_agent": "This Thulu version ships no agents in the Workshop.",
+    "empty_skill": "This Thulu version ships no skills in the Workshop.",
+    "pick": "Pick {name}",
+    "picked": {
+      "one": "{count} picked",
+      "other": "{count} picked"
+    },
+    "clear": "Clear",
+    "install_picked": {
+      "one": "Review and install {count}",
+      "other": "Review and install {count}"
+    }
+  },
+  "detail": {
+    "pick": "Pick an item to see what it does and what it brings.",
+    "back": "Back",
+    "none": "none",
+    "skills": "Skills",
+    "stages": "Stages",
+    "mcp": "MCP",
+    "image": "Image",
+    "requires": "Requires",
+    "used_by": "Used by",
+    "revision": "Revision",
+    "revision_value": "{rev}",
+    "revision_installed": "{rev} (you have {installed})",
+    "tags": "Tags",
+    "files": {
+      "one": "{count} file",
+      "other": "{count} files"
+    },
+    "binary": "Binary file, no preview.",
+    "viewer": "Only a workspace admin can install.",
+    "already": "Already installed as is.",
+    "reserved": "That name belongs to an Thulu skill.",
+    "brings": {
+      "one": "Brings {count} skill.",
+      "other": "Brings {count} skills."
+    },
+    "stage_missing": "No board has this stage",
+    "disabled": "You deleted it from the workspace. Installing it enables it again.",
+    "none_f": "none"
+  },
+  "buttons": {
+    "install": "Install",
+    "update": "Update",
+    "review": "Review and install"
+  },
+  "plan": {
+    "title": "Review before installing",
+    "lead": "This is what will change in the workspace. Where you already have something by the same name, yours is kept unless you pick otherwise.",
+    "lead_import": "This is what the file brings. Where you already have something by the same name, yours is kept unless you pick otherwise.",
+    "loading": "Building the plan…",
+    "back": "Back",
+    "choose": "What to do with {name}",
+    "edited": "You edited it after installing it",
+    "used_by": "Used by {agents}",
+    "action": {
+      "install": "New in the workspace",
+      "same": "You already have it, identical",
+      "update": "A newer revision ships and you have not changed yours",
+      "conflict": "You already have a different one by this name",
+      "reserved": "The name belongs to an Thulu skill",
+      "rejected": "A file looks like a secret: not imported",
+      "update_import": "The file brings another version and you have not edited it",
+      "disabled": "You had deleted it: installing enables it again",
+      "copy_same": "You have it already, as {target}",
+      "copy_conflict": "Your copy {target} is different"
+    },
+    "resolution": {
+      "install": "Install",
+      "keep": "Keep yours",
+      "update": "Update",
+      "replace": "Replace",
+      "copy": "Install as a copy",
+      "skip": "Do not install"
+    },
+    "badge": {
+      "install": "Installs",
+      "keep": "No change",
+      "update": "Updates",
+      "replace": "Replaces",
+      "copy": "Copy",
+      "skip": "Left out",
+      "keep_yours": "Yours stays"
+    },
+    "nothing": "Nothing to install",
+    "applying": "Installing…",
+    "history_kept": "The current configuration stays in the agent history",
+    "copy_name": "Copy name",
+    "apply": {
+      "install": {
+        "one": "Install {count} item",
+        "other": "Install {count} items"
+      },
+      "update": {
+        "one": "Update {count} item",
+        "other": "Update {count} items"
+      },
+      "mixed": {
+        "one": "Apply {count} change",
+        "other": "Apply {count} changes"
+      }
+    }
+  },
+  "notice": {
+    "missing_skill": "{name} uses skills nothing brings and the workspace lacks: {refs}. It will run without them.",
+    "missing_mcp": "{name} uses MCP servers this install lacks: {refs}. Those tools will not be in its runs.",
+    "unknown_stage": "{name} is set up for stages no board has: {refs}. Add them to a board or edit the agent.",
+    "image": "{name} runs its own image ({refs}). Check that it exists on this install.",
+    "image_saas": "{name} needs its own image ({refs}) and this install cannot run custom images. Pick \"Do not install\" to install the rest.",
+    "image_import": "{name} names a container image ({refs}). An imported agent cannot bring its own image: it comes in without it and runs on its engine's image.",
+    "tools_skipped": "The file carries manuals for {refs} MCP servers. They are not imported: they belong to the install.",
+    "reserved": "{name} uses a name reserved for Thulu skills and is left out. To import it, pick \"Install as a copy\" and give it another name.",
+    "kept_skill": "{name} will use your {refs}, not the Workshop one. To use the Workshop one, install it as a copy.",
+    "kept_skill_import": "{name} will use your {refs}, not the one in the file. To use the one in the file, install it as a copy.",
+    "secret": "{kind} {name} is not imported: {refs} looks like it contains a secret. The rest of the file still installs."
+  },
+  "errors": {
+    "generic": "Something failed. Try again."
+  },
+  "empty_agents": "Install ready-made agents from the Workshop, or create your own.",
+  "empty_skills": "Install ready-made skills from the Workshop, or write your own.",
+  "export_all_agents": "Export all",
+  "export_all_skills": "Export all",
+  "export_all_agents_hint": "Download one JSON with every agent in the workspace and the skills they use",
+  "export_all_skills_hint": "Download one JSON with every skill in the workspace",
+  "updates_count": {
+    "one": "{count} update in the Workshop",
+    "other": "{count} updates in the Workshop"
+  },
+  "update_badge": "Update",
+  "update_badge_hint": "The Workshop has a newer revision and you have not edited it",
+  "kind": {
+    "agent": "Agent",
+    "skill": "Skill"
+  },
+  "result": {
+    "title": "Done",
+    "installed": {
+      "one": "{count} installed",
+      "other": "{count} installed"
+    },
+    "updated": {
+      "one": "{count} updated",
+      "other": "{count} updated"
+    },
+    "replaced": {
+      "one": "{count} replaced",
+      "other": "{count} replaced"
+    },
+    "copied": {
+      "one": "{count} copy",
+      "other": "{count} copies"
+    },
+    "copy_as": "{from} as {to}",
+    "skipped": {
+      "one": "{count} left out",
+      "other": "{count} left out"
+    },
+    "nothing": "Nothing was written.",
+    "agent_hint": "Installing an agent does not put it to work: pick it in the project stage template or in the task Agent field.",
+    "back": "Back to the catalog"
+  },
+  "tags": {
+    "code": "code",
+    "docs": "docs",
+    "example": "example",
+    "release": "release"
+  }
+}

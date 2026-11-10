@@ -1,0 +1,62 @@
+{
+  "aria": {
+    "navigation": "Navegación",
+    "primary": "Principal",
+    "settings": "Configuración"
+  },
+  "head": {
+    "workspace": "Espacio de trabajo",
+    "settings": "Configuración"
+  },
+  "buttons": {
+    "collapse": "Contraer barra lateral",
+    "expand": "Expandir barra lateral",
+    "close": "Cerrar navegación",
+    "new_chat": "Nuevo chat"
+  },
+  "sections": {
+    "boards": "Tableros",
+    "chats": "Chats"
+  },
+  "groups": {
+    "workspace": "Espacio de trabajo",
+    "integrations": "Integraciones",
+    "operations": "Operación",
+    "you": "Vos"
+  },
+  "links": {
+    "inbox": "Pendientes",
+    "evidence": "Evidencia",
+    "skills": "Skills",
+    "automations": "Automatizaciones",
+    "back_to_app": "Volver a la app",
+    "members": "Miembros",
+    "boards": "Tableros",
+    "ai_engines": "Motores de IA",
+    "mcps": "MCPs",
+    "credentials": "Credenciales",
+    "webhooks": "Webhooks",
+    "api": "API",
+    "sandboxes": "Sandboxes",
+    "usage": "Uso",
+    "infra": "Infraestructura",
+    "health": "Salud",
+    "updates": "Actualizaciones",
+    "audit_log": "Registro de auditoría",
+    "language": "Idioma",
+    "account": "Cuenta",
+    "settings": "Configuración"
+  },
+  "version": {
+    "update_available": "Hay una actualización disponible"
+  },
+  "empty": {
+    "no_boards": "Sin tableros."
+  },
+  "badges": {
+    "inbox": {
+      "one": "{count} tarea de todo el espacio espera a una persona: una pregunta, una aprobación o una corrida que se frenó o no arrancó",
+      "other": "{count} tareas de todo el espacio esperan a una persona: preguntas, aprobaciones y corridas que se frenaron o no arrancaron"
+    }
+  }
+}

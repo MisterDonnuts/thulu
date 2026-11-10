@@ -1,0 +1,116 @@
+{
+  "intro_html": "Cada motor tiene un <strong>perfil predeterminado</strong>: la clave, y opcionalmente el modelo, con que corren los agentes de ese motor. Agregá más perfiles cuando un agente necesite otro modelo, otra clave u otro endpoint, y elegilos por agente en la página de <a href=\"/agents/\">Agentes</a>. Las claves se guardan cifradas; sólo vuelve una pista enmascarada.",
+  "cross_html": "Las claves que usan las tools de los agentes (GitHub, AWS, Google Cloud) van en <a href=\"/credentials/\">Credenciales</a>.",
+  "engine": {
+    "none": "No hay motores configurables.",
+    "default_badge": "Predeterminado",
+    "default_label": "Predeterminado",
+    "others_label": "Otros perfiles",
+    "others_none": "Todavía ninguno. Agregá uno cuando un agente necesite otro modelo, otra clave u otro endpoint.",
+    "set_default_key": "Configurar clave predeterminada",
+    "fallback": "Motor predeterminado",
+    "fallback_title": "Los agentes que no eligen motor corren en este",
+    "new_profile": "Nuevo perfil"
+  },
+  "modal": {
+    "new_title": "Nuevo perfil",
+    "create": "Crear perfil",
+    "engine_line": "Motor: {engine} · proveedor: {provider}"
+  },
+  "labels": {
+    "name": "Nombre",
+    "provider": "Proveedor",
+    "model": "Modelo",
+    "effort": "Esfuerzo",
+    "base_url": "URL base",
+    "auth_header": "Enviar la clave como",
+    "region": "Región",
+    "project_id": "ID del proyecto",
+    "small_model": "Modelo chico",
+    "aws_key_id": "Access key ID",
+    "aws_secret": "Secret access key",
+    "aws_session": "Session token",
+    "gcp_sa": "JSON de la clave de la service account",
+    "clear_key": "Descartar la credencial guardada y usar la identidad de nube propia de esta instalación",
+    "org_id": "ID de la organización",
+    "credential": "Credencial",
+    "key": "Clave",
+    "bedrock_key": "Clave de API de Bedrock (opcional)",
+    "default_for_engine": "Predeterminado para este motor",
+    "default_for": "Predeterminado para {engine}",
+    "default_for_locked": "Predeterminado para {engine} (para cambiarlo, hacé predeterminado otro perfil)",
+    "fed_rule": "ID de la regla de federación",
+    "fed_service_account": "ID de la service account",
+    "fed_org": "ID de organización",
+    "fed_workspace": "ID del workspace",
+    "fed_issuer": "la URL del emisor",
+    "fed_subject": "el prefijo del subject",
+    "fed_jwks": "el JWKS"
+  },
+  "placeholders": {
+    "name": "team-anthropic, gpt5-research, …",
+    "base_url": "https://litellm.internal",
+    "region": "us-east-1, us-east5, …",
+    "small_model": "El id que la nube le da al modelo rápido, p. ej. un inference profile de Bedrock",
+    "org_id": "org-…",
+    "cloud_key": "O un par de access keys arriba",
+    "fed_rule": "fdrl_…",
+    "fed_service_account": "svac_…",
+    "fed_org": "00000000-0000-0000-0000-000000000000",
+    "fed_workspace": "wrkspc_… (sólo para una regla con varios workspaces)"
+  },
+  "effort": {
+    "cli_default": "El de la CLI",
+    "low": "bajo",
+    "medium": "medio",
+    "high": "alto"
+  },
+  "auth_header": {
+    "x_api_key": "Header x-api-key (predeterminado)",
+    "bearer": "Authorization: Bearer"
+  },
+  "hints": {
+    "cloud_keep": "Dejá vacíos los campos de credencial para conservar la guardada.",
+    "cloud_identity": "Dejá vacíos los campos de credencial para usar la identidad de nube propia de esta instalación (IRSA, Workload Identity), si el operador lo permite.",
+    "federation": "Sin clave: cada corrida recibe un token de identidad que firma este daemon, y Anthropic lo cambia por un token de acceso corto según tu regla de federación. Copiá los IDs de la configuración de workload identity de la Claude Console.",
+    "federation_console": "En la Claude Console, registrá este daemon como emisor con esta URL, y en la regla filtrá por subject. Toda corrida de este workspace tiene un subject que empieza con el prefijo de abajo.",
+    "federation_jwks": "Si la Console no llega a este daemon, elegí la opción de JWKS inline y pegá este conjunto de claves. Volvé a pegarlo cuando el dueño de la instalación rote la clave de firma."
+  },
+  "confirm": {
+    "make_default_title": "¿Hacer \"{name}\" el predeterminado de {engine}?",
+    "make_default_switch": {
+      "one": "{count} agente sin perfil propio pasa a usar esta clave en su próxima corrida.",
+      "other": "{count} agentes sin perfil propio pasan a usar esta clave en su próxima corrida."
+    },
+    "make_default_switch_model": {
+      "one": "{count} agente sin perfil propio pasa a usar esta clave y este modelo en su próxima corrida.",
+      "other": "{count} agentes sin perfil propio pasan a usar esta clave y este modelo en su próxima corrida."
+    },
+    "make_default_none": "Los agentes de este motor sin perfil propio van a correr con este.",
+    "delete_title": "¿Eliminar el perfil \"{name}\"?",
+    "delete_default": "Los agentes de {engine} sin perfil propio vuelven a la credencial del host.",
+    "delete_default_blocked": "Los agentes de {engine} sin perfil propio no van a arrancar hasta que cargues otra clave.",
+    "delete_other": "La clave se elimina con él."
+  },
+  "toasts": {
+    "now_default": "\"{name}\" ahora es el predeterminado de {engine}",
+    "deleted": "Perfil eliminado",
+    "saved": "Perfil \"{name}\" guardado",
+    "created": "Perfil \"{name}\" creado",
+    "key_valid": "El proveedor aceptó la clave de \"{name}\"",
+    "key_invalid": "El proveedor rechazó la clave de \"{name}\": revisala antes de la próxima corrida",
+    "key_unreachable": "No se pudo contactar al proveedor para verificar la clave de \"{name}\". Probá Volver a verificar más tarde"
+  },
+  "errors": {
+    "load_failed": "No se pudieron cargar los motores.",
+    "default_failed": "No se pudo cambiar el predeterminado",
+    "profile_in_use": "\"{name}\" lo usan {agents}. Pasá esos agentes a otro perfil primero.",
+    "delete_failed": "No se pudo eliminar el perfil",
+    "save_failed": "No se pudo guardar el perfil",
+    "check_failed": "No se pudo verificar la clave",
+    "federation_unavailable": "No pude traer los datos del emisor desde el daemon."
+  },
+  "buttons": {
+    "recheck": "Volver a verificar"
+  }
+}

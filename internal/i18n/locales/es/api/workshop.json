@@ -1,0 +1,11 @@
+{
+  "errors": {
+    "items_or_bundle": "mandá ítems del catálogo o un archivo, uno de los dos",
+    "no_store": "el Workshop necesita el catálogo en la base",
+    "export_nothing": "elegí al menos un agente o una skill para exportar"
+  },
+  "audit": {
+    "imported": "agentes y skills importados: {count} escritos",
+    "installed": "instalado desde el Workshop: {count} escritos"
+  }
+}

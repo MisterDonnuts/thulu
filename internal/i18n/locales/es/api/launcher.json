@@ -1,0 +1,30 @@
+{
+  "errors": {
+    "missing_instance_id": "kubelauncher: al entorno le falta INSTANCE_ID",
+    "run_not_tracked": "kubelauncher: este daemon no sigue el run {run}",
+    "ensure_namespace": "kubelauncher: asegurar el namespace",
+    "steer_exec_create": "crear el exec para redirigir al agente",
+    "steer_exec_attach": "conectarse al exec para redirigir al agente",
+    "steer_write": "escribir la redirección al agente",
+    "steer_drain": "leer la salida de la redirección al agente",
+    "steer_exec_exited": "el exec de redirección terminó con código {code}",
+    "browser_image": "imagen del browser por run {image}",
+    "browser_create": "crear el browser por run del contenedor de agente {agent}",
+    "browser_start": "arrancar el browser por run del contenedor de agente {agent}"
+  },
+  "log": {
+    "container_exited": "el contenedor {id} terminó ({code}, {reason}) outDir={dir}",
+    "reap_failed": "limpiar el contenedor del agente {id}: {err}",
+    "reaped": "contenedor del agente {id} limpiado",
+    "inspect_failed": "inspeccionar el contenedor terminado {id}: {err}",
+    "no_output_dir": "no hay directorio de salida para el contenedor {id} (instancia {instance:%q}, raíz de corridas {root:%q})",
+    "copy_out_failed": "copiar las salidas de {id}: {err}",
+    "copy_out_exited": "copiar las salidas del contenedor terminado {id}",
+    "steer_half_close": "[task] cerrar la entrada del exec de redirección",
+    "delete_pod_failed": "borrar el pod {namespace}/{pod} después de terminar: {err}",
+    "read_logs_failed": "leer los logs de {namespace}/{pod}: {err}",
+    "drain_logs_failed": "vaciar los logs de {namespace}/{pod}: {err}",
+    "browser_list_failed": "listar los contenedores de browser por run: {err}",
+    "browser_remove_failed": "borrar el contenedor de browser por run {id}: {err}"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "hook_template_comments": "# Runs inside /workspace/projects/<project>/ before the agent starts.\n# What it prints and its exit code are added to the agent's prompt.",
+  "labels": {
+    "not_set": "Not set",
+    "new_suffix": "(new)"
+  },
+  "orphans": {
+    "title": "Orphaned files",
+    "intro": "For stages that no longer exist: {files}. They stay on disk and do nothing until a stage with that id exists again.",
+    "clean_up": "Clean up"
+  }
+}

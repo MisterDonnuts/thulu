@@ -1,0 +1,12 @@
+.est {
+  cursor: help;
+  text-decoration: underline dotted var(--fg-3);
+  text-underline-offset: var(--s-1);
+}
+
+.unpriced {
+  cursor: help;
+  color: var(--fg-2);
+  font-size: var(--t-xs);
+  white-space: nowrap;
+}

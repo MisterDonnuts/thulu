@@ -1,0 +1,11 @@
+{
+  "errors": {
+    "not_a_pull_request": "la URL guardada para este proyecto no es un pull request del GitHub configurado",
+    "project_other_workspace": "el proyecto pertenece a otro workspace",
+    "no_credential": "ninguna credencial de GitHub puede leer los pull requests de este proyecto",
+    "load_failed": "no se pudo cargar el pull request"
+  },
+  "log": {
+    "token_failed": "resolver el token de GitHub para leer los pull requests del proyecto {project}"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "errors": {
+    "image_missing": "image {ref} is not present on the Docker host: build or load it there (e.g. `make agent-images`), push it to a registry and set {env}, or set OCTOPUS_BUILD_MISSING_IMAGES=1 to let the daemon build agent images that declare a build context",
+    "inspect_failed": "inspect image {ref}",
+    "pull_failed": "pull image {ref}",
+    "read_pull_progress": "read pull progress"
+  },
+  "log": {
+    "pulling": "pulling {ref}"
+  }
+}

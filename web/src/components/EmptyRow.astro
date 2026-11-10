@@ -1,0 +1,38 @@
+---
+// Pollers look this row up by .row-empty to decide whether the list has content; don't rename it.
+// Markup must match emptyRowHTML() in lib/ui/empty.ts.
+import { emptyA11y, emptyRowClasses, loadingText, type EmptyTone } from "../lib/ui/empty";
+
+interface Props {
+  as?: "tr" | "li" | "div";
+  cols?: number;
+  loading?: boolean;
+  tone?: EmptyTone;
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  as: Tag = "tr",
+  cols,
+  loading = false,
+  tone = "neutral",
+  class: extra,
+  ...rest
+} = Astro.props;
+const attrs = { class: emptyRowClasses(tone, extra), ...emptyA11y({ tone, loading, as: Tag }) };
+const fallback = loading ? loadingText() : "";
+---
+
+{
+  Tag === "tr" ? (
+    <tr {...attrs} {...rest}>
+      <td colspan={cols}>
+        <slot>{fallback}</slot>
+      </td>
+    </tr>
+  ) : (
+    <Tag {...attrs} {...rest}>
+      <slot>{fallback}</slot>
+    </Tag>
+  )
+}

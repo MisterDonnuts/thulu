@@ -1,0 +1,35 @@
+{
+  "audit": {
+    "board_created": "tablero creado: {board} ({stages} etapa(s))",
+    "board_deleted": "tablero borrado: {board} ({count} tarea(s) movidas a {dest})",
+    "board_updated": "tablero actualizado: {board}",
+    "default_board_changed": "el tablero por defecto ahora es: {board}",
+    "task_types_changed": "cambiaron los tipos de tarea del tablero {board} ({types} tipo(s), {count} tarea(s) movidas)"
+  },
+  "errors": {
+    "board_holds_tasks": "el tablero {board:%q} todavía tiene {count} tarea(s): pasá ?move_to=<board> para moverlas",
+    "board_lacks_type": "el tablero {board:%q} no ofrece el tipo de tarea {type:%q}",
+    "board_left_in_place": "{cause}: el tablero quedó en su lugar para que ninguna tarea quede varada",
+    "board_still_receiving": "el tablero {board:%q} sigue recibiendo tareas mientras se borra (quedan {count}): reintentá cuando esté quieto",
+    "delete_after_move_failed": "{cause} ({count} tarea(s) ya movidas a {dest})",
+    "destination_type_skips_stage": "la tarea {task} está en {stage:%q}, que el tipo {type:%q} saltea: elegí otro tipo de destino",
+    "invalid_destination_board": "move_to {dest:%q} no es un tablero de destino válido",
+    "invalid_destination_type": "move_to {dest:%q} no es uno de los tipos que va a ofrecer este tablero",
+    "move_task_failed": "mover la tarea {task} fuera del tablero {board}",
+    "retype_failed": "cambiar el tipo de la tarea {task} en el tablero {board}",
+    "skip_strands_tasks": "{count} tarea(s) del tipo {type:%q} están en {stage:%q}, que este cambio saltearía: pasá ?move_to_stage=<stage> para moverlas",
+    "stage_missing_on_board": "la etapa {stage:%q} no existe en el tablero {board:%q}",
+    "type_holds_tasks": "el tipo de tarea {type:%q} todavía tiene {count} tarea(s): pasá ?move_to=<type> para cambiarles el tipo (vacío para sin tipo)",
+    "type_list_unchanged": "{cause}: la lista de tipos quedó igual",
+    "types_save_after_move_failed": "{cause} ({count} tarea(s) ya movidas)",
+    "unknown_board": "no existe el tablero {board:%q}"
+  },
+  "log": {
+    "count_by_type": "contar tareas por tipo del tablero {board}",
+    "seed_default_board": "crear el tablero por defecto del workspace {workspace}"
+  },
+  "timeline": {
+    "moved_board_deleted": "{from} → {to} (se borró el tablero {board})",
+    "moved_type_change": "{from} → {to} (tipo de tarea {reason})"
+  }
+}

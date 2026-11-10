@@ -1,0 +1,80 @@
+{
+  "comment": {
+    "default": "If nobody answers: {default}",
+    "free_answer": "   _(answer in your own words)_",
+    "heading_blocker": "**{agent} is blocked and needs you.**",
+    "heading_blocking": "**{agent} has a question and is waiting for the answer.**",
+    "heading_non_blocking": "**{agent} has a question.** It keeps working meanwhile.",
+    "multi": "   _(pick one or more)_",
+    "multi_and_other": "   _(pick one or more, or answer in your own words)_",
+    "option": "   - {label}",
+    "option_described": "   - {label}: {description}",
+    "other": "   _(or answer in your own words)_",
+    "resume_failed": "The answers are in, but the agent could not be resumed with them: {err}. Thulu tries again when the daemon restarts; relaunch the stage to go on now."
+  },
+  "errors": {
+    "bad_index": "question_index {index} names no question of this ask",
+    "bad_kind": "kind {kind:%q} is not a question kind: use question or blocker",
+    "blocker_needs_text": "a blocker is answered in words: fill in other or note",
+    "count": "count the task's questions",
+    "decode": "decode question {id}",
+    "default_required": "a question that does not block needs a default: what the agent does if nobody answers",
+    "duplicate_index": "question {index} is answered twice",
+    "encode": "encode the question",
+    "header_too_long": "question {index}: the header is over {max} characters",
+    "insert": "store the question",
+    "list": "list the questions",
+    "not_found": "question not found: {id}",
+    "not_open": "the question is no longer open (it is {status})",
+    "open_limit": "this task already has {max} open questions: wait for answers before asking more",
+    "option_label_duplicate": "question {index}: option {label:%q} is listed twice",
+    "option_label_required": "question {index}: every option needs a label",
+    "other_not_allowed": "question {index} only takes one of its options",
+    "question_count": "ask between 1 and {max} questions at once",
+    "question_required": "question {index} has no text",
+    "run_limit": "this run already asked {max} times: decide with what you have, or end your turn",
+    "scan": "read a question",
+    "single_select": "question {index} takes one option",
+    "too_long": "{field} is over {max} characters",
+    "too_many_options": "question {index} has more than {max} options",
+    "unanswered": "answer every question, or leave a note that answers them",
+    "unknown_option": "question {index} has no option {label:%q}",
+    "update": "update the question"
+  },
+  "events": {
+    "answered": "{kind} answered",
+    "asked": "{kind} asked ({count} question(s))",
+    "awaiting_input": "run waits for {count} blocking question(s)",
+    "canceled": "{kind} canceled"
+  },
+  "log": {
+    "cancel": "cancel question {question}",
+    "list_open": "list the open questions of task {task}",
+    "list_run": "list the questions of a run of task {task}",
+    "post_reply": "post the reply of question {question}",
+    "reconcile_list": "list the tasks waiting on answers",
+    "record_event": "record a question event on task {task}",
+    "record_message": "record the answers as a message on task {task}",
+    "reload_task": "reload task {task} to deliver an answer",
+    "set_delivery": "stamp delivery {delivery} on answered questions",
+    "set_session": "stamp the session on the questions of task {task}",
+    "steer": "steer the answers into run {run} of task {task}",
+    "unpark": "move task {task} out of awaiting_input",
+    "decorate_counts": "count open questions"
+  },
+  "prompts": {
+    "answer": "Answer: {answer}",
+    "answered_by": "{author} answered your questions.",
+    "note": "Note: {note}",
+    "question": "**{label}.** {question}"
+  },
+  "reply": {
+    "canceled": "Canceled by {author}, unanswered.",
+    "canceled_moved": "Canceled unanswered: the task moved to another stage.",
+    "canceled_relaunch": "Canceled unanswered: the stage was relaunched.",
+    "heading": "Answer:",
+    "line": "\n- **{label}:** {answer}",
+    "note": "\n\n{note}",
+    "picked_and_other": "{picked}. {other}"
+  }
+}

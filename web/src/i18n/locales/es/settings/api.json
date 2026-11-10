@@ -1,0 +1,72 @@
+{
+  "openapi": {
+    "title": "Especificación OpenAPI",
+    "intro": "Toda la API REST está descripta en formato OpenAPI 3.1. Importala en Postman, Insomnia o cualquier cliente HTTP.",
+    "copy_url": "Copiar URL",
+    "url_copied": "URL copiada"
+  },
+  "ingest": {
+    "title": "Dirección de telemetría",
+    "intro": "Por dónde una aplicación llega a este Thulu desde afuera. Los agentes que configuran telemetría la leen de acá, así nunca tienen que adivinar; y la dirección que ellos ven casi nunca es la que alcanza una aplicación desplegada. Dejala vacía hasta saber la respuesta: sin configurar es mejor que equivocada.",
+    "placeholder": "https://thulu.example.com",
+    "hint_set": "Las aplicaciones van a enviar a {url}",
+    "hint_unset": "Sin configurar: a los agentes se les dice que la dirección es desconocida.",
+    "install_wide": "La dirección de telemetría vale para todos los espacios de trabajo de esta instalación.",
+    "saved": "Dirección de telemetría guardada",
+    "cleared": "Dirección de telemetría borrada",
+    "save_failed": "No se pudo guardar la dirección",
+    "label": "Dirección"
+  },
+  "keys": {
+    "title": "Clave de API",
+    "intro": "Las claves de API dan acceso programático. Se muestran una sola vez, al crearlas. Una clave pertenece a este espacio de trabajo, no llega a ningún otro, y sólo puede hacer lo que tildes abajo.",
+    "name_placeholder": "Nombre de la clave (p. ej. CI/CD)",
+    "role_title": "Cuánta autoridad tiene la clave",
+    "expires_placeholder": "Vence (días)",
+    "expires_aria": "Vence en días",
+    "generate": "Generar clave",
+    "copy_warning": "Copiá esta clave ahora: no se va a volver a mostrar.",
+    "empty": "Todavía no hay claves de API.",
+    "load_failed": "No se pudieron cargar las claves.",
+    "revoked": "revocada",
+    "expired": "vencida",
+    "task_scoped": "de una tarea",
+    "revoke": "Revocar",
+    "revoke_title": "¿Revocar la clave \"{name}\"?",
+    "revoke_message": "No se puede deshacer.",
+    "revoked_toast": "Clave revocada",
+    "revoke_failed": "No se pudo revocar la clave",
+    "default_name": "Clave de API",
+    "no_permissions_picked": "Elegí qué puede hacer la clave, o usá un preset.",
+    "generated": "Clave generada: ¡copiala ahora!",
+    "refused": "El daemon rechazó la clave: {error}",
+    "generate_failed": "No se pudo generar la clave.",
+    "new_key_name": "la clave nueva",
+    "rotate": "Rotar",
+    "rotate_title": "Una clave nueva con el mismo nombre, rol y permisos; la actual sigue funcionando un tiempo",
+    "rotate_grace": "La clave actual sigue funcionando:",
+    "rotate_confirm": "Rotar ahora",
+    "rotated": "Clave rotada: ¡copiá la nueva ahora!",
+    "rotate_refused": "El daemon rechazó la rotación: {error}",
+    "rotate_failed": "No se pudo rotar la clave.",
+    "replaced": "reemplazada",
+    "name_label": "Nombre"
+  },
+  "run_keys": {
+    "title": "Claves de corridas en curso",
+    "intro": "Cada corrida de agente y cada chat recibe su propia clave, que revoca al terminar. Si una clave sigue acá después de que su corrida terminó, revocala.",
+    "empty": "Ninguna corrida tiene una clave en este momento.",
+    "load_failed": "No se pudieron cargar las claves de corridas.",
+    "chat": "Chat",
+    "revoke_title": "¿Revocar esta clave de corrida?",
+    "revoke_message": "La corrida pierde acceso a la API en el acto; falla en su próxima llamada."
+  },
+  "presets": {
+    "label": "Preset",
+    "read_only": "Sólo lectura",
+    "ci": "CI",
+    "agent": "Agente",
+    "full": "Todo",
+    "perms_aria": "Permisos de la key"
+  }
+}

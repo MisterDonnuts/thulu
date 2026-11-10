@@ -1,0 +1,26 @@
+{
+  "drop_runs": "Starts {agent}",
+  "drop_blocked": "Blocked: waits for its blockers",
+  "drop_none": "No agent for this task",
+  "next_runs": "{stage}: {agent}",
+  "next_none": "{stage} has no agent",
+  "next_none_title": "Moving to {stage} starts nothing: the task has no agent for that column.",
+  "next_runs_title": "Moving to {stage} starts {agent}.",
+  "moved_runs": "→ {stage} · {agent} starts in {seconds} s, or right away if you leave the page",
+  "moved_started": "→ {stage} · {agent} started",
+  "moved": "→ {stage}",
+  "undo": "Undo",
+  "undone": "Back to {stage}",
+  "apply_template": "Apply the template of {project}",
+  "apply_template_msg": {
+    "one": "{project} has an agent for {count} column this task leaves empty.",
+    "other": "{project} has agents for {count} columns this task leaves empty."
+  },
+  "applied": "Template of {project} applied",
+  "from_template": "A new task gets its agents from its project's stage template.",
+  "template_link": "Template of {project}",
+  "no_project": "This task has no project: pick the agent of each column here.",
+  "new_copies": "Agents it copies from the template: {list}.",
+  "new_none": "The stage template of {projects} has no agents: the task starts with none.",
+  "new_no_project": "With no project the task starts with no agents. Pick them later, in the task, under Agent."
+}

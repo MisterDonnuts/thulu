@@ -1,0 +1,22 @@
+{
+  "none": "No agent in any project",
+  "one": "Runs {agent}",
+  "some": "Runs {agents} in {with} of {count} projects",
+  "picker": "Default agent",
+  "picker_desc": "New tasks of the projects that start on this board copy it. A task runs in this column the agent it has assigned for it.",
+  "picker_none": "None",
+  "picker_mixed": "Different in each project",
+  "no_projects": "No project starts on this board yet: the agent is picked in each project's template.",
+  "projects": {
+    "one": "Saved to the template of {count} project.",
+    "other": "Saved to the template of {count} projects."
+  },
+  "per_project": "Pick per project",
+  "saved": {
+    "one": "{column}: {agent} in {count} project",
+    "other": "{column}: {agent} in {count} projects"
+  },
+  "cleared": "{column} no longer has a default agent",
+  "save_failed": "Could not save to {project}: {error}",
+  "start_end": "Start and end columns run no agent."
+}

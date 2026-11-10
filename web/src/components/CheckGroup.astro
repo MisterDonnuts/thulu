@@ -1,0 +1,29 @@
+---
+// Markup must match checkGroupHTML() in lib/ui/check.ts, which, unlike this, hands its type and
+// name to the children.
+import { checkGroupClasses, checkType, type CheckLayout, type CheckType } from "../lib/ui/check";
+
+interface Props {
+  layout?: CheckLayout;
+  wide?: boolean;
+  type?: CheckType;
+  label?: string;
+  labelledBy?: string;
+  id?: string;
+  class?: string;
+  [key: string]: unknown;
+}
+const { layout, wide, type, label, labelledBy, id, class: extra, ...rest } = Astro.props;
+const role = checkType(type) === "radio" ? "radiogroup" : "group";
+---
+
+<div
+  class={checkGroupClasses({ layout, wide, cls: extra })}
+  {id}
+  {role}
+  aria-label={label}
+  aria-labelledby={labelledBy}
+  {...rest}
+>
+  <slot />
+</div>

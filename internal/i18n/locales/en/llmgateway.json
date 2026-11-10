@@ -1,0 +1,23 @@
+{
+  "errors": {
+    "unknown_run_token": "llmgateway: unknown or expired run token",
+    "route_forbidden": "llmgateway: run may not use this route",
+    "nil_resolver": "llmgateway: resolve must not be nil",
+    "upstream_unavailable": "upstream unavailable",
+    "unknown_route": "unknown LLM gateway route: expected /anthropic/… or /openai/…",
+    "missing_run_token": "missing run token",
+    "resolve_failed": "LLM gateway could not resolve the run",
+    "no_usable_credential": "run has no usable LLM credential",
+    "body_too_large": "request body too large",
+    "private_upstream": "llmgateway: upstream resolves to an internal address",
+    "read_body": "llmgateway: read request body",
+    "body_too_large_to_sign": "llmgateway: request body too large to sign",
+    "sign_request": "llmgateway: sign upstream request",
+    "dial": "llmgateway: dial {address:%q}"
+  },
+  "log": {
+    "upstream_failed": "upstream {host}: {err}",
+    "resolve_failed": "resolve: {err}",
+    "call": "ws={workspace} run={run} agent={agent} profile={profile} {method} {host}{path} → {status} in {elapsed}"
+  }
+}

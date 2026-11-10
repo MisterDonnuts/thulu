@@ -1,0 +1,14 @@
+{
+  "errors": {
+    "bad_agent": "agent is required and may hold only letters, digits, '.', '_' and '-'",
+    "bad_sid": "sid is required and may hold only letters, digits, '.', '_' and '-'",
+    "no_transcript": "this agent has no earlier runs or messages on this task",
+    "run_key_only": "session snapshots move only with the key of the run they belong to",
+    "run_session_scope": "a run reaches only its own agent's session and transcript, on its own task",
+    "runs_read_required": "the transcript is built from run logs: the key needs runs:read",
+    "snapshot_too_large": "the session snapshot is over {max} bytes; the next resume starts from the transcript"
+  },
+  "log": {
+    "remove_task_sessions": "remove the session snapshots of task {task}"
+  }
+}

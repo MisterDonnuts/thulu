@@ -1,0 +1,50 @@
+---
+import Button from "./Button.astro";
+import Icon from "./Icon.astro";
+import { safeUrl } from "../lib/safe-url";
+import { stepItemAttrs, stepListClasses, stepMark, type StepItem } from "../lib/ui/steps";
+
+interface Props {
+  steps: StepItem[];
+  compact?: boolean;
+  inline?: boolean;
+  class?: string;
+  [key: string]: unknown;
+}
+const { steps, compact = false, inline = false, class: extra, ...rest } = Astro.props;
+const items = steps.map((s) => ({
+  ...s,
+  mark: stepMark(s.state),
+  href: safeUrl(s.href),
+  finishHref: safeUrl(s.finish?.href),
+}));
+---
+
+<ol class={stepListClasses({ compact, inline, cls: extra })} {...rest}>
+  {
+    items.map((s) => (
+      <li {...stepItemAttrs(s.state)} {...s.attrs}>
+        <Icon name={s.mark.icon} label={s.mark.label} class="step-mark" />
+        <div class="step-body">
+          <p class="step-title">{s.href ? <a href={s.href}>{s.title}</a> : s.title}</p>
+          {s.action && (
+            <p class="step-action">
+              <Button variant="link" href={s.action.href} {...s.action.attrs}>
+                {s.action.label}
+              </Button>
+            </p>
+          )}
+          {s.detail && <p class="step-detail">{s.detail}</p>}
+          {s.note && <p class="step-note">{s.note}</p>}
+          {s.finish && (
+            <p class="step-finish">
+              {s.finishHref ? <a href={s.finishHref}>{s.finish.text}</a> : s.finish.text}
+              {s.finish.command && " "}
+              {s.finish.command && <code class="code-inline">{s.finish.command}</code>}
+            </p>
+          )}
+        </div>
+      </li>
+    ))
+  }
+</ol>

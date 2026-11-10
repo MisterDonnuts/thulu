@@ -1,0 +1,49 @@
+{
+  "errors": {
+    "delete_rollup": "delete usage rollup",
+    "delete_tool_events": "delete tool events",
+    "delete_sessions": "delete sessions",
+    "invalid_dimension": "usage: invalid dimension {column:%q}",
+    "parse_float": "nullableFloat: parse {value:%q}",
+    "migrations": "usage migrations",
+    "add_delegation": "add delegation {id}",
+    "list_delegations": "list delegations",
+    "attribution_session": "read session {id} for attribution",
+    "attribution_save": "save the attribution of session {id}",
+    "attribution_queue": "list sessions to re-attribute",
+    "attribution_read": "read the attribution of session {id}",
+    "finish_delegation": "finish delegation {id}",
+    "close_started_delegations": "close the delegations no pod finished"
+  },
+  "log": {
+    "backfill_failed": "usage: backfill {id}",
+    "persist_backfilled_events": "usage: persist backfilled events for {id}",
+    "backfill_service_tier": "usage: backfill service_tier for {id}",
+    "adopt_orphan": "usage: adopt orphan {id}",
+    "store_adopted_events": "usage: store adopted events {id}",
+    "seed_model_pricing": "usage: seed model_pricing",
+    "rollup_totals": "usage: sum the daily rollup",
+    "estimate_unpriced": "usage: estimate the cost of unpriced sessions",
+    "count_unattributed": "usage: count unattributed sessions",
+    "unattributed_sessions": {
+      "one": "{count} session carries no workspace and is hidden from scoped callers; {tasks} of them name a task and {projects} a project whose own workspace is unset",
+      "other": "{count} sessions carry no workspace and are hidden from scoped callers; {tasks} of them name a task and {projects} a project whose own workspace is unset"
+    },
+    "iterate_sessions": "usage: iterate sessions rows",
+    "iterate_task_sessions": "usage: iterate task session rows",
+    "iterate_by_agent": "usage: iterate by-agent rows",
+    "migrate_session": "usage: migrate session {id} from JSON",
+    "rename_migrated_json": "usage: rename migrated JSON file {path}",
+    "create_logs_dir": "usage: create collector logs dir {path}",
+    "save_logs_failed": "failed to save logs for {agent}: {err}",
+    "read_logs_failed": "failed to read logs for {agent}: {err}",
+    "no_result_event": "no result event found in logs for {agent}",
+    "store_session_failed": "failed to store session for {agent}: {err}",
+    "session_recorded": "recorded session: {agent} — {turns} turns, ${cost:%.4f}, {tools} tool events, logs: {file}",
+    "store_tool_events_failed": "failed to store tool events for {agent}: {err}",
+    "rate_limit": "rate limit: {percent:%.1f}% used, resets at {resets}",
+    "backfill_daily_estimated": "usage: fill the estimated share of the daily rollup",
+    "attribution_failed": "usage: attribute the run of {agent}",
+    "reattribute_failed": "usage: re-attribute {id}"
+  }
+}

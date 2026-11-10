@@ -1,0 +1,22 @@
+{
+  "errors": {
+    "profile_wrong_provider": "{cause}: this run's profile is for {profile_provider}, not {provider}",
+    "credential_not_served": "{cause}: this run's credential is not served through the gateway",
+    "base_url_required": "{cause}: a {provider} profile must name its endpoint (base_url)",
+    "cloud_credential_unreadable": "{cause}: the profile's cloud credential cannot be read",
+    "no_cloud_credential": "{cause}: the profile has no credential and this install does not lend its own cloud identity",
+    "invalid_region": "{cause}: the profile has no valid region",
+    "vertex_no_project": "{cause}: the Vertex profile has no project",
+    "provider_not_signed": "{cause}: provider {provider:%q} is not a cloud the gateway signs for",
+    "bedrock_invocations_only": "only Bedrock model invocations go through the gateway",
+    "vertex_anthropic_only": "only Vertex AI Anthropic model calls go through the gateway",
+    "vertex_wrong_project": "this run's profile is for project {project} in {region}",
+    "resolve_llm_failed": "resolve LLM for {agent}",
+    "no_llm_credential": "{cause}: the workspace has no LLM credential for this agent",
+    "unknown_engine": "{cause}: engine {engine:%q} is not known to the gateway",
+    "run_keys_only": "{cause}: only agent run keys can use the LLM gateway",
+    "default_upstream_invalid": "default upstream {url:%q} is not a valid URL",
+    "endpoint_invalid": "{cause}: the profile's endpoint is not a valid URL",
+    "server_not_built": "api server not built"
+  }
+}

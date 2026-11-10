@@ -1,0 +1,156 @@
+{
+  "title": "Usage",
+  "heading": "Usage & cost",
+  "subtitle": "Token consumption and cost trends — segment by engine, model, agent, project, tool or skill to find what to optimize.",
+  "buttons": {
+    "clear": "Clear",
+    "export_csv": "Export CSV",
+    "open_task": "Open task {name}"
+  },
+  "filters": {
+    "aria": "Filters",
+    "from": "From",
+    "to": "To",
+    "engine": "Engine",
+    "model": "Model",
+    "agent_type": "Agent type",
+    "project": "Project",
+    "service_tier": "Service tier",
+    "presets": "Quick range",
+    "all": "All"
+  },
+  "kpis": {
+    "aria": "Key metrics",
+    "cost": "Cost · window",
+    "tokens": "Tokens · window",
+    "sessions": "Sessions",
+    "cache": "Cache hit ratio",
+    "cache_sub": "input that came from cache",
+    "cost_per_ktoken": "Cost / 1k tokens",
+    "cost_per_ktoken_sub": "blended across models in window",
+    "burn": "Burn rate · 24h vs 30d",
+    "burn_sub": "recent vs baseline",
+    "cost_sub": {
+      "one": "{count} turn · {tokens} tokens",
+      "other": "{count} turns · {tokens} tokens"
+    },
+    "tokens_sub": "output/input ratio: {ratio}",
+    "sessions_sub": "{error} error · {max_tokens} max_tokens",
+    "burn_detail": "{recent} last {hours}h vs {baseline} baseline"
+  },
+  "panels": {
+    "chart": "Cost & tokens over time",
+    "by_engine": "By engine",
+    "by_model": "By model",
+    "by_agent_type": "By agent type",
+    "by_project": "By project",
+    "by_tool": "By tool",
+    "by_skill": "By skill",
+    "top_tasks": "Top tasks by cost",
+    "stop_reasons": "Stop reason mix",
+    "by_mcp_server": "By MCP server",
+    "delegations": "Token optimizer delegations",
+    "delegations_by_agent": "Delegations by agent",
+    "by_optimizer_level": "Runs by optimizer level",
+    "recent_delegations": "Recent delegations"
+  },
+  "chart": {
+    "metric": "Chart metric",
+    "cost": "Cost",
+    "tokens": "Tokens"
+  },
+  "columns": {
+    "engine": "Engine",
+    "model": "Model",
+    "agent": "Agent",
+    "project": "Project",
+    "tool": "Tool",
+    "skill": "Skill",
+    "task": "Task",
+    "kind": "Kind",
+    "sessions": "Sessions",
+    "tokens": "Tokens",
+    "turns": "Turns",
+    "cost": "Cost",
+    "cache_pct": "Cache %",
+    "cost_per_session": "$/sess",
+    "p95_duration": "p95 dur",
+    "tokens_per_turn": "Tokens/turn",
+    "calls": "Calls",
+    "tasks": "Tasks",
+    "duration": "Duration",
+    "open": "Open",
+    "result_tokens": "Result tokens",
+    "carried": "Re-read",
+    "mcp_server": "MCP server",
+    "stage": "Stage",
+    "delegations": "Delegations",
+    "when": "When",
+    "run": "Agent · stage",
+    "files": "Files",
+    "tokens_in_out": "Tokens in / out",
+    "status": "Status",
+    "level": "Level",
+    "tools_cost": "Tools",
+    "delegations_cost": "Delegations"
+  },
+  "empty": {
+    "chart": "No data in the selected window.",
+    "no_data": "No data in the selected window.",
+    "tools": "No tool events yet.",
+    "skills": "No skill calls in the selected window.",
+    "tasks": "No task runs in the selected window.",
+    "stop_reasons": "No sessions in window.",
+    "mcp_servers": "No MCP calls in the selected window.",
+    "delegations": "No delegations in the selected window."
+  },
+  "hints": {
+    "max_tokens_html": "High <code>max_tokens</code> means prompts are oversized."
+  },
+  "labels": {
+    "none": "(none)",
+    "cost_share": "Share of cost",
+    "stop_reason_value": {
+      "one": "{count} session ({pct})",
+      "other": "{count} sessions ({pct})"
+    }
+  },
+  "plan": {
+    "aria": "Workspace plan",
+    "title": "Plan",
+    "unlimited": "This plan has no limits.",
+    "runs_month": "Runs this month"
+  },
+  "estimated": {
+    "mark": "≈{amount}",
+    "tooltip": "Includes {amount} estimated from the model price table: the engine did not report the cost of those sessions."
+  },
+  "toasts": {
+    "nothing_to_export": "Nothing to export yet — wait for the data to load.",
+    "filter_options_failed": "Couldn't load filter options",
+    "load_failed": "Couldn't load usage data: {error}"
+  },
+  "unpriced": {
+    "none": "no price",
+    "partial": "· {count} without price",
+    "tooltip": {
+      "one": "{count} session used a model with no price in the model table: its tokens add nothing to the cost.",
+      "other": "{count} sessions used a model with no price in the model table: their tokens add nothing to the cost."
+    }
+  },
+  "delegations": {
+    "aria": "Token optimizer delegations",
+    "count": "Delegations",
+    "cost": "Worker cost",
+    "avg_duration": "Average duration",
+    "ok_failed": "{ok} ok · {failed} failed",
+    "tokens_in_out": "{input} in · {output} out",
+    "kinds": {
+      "read": "Read",
+      "write": "Write"
+    }
+  },
+  "optimizer": {
+    "no_level": "Not recorded"
+  }
+}

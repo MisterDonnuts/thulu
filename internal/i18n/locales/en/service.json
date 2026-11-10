@@ -1,0 +1,15 @@
+{
+  "errors": {
+    "executable": "find this binary",
+    "temporary_binary": "{path} is a temporary `go run` binary: the service has to point at an installed thulu",
+    "config_path": "resolve {path}",
+    "home": "find the home directory",
+    "render": "build the service definition",
+    "command": "{command}: {output}",
+    "write": "write {path}",
+    "unsupported_os": "there is no service for {os}: run `thulu runner run` in a terminal"
+  },
+  "cli": {
+    "no_linger": "Linux stops it when you log out. To keep it running without a session: loginctl enable-linger"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "errors": {
+    "read_dockerfiles": "read Dockerfiles",
+    "no_from_lines": "no FROM lines found; run it from the repository root or pass -root"
+  },
+  "cli": {
+    "flag_apply": "remove the listed images (default: only list them)",
+    "flag_kind": "also remove kindest/node images when no kind cluster exists",
+    "flag_root": "repository whose Dockerfiles name the bases to keep",
+    "error": "dockergc-bases: {err}",
+    "kind_cluster_exists": "A kind cluster exists, so kindest/node images stay.",
+    "header_empty": "Build bases (0)",
+    "header": "Build bases ({count}, up to {size})",
+    "nothing_removed": "Nothing was removed. Run `{command}` to remove them.",
+    "removed": {
+      "one": "Removed {count} build base, up to {size}.",
+      "other": "Removed {count} build bases, up to {size}."
+    }
+  }
+}

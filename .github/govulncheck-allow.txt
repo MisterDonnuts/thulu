@@ -1,0 +1,21 @@
+# govulncheck advisories accepted with justification.
+#
+# The CI vuln-scan job fails on any vulnerability that govulncheck finds
+# AFFECTING our code (a symbol-level/called finding), EXCEPT the OSV IDs listed
+# here. New or newly-reachable vulnerabilities still break the build.
+#
+# Format: one `GO-YYYY-NNNN` per line; `#` starts a comment. Keep a reason.
+#
+# ── Moby DAEMON-side advisories (github.com/docker/docker) ───────────────────
+# Thulu is a Docker *client*: it talks to the daemon over the API and never
+# runs the vulnerable server code. govulncheck flags these only because the
+# client SDK and the daemon ship in one Go module (+incompatible, so no
+# fine-grained reachability) — the example traces reach package init() only,
+# never the AuthZ-plugin / plugin-privilege symbols. No client-side fix exists
+# ("Fixed in: N/A"). Production safety against these depends on the host's
+# Docker Engine being patched, which is ops hygiene outside this build.
+GO-2026-4887  # Moby AuthZ plugin bypass on oversized request bodies
+GO-2026-4883  # Moby off-by-one in plugin privilege validation
+GO-2026-5617  # Moby docker cp race — daemon-side bind-mount redirection
+GO-2026-5668  # Moby docker cp symlink swap — daemon-side empty-file creation
+GO-2026-5746  # Moby PUT /containers/{id}/archive — daemon-side host exec

@@ -1,0 +1,40 @@
+{
+  "kind": {
+    "question": "Pregunta del agente",
+    "blocker": "El agente está trabado"
+  },
+  "status": {
+    "open": "esperando respuesta",
+    "answered": "contestada",
+    "canceled": "cancelada"
+  },
+  "non_blocking": "sigue trabajando mientras",
+  "pick_many": "podés elegir varias",
+  "other": "Otra:",
+  "other_placeholder": "Otra…",
+  "answer_placeholder": "Tu respuesta",
+  "note": "Nota:",
+  "note_placeholder": "Nota para el agente (opcional)",
+  "note_placeholder_blocker": "Qué necesita el agente para seguir (obligatorio)",
+  "default_label": "Si nadie contesta:",
+  "submit": "Enviar respuesta",
+  "cancel": "Cancelar pregunta",
+  "answered_by": "Contestó {who} · {when}",
+  "answered_at": "Contestada · {when}",
+  "canceled_by": "La canceló {who}",
+  "canceled": "Cancelada",
+  "errors": {
+    "unanswered": "Contestá \"{question}\": elegí una opción o escribí una",
+    "blocker_text": "El agente está trabado: escribí qué necesita, en Otra o en la nota",
+    "unanswered_text": "Escribí una respuesta para \"{question}\""
+  },
+  "delivery": {
+    "steered": "Le llegó a la corrida que preguntó, mientras trabajaba.",
+    "resumed": "La etapa se retomó con esta respuesta.",
+    "thread": "No había corrida escuchando: queda en el hilo y la lee la próxima corrida.",
+    "pending": "Todavía no le llegó: va al agente cuando termine la corrida o se contesten las otras preguntas que la frenan.",
+    "resume_failed": "Quedó guardada, pero no se pudo retomar al agente con ella. Relanzá la etapa y el agente la lee."
+  },
+  "secret_warning": "Lo que escribas acá queda visible en el hilo. Si el agente necesita un secreto, cargalo en Credenciales en lugar de pegarlo.",
+  "secret_link": "Abrir Credenciales"
+}

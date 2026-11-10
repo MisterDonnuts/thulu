@@ -1,0 +1,4 @@
+{
+  "kill_message": "Se detiene y se elimina el contenedor de {owner}. Su próximo comando arranca uno nuevo.",
+  "kill_kube_note": "Como corre en Kubernetes, también se borra el volumen de trabajo si ninguna corrida lo está usando."
+}

@@ -1,0 +1,7 @@
+{
+  "log": {
+    "replay_failed": "[events] replay to handler for {topic}",
+    "handler_failed": "[events] handler for {topic}",
+    "dropped_frames": "[events] dropped frames: {data}"
+  }
+}

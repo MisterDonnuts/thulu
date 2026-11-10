@@ -1,0 +1,90 @@
+---
+// Markup must match menuItemHTML() in lib/ui/menu.ts.
+import Dot from "./Dot.astro";
+import Icon from "./Icon.astro";
+import Kbd from "./Kbd.astro";
+import {
+  menuDotStyle,
+  menuItemAttrs,
+  menuItemClasses,
+  menuItemLead,
+  menuItemTag,
+  type MenuItem,
+} from "../lib/ui/menu";
+
+interface Props extends Omit<MenuItem, "cls" | "attrs" | "leadHTML"> {
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  title,
+  sub,
+  icon,
+  dot,
+  indent,
+  hint,
+  kbd,
+  key,
+  danger,
+  disabled,
+  checked,
+  role,
+  href,
+  keepOpen,
+  hidden,
+  id,
+  titleId,
+  subId,
+  class: extra,
+  ...rest
+} = Astro.props;
+const item: MenuItem = {
+  title,
+  sub,
+  icon,
+  dot,
+  indent,
+  hint,
+  kbd,
+  key,
+  danger,
+  disabled,
+  checked,
+  role,
+  href,
+  keepOpen,
+  hidden,
+  id,
+  titleId,
+  subId,
+};
+const Tag = menuItemTag(item);
+const cls = menuItemClasses({ danger, cls: extra });
+const own = menuItemAttrs(item);
+const lead = Astro.slots.has("lead") ? "html" : menuItemLead(item);
+---
+
+<Tag class={cls} {...own} {...rest}>
+  {
+    lead && (
+      <span class="menu-icon">
+        {lead === "html" && <slot name="lead" />}
+        {lead === "icon" && icon && <Icon name={icon} />}
+        {lead === "dot" && <Dot style={menuDotStyle(dot)} />}
+      </span>
+    )
+  }
+  <span class="menu-body">
+    <span id={titleId} class="menu-title">{title}</span>
+    {
+      sub && (
+        <span id={subId} class="menu-sub">
+          {sub}
+        </span>
+      )
+    }
+  </span>
+  {hint && <span class="menu-hint">{hint}</span>}
+  {kbd && <Kbd keys={kbd} size="sm" class="menu-kbd" decorative />}
+  {checked && <Icon name="check" class="menu-check" />}
+</Tag>

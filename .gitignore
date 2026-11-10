@@ -1,0 +1,34 @@
+/octopus
+/thulu
+data/
+*.db
+*.db-wal
+*.db-shm
+*.out
+coverage*.out
+govulncheck.json
+.govulncheck-*.tmp
+web/npm-audit.json
+.env
+*.env.local
+
+# The values file holds the JWT and OIDC secrets in clear text.
+deploy/values-*.yaml
+deploy/.octopus-init.json
+deploy/.octopus-update.json
+deploy/docker-compose.nologin.yml
+node_modules/
+.DS_Store
+*.log
+logs/
+.logs/
+backups/
+
+web/dist/
+web/.dist-*/
+web/.astro/
+
+# tmp/ holds JWT-bearing cookie dumps; never track it.
+tmp/
+/octopus-linux
+.lintcache/

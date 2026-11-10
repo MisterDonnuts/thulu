@@ -1,0 +1,11 @@
+{
+  "intro": {
+    "one": "This subtask is deleted with it:",
+    "other": "These {count} subtasks are deleted with it:"
+  },
+  "more": {
+    "one": "and 1 more",
+    "other": "and {count} more"
+  },
+  "outro": "Their worktrees are cleaned up too. This cannot be undone."
+}

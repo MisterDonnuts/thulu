@@ -1,0 +1,881 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Button from "../components/Button.astro";
+import CatalogLayout from "../components/CatalogLayout.astro";
+import Count from "../components/Count.astro";
+import EmptyRow from "../components/EmptyRow.astro";
+import EmptyState from "../components/EmptyState.astro";
+import Field from "../components/Field.astro";
+import FormError from "../components/FormError.astro";
+import KbdHelp from "../components/KbdHelp.astro";
+import Modal from "../components/Modal.astro";
+import PageHead from "../components/PageHead.astro";
+import SearchInput from "../components/SearchInput.astro";
+import Workshop from "../components/Workshop.astro";
+import { t } from "../i18n";
+---
+
+<Layout title={t("skills.title")}>
+  <main class="catalog-page">
+    <PageHead title={t("skills.title")} subtitle={t("skills.subtitle")}>
+      <Fragment slot="actions">
+        <Button
+          id="export-all-btn"
+          icon="download"
+          title={t("workshop.export_all_skills_hint")}
+          hidden>{t("workshop.export_all_skills")}</Button
+        >
+        <!-- Count's look must match UPDATES_COUNT in lib/workshop.ts, which repaints it. -->
+        <Button id="workshop-btn" icon="box"
+          >{t("workshop.open")}<Count
+            id="workshop-updates"
+            n={0}
+            pill
+            tone="accent"
+            hideZero
+          /></Button
+        >
+        <Button id="new-btn" variant="primary" icon="plus">{t("skills.buttons.new_skill")}</Button>
+      </Fragment>
+    </PageHead>
+
+    <CatalogLayout label={t("skills.title")} listId="skill-list" mainId="editor">
+      <SearchInput slot="toolbar" id="search" placeholder={t("skills.sidebar.search")} />
+      <EmptyRow slot="list" as="div" loading />
+      <EmptyState icon="skills" title={t("skills.empty.select")} />
+    </CatalogLayout>
+
+    <Modal
+      id="modal"
+      title={t("skills.modal.title")}
+      icon="skills"
+      size="md"
+      cancel
+      primary={{ label: t("common.buttons.create"), id: "m-create" }}
+    >
+      <div class="form-stack">
+        <Field
+          label={t("skills.modal.name")}
+          hint={t("skills.modal.name_hint")}
+          for="m-name"
+          errorId="m-name-error"
+        >
+          <input id="m-name" placeholder={t("skills.modal.name_placeholder")} autocomplete="off" />
+        </Field>
+        <Field label={t("skills.modal.description")} for="m-desc">
+          <input id="m-desc" placeholder={t("skills.modal.description_placeholder")} />
+        </Field>
+        <FormError id="m-error" />
+      </div>
+    </Modal>
+
+    <Workshop />
+    <KbdHelp
+      rows={[
+        { keys: ["N"], label: t("skills.buttons.new_skill") },
+        { keys: ["/"], label: t("common.kbd.focus_search") },
+        { keys: [t("common.kbd.esc")], label: t("common.kbd.close_modal") },
+      ]}
+    />
+  </main>
+
+  <style is:global>
+    /* The editor of a skill: its head, then this body scrolling under it. */
+    .sk-body {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+    }
+    .sk-note {
+      margin: var(--s-4) var(--s-5) 0;
+    }
+    /* The skill's files, FileRows one under another. */
+    .sk-files {
+      list-style: none;
+      margin: 0;
+      padding: var(--s-3) var(--s-5);
+    }
+    .sk-meta {
+      padding: var(--s-2) var(--s-5) 0;
+    }
+    .sk-meta textarea {
+      min-height: 64px;
+    }
+    .sk-count {
+      font-variant-numeric: tabular-nums;
+    }
+    .sk-count.over {
+      color: var(--color-danger-strong);
+    }
+    .sk-usage {
+      margin: var(--s-4) var(--s-5) 0;
+      font-size: var(--t-sm);
+      color: var(--fg-3);
+    }
+    .sk-usage-title {
+      margin-bottom: var(--s-1);
+      color: var(--fg-2);
+      font-weight: 500;
+    }
+    .sk-usage ul {
+      list-style: none;
+      margin: var(--s-1) 0 0;
+      padding: 0;
+    }
+    .sk-usage li {
+      padding: 2px 0;
+    }
+    .sk-usage a {
+      color: var(--accent);
+    }
+    .sk-usage li a {
+      font-family: var(--font-mono);
+    }
+    .sk-newfile {
+      display: flex;
+      align-items: center;
+      gap: var(--s-2);
+      padding: var(--s-3) var(--s-5) 0;
+    }
+    .sk-newfile input {
+      flex: 1;
+      min-width: 0;
+    }
+  </style>
+
+  <script>
+    import { api } from "../lib/api";
+    import { requireAuth, sessionInfo } from "../lib/auth";
+    import {
+      $,
+      badgeHTML,
+      bindItemList,
+      buttonHTML,
+      calloutHTML,
+      catalogItemHTML,
+      clearFormErrors,
+      confirmDialog,
+      emptyRowHTML,
+      emptyStateHTML,
+      entityHeadHTML,
+      esc,
+      fieldHTML,
+      fileRowHTML,
+      groupHeadHTML,
+      makeToast,
+      mdEditorHTML,
+      setFieldError,
+      setFormError,
+      type ButtonOptions,
+    } from "../lib/ui";
+    import { MOD_KEY } from "../lib/shortcuts";
+    import { roleWithin } from "../lib/api-keys";
+    import { mountWorkshop } from "../lib/workshop-modal";
+    import {
+      exportAllFilename,
+      exportItem,
+      exportItems,
+      paintUpdates,
+      updateBadgeHTML,
+      workshopUpdates,
+    } from "../lib/workshop";
+    import { matchesQuery } from "../lib/filter";
+    import { bindModal, escapeCloses } from "../lib/modal";
+    import { initKeyboard } from "../lib/keyboard";
+    import { confirmDiscard, wireMdEditor } from "../lib/mdeditor";
+    import { renderHistory } from "../lib/revisions";
+    import { agentLink } from "../lib/agent-link";
+    import { fmtDate } from "../lib/time";
+    import type { Stage } from "../lib/stages";
+    import {
+      DESCRIPTION_MAX,
+      descriptionCount,
+      enforcementOf,
+      grantStages,
+      orderFiles,
+      type SkillFile,
+      type SkillGrant,
+    } from "../lib/skill-view";
+    import { t } from "../i18n";
+    import { onPage } from "../lib/page";
+
+    onPage("/skills", (signal) => {
+      requireAuth();
+
+      function when(on: boolean, name: string): string {
+        return on ? name : "";
+      }
+
+      interface SkillDef {
+        name: string;
+        description?: string;
+        type?: string;
+        system?: boolean;
+        mcp?: string;
+        version?: number;
+        origin?: string;
+        enforcement?: string;
+        deleted_at?: string;
+      }
+      type FileEntry = SkillFile;
+      type Kind = "own" | "system" | "deleted";
+      function kindOf(sk: SkillDef): Kind {
+        return sk.deleted_at ? "deleted" : sk.system ? "system" : "own";
+      }
+
+      // Deleting either file deletes the skill, so neither gets a per-file delete button.
+      const PROMPT_FILE = "prompt.md";
+      const META_FILE = "skill.yaml";
+
+      const toast = makeToast();
+
+      // An unknown role counts as admin and the daemon decides; no-login installs depend on this.
+      let canAdmin = true;
+      void sessionInfo().then((me) => {
+        canAdmin = roleWithin("admin", me?.role);
+      });
+      const workshop = mountWorkshop(signal, {
+        canWrite: () => canAdmin,
+        toast,
+        onApplied: () => void loadSkills(),
+      });
+      $("workshop-btn").addEventListener("click", () => workshop.open("skill"), { signal });
+      $("skill-list").addEventListener(
+        "click",
+        (e) => {
+          if ((e.target as HTMLElement).closest("[data-open-workshop]")) workshop.open("skill");
+        },
+        { signal },
+      );
+      $("export-all-btn").addEventListener(
+        "click",
+        () => {
+          const items = skills
+            .filter((s) => !s.system)
+            .map((s) => ({ kind: "skill" as const, name: s.name }));
+          exportItems(items, exportAllFilename("skill")).catch((e: unknown) =>
+            toast(t("workshop.export_failed", { error: (e as Error)?.message ?? "" }), "err", 4500),
+          );
+        },
+        { signal },
+      );
+
+      let updates = new Set<string>();
+      async function loadUpdates() {
+        updates = await workshopUpdates("skill");
+        paintUpdates($("workshop-btn"), $("workshop-updates"), updates.size);
+        renderSidebar();
+      }
+      let skills: SkillDef[] = [];
+      let deletedSkills: SkillDef[] = [];
+      let active: SkillDef | null = null;
+      let files: FileEntry[] = [];
+      let original = "";
+      let searchQuery = "";
+
+      function base(sk: SkillDef): string {
+        return `${sk.system ? "/system/skills" : "/skills"}/${encodeURIComponent(sk.name)}`;
+      }
+
+      function badges(sk: SkillDef): string {
+        const out: string[] = [];
+        if (sk.system) out.push(badgeHTML(t("skills.badges.system"), "accent"));
+        if (sk.system && sk.version)
+          out.push(
+            badgeHTML(t("skills.badges.version", { version: sk.version }), "neutral", {
+              mono: true,
+            }),
+          );
+        if (sk.mcp)
+          out.push(badgeHTML(t("skills.badges.mcp", { mcp: sk.mcp }), "neutral", { mono: true }));
+        if (sk.origin)
+          out.push(badgeHTML(t("skills.badges.origin", { origin: sk.origin }), "muted"));
+        return out.join("");
+      }
+
+      async function loadSkills() {
+        const [live, gone] = await Promise.allSettled([
+          api.get<SkillDef[]>("/skills"),
+          api.get<{ name: string; deleted_at: string }[]>("/skills/deleted"),
+        ]);
+        if (live.status === "rejected") {
+          $("skill-list").innerHTML = emptyRowHTML(
+            t("skills.sidebar.load_failed", { error: (live.reason as Error).message }),
+            { as: "div", tone: "danger" },
+          );
+          return;
+        }
+        skills = live.value || [];
+        // Older daemons have no /skills/deleted; the deleted group is then omitted.
+        $("export-all-btn").hidden = !skills.some((s) => !s.system);
+        deletedSkills = gone.status === "fulfilled" ? gone.value || [] : [];
+        if (active) {
+          const kind = kindOf(active);
+          const name = active.name;
+          active =
+            [...skills, ...deletedSkills].find((s) => s.name === name && kindOf(s) === kind) ??
+            active;
+        }
+        renderSidebar();
+        void loadUpdates();
+      }
+
+      let stageLabels: Promise<Map<string, string>> | null = null;
+      async function stageLabel(): Promise<(id: string) => string> {
+        stageLabels ??= api
+          .get<Stage[]>("/stages?include_virtual=1")
+          .then((list) => new Map((list || []).map((st) => [st.id, st.label || st.id])))
+          .catch(() => new Map<string, string>());
+        const m = await stageLabels;
+        return (id: string) => m.get(id) ?? id;
+      }
+
+      function renderSidebar() {
+        const visible = skills.filter((s) =>
+          matchesQuery(searchQuery, [s.name, s.description, s.mcp]),
+        );
+        const row = (s: SkillDef) =>
+          catalogItemHTML({
+            name: s.name,
+            mono: true,
+            clamp: 1,
+            description: s.deleted_at
+              ? t("skills.deleted.when", { when: fmtDate(s.deleted_at) })
+              : s.description,
+            badgesHTML:
+              !s.system && !s.deleted_at && updates.has(s.name) ? updateBadgeHTML() : undefined,
+            dim: !!s.deleted_at,
+            current: !!active && s.name === active.name && kindOf(s) === kindOf(active),
+            attrs: { "data-name": s.name, "data-kind": kindOf(s) },
+          });
+        const list = $("skill-list");
+        const focused = list.contains(document.activeElement)
+          ? (document.activeElement as HTMLElement)
+          : null;
+        const focusKey = focused?.dataset.name
+          ? `[data-name="${CSS.escape(focused.dataset.name)}"][data-kind="${focused.dataset.kind}"]`
+          : null;
+        const own = visible.filter((s) => !s.system);
+        const sys = visible.filter((s) => s.system);
+        let html = groupHeadHTML({ title: t("skills.sidebar.workspace") });
+        html += own.length
+          ? own.map(row).join("")
+          : searchQuery
+            ? emptyRowHTML(t("skills.sidebar.no_matches"), { as: "div" })
+            : emptyStateHTML({
+                size: "sm",
+                title: t("skills.sidebar.none"),
+                body: t("workshop.empty_skills"),
+                action: {
+                  label: t("workshop.open"),
+                  size: "sm",
+                  attrs: { "data-open-workshop": true },
+                },
+              });
+        if (sys.length) {
+          html += groupHeadHTML({ title: t("skills.sidebar.system") });
+          html += sys.map(row).join("");
+        }
+        const gone = deletedSkills.filter((s) => matchesQuery(searchQuery, [s.name]));
+        if (gone.length) {
+          html += groupHeadHTML({ title: t("skills.sidebar.deleted") });
+          html += gone.map(row).join("");
+        }
+        list.innerHTML = html;
+        if (focusKey) list.querySelector<HTMLElement>(focusKey)?.focus();
+      }
+      bindItemList($("skill-list"), {
+        onPick: (item) => void selectSkill(item.dataset.name!, item.dataset.kind as Kind),
+      });
+
+      async function keepEdits(): Promise<boolean> {
+        const ta = document.getElementById("sk-text") as HTMLTextAreaElement | null;
+        if (!ta || ta.readOnly || ta.value === original) return false;
+        return !(await confirmDiscard(t("skills.confirm.discard")));
+      }
+
+      async function selectSkill(name: string, kind: Kind) {
+        if (await keepEdits()) return renderSidebar();
+        active =
+          [...skills, ...deletedSkills].find((s) => s.name === name && kindOf(s) === kind) ?? null;
+        renderSidebar();
+        await renderSkill();
+      }
+
+      function metaHTML(sk: SkillDef): string {
+        const desc = sk.description ?? "";
+        const enf = enforcementOf(sk.enforcement);
+        const dis = when(!canAdmin, "disabled");
+        return `
+          <div class="sk-meta form-stack">
+            ${fieldHTML({
+              label: t("skills.meta.description"),
+              hint: t("skills.meta.description_hint"),
+              for: "sk-desc",
+              helpHTML: `<span class="sk-count" id="sk-desc-count"></span>`,
+              control: `<textarea id="sk-desc" rows="3" aria-describedby="sk-desc-help" ${dis}>${esc(desc)}</textarea>`,
+            })}
+            ${fieldHTML({
+              label: t("skills.meta.enforcement"),
+              for: "sk-enf",
+              help: t("skills.meta.enforcement_hint"),
+              control: `<div class="form-row">
+                <select id="sk-enf" aria-describedby="sk-enf-help" ${dis}>
+                  <option value="on_demand" ${when(enf === "on_demand", "selected")}>${esc(t("skills.meta.on_demand"))}</option>
+                  <option value="always" ${when(enf === "always", "selected")}>${esc(t("skills.meta.always"))}</option>
+                </select>
+                ${buttonHTML({ label: t("common.buttons.save"), variant: "primary", size: "sm", id: "sk-meta-save", disabled: true })}
+              </div>`,
+            })}
+          </div>`;
+      }
+
+      function wireMeta(sk: SkillDef) {
+        const descEl = $("sk-desc") as HTMLTextAreaElement;
+        const enfEl = $("sk-enf") as HTMLSelectElement;
+        const saveBtn = $("sk-meta-save") as HTMLButtonElement;
+        const countEl = $("sk-desc-count");
+        const sync = () => {
+          const { text, count, over } = descriptionCount(descEl.value);
+          countEl.textContent = t("skills.meta.count", { count, max: DESCRIPTION_MAX });
+          countEl.classList.toggle("over", over);
+          const changed =
+            text !== (sk.description ?? "") || enfEl.value !== enforcementOf(sk.enforcement);
+          saveBtn.disabled = !canAdmin || !changed || over;
+        };
+        descEl.addEventListener("input", sync);
+        enfEl.addEventListener("change", sync);
+        sync();
+        saveBtn.addEventListener("click", async () => {
+          const { text } = descriptionCount(descEl.value);
+          const body: { description?: string; enforcement?: string } = {};
+          if (text !== (sk.description ?? "")) body.description = text;
+          if (enfEl.value !== enforcementOf(sk.enforcement)) body.enforcement = enfEl.value;
+          saveBtn.disabled = true;
+          try {
+            await api.patch<SkillDef>(base(sk), body);
+          } catch (e) {
+            toast((e as Error).message, "err", 4500);
+            sync();
+            return;
+          }
+          toast(t("skills.toasts.meta_saved", { name: sk.name }), "ok", 1800);
+          await loadSkills();
+          await renderSkill();
+        });
+      }
+
+      async function renderUsage(sk: SkillDef) {
+        const host = document.getElementById("sk-usage");
+        if (!host) return;
+        let grants: SkillGrant[];
+        try {
+          grants = (await api.get<SkillGrant[]>(`${base(sk)}/usage`)) || [];
+        } catch {
+          host.textContent = t("skills.usage.load_failed");
+          return;
+        }
+        if (active !== sk) return;
+        const label = await stageLabel();
+        const head = `<div class="sk-usage-title">${esc(t("skills.usage.title"))}</div>`;
+        if (!grants.length) {
+          host.innerHTML = `${head}<div>${esc(t("skills.usage.none"))} <a class="linkish" href="${esc(agentLink(undefined, "skills"))}">${esc(t("skills.usage.grant_link"))}</a></div>`;
+          return;
+        }
+        const items = grants
+          .map((g) => {
+            const where: string[] = [];
+            if (g.stages?.length)
+              where.push(t("skills.usage.stages", { stages: grantStages(g.stages, label) }));
+            if (g.auditor_stages?.length)
+              where.push(
+                t("skills.usage.auditor_stages", { stages: grantStages(g.auditor_stages, label) }),
+              );
+            return `<li><a class="linkish" href="${esc(agentLink(g.agent, "skills"))}">${esc(g.agent)}</a> <span class="muted">${esc(where.join(" · "))}</span></li>`;
+          })
+          .join("");
+        host.innerHTML = `${head}<ul>${items}</ul>`;
+      }
+
+      async function renderDeleted(sk: SkillDef) {
+        try {
+          files = orderFiles((await api.get<FileEntry[]>(`${base(sk)}/files?deleted=1`)) || []);
+        } catch (e) {
+          toast((e as Error).message, "err", 4500);
+          files = [];
+        }
+        $("editor").innerHTML = `
+          ${entityHeadHTML({
+            title: sk.name,
+            mono: true,
+            meta: t("skills.deleted.when", { when: fmtDate(sk.deleted_at!) }),
+            actions: canAdmin
+              ? [
+                  {
+                    label: t("skills.buttons.restore_skill"),
+                    variant: "primary",
+                    icon: "refresh",
+                    id: "sk-restore",
+                  },
+                ]
+              : [],
+          })}
+          <div class="sk-body">
+            ${calloutHTML({ icon: "info", body: t("skills.deleted.note"), cls: "sk-note" })}
+            <ul class="sk-files">${files.map((f) => fileRow(f, false)).join("")}</ul>
+          </div>`;
+        document.getElementById("sk-restore")?.addEventListener("click", async () => {
+          try {
+            await api.post(`${base(sk)}/restore`);
+          } catch (e) {
+            toast((e as Error).message, "err", 4500);
+            return;
+          }
+          toast(t("skills.toasts.restored", { name: sk.name }), "ok");
+          await loadSkills();
+          await selectSkill(sk.name, "own");
+        });
+        wireHistory(sk);
+      }
+
+      function historyAction(path: string): ButtonOptions {
+        return {
+          label: t("skills.buttons.history"),
+          icon: "clock",
+          attrs: { "data-history": path },
+        };
+      }
+
+      function fileRow(f: FileEntry, ro: boolean): string {
+        if (f.deleted)
+          return fileRowHTML({
+            as: "li",
+            label: f.path,
+            labelMono: true,
+            variant: "deleted",
+            status: t("skills.files.deleted"),
+            statusMono: false,
+            actions: [historyAction(f.path)],
+          });
+        const actions: ButtonOptions[] = [
+          ro
+            ? { label: t("skills.buttons.view"), icon: "eye", attrs: { "data-open": f.path } }
+            : { label: t("common.buttons.edit"), icon: "edit", attrs: { "data-open": f.path } },
+        ];
+        if (!ro) actions.push(historyAction(f.path));
+        if (!ro && f.path !== PROMPT_FILE && f.path !== META_FILE)
+          actions.push({
+            label: t("common.buttons.delete"),
+            variant: "danger",
+            icon: "trash",
+            attrs: { "data-del": f.path },
+          });
+        return fileRowHTML({
+          as: "li",
+          label: f.path,
+          labelMono: true,
+          status: t("skills.files.size", { size: f.size ?? 0 }),
+          statusMono: false,
+          actions,
+        });
+      }
+
+      function wireHistory(sk: SkillDef) {
+        $("editor")
+          .querySelectorAll<HTMLButtonElement>("[data-history]")
+          .forEach((b) =>
+            b.addEventListener("click", () => {
+              const path = b.dataset.history!;
+              void renderHistory({
+                host: $("editor"),
+                base: base(sk),
+                path,
+                readOnly: !canAdmin,
+                onBack: () => renderSkill(),
+                onRestored: async () => {
+                  // The daemon restores a deleted skill when one of its files is restored.
+                  if (sk.deleted_at) {
+                    await loadSkills();
+                    await selectSkill(sk.name, "own");
+                  }
+                  await openFile(path, false);
+                },
+                toast,
+              });
+            }),
+          );
+      }
+
+      async function renderSkill() {
+        const sk = active;
+        if (!sk) return;
+        if (sk.deleted_at) return renderDeleted(sk);
+        const ro = !!sk.system;
+        try {
+          files = orderFiles(
+            (await api.get<FileEntry[]>(`${base(sk)}/files${ro ? "" : "?deleted=1"}`)) || [],
+          );
+        } catch (e) {
+          toast((e as Error).message, "err", 4500);
+          files = [];
+        }
+        $("editor").innerHTML = `
+          ${entityHeadHTML({
+            title: sk.name,
+            mono: true,
+            meta: ro ? sk.description : undefined,
+            badgesHTML: badges(sk) || undefined,
+            actions: ro
+              ? []
+              : [
+                  {
+                    label: t("workshop.export"),
+                    icon: "download",
+                    id: "sk-export",
+                    title: t("workshop.export_hint"),
+                  },
+                  {
+                    label: t("skills.buttons.delete_skill"),
+                    variant: "danger",
+                    icon: "trash",
+                    id: "sk-delete",
+                  },
+                ],
+          })}
+          <div class="sk-body">
+          ${
+            ro
+              ? calloutHTML({
+                  icon: "lock",
+                  cls: "sk-note",
+                  bodyHTML: `<p>${esc(sk.mcp ? t("skills.system_note_mcp", { mcp: sk.mcp }) : t("skills.system_note"))}</p><p>${esc(t("skills.system_toggle_note"))}</p>`,
+                })
+              : `${metaHTML(sk)}
+                <div class="sk-usage" id="sk-usage"></div>
+                ${calloutHTML({ icon: "info", body: t("skills.files.extra_note"), cls: "sk-note" })}
+                <div class="sk-newfile">
+                  <input id="nf-path" aria-label="${esc(t("skills.files.new_label"))}" placeholder="${esc(t("skills.files.new_placeholder"))}" />
+                  ${buttonHTML({ label: t("skills.buttons.add_file"), size: "sm", id: "nf-add" })}
+                </div>`
+          }
+          <ul class="sk-files">
+            ${files.map((f) => fileRow(f, ro)).join("")}
+          </ul>
+          </div>`;
+        if (!ro) {
+          wireMeta(sk);
+          void renderUsage(sk);
+        }
+        document.getElementById("sk-delete")?.addEventListener("click", () => void deleteSkill());
+        document.getElementById("sk-export")?.addEventListener("click", () => {
+          exportItem("skill", sk.name).catch((e: unknown) =>
+            toast(t("workshop.export_failed", { error: (e as Error)?.message ?? "" }), "err", 4500),
+          );
+        });
+        document.getElementById("nf-add")?.addEventListener("click", () => {
+          const path = ($("nf-path") as HTMLInputElement).value.trim().replace(/^\/+/, "");
+          if (!path) return;
+          if (files.some((f) => f.path === path && !f.deleted)) void openFile(path, false);
+          else void openFile(path, true);
+        });
+        $("editor")
+          .querySelectorAll<HTMLButtonElement>("[data-open]")
+          .forEach((b) => b.addEventListener("click", () => void openFile(b.dataset.open!, false)));
+        wireHistory(sk);
+        $("editor")
+          .querySelectorAll<HTMLButtonElement>("[data-del]")
+          .forEach((b) => b.addEventListener("click", () => void deleteFile(b.dataset.del!)));
+      }
+
+      async function openFile(path: string, isCreate: boolean) {
+        const sk = active;
+        if (!sk) return;
+        const ro = !!sk.system;
+        let initial = "";
+        if (!isCreate) {
+          try {
+            initial = await api.getText(`${base(sk)}/files/${path}`);
+          } catch (e) {
+            toast((e as Error).message, "err", 4500);
+            return;
+          }
+        }
+        original = isCreate ? "" : initial;
+        $("editor").innerHTML = mdEditorHTML({
+          path,
+          pathId: "sk-path",
+          note: isCreate ? t("skills.files.new_suffix") : undefined,
+          textId: "sk-text",
+          value: initial,
+          readOnly: ro,
+          back: { label: t("skills.buttons.back"), id: "sk-back" },
+          stateId: "sk-state",
+          save: { id: "sk-save", kbd: `${MOD_KEY}S`, disabled: !isCreate, hidden: ro },
+        });
+        if (ro) {
+          $("sk-back").addEventListener("click", () => void renderSkill());
+          return;
+        }
+        wireMdEditor({
+          ta: $("sk-text") as HTMLTextAreaElement,
+          saveBtn: $("sk-save") as HTMLButtonElement,
+          stateEl: $("sk-state"),
+          backBtn: $("sk-back"),
+          isCreate,
+          getOriginal: () => original,
+          setOriginal: (v) => {
+            original = v;
+          },
+          save: (text) => api.putText(`${base(sk)}/files/${path}`, text),
+          onSaveError: (err) =>
+            toast(
+              err instanceof Error && err.message
+                ? t("skills.errors.save_failed_reason", { error: err.message })
+                : t("skills.errors.save_failed"),
+              "err",
+              6000,
+            ),
+          onSaved: async () => {
+            toast(t("skills.toasts.saved", { path }), "ok", 1800);
+            if (path === META_FILE) await loadSkills();
+            if (isCreate) await openFile(path, false);
+          },
+          discardMessage: t("skills.confirm.discard"),
+          onBack: () => renderSkill(),
+        });
+      }
+
+      async function deleteFile(path: string) {
+        const sk = active;
+        if (!sk) return;
+        const ok = await confirmDialog({
+          title: t("skills.confirm.delete_file_title", { path }),
+          message: t("skills.confirm.delete_file_message"),
+          confirmLabel: t("common.buttons.delete"),
+          danger: true,
+        });
+        if (!ok) return;
+        try {
+          await api.del(`${base(sk)}/files/${path}`);
+        } catch (e) {
+          toast((e as Error).message, "err", 4500);
+          return;
+        }
+        toast(t("skills.toasts.deleted", { name: path }), "ok", 1800);
+        await renderSkill();
+      }
+
+      // Grants left behind would hand a later skill of the same name to those agents, so offer to
+      // revoke them.
+      async function deleteSkill() {
+        const sk = active;
+        if (!sk || sk.system) return;
+        let grants: SkillGrant[] = [];
+        try {
+          grants = (await api.get<SkillGrant[]>(`${base(sk)}/usage`)) || [];
+        } catch {
+          // Without the list the dialog still deletes; the grants stay.
+        }
+        const remove = (revoke: boolean) => api.del(`${base(sk)}${revoke ? "?revoke=1" : ""}`);
+        const ask = {
+          title: t("skills.confirm.delete_skill_title", { name: sk.name }),
+          message: grants.length
+            ? t("skills.delete_modal.used_by", { count: grants.length })
+            : t("skills.delete_modal.unused"),
+          details: grants.map((g) => g.agent),
+          detailsMono: true,
+          notes: [t("skills.delete_modal.history_hint")],
+          confirmLabel: t("common.buttons.delete"),
+          danger: true,
+          icon: "trash",
+        };
+        const ok = grants.length
+          ? (
+              await confirmDialog({
+                ...ask,
+                option: {
+                  name: "revoke",
+                  label: t("skills.delete_modal.revoke"),
+                  hint: t("skills.delete_modal.revoke_hint"),
+                  checked: true,
+                },
+                action: (values) => remove(values.revoke === true),
+              })
+            ).ok
+          : await confirmDialog({ ...ask, action: () => remove(false) });
+        if (!ok) return;
+        active = null;
+        await loadSkills();
+        $("editor").innerHTML = emptyStateHTML({ icon: "skills", title: t("skills.empty.select") });
+        toast(t("skills.toasts.deleted", { name: sk.name }), "ok");
+      }
+
+      const modal = bindModal($("modal"));
+      $("new-btn").addEventListener("click", async () => {
+        if (await keepEdits()) return;
+        ($("m-name") as HTMLInputElement).value = "";
+        ($("m-desc") as HTMLInputElement).value = "";
+        clearFormErrors($("modal"));
+        modal.open($("m-name"));
+      });
+      $("m-name").addEventListener("input", () => setFieldError($("m-name"), ""), { signal });
+      $("m-create").addEventListener("click", async () => {
+        const nameEl = $("m-name") as HTMLInputElement;
+        const name = nameEl.value.trim();
+        const description = ($("m-desc") as HTMLInputElement).value.trim();
+        setFormError($("m-error"), "");
+        if (!name) {
+          setFieldError(nameEl, t("skills.errors.name_required"), { focus: true });
+          return;
+        }
+        const btn = $("m-create") as HTMLButtonElement;
+        btn.disabled = true;
+        try {
+          await api.post("/skills", { name, description });
+        } catch (e) {
+          setFormError($("m-error"), (e as Error).message);
+          return;
+        } finally {
+          btn.disabled = false;
+        }
+        modal.close();
+        await loadSkills();
+        await selectSkill(name, "own");
+        await openFile(PROMPT_FILE, false);
+        toast(t("skills.toasts.created", { name }), "ok");
+      });
+
+      const searchInput = $("search") as HTMLInputElement;
+      searchInput.addEventListener("input", () => {
+        searchQuery = searchInput.value.trim();
+        renderSidebar();
+      });
+
+      initKeyboard({
+        onSearch: () => searchInput.focus(),
+        onNew: () => $("new-btn").click(),
+        onEscape: [escapeCloses(workshop, modal)],
+      });
+
+      window.addEventListener(
+        "beforeunload",
+        (e) => {
+          const ta = document.getElementById("sk-text") as HTMLTextAreaElement | null;
+          if (ta && !ta.readOnly && ta.value !== original) e.preventDefault();
+        },
+        { signal },
+      );
+      // Router navigation fires no beforeunload; canceling it forces a full load, which does.
+      document.addEventListener(
+        "astro:before-preparation",
+        (e) => {
+          const ta = document.getElementById("sk-text") as HTMLTextAreaElement | null;
+          if (ta && !ta.readOnly && ta.value !== original) e.preventDefault();
+        },
+        { signal },
+      );
+
+      void loadSkills();
+    });
+  </script>
+</Layout>

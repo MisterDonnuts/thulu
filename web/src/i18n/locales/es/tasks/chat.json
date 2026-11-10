@@ -1,0 +1,40 @@
+{
+  "no_task": "Abrí una tarea para ver su conversación.",
+  "placeholder": "Escribile al agente… (Enter manda, Mayús+Enter salta línea, @agente abre un chat aparte)",
+  "input_label": "Mensaje para el agente",
+  "interrupt_title": "Corta lo que está haciendo ahora en vez de esperar a que termine el turno",
+  "interrupt": "interrumpir",
+  "send": "Mandar",
+  "load_failed": "No se pudo leer la conversación.",
+  "empty_html": "Todavía no hay nada acá.<br/>Escribile al agente y la conversación empieza.",
+  "agent_fallback": "agente",
+  "answers_in_chat": "@{agent} contesta en su chat →",
+  "unread_note": "Nadie lo leyó todavía.",
+  "to_comments": "Pasarlo a comentarios",
+  "moved_to_comments": "Pasado a comentarios.",
+  "to_comments_failed": "No se pudo pasar a comentarios",
+  "answers_in_comments": "@{agent} contesta en comentarios",
+  "run_turns": {
+    "one": "{count} turno",
+    "other": "{count} turnos"
+  },
+  "status": {
+    "live": "en vivo",
+    "reading": "leyendo",
+    "reconnecting": "reconectando",
+    "finished": "terminó",
+    "no_transcript": "sin transcripción",
+    "waiting_runner": "esperando al runner"
+  },
+  "send_failed": "No se pudo mandar el mensaje",
+  "session_start": "inicio de sesión",
+  "session_start_model": "inicio de sesión · {model}",
+  "thinking": "pensando",
+  "turn_finished": "Turno terminado · {turns}",
+  "turn_failed": "El turno terminó con un error · {turns}",
+  "turn_out_of_turns": "Sin turnos · {turns}",
+  "stop": {
+    "max_tokens": "la respuesta llegó al límite de tokens",
+    "refusal": "el modelo no quiso responder"
+  }
+}

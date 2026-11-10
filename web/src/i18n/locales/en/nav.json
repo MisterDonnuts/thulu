@@ -1,0 +1,62 @@
+{
+  "aria": {
+    "navigation": "Navigation",
+    "primary": "Primary",
+    "settings": "Settings"
+  },
+  "head": {
+    "workspace": "Workspace",
+    "settings": "Settings"
+  },
+  "buttons": {
+    "collapse": "Collapse sidebar",
+    "expand": "Expand sidebar",
+    "close": "Close navigation",
+    "new_chat": "New chat"
+  },
+  "sections": {
+    "boards": "Boards",
+    "chats": "Chats"
+  },
+  "groups": {
+    "workspace": "Workspace",
+    "integrations": "Integrations",
+    "operations": "Operations",
+    "you": "You"
+  },
+  "links": {
+    "inbox": "Inbox",
+    "evidence": "Evidence",
+    "skills": "Skills",
+    "automations": "Automations",
+    "back_to_app": "Back to app",
+    "members": "Members",
+    "boards": "Boards",
+    "ai_engines": "AI engines",
+    "mcps": "MCPs",
+    "credentials": "Credentials",
+    "webhooks": "Webhooks",
+    "api": "API",
+    "sandboxes": "Sandboxes",
+    "usage": "Usage",
+    "infra": "Infrastructure",
+    "health": "Health",
+    "updates": "Updates",
+    "audit_log": "Audit log",
+    "language": "Language",
+    "account": "Account",
+    "settings": "Settings"
+  },
+  "version": {
+    "update_available": "Update available"
+  },
+  "empty": {
+    "no_boards": "No boards."
+  },
+  "badges": {
+    "inbox": {
+      "one": "{count} task across the workspace waits on a person: a question, an approval or a run that stopped or did not start",
+      "other": "{count} tasks across the workspace wait on a person: questions, approvals and runs that stopped or did not start"
+    }
+  }
+}

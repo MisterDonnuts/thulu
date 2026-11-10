@@ -1,0 +1,51 @@
+# {$OCTOPUS_DOMAIN} is replaced from the environment when Caddy parses this
+# file. The bare {OCTOPUS_DOMAIN} form is a request-time placeholder, which
+# Caddy cannot use as a site address or get a certificate for.
+{$OCTOPUS_DOMAIN} {
+    # Automatic TLS via Let's Encrypt
+    tls {
+        protocols tls1.2 tls1.3
+    }
+
+    # Security headers (Caddy adds CSP, HSTS, etc.)
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        # Remove server header
+        -Server
+    }
+
+    # Paths only agents and MCP servers use: the LLM gateway, the agent API
+    # under /internal/, git smart-HTTP, the sandbox MCP transport and the run
+    # bundle an agent fetches at start. They reach the daemon at
+    # http://octopus:8585 on the compose network, never through this proxy,
+    # so the internet gets a 404 for them.
+    @agentOnly path /llm-gateway /llm-gateway/* /internal/* /git/* /sandbox/sse /sandbox/messages /run/bundle
+    handle @agentOnly {
+        respond 404
+    }
+
+    # Reverse proxy to Thulu daemon
+    handle {
+        reverse_proxy octopus:8585 {
+            health_uri    /health/live
+            health_interval 15s
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # No edge rate limit: `rate_limit` is a third-party module
+    # (mholt/caddy-ratelimit) that the stock caddy image does not ship. The daemon rate-limits per
+    # client IP itself (OCTOPUS_RATE_LIMIT_RPS / OCTOPUS_RATE_LIMIT_BURST,
+    # default 100 rps / 200 burst), reading X-Forwarded-For from this proxy.
+
+    # Logging
+    log {
+        output stdout
+        format json
+        level INFO
+    }
+}

@@ -1,0 +1,18 @@
+{
+  "deps": {
+    "none": "Ninguna",
+    "soft": "aviso",
+    "blocking": "bloqueante"
+  },
+  "branch": {
+    "copy": "Copiar el nombre de la rama",
+    "none": "Todavía no tiene rama",
+    "shared": "Compartida con la tarea madre",
+    "shared_note": "Las subtareas commitean en la rama de la tarea madre y entran en su pull request.",
+    "force_pr": "Forzar PR",
+    "merge": "Integrar en…"
+  },
+  "projects": {
+    "none": "Sin proyectos vinculados"
+  }
+}

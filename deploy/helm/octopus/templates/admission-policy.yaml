@@ -1,0 +1,288 @@
+{{- if and (eq .Values.agentRuntime.mode "kubernetes") .Values.agentRuntime.admissionPolicy.enabled -}}
+{{- $sa := include "octopus.serviceAccountUser" . -}}
+{{- $sandboxNS := .Values.agentRuntime.sandboxNamespace -}}
+{{- $rcs := .Values.agentRuntime.admissionPolicy.allowedRuntimeClasses -}}
+{{- $saName := include "octopus.serviceAccountName" . -}}
+{{- $tenantSecretsRole := include "octopus.tenantSecretsRole" . -}}
+{{- $build := include "octopus.imageBuild.enabled" . -}}
+{{- $builderNS := include "octopus.imageBuild.namespace" . -}}
+# Fences the daemon's cluster-wide ClusterRole (rbac.yaml); matches only the daemon's
+# ServiceAccount. Needs Kubernetes >= 1.30.
+# tenant- is the prefix ee/kuberuntime hardcodes; namespace deletes need both
+# thulu.dev/plane=data and thulu.dev/tenant.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: {{ include "octopus.fullname" . }}-daemon-scope
+  labels:
+    {{- include "octopus.labels" . | nindent 4 }}
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE", "DELETE"]
+        resources: ["namespaces", "pods", "services", "persistentvolumeclaims", "resourcequotas", "limitranges",
+                    "secrets", "configmaps"]
+      - apiGroups: ["networking.k8s.io"]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE", "DELETE"]
+        resources: ["networkpolicies"]
+      - apiGroups: ["rbac.authorization.k8s.io"]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE", "DELETE"]
+        resources: ["rolebindings"]
+  matchConditions:
+    - name: is-octopus-daemon
+      expression: {{ printf "request.userInfo.username == '%s'" $sa | quote }}
+  variables:
+    - name: targetNS
+      expression: >-
+        request.resource.resource == 'namespaces'
+          ? (object != null ? object.metadata.name : oldObject.metadata.name)
+          : request.namespace
+    - name: nsAllowed
+      expression: {{ printf "variables.targetNS.startsWith('tenant-') || variables.targetNS == '%s'" $sandboxNS | quote }}
+    # The build context of an agent image Job (image-build.yaml); the Job itself is checked by the
+    # daemon-builds policy below.
+    - name: buildContext
+      expression: {{ if $build }}{{ printf "variables.targetNS == '%s' && request.resource.resource == 'configmaps' && request.operation != 'UPDATE'" $builderNS | quote }}{{ else }}"false"{{ end }}
+  validations:
+    - expression: variables.nsAllowed || variables.buildContext
+      messageExpression: >-
+        'the octopus daemon may only write in tenant-* namespaces or {{ $sandboxNS }}; got ' + variables.targetNS
+      reason: Forbidden
+    - expression: >-
+        request.resource.resource != 'namespaces' || request.operation != 'CREATE' ||
+        (has(object.metadata.labels) && 'thulu.dev/plane' in object.metadata.labels &&
+         object.metadata.labels['thulu.dev/plane'] == 'data')
+      message: "namespaces created by the octopus daemon must carry thulu.dev/plane=data"
+      reason: Forbidden
+    - expression: >-
+        request.resource.resource != 'namespaces' || request.operation != 'DELETE' ||
+        (oldObject.metadata.name.startsWith('tenant-') && has(oldObject.metadata.labels) &&
+         'thulu.dev/plane' in oldObject.metadata.labels &&
+         oldObject.metadata.labels['thulu.dev/plane'] == 'data' &&
+         'thulu.dev/tenant' in oldObject.metadata.labels)
+      messageExpression: >-
+        'the octopus daemon may delete only tenant-* namespaces labeled thulu.dev/plane=data and thulu.dev/tenant; ' +
+        oldObject.metadata.name + ' is not one'
+      reason: Forbidden
+    - expression: >-
+        request.resource.resource == 'namespaces' || variables.buildContext ||
+        (namespaceObject != null && has(namespaceObject.metadata.labels) &&
+         'thulu.dev/plane' in namespaceObject.metadata.labels &&
+         namespaceObject.metadata.labels['thulu.dev/plane'] == 'data')
+      messageExpression: >-
+        'the octopus daemon may only write in namespaces labeled thulu.dev/plane=data; ' + variables.targetNS + ' is not'
+      reason: Forbidden
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: {{ include "octopus.fullname" . }}-daemon-scope
+  labels:
+    {{- include "octopus.labels" . | nindent 4 }}
+spec:
+  policyName: {{ include "octopus.fullname" . }}-daemon-scope
+  validationActions: [Deny, Audit]
+---
+# RBAC bind limits the role; this pins the subject so a compromised daemon cannot grant
+# tenant-secrets to another identity.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: {{ include "octopus.fullname" . }}-daemon-rolebindings
+  labels:
+    {{- include "octopus.labels" . | nindent 4 }}
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ["rbac.authorization.k8s.io"]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["rolebindings"]
+  matchConditions:
+    - name: is-octopus-daemon
+      expression: {{ printf "request.userInfo.username == '%s'" $sa | quote }}
+  validations:
+    - expression: >-
+        object.roleRef.apiGroup == 'rbac.authorization.k8s.io' &&
+        object.roleRef.kind == 'ClusterRole' &&
+        object.roleRef.name == '{{ $tenantSecretsRole }}' &&
+        has(object.subjects) && size(object.subjects) == 1 &&
+        object.subjects[0].kind == 'ServiceAccount' &&
+        object.subjects[0].name == '{{ $saName }}' &&
+        has(object.subjects[0].namespace) &&
+        object.subjects[0].namespace == '{{ .Release.Namespace }}'
+      message: {{ printf "rolebindings written by the octopus daemon must bind ClusterRole %s to exactly one subject, ServiceAccount %s/%s" $tenantSecretsRole .Release.Namespace $saName | quote }}
+      reason: Forbidden
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: {{ include "octopus.fullname" . }}-daemon-rolebindings
+  labels:
+    {{- include "octopus.labels" . | nindent 4 }}
+spec:
+  policyName: {{ include "octopus.fullname" . }}-daemon-rolebindings
+  validationActions: [Deny, Audit]
+---
+# A daemon pod may read only its own Secret <pod name>-env (ee/kuberuntime EnvSecretName), via
+# env secretKeyRef.
+# Relies on the daemon never using generateName, so metadata.name is known at admission.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: {{ include "octopus.fullname" . }}-daemon-pods
+  labels:
+    {{- include "octopus.labels" . | nindent 4 }}
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["pods"]
+  matchConditions:
+    - name: is-octopus-daemon
+      expression: {{ printf "request.userInfo.username == '%s'" $sa | quote }}
+  variables:
+    - name: allContainers
+      expression: >-
+        object.spec.containers +
+        (has(object.spec.initContainers) ? object.spec.initContainers : [])
+  validations:
+    {{- if $rcs }}
+    - expression: >-
+        has(object.spec.runtimeClassName) &&
+        object.spec.runtimeClassName in {{ $rcs | toJson }}
+      messageExpression: >-
+        'pods created by the octopus daemon must use a sandboxed RuntimeClass ({{ join ", " $rcs }}); got ' +
+        (has(object.spec.runtimeClassName) ? object.spec.runtimeClassName : '<none>')
+      reason: Forbidden
+    {{- end }}
+    - expression: >-
+        (!has(object.spec.hostNetwork) || !object.spec.hostNetwork) &&
+        (!has(object.spec.hostPID) || !object.spec.hostPID) &&
+        (!has(object.spec.hostIPC) || !object.spec.hostIPC)
+      message: "pods created by the octopus daemon may not use host namespaces"
+      reason: Forbidden
+    - expression: >-
+        !has(object.spec.volumes) || object.spec.volumes.all(v,
+          !has(v.hostPath) && !has(v.secret) &&
+          (!has(v.projected) || !has(v.projected.sources) ||
+           v.projected.sources.all(s, !has(s.secret) && !has(s.serviceAccountToken))))
+      message: "pods created by the octopus daemon may not mount hostPath, Secret or ServiceAccount-token volumes"
+      reason: Forbidden
+    - expression: >-
+        variables.allContainers.all(c,
+          (!has(c.envFrom) || c.envFrom.all(e, !has(e.secretRef))) &&
+          (!has(c.env) || c.env.all(e, !has(e.valueFrom) || !has(e.valueFrom.secretKeyRef) ||
+            (has(object.metadata.name) && e.valueFrom.secretKeyRef.name == object.metadata.name + '-env'))))
+      message: "pods created by the octopus daemon may read only their own <pod name>-env Secret, through env secretKeyRef (no envFrom secretRef)"
+      reason: Forbidden
+    - expression: >-
+        variables.allContainers.all(c,
+          !has(c.securityContext) ||
+          ((!has(c.securityContext.privileged) || !c.securityContext.privileged) &&
+           (!has(c.securityContext.allowPrivilegeEscalation) || !c.securityContext.allowPrivilegeEscalation)))
+      message: "pods created by the octopus daemon may not be privileged or allow privilege escalation"
+      reason: Forbidden
+    - expression: >-
+        (!has(object.spec.serviceAccountName) || object.spec.serviceAccountName == 'default') &&
+        has(object.spec.automountServiceAccountToken) && !object.spec.automountServiceAccountToken
+      message: "pods created by the octopus daemon must run as the default ServiceAccount with automountServiceAccountToken: false"
+      reason: Forbidden
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: {{ include "octopus.fullname" . }}-daemon-pods
+  labels:
+    {{- include "octopus.labels" . | nindent 4 }}
+spec:
+  policyName: {{ include "octopus.fullname" . }}-daemon-pods
+  validationActions: [Deny, Audit]
+{{- if $build }}
+---
+# Agent image builds run in a PSA-privileged namespace, so a Job the daemon writes there could
+# otherwise mount the node. This holds every such Job to the shape ee/kuberuntime/imagebuild_job.go
+# writes: one container running the pinned BuildKit image, no host namespaces or host paths, no
+# privileged container, no Secret but the registry credentials, no ServiceAccount token.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: {{ include "octopus.fullname" . }}-daemon-builds
+  labels:
+    {{- include "octopus.labels" . | nindent 4 }}
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ["batch"]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["jobs", "cronjobs"]
+  matchConditions:
+    - name: is-octopus-daemon
+      expression: {{ printf "request.userInfo.username == '%s'" $sa | quote }}
+  variables:
+    - name: pod
+      expression: "request.resource.resource == 'jobs' ? object.spec.template.spec : object.spec.jobTemplate.spec.template.spec"
+  validations:
+    - expression: {{ printf "request.resource.resource == 'jobs' && request.namespace == '%s'" $builderNS | quote }}
+      message: {{ printf "the octopus daemon may only write Jobs in %s" $builderNS | quote }}
+      reason: Forbidden
+    - expression: >-
+        size(variables.pod.containers) == 1 &&
+        variables.pod.containers[0].image == {{ .Values.agentRuntime.imageBuild.builderImage | squote }} &&
+        (!has(variables.pod.initContainers) || size(variables.pod.initContainers) == 0) &&
+        (!has(variables.pod.ephemeralContainers) || size(variables.pod.ephemeralContainers) == 0)
+      message: "image build Jobs run exactly one container, the pinned BuildKit image (agentRuntime.imageBuild.builderImage)"
+      reason: Forbidden
+    - expression: >-
+        (!has(variables.pod.hostNetwork) || !variables.pod.hostNetwork) &&
+        (!has(variables.pod.hostPID) || !variables.pod.hostPID) &&
+        (!has(variables.pod.hostIPC) || !variables.pod.hostIPC)
+      message: "image build Jobs may not use host namespaces"
+      reason: Forbidden
+    - expression: >-
+        !has(variables.pod.volumes) || variables.pod.volumes.all(v,
+          has(v.configMap) || has(v.emptyDir) ||
+          (has(v.secret) && v.secret.secretName == {{ include "octopus.imageBuild.authSecret" . | squote }}))
+      message: "image build Jobs may mount only ConfigMaps, emptyDirs and the registry credentials Secret"
+      reason: Forbidden
+    - expression: >-
+        variables.pod.containers.all(c,
+          (!has(c.envFrom) || size(c.envFrom) == 0) &&
+          (!has(c.env) || c.env.all(e, !has(e.valueFrom))) &&
+          (!has(c.securityContext) ||
+           ((!has(c.securityContext.privileged) || !c.securityContext.privileged) &&
+            (!has(c.securityContext.capabilities) || !has(c.securityContext.capabilities.add) ||
+             size(c.securityContext.capabilities.add) == 0))) &&
+          (!has(c.ports) || c.ports.all(p, !has(p.hostPort) || p.hostPort == 0)))
+      message: "image build Jobs may not be privileged, add capabilities, use hostPorts or read env from other objects"
+      reason: Forbidden
+    - expression: >-
+        has(variables.pod.securityContext) && has(variables.pod.securityContext.runAsNonRoot) &&
+        variables.pod.securityContext.runAsNonRoot &&
+        (!has(variables.pod.serviceAccountName) || variables.pod.serviceAccountName == 'default') &&
+        has(variables.pod.automountServiceAccountToken) && !variables.pod.automountServiceAccountToken
+      message: "image build Jobs run as non-root, as the default ServiceAccount with automountServiceAccountToken: false"
+      reason: Forbidden
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: {{ include "octopus.fullname" . }}-daemon-builds
+  labels:
+    {{- include "octopus.labels" . | nindent 4 }}
+spec:
+  policyName: {{ include "octopus.fullname" . }}-daemon-builds
+  validationActions: [Deny, Audit]
+{{- end }}
+{{- end -}}

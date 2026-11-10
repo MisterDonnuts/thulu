@@ -1,0 +1,120 @@
+---
+import Button from "./Button.astro";
+import Icon from "./Icon.astro";
+import { t } from "../i18n";
+import {
+  modalCancelButton,
+  modalClasses,
+  modalIds,
+  modalPrimaryButton,
+  overlayClasses,
+  type ModalAction,
+  type ModalSize,
+  type ModalVariant,
+} from "../lib/ui/modal";
+
+interface Props {
+  id: string;
+  title: string;
+  icon?: string;
+  size?: ModalSize;
+  variant?: ModalVariant;
+  closable?: boolean;
+  lede?: string;
+  class?: string;
+  bodyClass?: string;
+  cancel?: boolean | string;
+  primary?: ModalAction;
+  [key: string]: unknown;
+}
+const {
+  id,
+  title,
+  icon,
+  size,
+  variant = "banded",
+  closable = false,
+  lede,
+  class: extra,
+  bodyClass,
+  cancel,
+  primary,
+  ...rest
+} = Astro.props;
+const ids = modalIds(id);
+const cancelBtn = cancel
+  ? modalCancelButton(typeof cancel === "string" ? cancel : undefined)
+  : undefined;
+const primaryBtn = primary ? modalPrimaryButton(primary) : undefined;
+const hasStart = Astro.slots.has("actions-start");
+const hasFoot =
+  Astro.slots.has("foot") || hasStart || Astro.slots.has("actions") || !!cancelBtn || !!primaryBtn;
+---
+
+<div {id} class={overlayClasses(variant)} role="presentation" {...rest}>
+  <div
+    class={modalClasses({ size, variant, cls: extra })}
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby={ids.title}
+    aria-describedby={lede ? ids.lede : undefined}
+    tabindex="-1"
+  >
+    <div class="modal-head">
+      {icon && <Icon name={icon} size="lg" />}
+      <h3 id={ids.title}>{title}</h3>
+      <slot name="head" />
+      {
+        closable && (
+          <Button iconOnly icon="x" label={t("common.buttons.close")} data-modal-close="" />
+        )
+      }
+    </div>
+    <div class:list={["modal-body", bodyClass]}>
+      {
+        lede && (
+          <p class="modal-lede" id={ids.lede}>
+            {lede}
+          </p>
+        )
+      }
+      <slot />
+    </div>
+    {
+      hasFoot && (
+        <div class="modal-foot">
+          {Astro.slots.has("foot") ? (
+            <slot name="foot" />
+          ) : (
+            <>
+              {hasStart && (
+                <div class="modal-foot-start">
+                  <slot name="actions-start" />
+                </div>
+              )}
+              <slot name="actions" />
+              {cancelBtn && (
+                <Button kbd={cancelBtn.kbd} {...cancelBtn.attrs}>
+                  {cancelBtn.label}
+                </Button>
+              )}
+              {primaryBtn && (
+                <Button
+                  id={primaryBtn.id}
+                  variant={primaryBtn.variant}
+                  icon={primaryBtn.icon}
+                  kbd={primaryBtn.kbd}
+                  type={primaryBtn.type}
+                  disabled={primaryBtn.disabled}
+                  {...primaryBtn.attrs}
+                >
+                  {primaryBtn.label}
+                </Button>
+              )}
+            </>
+          )}
+        </div>
+      )
+    }
+  </div>
+</div>

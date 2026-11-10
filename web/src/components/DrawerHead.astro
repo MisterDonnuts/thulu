@@ -1,0 +1,74 @@
+---
+// Markup must match drawerHeadHTML() in lib/ui/drawer.ts.
+import Button from "./Button.astro";
+import { drawerCloseButton } from "../lib/ui/drawer";
+
+interface Props {
+  title: string;
+  titleId: string;
+  titleAttrs?: Record<string, unknown>;
+  sub?: string;
+  subId?: string;
+  closable?: boolean;
+}
+const { title, titleId, titleAttrs, sub, subId, closable = true } = Astro.props;
+const closeBtn = drawerCloseButton();
+
+// A slot handed down from Drawer counts as present even when empty; only count it if it renders
+// something.
+const filled = async (name: string) =>
+  Astro.slots.has(name) && (await Astro.slots.render(name)).trim() !== "";
+const hasLead = await filled("lead");
+const hasEyebrow = await filled("eyebrow");
+const hasSubSlot = await filled("sub");
+const hasActions = await filled("actions");
+const hasSub = hasSubSlot || sub !== undefined;
+---
+
+<header class="drawer-head">
+  <div class="drawer-head-row">
+    {
+      hasLead && (
+        <div class="drawer-lead">
+          <slot name="lead" />
+        </div>
+      )
+    }
+    <div class="drawer-heading">
+      {
+        hasEyebrow && (
+          <div class="drawer-eyebrow">
+            <slot name="eyebrow" />
+          </div>
+        )
+      }
+      <h2 class="drawer-title" id={titleId} {...titleAttrs}>{title}</h2>
+      {
+        hasSub && (
+          <p class="drawer-sub" id={subId}>
+            {hasSubSlot ? <slot name="sub" /> : sub}
+          </p>
+        )
+      }
+    </div>
+    {
+      hasActions && (
+        <div class="drawer-actions">
+          <slot name="actions" />
+        </div>
+      )
+    }
+    {
+      closable && (
+        <Button
+          iconOnly
+          icon={closeBtn.icon}
+          size={closeBtn.size}
+          label={closeBtn.label}
+          {...closeBtn.attrs}
+        />
+      )
+    }
+  </div>
+  <slot />
+</header>

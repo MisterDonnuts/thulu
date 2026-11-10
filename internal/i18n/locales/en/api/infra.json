@@ -1,0 +1,20 @@
+{
+  "labels": {
+    "surface": "the infrastructure inspector"
+  },
+  "errors": {
+    "unavailable": "the infrastructure inspector is not running on this daemon",
+    "bad_range": "range must be 15m, 1h or 2h, not {range:%q}",
+    "cache_unavailable": "the dependency cache panel needs the sandbox store, and this daemon has none",
+    "bad_cache_range": "range must be 7d, 30d or 90d, not {range:%q}",
+    "container_not_found": "no container {id} in the last sample; refresh and try again",
+    "not_stoppable": "a {kind} container is not stopped from here",
+    "sandbox_not_found": "no live sandbox runs in container {id}; refresh and try again",
+    "not_orphan": "{name} is not an orphan: a run of the task accounts for it, so it is stopped through the run"
+  },
+  "log": {
+    "cache_names_failed": "read the names for the cache panel",
+    "orphan_removed": "removed orphan agent container {container} of task {task}",
+    "orphan_remove_failed": "could not remove the orphan agent container {container} of task {task}: {error}"
+  }
+}

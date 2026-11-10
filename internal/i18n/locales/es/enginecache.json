@@ -1,0 +1,7 @@
+{
+  "errors": {
+    "no_scope": "no hay workspace ni persona para la instalación del motor",
+    "volume": "no se pudo leer ni crear el volumen de motores",
+    "volume_taken": "ya existe un volumen de Docker llamado {volume} que no es el volumen de motores de esta instalación; borralo o renombralo"
+  }
+}

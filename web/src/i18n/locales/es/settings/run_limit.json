@@ -1,0 +1,21 @@
+{
+  "title": "Límite de tiempo por corrida",
+  "intro": "Cuánto puede durar una corrida de agente en este workspace antes de que Thulu la frene y lo avise en la tarea. Sin un valor propio, el workspace usa el de la instalación.",
+  "read_only": "Sólo un admin del workspace puede cambiar el límite de tiempo.",
+  "label": "Límite",
+  "unit": "minutos",
+  "help": "Valor de la instalación: {default}. Lo máximo que puede elegir este workspace: {ceiling}.",
+  "now_default": "Las corridas usan el valor de la instalación: {limit}.",
+  "now_own": "Las corridas usan el límite de este workspace: {limit}.",
+  "now_capped": "Este workspace eligió {value}, más de lo que la instalación permite ahora, así que las corridas tienen {limit}.",
+  "minutes": {
+    "one": "{count} minuto",
+    "other": "{count} minutos"
+  },
+  "no_limit": "sin límite",
+  "use_default": "Usar el de la instalación",
+  "out_of_range": "Poné minutos enteros de 1 a {max}.",
+  "saved": "Límite de tiempo guardado",
+  "cleared": "El límite de tiempo volvió al de la instalación",
+  "save_failed": "No se pudo guardar el límite de tiempo."
+}

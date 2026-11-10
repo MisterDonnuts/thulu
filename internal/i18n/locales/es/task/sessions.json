@@ -1,0 +1,28 @@
+{
+  "errors": {
+    "bad_ref": "la tarea, el agente o el id de sesión del snapshot tienen caracteres no permitidos",
+    "no_agent_to_resume": "la etapa {stage} no tiene un agente asignado para retomarla",
+    "no_store": "este daemon no tiene carpeta para los snapshots de sesión",
+    "not_a_resume_kind": "{kind} no es un retome: usá answer_resume o changes_resume",
+    "read_failed": "leer el snapshot de sesión",
+    "snapshot_empty": "el snapshot de sesión está vacío",
+    "snapshot_not_found": "no hay snapshot de sesión para esa tarea, agente y sesión",
+    "snapshot_too_large": "el snapshot de sesión pasa los {max} bytes; el próximo retome arranca desde la transcripción",
+    "store_failed": "guardar el snapshot de sesión"
+  },
+  "log": {
+    "list_failed": "listar los snapshots de sesión en {dir}",
+    "remove_empty": "borrar la carpeta de sesión vacía {dir}",
+    "remove_group": "borrar los snapshots de sesión del grupo {group}",
+    "remove_old": "borrar el snapshot de sesión viejo {name} en {dir}",
+    "remove_partial": "borrar la subida de sesión a medias {path}",
+    "transcript_engine": "armar la transcripción: no hay parser para el engine {engine}"
+  },
+  "transcript": {
+    "person_message": "## {author} escribió · {at}\n\n{body}",
+    "result": "**Resultado:**\n\n{text}",
+    "run_heading": "## Corrida en {stage} · {at}",
+    "title": "# Conversación anterior con {agent} en esta tarea\n\nLo que este agente hizo en corridas anteriores (las tools que llamó y cómo terminó cada corrida) y lo que le escribieron las personas, de lo más viejo a lo más nuevo. Es contexto: el brief de la tarea y el repositorio son la fuente de verdad.",
+    "truncated": "_(Se recortaron las entradas más viejas para que entre.)_"
+  }
+}

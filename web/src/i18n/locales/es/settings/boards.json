@@ -1,0 +1,178 @@
+{
+  "list": {
+    "title": "Tableros",
+    "intro": "Cada tablero es un flujo con sus propias columnas y reglas. Una tarea entra a un tablero al crearse y se queda en él.",
+    "new": "Tablero nuevo"
+  },
+  "empty": {
+    "title": "Todavía no hay tableros",
+    "body": "Un tablero tiene las columnas por las que pasan las tareas. Creá uno para empezar a cargar tareas."
+  },
+  "card": {
+    "default": "Predeterminado",
+    "actions": "Acciones del tablero {board}",
+    "columns_label": "Columnas de {board}",
+    "meta": "{columns}, {tasks}",
+    "columns": {
+      "one": "{count} columna",
+      "other": "{count} columnas"
+    },
+    "tasks": {
+      "one": "{count} tarea",
+      "other": "{count} tareas"
+    }
+  },
+  "menu": {
+    "open": "Abrir tablero",
+    "edit": "Editar columnas y tipos",
+    "make_default": "Hacer predeterminado",
+    "duplicate": "Duplicar",
+    "delete": "Borrar tablero",
+    "default_undeletable": "Las tareas nuevas caen en el tablero predeterminado. Hacé predeterminado otro tablero para borrar este."
+  },
+  "detail": {
+    "back": "Todos los tableros",
+    "loading": "Cargando el tablero…",
+    "document_title": "Ajustes del tablero {board}",
+    "open_board": "Abrir tablero",
+    "more": "Más acciones para este tablero",
+    "about": "Nombre y descripción",
+    "name": "Nombre",
+    "name_required": "El tablero necesita un nombre. Queda el anterior.",
+    "description": "Descripción",
+    "description_placeholder": "Bugs reportados, del triage al release",
+    "description_hint": "Aparece debajo del nombre del tablero. Hasta 280 caracteres.",
+    "saving": "Guardando…",
+    "saved": "Guardado",
+    "edit_behavior": "Comportamiento"
+  },
+  "columns": {
+    "title": "Columnas",
+    "intro": "Arrastrá una columna por su manija para reordenarla, o usá su menú para renombrarla, elegir un color, definir qué pasa en ella o borrarla. Los cambios se guardan apenas los hacés y también se ven en el tablero."
+  },
+  "chips": {
+    "initial": "Inicio",
+    "terminal": "Fin",
+    "auto_advance": "Avanza sola",
+    "push_branch": "Pushea la rama",
+    "open_pr": "Abre PR",
+    "approvals": {
+      "one": "{count} aprobación",
+      "other": "{count} aprobaciones"
+    },
+    "wip_work": "Suma a En curso",
+    "wip_review": "Suma a Para revisar",
+    "none": "Las tareas esperan acá a una persona."
+  },
+  "types": {
+    "title": "Tipos de tarea",
+    "intro": "Un tipo de tarea recorre las mismas columnas pero puede saltear algunas: un bugfix puede ir de Backlog directo a En curso mientras una feature pasa por Refinamiento. Todos los tipos empiezan y terminan en las mismas columnas.",
+    "default": "Predeterminado",
+    "walks": "Pasa por",
+    "locked_initial": "En {stage} empiezan las tareas, así que todos los tipos pasan por ahí.",
+    "locked_terminal": "En {stage} termina el trabajo, así que todos los tipos pasan por ahí.",
+    "icon_label": "Ícono de {type}",
+    "icons": {
+      "bug": "Bicho",
+      "feature": "Destellos",
+      "chore": "Llave",
+      "spike": "Matraz",
+      "rocket": "Cohete",
+      "shield": "Escudo",
+      "book": "Libro",
+      "bolt": "Rayo",
+      "refresh": "Flechas en círculo",
+      "question": "Signo de pregunta",
+      "alert": "Alerta",
+      "palette": "Paleta",
+      "plug": "Enchufe",
+      "database": "Base de datos",
+      "checklist": "Lista con tildes",
+      "clock": "Reloj",
+      "star": "Estrella",
+      "users": "Personas"
+    },
+    "color_label": "Color de {type}",
+    "name_label": "Nombre de {type}",
+    "remove_label": "Quitar {type}",
+    "remove_title": "¿Quitar el tipo {type}?",
+    "remove_message": "Las tareas de este tipo no se mueven. Si alguna lo tiene, elegís en qué se convierte antes de guardar el cambio.",
+    "remove_confirm": "Quitar tipo",
+    "none": {
+      "one": "Este tablero no tiene tipos de tarea. Cada tarea recorre su {count} columna.",
+      "other": "Este tablero no tiene tipos de tarea. Cada tarea recorre las {count} columnas."
+    },
+    "add_label": "Agregar un tipo",
+    "add_placeholder": "Bugfix",
+    "add": "Agregar tipo",
+    "name_required": "Escribí un nombre para el tipo de tarea.",
+    "slug": "Se guarda con el id {id}",
+    "slug_empty": "El id sale del nombre.",
+    "templates": "O empezá desde:",
+    "pending": "Cambios sin guardar…",
+    "saved_moved": {
+      "one": "Guardado, se movió {count} tarea",
+      "other": "Guardado, se movieron {count} tareas"
+    },
+    "fix_removed": {
+      "one": "{count} tarea todavía tiene el tipo {type}.",
+      "other": "{count} tareas todavía tienen el tipo {type}."
+    },
+    "fix_skipped": {
+      "one": "{count} tarea está en {stage}, que con este cambio su tipo saltea.",
+      "other": "{count} tareas están en {stage}, que con este cambio su tipo saltea."
+    },
+    "fix_to": "Moverlas a",
+    "fix_go": "Mover y guardar",
+    "fix_undo": "Deshacer el cambio",
+    "untyped": "Sin tipo (recorre todo el tablero)"
+  },
+  "new": {
+    "title": "Tablero nuevo",
+    "name": "Nombre",
+    "name_placeholder": "Bugfix",
+    "name_required": "Escribí un nombre para el tablero.",
+    "slug": "Se guarda con el id {id}",
+    "slug_empty": "El id sale del nombre y después no se puede cambiar.",
+    "from": "Empezar desde",
+    "from_standard": "Columnas estándar",
+    "from_copy": "Una copia de {board}",
+    "from_hint": "Elegí un tablero para copiar sus columnas con su comportamiento y sus aprobaciones. Editar la copia nunca toca el original.",
+    "copy_name": "{board} copia",
+    "advanced": "Elegir el id a mano",
+    "id": "Id",
+    "id_hint": "Minúsculas, números y guiones bajos, hasta 32. Lo llevan las tareas y las métricas, así que después no se puede cambiar.",
+    "id_invalid": "{id} no sirve como id. Usá minúsculas, números y guiones bajos, hasta 32.",
+    "submit": "Crear tablero",
+    "creating": "Creando…"
+  },
+  "delete": {
+    "title": "¿Borrar el tablero {board}?",
+    "empty": "El tablero no tiene tareas.",
+    "with_tasks": {
+      "one": "Hay {count} tarea en este tablero.",
+      "other": "Hay {count} tareas en este tablero."
+    },
+    "move_to": {
+      "one": "Mover {count} tarea a",
+      "other": "Mover las {count} tareas a"
+    },
+    "move_note": "Cada tarea cae en la columna con el mismo id en ese tablero, o en su primera columna.",
+    "lost": "Las columnas, el comportamiento y los tipos de tarea del tablero se borran con él. No se puede deshacer.",
+    "confirm": "Borrar tablero"
+  },
+  "toasts": {
+    "created": "Tablero {board} creado",
+    "deleted": "Tablero {board} borrado",
+    "default": "Las tareas nuevas ahora caen en {board}"
+  },
+  "errors": {
+    "network": "El daemon no respondió. Revisá la conexión y probá de nuevo.",
+    "list": "No se pudieron cargar los tableros: {error}",
+    "detail": "No se pudo cargar este tablero: {error}",
+    "missing": "No hay ningún tablero con el id {board}. Puede que lo hayan borrado.",
+    "default": "No se pudo cambiar el tablero predeterminado: {error}",
+    "delete": "No se pudo borrar el tablero: {error}",
+    "types": "No se pudieron guardar los tipos de tarea: {error}"
+  }
+}

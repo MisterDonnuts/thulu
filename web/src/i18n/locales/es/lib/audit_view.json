@@ -1,0 +1,26 @@
+{
+  "actor": {
+    "api_key": "Clave: {name}",
+    "agent": "Agente: {run}",
+    "system": "Thulu (sistema)",
+    "dev_mode": "Modo dev (sin login)"
+  },
+  "chain": {
+    "ok": {
+      "one": "Cadena verificada: {count} entrada, hash de cabeza {head}…",
+      "other": "Cadena verificada: {count} entradas, hash de cabeza {head}…"
+    },
+    "legacy": {
+      "one": "{count} entrada anterior a la cadena no está cubierta.",
+      "other": "{count} entradas anteriores a la cadena no están cubiertas."
+    },
+    "broken": {
+      "one": "La cadena se rompe en la entrada {id}, después de {count} entrada sana: {reason}",
+      "other": "La cadena se rompe en la entrada {id}, después de {count} entradas sanas: {reason}"
+    },
+    "broken_dated": {
+      "one": "La cadena se rompe en la entrada {id}, escrita el {date}, después de {count} entrada sana: {reason}",
+      "other": "La cadena se rompe en la entrada {id}, escrita el {date}, después de {count} entradas sanas: {reason}"
+    }
+  }
+}

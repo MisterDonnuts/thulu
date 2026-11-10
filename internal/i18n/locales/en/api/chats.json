@@ -1,0 +1,74 @@
+{
+  "errors": {
+    "not_configured": "chat service not configured",
+    "streaming_unsupported": "streaming unsupported",
+    "agent_type_required": "agent_type is required",
+    "turn_running_retry": "a turn is running; retry when it finishes",
+    "unknown_before_id": "unknown before message id",
+    "text_required": "text is required",
+    "turn_already_running": "a turn is already running in this chat",
+    "archived": "chat is archived",
+    "delegated_write_only": "this chat acts for {person}; only they can write in it",
+    "person_required": "{what} needs a signed-in person, not an API key",
+    "end_delegation_forbidden": "only the person this chat acts for, or a workspace admin, can turn it off",
+    "start_delegation_forbidden": "only the person who opened this chat can let it act for them",
+    "delegation_disabled": "this workspace has delegated chats turned off",
+    "delegation_turn_running": "the agent is answering; turn this on once it finishes",
+    "delegation_over": "this chat no longer acts for anyone",
+    "delegation_over_for_you": "this chat no longer acts for you; nothing it asked for can run",
+    "held_body_too_large": "request body too large to hold for confirmation",
+    "decide_forbidden": "only the person this chat acts for can decide what it asked for",
+    "action_not_found": "action not found",
+    "already_decided": "this was already decided",
+    "policy_off_partial": "turned off, but some delegations did not end"
+  },
+  "audit": {
+    "created": "Chat created with {agent}",
+    "deleted": "Chat with {agent} deleted",
+    "reset": "Chat with {agent} reset",
+    "message_posted": "Message posted to chat with {agent}",
+    "delegation_started": "Chat with {agent} acts for {person} until {until}",
+    "delegation_ended": "Chat with {agent} no longer acts for {person}",
+    "action_held": "{agent} asked {person} to confirm: {summary}",
+    "action_confirmed": "{person} confirmed what {agent} asked: {summary} (HTTP {code})",
+    "action_canceled": "{person} turned down what {agent} asked: {summary}",
+    "policy_on": "Delegated chats turned on",
+    "policy_off": "Delegated chats turned off"
+  },
+  "labels": {
+    "nobody": "nobody",
+    "person_delegating": "delegating a chat",
+    "person_deciding": "deciding what a delegated chat asked for",
+    "person_policy": "changing who chats may act for",
+    "held_delete_task": "Delete task «{title}»",
+    "held_delete_on_task": "DELETE {route} on task «{title}»",
+    "held_merge_pr": "Merge pull request #{number} in {repo} ({method})",
+    "held_deployment_approved": "Approve the deployments run {run} waits on in {repo}",
+    "held_deployment_rejected": "Reject the deployments run {run} waits on in {repo}"
+  },
+  "hints": {
+    "awaiting_confirmation": "{person} has to confirm this in the chat before it runs. Do not retry it: tell them what you asked for and why."
+  },
+  "comments": {
+    "mention_unavailable": "@{agent} unavailable: chat runtime not configured.",
+    "mention_failed": "@{agent} could not answer: {err}",
+    "mention_started": "@{agent} was mentioned in a comment and is answering (instance `{instance}`).",
+    "mention_started_event": "mention · {agent}",
+    "mention_finished_event": "mention · {agent} · posted={posted}"
+  },
+  "prompts": {
+    "mention_header": "📌 **Mention on the task “{title}”**\n\nTask id, for your tools: `{task}`\n\n",
+    "mention_stage": "**Current stage:** {stage}\n",
+    "mention_description": "\n**Task description:**\n\n{body}\n",
+    "mention_unseen": "\n---\n\n**In the thread, since your last reply:**\n\n{transcript}",
+    "mention_comment": "\n---\n\n**Comment from {speaker}:**\n\n{body}"
+  },
+  "log": {
+    "post_notice_failed": "post @{agent} notice on task {task}",
+    "record_mention_started_failed": "record mention-started event for task {task}",
+    "record_mention_finished_failed": "record mention-finished event for task {task}",
+    "add_reply_failed": "add @{agent} reply to task {task}",
+    "list_comments_failed": "list comments of task {task}",
+    "record_action_result_failed": "[chat] record result of {action}"
+  }
+}

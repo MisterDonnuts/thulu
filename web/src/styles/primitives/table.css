@@ -1,0 +1,259 @@
+.table-wrap {
+  overflow-x: auto;
+  background:
+    linear-gradient(to right, var(--surface-1) 30%, transparent) left / var(--s-7) 100% no-repeat
+      local,
+    linear-gradient(to left, var(--surface-1) 30%, transparent) right / var(--s-7) 100% no-repeat
+      local,
+    radial-gradient(farthest-side at 0 50%, var(--color-shade), transparent) left / var(--s-3) 100%
+      no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, var(--color-shade), transparent) right / var(--s-3)
+      100% no-repeat scroll;
+}
+
+.list-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--t-sm);
+}
+/* position: relative keeps an absolute .visually-hidden label inside .table-wrap instead of widening the page. */
+.list-table th {
+  position: relative;
+  text-align: start;
+  padding: var(--s-3) var(--s-5);
+  color: var(--fg-3);
+  font-weight: 500;
+  font-size: var(--t-xs);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-2);
+}
+.list-table td {
+  padding: var(--s-3) var(--s-5);
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+.list-table tr:last-child td {
+  border-bottom: none;
+}
+.list-table tbody tr {
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.list-table tbody tr:hover {
+  background: var(--surface-2);
+}
+
+.list-table .num {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+.list-table .cell-shrink {
+  width: 1%;
+  white-space: nowrap;
+}
+.list-table .cell-fill {
+  width: 100%;
+}
+.list-table .cell-title {
+  width: 30%;
+}
+.list-table .cell-sub {
+  display: block;
+  margin-top: calc(var(--s-1) / 2);
+  font-size: var(--t-xs);
+  color: var(--fg-3);
+  overflow-wrap: anywhere;
+}
+.list-table .actions-col,
+.list-table .actions-cell {
+  text-align: end;
+}
+.list-table .actions-col {
+  width: 110px;
+}
+.list-table .cell-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--s-1);
+}
+
+.list-table th[aria-sort] > button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  min-height: var(--control-h-xs);
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: var(--r-sm);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.list-table th[aria-sort] > button:hover,
+.list-table th[aria-sort="ascending"] > button,
+.list-table th[aria-sort="descending"] > button {
+  color: var(--fg);
+}
+.list-table th[aria-sort] > button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.list-table th[aria-sort="ascending"] > button::after {
+  content: "↑" / "";
+}
+.list-table th[aria-sort="descending"] > button::after {
+  content: "↓" / "";
+}
+
+.list-table tr[data-tone="danger"] > :first-child {
+  box-shadow: inset 2px 0 0 var(--danger);
+}
+.list-table tr[data-tone="warn"] > :first-child {
+  box-shadow: inset 2px 0 0 var(--warn);
+}
+.list-table tr.list-table-dim > td {
+  color: var(--fg-3);
+}
+.list-table tbody tr[aria-current="true"],
+.list-table tbody tr[aria-current="true"]:hover {
+  background: var(--accent-soft);
+}
+
+.list-table .cell-caret {
+  width: 1%;
+  padding-inline-end: 0;
+}
+.list-table .cell-caret .ico {
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.list-table .cell-caret [aria-expanded="true"] .ico {
+  transform: rotate(90deg);
+}
+.list-table tr.list-table-detail > td {
+  padding: var(--s-3) var(--s-5);
+  background: var(--surface-2);
+}
+.list-table tr.list-table-detail:hover {
+  background: none;
+}
+
+.list-table .group-head-row > th {
+  padding: 0;
+  border-bottom: 0;
+  background: none;
+  font-size: var(--t-sm);
+}
+.list-table tbody tr.group-head-row:hover {
+  background: none;
+}
+
+.list-table-top td {
+  vertical-align: top;
+}
+
+.list-table-compact {
+  font-size: var(--t-xs);
+}
+.list-table-compact th,
+.list-table-compact td {
+  padding: var(--s-1) var(--s-2);
+  white-space: nowrap;
+}
+.list-table-compact th {
+  background: none;
+}
+.list-table-compact tbody tr:hover {
+  background: none;
+}
+.list-table-compact td.cell-fill {
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+.list-table-no-head thead {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .list-table-stack thead {
+    display: none;
+  }
+  .list-table-stack,
+  .list-table-stack tbody {
+    display: block;
+  }
+  .list-table-stack tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--s-3) var(--s-4);
+    padding: var(--s-4) var(--s-5);
+    border-bottom: 1px solid var(--line);
+  }
+  .list-table-stack tbody tr:last-child {
+    border-bottom: 0;
+  }
+  .list-table-stack tr[data-tone] > :first-child {
+    box-shadow: none;
+  }
+  .list-table-stack tr[data-tone="danger"] {
+    box-shadow: inset 2px 0 0 var(--danger);
+  }
+  .list-table-stack tr[data-tone="warn"] {
+    box-shadow: inset 2px 0 0 var(--warn);
+  }
+  .list-table-stack td {
+    display: block;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    text-align: start;
+    white-space: normal;
+  }
+  .list-table-stack td.num {
+    text-align: start;
+  }
+  .list-table-stack td:is(.cell-shrink, .cell-fill, .cell-title) {
+    width: auto;
+    white-space: normal;
+  }
+  .list-table-stack td:first-child,
+  .list-table-stack td.actions-cell,
+  .list-table-stack tr.list-table-detail > td,
+  .list-table-stack tr.group-head-row > th {
+    grid-column: 1 / -1;
+  }
+  .list-table-stack td[data-label]:not(:first-child, .cell-caret + td)::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: calc(var(--s-1) / 2);
+    font-family: var(--font-sans);
+    font-size: var(--t-xs);
+    color: var(--fg-3);
+  }
+  .list-table-stack tbody tr {
+    position: relative;
+  }
+  .list-table-stack td.cell-caret {
+    position: absolute;
+    top: var(--s-3);
+    inset-inline-end: var(--s-3);
+    width: auto;
+  }
+  .list-table-stack td.cell-caret + td {
+    grid-column: 1 / -1;
+    padding-inline-end: var(--s-6);
+  }
+  .list-table-stack tr.group-head-row,
+  .list-table-stack tr.list-table-detail {
+    padding: 0;
+  }
+  .list-table-stack tr.group-head-row > th {
+    display: block;
+  }
+}

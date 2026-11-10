@@ -1,0 +1,16 @@
+---
+import SaveState from "./SaveState.astro";
+
+interface Props {
+  stateId?: string;
+  dirty?: boolean;
+  class?: string;
+  [key: string]: unknown;
+}
+const { stateId, dirty = false, class: extra, ...rest } = Astro.props;
+---
+
+<div class={["save-foot", extra].filter(Boolean).join(" ")} {...rest}>
+  <SaveState id={stateId} dirty={dirty} />
+  <div class="save-foot-actions"><slot /></div>
+</div>

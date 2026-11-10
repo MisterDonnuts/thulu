@@ -1,0 +1,30 @@
+---
+// Markup must match filterFieldHTML() in lib/ui/toolbar.ts.
+import { filterFieldClasses, filterFieldLabelClasses } from "../lib/ui/toolbar";
+
+interface Props {
+  label: string;
+  for?: string;
+  inline?: boolean;
+  grow?: boolean;
+  hideLabel?: boolean;
+  id?: string;
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  label,
+  for: htmlFor,
+  inline = false,
+  grow = false,
+  hideLabel = false,
+  id,
+  class: extra,
+  ...rest
+} = Astro.props;
+---
+
+<div {id} class={filterFieldClasses({ inline, grow, cls: extra })} {...rest}>
+  <label class={filterFieldLabelClasses(hideLabel)} for={htmlFor}>{label}</label>
+  <slot />
+</div>

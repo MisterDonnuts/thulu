@@ -1,0 +1,39 @@
+name: Feature Request
+description: Suggest an idea for Thulu
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the use case. What are you trying to do that you can't do today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe what you'd like to see. API changes, UI flows, config options, etc.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What workarounds have you tried?
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Daemon / API
+        - Dashboard (frontend)
+        - Agents / Sandboxes
+        - Security / Auth
+        - Observability
+        - Deploy / Docker
+        - Documentation
+        - Other

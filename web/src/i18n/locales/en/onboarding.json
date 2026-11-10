@@ -1,0 +1,24 @@
+{
+  "title": "Setup",
+  "stats": {
+    "of_done": "of {total} done"
+  },
+  "panels": {
+    "checklist": "Checklist"
+  },
+  "hints": {
+    "live_state": "Read from live state, not from what the wizard recorded",
+    "live_state_saas": "Read from the workspace's live state"
+  },
+  "steps": {
+    "finish": "Finish",
+    "until_then": "Until then: {effect}"
+  },
+  "errors": {
+    "load_failed": "Could not read the checklist: {error}"
+  },
+  "subtitle": "What this install still needs. Every item here was optional during {cmd} — this is where the ones you skipped come back.",
+  "devmode_title": "Auth is disabled on this install.",
+  "devmode_body": "Every request is treated as owner, so the daemon is only safe while its port stays on {host}. Rerun {cmd} and pick an identity provider before exposing it to anyone else.",
+  "subtitle_saas": "What this workspace still needs before an agent can work in it."
+}

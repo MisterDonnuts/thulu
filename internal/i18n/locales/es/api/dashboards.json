@@ -1,0 +1,13 @@
+{
+  "errors": {
+    "not_found": "no existe el dashboard",
+    "range_hours_invalid": "range_hours tiene que ser un entero positivo"
+  },
+  "comments": {
+    "proposal_flag": "Dashboard {name:%q} propuesto para {environment}: {panels} panel(es) sobre {metrics} métrica(s), revisalo y aprobalo"
+  },
+  "log": {
+    "marshal_flag_payload_failed": "serializar el payload del flag del dashboard: {err}",
+    "raise_flag_failed": "levantar el flag del dashboard en la tarea {task}: {err}"
+  }
+}

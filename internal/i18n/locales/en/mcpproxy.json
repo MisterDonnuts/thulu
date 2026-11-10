@@ -1,0 +1,17 @@
+{
+  "errors": {
+    "endpoint_invalid": "the MCP server announced a message endpoint the proxy cannot read ({endpoint})",
+    "endpoint_other_origin": "the MCP server announced a message endpoint on another origin ({endpoint}); the proxy only posts back to the server it streams from",
+    "invalid_message": "MCP server {server} only takes calls the run's allowlist can check: send one JSON-RPC 2.0 message or batch, UTF-8, with no repeated keys",
+    "read_body": "could not read the request body",
+    "tool_not_allowed": "tool {tool} of {server} is not in this run's allowlist",
+    "unknown_session": "no MCP session with that id for this run; open a new stream",
+    "upstream": "could not reach MCP server {server}",
+    "upstream_not_sse": "MCP server {server} did not answer with an event stream (status {status}); check the registration's transport",
+    "upstream_refused": "MCP server {server} refused the daemon's credentials (status {status}); an operator has to fix its registration or credential",
+    "not_renewable": "the credential cannot be renewed",
+    "oauth_unavailable": "MCP server {server} uses an OAuth connection, and OAuth connections are not set up on this daemon",
+    "credential_refused": "the credential for MCP server {server} was refused ({reason}): {detail}",
+    "renew_failed": "could not renew the credential for MCP server {server}"
+  }
+}

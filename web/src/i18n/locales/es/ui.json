@@ -1,0 +1,84 @@
+{
+  "labels": {
+    "search": "Buscar",
+    "breadcrumb": "Ruta de navegación"
+  },
+  "tag": {
+    "remove": "Quitar {name}"
+  },
+  "author": {
+    "agent": "agente",
+    "in_stage": "en {stage}"
+  },
+  "save_state": {
+    "clean": "Sin cambios",
+    "dirty": "Cambios sin guardar"
+  },
+  "progress": {
+    "short": "{done} de {total}",
+    "long": "{done} de {total} hechas",
+    "none": "Sin elementos"
+  },
+  "field": {
+    "optional": "(opcional)"
+  },
+  "confirm": {
+    "require": "Escribí {text} para confirmar",
+    "failed": "No se pudo completar. Probá de nuevo."
+  },
+  "table": {
+    "details": "Detalle"
+  },
+  "stat": {
+    "stale": "desactualizado"
+  },
+  "picker": {
+    "no_matches": "Sin resultados"
+  },
+  "drawer": {
+    "resize": "Cambiar el ancho del panel",
+    "resize_hint": "Arrastrá o usá las flechas para cambiar el ancho · doble clic para restablecerlo"
+  },
+  "message": {
+    "you": "Vos:",
+    "agent": "Agente:",
+    "named": "{name}:",
+    "system": "Aviso de Thulu:",
+    "error": "Error:"
+  },
+  "composer": {
+    "post": "Publicar",
+    "post_key": "Publicar ({keys})",
+    "send": "Enviar",
+    "send_key": "Enviar (Enter; Mayús+Enter salta de línea)",
+    "attach": "Adjuntar",
+    "attach_title": "Adjuntar un archivo. También podés pegarlo o soltarlo en la caja."
+  },
+  "code": {
+    "copy_named": "Copiar {name}",
+    "copied": "Copiado",
+    "copy_failed": "Copialo con {keys}"
+  },
+  "steps": {
+    "done": "Hecho",
+    "now": "En curso",
+    "pending": "Pendiente",
+    "blocked": "Bloqueado",
+    "unknown": "Sin verificar"
+  },
+  "date": {
+    "day": "dd",
+    "month": "mm",
+    "year": "aaaa",
+    "hour": "hh",
+    "minute": "mm",
+    "pick_datetime": "Elegir fecha y hora",
+    "pick_date": "Elegir fecha",
+    "pick_time": "Elegir hora",
+    "invalid": "No es una fecha. Escribila como {example}.",
+    "invalid_time": "No es una hora. Escribila como {example}."
+  },
+  "dropzone": {
+    "pick_json": "Elegir un archivo .json"
+  }
+}

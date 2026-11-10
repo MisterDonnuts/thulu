@@ -1,0 +1,59 @@
+{
+  "blank": {
+    "title": "Blank",
+    "blurb": "A manual trigger and one task step. The smallest recipe that runs.",
+    "spec": {
+      "name": "my automation",
+      "description": "what it does and why",
+      "task_title": "Something to look at",
+      "task_body": "Written by an automation."
+    }
+  },
+  "error_guard": {
+    "title": "Error guard",
+    "blurb": "Every 15 minutes it reads one environment's error rate and opens a ticket per incident; the second time it comments on the first ticket. Pick the environment with the picker before saving.",
+    "spec": {
+      "name": "error guard",
+      "description": "watch prod error rate and open an incident ticket when it spikes",
+      "env_comment": "The environment's ID, not its name. Pick it with the Environment picker above the editor.",
+      "env_comment_save": "Save refuses an ID that does not exist.",
+      "task_title": "Error rate at {{ steps.errs.value }}%",
+      "task_body": "The 15-minute average error rate is {{ steps.errs.value }}%.",
+      "task_body_ask": "Investigate, and open a PR if it needs a code change."
+    }
+  },
+  "pr_sweep": {
+    "title": "PR review sweep",
+    "blurb": "Hourly: find tasks with an open PR that nobody has touched in a day, and ask their agent to address the reviews.",
+    "spec": {
+      "name": "pr review sweep",
+      "description": "nudge the agent on PRs that have been sitting",
+      "agent_comment": "No agent: the mention wakes the one on the task's current stage.",
+      "body": "Your PR has had no activity for a day.",
+      "body_ask": "Check it for reviews or comments to address, and reply here with what you changed."
+    }
+  },
+  "review_comments": {
+    "title": "Answer review comments",
+    "blurb": "When GitHub delivers a review comment on a PR that belongs to a task, mention the agent on that task — unless a bot wrote it.",
+    "spec": {
+      "name": "answer review comments",
+      "description": "a human review comment wakes the agent that owns the PR",
+      "debounce_comment": "The debounce gathers a burst into one run; the comments are all in trigger.payload.events.",
+      "body": "New review comment on {{ trigger.payload.pr_url }} from {{ trigger.payload.comment_by }}:",
+      "body_ask": "Address it and push."
+    }
+  },
+  "script_decides": {
+    "title": "Script decides",
+    "blurb": "Run a script in a sandbox every morning; only when its output says so does a model get involved.",
+    "spec": {
+      "name": "script decides",
+      "description": "cheap deterministic check first, model second",
+      "script_comment": "Anything that prints is available as steps.check.stdout.",
+      "task_title": "Morning check flagged something",
+      "task_body": "The check printed:",
+      "fingerprint_comment": "One card per day. The date comes from the firing, so a run that starts at 23:59 does not land on tomorrow's card."
+    }
+  }
+}

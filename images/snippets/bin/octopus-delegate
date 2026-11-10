@@ -1,0 +1,6 @@
+#!/bin/sh
+# octopus-delegate — the Token optimizer's CLI (see ../octopus-delegate.js).
+# engine-run.sh puts this directory on PATH only when the run has
+# OCTOPUS_TOKEN_OPTIMIZER set.
+dir=$(dirname "$(readlink -f "$0")")
+exec node "$dir/../octopus-delegate.js" "$@"

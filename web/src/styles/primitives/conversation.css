@@ -1,0 +1,398 @@
+.md {
+  min-width: 0;
+  font-size: var(--t-md);
+  line-height: var(--lh-loose);
+  color: var(--fg);
+  overflow-wrap: anywhere;
+}
+.md-compact {
+  font-size: var(--t-base);
+}
+.md p {
+  margin: var(--s-3) 0;
+}
+.md-compact p {
+  margin: var(--s-2) 0;
+}
+.md :where(h1, h2, h3, h4):not(.sec-title) {
+  margin: var(--s-6) 0 var(--s-2);
+  font-weight: 600;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-tight);
+}
+.md h1:not(.sec-title) {
+  font-size: var(--t-xl);
+}
+.md h2:not(.sec-title) {
+  font-size: var(--t-lg);
+}
+.md h3:not(.sec-title) {
+  font-size: var(--t-md);
+}
+.md h4:not(.sec-title) {
+  font-size: var(--t-md);
+  color: var(--fg-2);
+}
+.md-compact :where(h1, h2, h3, h4):not(.sec-title) {
+  margin: var(--s-4) 0 var(--s-2);
+}
+.md-compact h1:not(.sec-title) {
+  font-size: var(--t-lg);
+}
+.md-compact h2:not(.sec-title) {
+  font-size: var(--t-md);
+}
+.md-compact :is(h3, h4):not(.sec-title) {
+  font-size: var(--t-base);
+}
+.md :is(ul, ol) {
+  margin: var(--s-2) 0;
+  padding-left: var(--s-6);
+}
+.md :is(ul, ol) :is(ul, ol) {
+  margin: var(--s-1) 0;
+}
+.md li {
+  margin: var(--s-1) 0;
+}
+.md li::marker {
+  color: var(--fg-3);
+}
+.md strong {
+  font-weight: 600;
+}
+.md a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid var(--accent-line);
+}
+.md a:hover {
+  border-bottom-color: var(--accent);
+}
+.md code {
+  padding: 0 var(--s-1);
+  background: var(--surface-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  color: var(--warn);
+}
+.md pre {
+  margin: var(--s-3) 0;
+  padding: var(--s-3) var(--s-4);
+  background: var(--color-well);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  overflow-x: auto;
+  white-space: pre;
+  overflow-wrap: normal;
+}
+.md-compact pre {
+  margin: var(--s-2) 0;
+  padding: var(--s-2) var(--s-3);
+}
+.md pre code {
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--fg);
+}
+.md blockquote {
+  margin: var(--s-3) 0;
+  padding: var(--s-1) var(--s-4);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  background: var(--color-accent-faint);
+  color: var(--fg-2);
+  font-style: italic;
+}
+.md blockquote p {
+  margin: var(--s-1) 0;
+}
+.md hr {
+  margin: var(--s-5) 0;
+  border: 0;
+  border-top: 1px dashed var(--line-strong);
+}
+.md-compact hr {
+  margin: var(--s-3) 0;
+}
+.md .md-table {
+  display: block;
+  max-width: 100%;
+  margin: var(--s-3) 0;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: var(--t-sm);
+  overflow-wrap: normal;
+}
+.md .md-table :is(th, td) {
+  padding: var(--s-1) var(--s-3);
+  border: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+.md .md-table th {
+  background: var(--color-tint-2);
+  font-weight: 600;
+}
+.md .md-table tr:nth-child(even) td {
+  background: var(--color-tint-1);
+}
+.md img,
+.md .md-media {
+  display: block;
+  max-width: 100%;
+  margin: var(--s-2) 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--color-well);
+}
+.md img {
+  max-height: calc(var(--s-9) * 10);
+  box-shadow: var(--shadow-2);
+}
+.md .md-media {
+  width: 100%;
+  max-width: calc(var(--s-9) * 11);
+}
+.md-compact img {
+  max-height: calc(var(--s-9) * 6);
+}
+.md audio.md-media {
+  border: 0;
+  background: none;
+}
+.md .md-file {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin: var(--s-1) 0;
+  padding: var(--s-1) var(--s-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  color: var(--fg);
+}
+.md .md-file:hover {
+  border-color: var(--accent);
+}
+.md .md-file::before {
+  content: "";
+  flex: none;
+  width: var(--icon-md);
+  height: var(--icon-md);
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z'/%3E%3Cpath d='M14 3v6h6'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z'/%3E%3Cpath d='M14 3v6h6'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+.md .md-details {
+  margin: var(--s-2) 0;
+}
+.md .md-details > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.md .md-task {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-2);
+  margin-left: calc(var(--s-6) * -1);
+  list-style: none;
+}
+.md .md-task-check {
+  flex-shrink: 0;
+  margin: var(--s-1) 0 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.md .md-task-check:disabled {
+  cursor: default;
+}
+.md .md-task-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.md .done > .md-task-text {
+  text-decoration: line-through;
+  color: var(--fg-3);
+}
+@media (pointer: coarse) {
+  .md .md-task-check {
+    min-width: var(--check-box-touch);
+    min-height: var(--check-box-touch);
+  }
+}
+.md .md-empty {
+  color: var(--fg-3);
+  font-style: italic;
+}
+
+/* Must stay last and at least this specific (heading margins use :where()) so first/last child lose their outer margin. */
+.md > :first-child {
+  margin-top: 0;
+}
+.md > :last-child {
+  margin-bottom: 0;
+}
+
+.msg {
+  max-width: 88%;
+  min-width: 0;
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  font-size: var(--t-base);
+  line-height: var(--lh-loose);
+  color: var(--fg);
+  overflow-wrap: anywhere;
+}
+.msg-user {
+  align-self: flex-end;
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+  border-bottom-right-radius: calc(var(--r-sm) / 2);
+}
+.msg-agent {
+  align-self: flex-start;
+  background: var(--surface-2);
+  border-bottom-left-radius: calc(var(--r-sm) / 2);
+}
+.msg-system {
+  align-self: stretch;
+  max-width: none;
+  padding: 0 var(--s-1);
+  border: 0;
+  background: none;
+  font-size: var(--t-xs);
+  font-style: italic;
+  color: var(--fg-3);
+}
+.msg-error {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: var(--s-2);
+  align-items: start;
+  background: var(--danger-soft);
+  border-color: var(--danger-line);
+}
+.msg-error > :not(.msg-ico) {
+  grid-column: 2;
+}
+.msg-ico {
+  margin-top: calc((var(--t-base) * var(--lh-loose) - var(--icon-md)) / 2);
+  color: var(--color-danger-strong);
+}
+.msg-system.msg-error {
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--danger-line);
+  border-radius: var(--r-md);
+  font-style: normal;
+  color: var(--fg);
+}
+.msg-folded {
+  align-self: stretch;
+  max-width: none;
+  background: transparent;
+  border-style: dashed;
+  border-radius: var(--r-md);
+  font-size: var(--t-sm);
+}
+.msg-fold > summary {
+  color: var(--fg-2);
+  cursor: pointer;
+}
+.msg-fold[open] > summary {
+  margin-bottom: var(--s-2);
+}
+.msg-fold > .msg-body {
+  color: var(--fg-2);
+}
+.msg-lead {
+  margin: 0 0 var(--s-2);
+  font-weight: 600;
+}
+.msg-body-plain {
+  white-space: pre-wrap;
+}
+.msg-meta {
+  margin-top: var(--s-2);
+  font-size: var(--t-xs);
+  line-height: var(--lh-snug);
+  color: var(--fg-3);
+}
+
+.composer {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  min-width: 0;
+}
+.composer-input {
+  display: block;
+  width: 100%;
+  height: var(--composer-h, auto);
+  min-height: calc(var(--t-base) * var(--lh-loose) + var(--s-2) * 2 + 2px);
+  padding: var(--s-2) var(--s-3);
+  font-size: var(--t-base);
+  line-height: var(--lh-loose);
+  resize: none;
+  overflow-y: auto;
+}
+.composer.drag-over .composer-input {
+  border-color: var(--accent);
+  border-style: dashed;
+}
+.composer-error {
+  margin-top: 0;
+}
+.composer-atts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.composer-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-3);
+  min-width: 0;
+}
+.composer-audience {
+  flex: 1 1 12em;
+  min-width: 0;
+  font-size: var(--t-xs);
+  line-height: var(--lh-snug);
+  color: var(--fg-2);
+}
+.composer-audience:empty {
+  display: none;
+}
+.composer-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-left: auto;
+}
+
+.composer-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--s-2);
+  align-items: stretch;
+}
+.composer-chat .composer-input {
+  min-height: var(--tap-min);
+}
+.composer-send {
+  width: var(--tap-min);
+  height: auto;
+}
+.composer-send .ico {
+  width: var(--icon-lg);
+  height: var(--icon-lg);
+}

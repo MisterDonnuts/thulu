@@ -1,0 +1,51 @@
+{
+  "errors": {
+    "artifact_kind": "unknown file kind {kind}",
+    "chat_unavailable": "chats are not available on this instance, so an agent cannot record",
+    "forbidden_admin_only": "only an admin can do this",
+    "forbidden_delete_on_project": "this environment belongs to a project: delete it from the project page",
+    "forbidden_no_init_script": "the project has no init script, so its Sandbox cannot come up",
+    "forbidden_no_preview_port": "none of the project's init script ports is one a sandbox exposes",
+    "forbidden_no_url": "this environment has no URL yet",
+    "forbidden_production": "this is a production environment: only an admin can change it",
+    "forbidden_repo_not_github": "the project's repository is not on GitHub, so deploys cannot trigger runs",
+    "forbidden_sandbox_fixed": "a project's Sandbox cannot be deleted, renamed or scheduled",
+    "forbidden_sandbox_no_record": "recording on a Sandbox is not offered: record on an environment with a URL",
+    "forbidden_sandbox_unavailable": "this instance cannot run sandboxes",
+    "forbidden_viewer": "viewers can look but not change anything",
+    "no_agent": "no agent in this workspace has the chat stage, which recording needs; add it to one in Agents",
+    "no_auth_store": "keys are not available on this instance",
+    "project_not_found": "project {id} not found",
+    "recording_chat_only": "only the agent of a recording chat can use this",
+    "runner_create": "create the evidence runner of batch {batch}",
+    "runner_only": "only the runner of this batch can use this",
+    "runner_start": "start the evidence runner of batch {batch}",
+    "schedule_invalid": "the schedule is not a valid cron expression or time zone",
+    "secret_not_found": "the environment has no test login called {name}",
+    "task_not_found": "task {id} not found",
+    "unavailable": "evidence is not available on this instance"
+  },
+  "log": {
+    "detach_failed": "keep the evidence of project {project} before deleting it",
+    "drop_recording_chat_failed": "delete chat {chat} of a recording that did not start",
+    "recording_save_failed": "close recording {recording}",
+    "remove_failed": "remove evidence file {path}",
+    "sandbox_fetch_failed": "fetch branch {branch} of project {project} for a Sandbox batch; using what the clone has",
+    "sandbox_list_failed": "list the evidence sandboxes",
+    "sandbox_stop_failed": "remove evidence sandbox {owner}",
+    "stop_failed": "remove evidence runner {runner}"
+  },
+  "recording": {
+    "chat_title": "Record {key} · {title}",
+    "context": "Context",
+    "expected": "Expected result",
+    "howto": "Use the octopus-evidence-library skill: explore the app, film the flow with evidence_start … evidence_finish, check each expected result with evidence_verify, and save once with evidence_save_case. Do not change real data.",
+    "intro": "Record case {key} \"{title}\" on the {env} environment ({url}).",
+    "secrets": "Test logins available, typed with browser_type(secret=\"NAME\"): {names}.",
+    "steps": "Steps"
+  },
+  "reasons": {
+    "runner_exit": "the runner exited with code {code}",
+    "deadline": "the batch ran past its time limit"
+  }
+}

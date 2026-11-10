@@ -1,0 +1,12 @@
+{
+  "templates": {
+    "feature": "Feature",
+    "bugfix": "Bugfix",
+    "chore": "Chore",
+    "spike": "Spike"
+  },
+  "errors": {
+    "id_label_required": "Both an id and a label are required",
+    "duplicate": "This board already offers {id}"
+  }
+}

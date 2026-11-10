@@ -1,0 +1,102 @@
+{
+  "title": "Skills",
+  "subtitle": "Instructions your agents load per stage. Your workspace's skills are yours to edit; the Thulu ones ship with the install.",
+  "buttons": {
+    "new_skill": "New skill",
+    "delete_skill": "Delete skill",
+    "add_file": "Add file",
+    "view": "View",
+    "history": "History",
+    "back": "Back",
+    "restore_skill": "Restore skill"
+  },
+  "sidebar": {
+    "search": "Search skills",
+    "workspace": "This workspace",
+    "system": "Thulu",
+    "none": "No skills yet.",
+    "no_matches": "No matches.",
+    "load_failed": "Could not load skills: {error}",
+    "deleted": "Deleted"
+  },
+  "empty": {
+    "select": "Pick a skill to see its files."
+  },
+  "badges": {
+    "system": "Thulu",
+    "version": "v{version}",
+    "mcp": "MCP {mcp}",
+    "origin": "from {origin}"
+  },
+  "system_note": "Thulu maintains this skill and every run gets it. Workspaces can read it but not change it.",
+  "system_note_mcp": "Thulu maintains this skill. Every run with the {mcp} MCP wired gets it, without a grant. Workspaces can read it but not change it.",
+  "system_toggle_note": "A workspace admin can turn it off for one agent on one stage, in the Skills tab of the agent in /agents/.",
+  "files": {
+    "new_placeholder": "references/notes.md",
+    "new_label": "Path of the new file",
+    "new_suffix": "(new)",
+    "size": {
+      "one": "{size} byte",
+      "other": "{size} bytes"
+    },
+    "extra_note": "Runs get prompt.md in full. Every other file (references/, templates) goes to the model as a list of paths, and it opens the one the instructions point to.",
+    "deleted": "Deleted"
+  },
+  "modal": {
+    "title": "New skill",
+    "name": "Name",
+    "name_hint": "lowercase letters, digits and dashes",
+    "name_placeholder": "release-notes",
+    "description": "Description",
+    "description_placeholder": "What the agent learns from it"
+  },
+  "confirm": {
+    "discard": "Your edits to this file will be lost.",
+    "delete_file_title": "Delete {path}?",
+    "delete_file_message": "The file leaves the skill. Its history stays, so you can restore it.",
+    "delete_skill_title": "Delete {name}?"
+  },
+  "errors": {
+    "save_failed": "Could not save the file.",
+    "name_required": "The skill needs a name.",
+    "save_failed_reason": "Could not save the file: {error}"
+  },
+  "toasts": {
+    "saved": "Saved {path}",
+    "deleted": "Deleted {name}",
+    "created": "Created {name}",
+    "meta_saved": "Saved {name}",
+    "restored": "Restored {name}"
+  },
+  "deleted": {
+    "when": "Deleted {when}",
+    "note": "The files are gone; their history is kept. Restore brings back every file the skill had when it was deleted; grants removed with it stay removed."
+  },
+  "meta": {
+    "description": "Description",
+    "description_hint": "the model reads only this before it decides to open the skill. Say when to use it.",
+    "enforcement": "Delivery",
+    "on_demand": "When the model needs it",
+    "always": "Always in the prompt",
+    "enforcement_hint": "\"When the model needs it\": with Claude Code the model sees the name and the description and opens the skill if it applies; other engines get the whole text in the prompt. \"Always in the prompt\": the whole text goes into every run, with any engine.",
+    "count": "{count} / {max}"
+  },
+  "usage": {
+    "title": "Used by",
+    "none": "No agent grants it yet.",
+    "grant_link": "Grant it in Agents",
+    "stages": "on {stages}",
+    "auditor_stages": "auditor on {stages}",
+    "load_failed": "Could not load the agents that use it."
+  },
+  "delete_modal": {
+    "used_by": {
+      "one": "{count} agent grants it:",
+      "other": "{count} agents grant it:"
+    },
+    "unused": "No agent grants it.",
+    "revoke": "Remove it from these agents too",
+    "revoke_hint": "Left in place, the grants hand any skill created later with this name to these agents.",
+    "history_hint": "The history stays: you can restore the skill from the Deleted group."
+  }
+}

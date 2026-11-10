@@ -1,0 +1,52 @@
+{
+  "title": "Pull requests",
+  "load_failed": "No se pudieron leer los pull requests de GitHub. Se reintenta en breve.",
+  "loading": "Cargando el pull request de {project}",
+  "pr_of": "PR · {project}",
+  "open_on_github": "Abrir en GitHub",
+  "ready": "Listo",
+  "ready_hint": "Aprobado, el CI pasó y GitHub lo puede mergear",
+  "files_count": {
+    "one": "{count} archivo cambiado",
+    "other": "{count} archivos cambiados"
+  },
+  "state": {
+    "open": "Abierto",
+    "draft": "Borrador",
+    "merged": "Mergeado",
+    "closed": "Cerrado"
+  },
+  "review": {
+    "none": "Sin revisión pedida",
+    "pending": "Revisión pendiente",
+    "approved": "Aprobado",
+    "changes_requested": "Pidieron cambios"
+  },
+  "mergeable": {
+    "ready": "Se puede mergear",
+    "blocked": "Bloqueado por las reglas de la rama (revisiones o checks obligatorios)",
+    "behind": "Atrasado respecto de la rama base",
+    "conflicts": "Tiene conflictos con la rama base",
+    "unknown": "GitHub todavía no lo calculó"
+  },
+  "ci": {
+    "tooltip": "CI: {passed} de {total} pasaron, {failed} fallaron, {running} corriendo",
+    "detail": "{passed} pasaron · {failed} fallaron · {running} corriendo · {total} en total",
+    "none": "Sin CI en el último commit",
+    "actions_only": "Sólo GitHub Actions: agregá Checks: read a la GitHub App para ver todos los checks."
+  },
+  "facts": {
+    "project": "Proyecto",
+    "files": "Archivos",
+    "lines": "Líneas",
+    "commits": "Commits",
+    "branch": "Rama",
+    "ci": "CI",
+    "review": "Revisión",
+    "mergeable": "Merge",
+    "updated": "Actualizado"
+  },
+  "pr_number": "PR #{number}",
+  "no_credential": "Este proyecto no tiene credencial de GitHub.",
+  "add_credential": "Agregá una"
+}

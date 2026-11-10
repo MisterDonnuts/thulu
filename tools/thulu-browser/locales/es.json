@@ -1,0 +1,440 @@
+{
+  "tools": {
+    "screenshot": {
+      "description": "Sin estado: captura un PNG de una URL en un contexto de navegador nuevo. PREFERIDO: pasá task_id (tu $TASK_ID): el PNG en RESOLUCIÓN COMPLETA se sube directo a la task como adjunto y te vuelve sólo su id. Así se entrega evidencia visual: nunca re-codifiques una captura a base64 vos mismo y nunca la achiques. Opcional: instance_id + agent_type la persiste en el directorio del run (se pierde en Kubernetes); inline devuelve base64 (enorme, poco confiable; evitalo).",
+      "params": {
+        "task_id": "Tu variable de entorno $TASK_ID: sube el PNG en resolución completa directo a la task (la entrega preferida).",
+        "filename": "Nombre del adjunto (si falta la extensión .png, se agrega).",
+        "instance_id": "Persistencia opcional en el directorio del run: tu variable de entorno $INSTANCE_ID",
+        "agent_type": "Persistencia opcional en el directorio del run: tu variable de entorno $AGENT_NAME",
+        "inline": "También devuelve base64 inline (evitalo: es pesado y poco confiable)."
+      }
+    },
+    "get_text": {
+      "description": "Sin estado: abre una URL y devuelve el texto visible (después de que corre el JS). Si tenés una sesión activa, usá browser_get_text."
+    },
+    "browser_new_session": {
+      "description": "Crea una sesión de navegador persistente (un BrowserContext aislado). Devuelve un session_id: pasáselo a todas las tools browser_*. Pasá instance_id + agent_type para habilitar la persistencia de capturas y video y la resolución de scripts por nombre. Poné record_video=true para grabar toda la sesión como .webm; el archivo se guarda cuando llamás a browser_close_session. Para evidencia que va a mirar una persona, usá evidence_start: filma sólo las acciones, con cursor y subtítulos. Para grabaciones mobile/9:16 usá viewport_width=390 viewport_height=844. Las sesiones vencen tras 10 min de inactividad.",
+      "params": {
+        "task_id": "Tu $TASK_ID: cada browser_screenshot de esta sesión sube su PNG en resolución completa a la task automáticamente (la entrega preferida).",
+        "instance_id": "Tu variable de entorno $INSTANCE_ID (persistencia opcional en el directorio del run + resolución de scripts)",
+        "agent_type": "Tu variable de entorno $AGENT_NAME (persistencia opcional en el directorio del run)",
+        "record_video": "Graba la sesión como video .webm. El archivo se guarda al cerrarla.",
+        "video_filename": "Nombre del archivo de salida sin extensión (por defecto: recording-{timestamp})"
+      }
+    },
+    "browser_close_session": {
+      "description": "Cierra una sesión de navegador y libera sus recursos. Llamala siempre al terminar. Si la sesión se creó con record_video=true, el .webm se cierra y se guarda en el directorio de salida del agente. Una toma que siga grabando en ella se descarta."
+    },
+    "browser_navigate": {
+      "description": "Navega a una URL dentro de la sesión. Devuelve la URL final y el título de la página.",
+      "params": {
+        "wait_until": "Cuándo se da por terminada la navegación",
+        "label": "Durante una toma (evidence_start): qué muestra este paso, con las palabras del ticket. Subtítulo y capítulo."
+      }
+    },
+    "browser_get_state": {
+      "description": "Devuelve todos los elementos interactivos de la página actual como una lista numerada. Cada elemento muestra su índice, tag, atributos, placeholder, valor y texto visible. Usá el número de índice con browser_click, browser_type, browser_select y browser_hover. Llamala después de cada navegación o interacción que cambie el DOM."
+    },
+    "browser_get_text": {
+      "description": "Devuelve el texto visible de la página actual (después de que corre el JS)."
+    },
+    "browser_screenshot": {
+      "description": "Saca una captura de la página actual de la sesión. PREFERIDO: pasá task_id (o creá la sesión con task_id): el PNG en RESOLUCIÓN COMPLETA se sube directo a la task y te vuelve sólo su id. Nunca re-codifiques ni achiques una captura vos mismo. Opcional: una sesión creada con instance_id + agent_type la persiste en el directorio del run (se pierde en Kubernetes); inline devuelve base64 (evitalo).",
+      "params": {
+        "task_id": "Tu $TASK_ID: sube el PNG en resolución completa directo a la task (lo preferido). Si la sesión se creó con task_id, usa ese.",
+        "filename": "Nombre del adjunto (si falta la extensión .png, se agrega).",
+        "inline": "Fuerza la respuesta en base64 inline (evitalo: es pesado y poco confiable)."
+      }
+    },
+    "browser_click": {
+      "description": "Hace clic en un elemento. Usá el índice de browser_get_state o pasá un selector CSS. Devuelve la URL después del clic (puede haber navegado).",
+      "params": {
+        "index": "Índice del elemento según browser_get_state",
+        "selector": "Selector CSS (alternativa al índice)",
+        "label": "Durante una toma (evidence_start): qué muestra este paso, con las palabras del ticket. Subtítulo y capítulo."
+      }
+    },
+    "browser_type": {
+      "description": "Escribe texto en un input o textarea. Por defecto vacía el campo antes. Usá el índice de browser_get_state o pasá un selector CSS.",
+      "params": {
+        "index": "Índice del elemento según browser_get_state",
+        "selector": "Selector CSS (alternativa al índice)",
+        "text": "Qué escribir. Se puede omitir cuando `secret` nombra un login de prueba de un chat de grabación: el valor se pide a Thulu y se escribe sin que nadie lo vea.",
+        "secret": "Nombre de lo que es `text` (p. ej. \"password\") cuando no se puede mostrar ni guardar: queda fuera del log y de la respuesta, en cámara se escribe como puntos y una toma guarda sólo el nombre. En un chat de grabación, pasá sólo secret=\"NOMBRE\" (un login de prueba de evidence_recording) sin text: el valor lo da Thulu.",
+        "label": "Durante una toma (evidence_start): qué muestra este paso, con las palabras del ticket. Subtítulo y capítulo."
+      }
+    },
+    "browser_select": {
+      "description": "Elige una opción en un elemento <select>. Usá el índice de browser_get_state o pasá un selector CSS. Pasá el valor de la opción o su etiqueta visible como 'value'.",
+      "params": {
+        "index": "Índice del elemento según browser_get_state",
+        "selector": "Selector CSS (alternativa al índice)",
+        "value": "Valor de la opción o etiqueta visible a elegir",
+        "label": "Durante una toma (evidence_start): qué muestra este paso, con las palabras del ticket. Subtítulo y capítulo."
+      }
+    },
+    "browser_scroll": {
+      "description": "Hace scroll en la página actual.",
+      "params": {
+        "amount": "Píxeles de scroll (sólo para up/down)",
+        "label": "Durante una toma (evidence_start): qué muestra este paso, con las palabras del ticket. Subtítulo y capítulo."
+      }
+    },
+    "browser_hover": {
+      "description": "Pasa el mouse sobre un elemento para disparar UI que sólo aparece con hover (dropdowns, tooltips, menús). Usá el índice de browser_get_state o pasá un selector CSS. Después llamá a browser_get_state para ver los elementos que aparecieron.",
+      "params": {
+        "index": "Índice del elemento según browser_get_state",
+        "selector": "Selector CSS (alternativa al índice)",
+        "label": "Durante una toma (evidence_start): qué muestra este paso, con las palabras del ticket. Subtítulo y capítulo."
+      }
+    },
+    "browser_press_key": {
+      "description": "Simula que se aprieta una tecla. Teclas comunes: Enter, Escape, Tab, ArrowDown, ArrowUp, Backspace.",
+      "params": {
+        "key": "Nombre de la tecla (p. ej. Enter, Escape, Tab, ArrowDown)",
+        "label": "Durante una toma (evidence_start): qué muestra este paso, con las palabras del ticket. Subtítulo y capítulo."
+      }
+    },
+    "browser_run_script": {
+      "description": "Ejecuta un script de Playwright en la sesión actual. Para evidencia de un flujo, preferí evidence_start (en vivo) o evidence_render (una toma JSON): filman, verifican y reportan sin código. Tres modos: (1) name: carga el script por nombre de archivo desde el directorio scripts/browser/ del agente (requiere agent_type en la sesión). (2) path: ruta absoluta dentro del contenedor a un archivo .js (tiene que estar bajo /agents-shared). (3) code: string JS inline que se ejecuta como cuerpo de una función async y recibe (page, params). Los scripts pueden devolver un valor (serializado como JSON). Se soportan scripts estilo módulo (con 'export default').",
+      "params": {
+        "name": "Nombre del script (sin .js) en el directorio scripts/browser/ del agente",
+        "path": "Ruta absoluta en el contenedor al archivo del script (tiene que estar bajo /agents-shared)",
+        "code": "Código JS inline (cuerpo de una función async, con acceso a page y params). Preferí una toma.",
+        "params": "Parámetros que recibe el script como segundo argumento"
+      }
+    },
+    "browser_list_scripts": {
+      "description": "Lista los scripts de Playwright disponibles en un directorio. Si pasás session_id y la sesión tiene agent_type, resuelve solo el directorio scripts/browser/ de ese agente. Pasá dir para elegir otro.",
+      "params": {
+        "dir": "Ruta absoluta en el contenedor al directorio de scripts (si no la pasás, se resuelve desde la sesión)"
+      }
+    },
+    "browser_wait": {
+      "description": "Espera una cantidad fija de milisegundos. Sirve en sesiones grabadas para meter pausas a propósito: que la cámara se quede en una pantalla, o esperar que terminen las animaciones antes de la próxima interacción. Máximo 10 000 ms por llamada.",
+      "params": {
+        "ms": "Milisegundos a esperar (máximo 10000)",
+        "label": "Durante una toma (evidence_start): qué muestra este paso, con las palabras del ticket. Subtítulo y capítulo."
+      }
+    },
+    "browser_get_session_log": {
+      "description": "Devuelve el log completo de interacciones de una sesión como JSON. Cada entrada tiene: t (timestamp), tool, args y elementInfo (selector/tag capturado en el momento de la interacción)."
+    },
+    "browser_export_script": {
+      "description": "Genera un script de Playwright reutilizable a partir del log de interacciones de la sesión. Produce un archivo .js estilo módulo con una función async exportada. Si pasás path, guarda el archivo ahí (tiene que estar bajo /agents-shared). Si no, devuelve el código inline. Los elementos en los que se hizo clic o se escribió se exportan con los selectores CSS capturados. Revisá y corregí los comentarios TODO de la salida antes de usarlo como script.",
+      "params": {
+        "path": "Ruta absoluta en el contenedor donde guardar el script (tiene que estar bajo /agents-shared)",
+        "description": "Descripción legible que se agrega como comentario al script"
+      }
+    },
+    "evidence_start": {
+      "description": "Empieza a grabar una toma en una sesión de navegador. Desde ahora cada browser_navigate/click/type/select/hover/press_key/scroll/wait de esta sesión se filma con cursor, un anillo de resaltado y un subtítulo (pasá `label` en cada llamada), y queda escrito en la toma con un selector estable. Se filman sólo las acciones: el tiempo que pensás entre llamadas se corta. Poné changes_data=true cuando el flujo crea o modifica datos, así la toma nunca se reproduce por accidente.",
+      "params": {
+        "title": "Qué prueba la toma, p. ej. \"SHOP-142 · el checkout conserva el cupón\"",
+        "base_url": "Origen contra el que se reproduce la toma. Por defecto: el origen de la página actual.",
+        "redact_css": "Selectores CSS que se desenfocan en cada cuadro (emails, tokens, nombres)."
+      }
+    },
+    "evidence_shot": {
+      "description": "Captura anotada de la página actual: spotlight con notas numeradas, alrededores atenuados, bloques de redacción y un encabezado con host y hora. Dentro de una toma también aparece en el video y se publica con ella. Fuera de una toma se sube a la task en el momento (task_id, o el de la sesión). Como mucho 3 o 4 spots: si hacen falta más, son dos capturas.",
+      "params": {
+        "name": "Nombre corto de archivo, p. ej. \"coupon-applied\"",
+        "title": "Línea de encabezado: qué muestra la captura",
+        "spotlight": "Zonas a resaltar, numeradas en orden. tone: focus (por defecto), ok, warn, bad.",
+        "notes": "Notas al pie: contexto que no se ve en pantalla",
+        "redact": "Elementos que se tapan con un bloque opaco",
+        "dim": "Atenúa lo que queda fuera del spotlight (por defecto: true cuando hay spotlight)",
+        "keep_clean": "Entrega también la captura sin anotaciones",
+        "wait_ms": "Cuánto esperar cada spot. 0 cuando su ausencia es el hallazgo.",
+        "task_id": "Fuera de una toma: la task a la que se adjunta (por defecto: la de la sesión)"
+      }
+    },
+    "evidence_verify": {
+      "description": "Registra una verificación: un caso de prueba, qué se esperaba y qué muestra la página. Preferí `check` (visible, hidden, text, value, count, url, title) con un target: el motor lo mide ahora y otra vez en cada reproducción, y reintenta hasta que coincide o se agota el tiempo. `observed` es para lo que sólo vos podés juzgar. Dentro de una toma aparece en el video una tarjeta de pass/fail.",
+      "params": {
+        "case": "Id del caso como lo nombra el ticket, p. ej. \"TC-3\"",
+        "expected": "Valor esperado. Para checks visible/hidden: \"visible\" o \"hidden\".",
+        "match": "Por defecto equals (url: contains)",
+        "observed": "Lo que observaste, cuando no hay un check que lo mida",
+        "timeout_ms": "Cuánto puede reintentar un check (por defecto 5000)"
+      }
+    },
+    "evidence_note": {
+      "description": "Dice algo en el video: un subtítulo que queda en pantalla con una barra de progreso. level=fact o issue además lo lista en el reporte (issue = un hallazgo). Requiere una toma."
+    },
+    "evidence_finish": {
+      "description": "Deja de grabar y renderiza la toma en un borrador: un MP4 sin tiempos muertos y una hoja de contactos que te vuelve como imagen. Devuelve render_id (para evidence_publish) y take_id (la toma como JSON, reproducible con evidence_render). Nada llega a la task hasta evidence_publish. discard=true tira la toma."
+    },
+    "evidence_get_take": {
+      "description": "Devuelve una toma como JSON, para editarla (labels, beats, checks) o guardarla en el repo bajo .octopus/evidence/takes/."
+    },
+    "evidence_render": {
+      "description": "Reproduce una toma en un navegador limpio y la renderiza en un borrador (MP4 + imagen de hoja de contactos). La toma es JSON: inline en `take` (p. ej. leída de .octopus/evidence/takes/ del repo) o un take_id. `library` trae el targets.json y los flows del repo (targets @nombre, flows {kind:\"use\"}). Los secretos de los pasos fill van en `secrets` y nunca entran a la toma. compare_base_url corre la misma toma contra un segundo origen y renderiza los dos lado a lado, paso a paso (antes/después). Rechaza tomas marcadas como que cambian datos, salvo con allow_side_effects. Nada llega a la task hasta evidence_publish.",
+      "params": {
+        "take": "El JSON de la toma (version, title, base_url, viewport, steps)",
+        "library_targets": "nombre → selector",
+        "library_flows": "nombre → { params?: [..], steps: [..] }",
+        "secrets": "nombre → valor, para pasos fill con `secret`",
+        "base_url": "Reproduce contra este origen en vez del de la toma",
+        "compare_base_url": "Segundo origen para un antes/después lado a lado",
+        "labels": "Etiquetas de los dos lados (por defecto Antes, Después)",
+        "pace": "1 = ritmo por defecto, 1.5 = más lento, 0.7 = más rápido",
+        "task_id": "Task donde se va a publicar el render (también se puede pasar a evidence_publish)"
+      }
+    },
+    "evidence_recording": {
+      "description": "En un chat de grabación (biblioteca de Evidencia): el caso a grabar (título, pasos, resultado esperado), el entorno donde grabarlo (nombre, URL base) y los nombres de sus logins de prueba. Llamala primero. Fuera de un chat de grabación lo avisa."
+    },
+    "evidence_save_case": {
+      "description": "En un chat de grabación: guarda una toma como la grabación del caso en la biblioteca de Evidencia. Pasá uno solo de take_id (de evidence_finish), render_id o take. Primero se revisa la toma (tiene que poder reproducirse sin biblioteca del repo: sin flows ni @targets). Después Thulu encola una primera corrida del caso en el entorno de la grabación, así la persona ve si el replay pasa o falla sin pedirlo.",
+      "params": {
+        "take_id": "El take_id que devolvió evidence_finish o evidence_render",
+        "render_id": "Un render cuya toma guardar",
+        "take": "La toma en JSON, si la corregiste a mano",
+        "title": "Reemplaza el título de la toma"
+      }
+    },
+    "evidence_publish": {
+      "description": "Entrega un render a su task: el video, las capturas, los capítulos y la toma se suben de servidor a servidor, y se publica en la pestaña Reports de la task un reporte que los incrusta (tabla de resultados, hallazgos, capturas, capítulos). Cada veredicto cuyo caso es una key de caso de prueba de la task (TC-1) se registra como corrida de ese caso, con el video, la toma, las capturas y el reporte; varios veredictos de un mismo caso forman una corrida (fail si alguno falló, blocked si un paso fallido impidió correr uno, si no pass); en un antes/después se registra el lado después. No registres además estas corridas con task_test_case_run. record_runs=false lo saltea.",
+      "params": {
+        "task_id": "Por defecto: la task para la que se creó la sesión o el render",
+        "record_runs": "Registra los veredictos como corridas de los casos de prueba de la task"
+      }
+    }
+  },
+  "params": {
+    "session_id": "session_id que devolvió browser_new_session",
+    "label": "Qué muestra esto, con las palabras del ticket. Subtítulo en el video y capítulo en el reporte.",
+    "element_index": "Índice del elemento según browser_get_state",
+    "element_target": "Selector de Playwright (role=button[name=\"Save\"], [data-testid=x], text=\"Save\", css)",
+    "take_target": "Selector de Playwright, o @nombre de la biblioteca de targets"
+  },
+  "errors": {
+    "session_not_found": "La sesión '{id}' no existe o venció",
+    "path_outside": "La ruta '{path}' está fuera de los directorios permitidos ({allowed})",
+    "url_required": "falta url",
+    "index_or_selector": "hace falta index o selector",
+    "scroll_direction": "direction tiene que ser uno de: down, up, top, bottom",
+    "no_agent_type": "La sesión no tiene agent_type: pasá path en vez de name, o creá la sesión con agent_type",
+    "script_source_required": "hace falta name, path o code",
+    "dir_required": "falta dir, o creá la sesión con agent_type para que se resuelva solo",
+    "tool_not_allowed": "La tool '{name}' no está en la lista permitida para esta sesión",
+    "unknown_tool": "Tool desconocida: {name}",
+    "tool_failed": "Error de la tool: {message}",
+    "mcp_session_not_found": "no se encontró la sesión",
+    "navigation_left_hosts": "la navegación salió de los hosts permitidos: {url}",
+    "goto_outside_hosts": "goto fuera de los hosts permitidos: {url}",
+    "step_not_playable": "un paso de tipo \"{kind}\" no se puede reproducir (los flows se compilan antes de reproducir)",
+    "secret_missing": "no se pasó el secreto \"{name}\"",
+    "ffmpeg_failed": "falló ffmpeg: {detail}",
+    "compile_no_value": "{where}: no hay valor para {{{name}}}",
+    "compile_unknown_target": "{where}: target desconocido @{name}",
+    "compile_too_deep": "{where}: flows anidados a más de {max} niveles ({trail})",
+    "compile_unknown_flow": "{where}: flow desconocido \"{flow}\"",
+    "compile_missing_param": "{where}: el flow \"{flow}\" necesita el param \"{param}\"",
+    "compile_invalid_step": "paso compilado {step} ({kind}): {issues}",
+    "take_does_not_compile": "la toma no compila contra la biblioteca",
+    "base_url_required": "hace falta base_url cuando la sesión todavía no navegó a ninguna página web",
+    "publish_task_required": "para publicar hace falta task_id",
+    "nothing_filmed": "no se filmó nada",
+    "take_changes_data": "la toma cambia datos y reproducirla los cambiaría otra vez",
+    "take_changes_data_hint": "usá la grabación en vivo (evidence_finish) para este flujo, o pasá allow_side_effects si el entorno lo aguanta",
+    "no_ffmpeg": "ffmpeg no está instalado en esta imagen del navegador",
+    "fill_needs_value": "fill necesita value o secret",
+    "fill_value_and_secret": "fill lleva value o secret, no los dos",
+    "verify_needs_observed": "verify necesita observed, o un check que lo mida",
+    "verify_needs_target": "el check \"{check}\" de verify necesita un target",
+    "scroll_needs_direction": "scroll necesita direction o target",
+    "invalid_json": "{what} no es JSON válido ({err})",
+    "invalid_input": "{what} inválido",
+    "no_unique_selector": "no se pudo describir <{tag}> con un selector que coincida sólo con él",
+    "not_found_or_expired": "{what} '{id}' no existe o venció",
+    "no_element_at": "No hay elemento en el índice {index} (la página tiene {count} elementos interactivos)",
+    "no_credential": "esta llamada no trajo ninguna credencial de Thulu: la key del agente viaja en el handshake MCP (X-API-Key) y este servidor no tiene una propia",
+    "octopus_api_unset": "falta la variable de entorno OCTOPUS_API",
+    "octopus_http": "{method} {route} → HTTP {status}: {body}",
+    "no_take_recording": "no hay ninguna toma grabando en esta sesión: llamá primero a evidence_start",
+    "take_already_recording": "ya hay una toma (\"{title}\") grabando en esta sesión: terminala o descartala primero",
+    "shot_needs_task": "fuera de una toma la captura se sube a una task: pasá task_id",
+    "take_or_id": "pasá take (JSON) o take_id",
+    "cannot_record": "no se puede grabar {kind}",
+    "handshake_no_key": "una sesión MCP necesita la key del run en el handshake (X-API-Key o Authorization: Bearer)",
+    "message_key_mismatch": "este mensaje no trae la key con la que se abrió su sesión",
+    "list_only_session": "esta sesión se abrió sin credencial: puede listar las tools, no llamarlas",
+    "handshake_wrong_run_key": "este browser es de un solo run y sólo acepta la key de ese run (X-API-Key)",
+    "handshake_catalog_only": "este server sólo lista sus tools: cada run tiene su propio thulu-browser (MCP_CATALOG_ONLY)",
+    "secret_unreadable": "Thulu respondió el login de prueba \"{name}\" con algo que no es un valor",
+    "not_recording_chat": "no hay una grabación abierta en este chat: evidence_recording y evidence_save_case funcionan sólo en el chat que abre Thulu para grabar un caso de Evidencia (Evidencia → un caso → Grabar con agente), hasta que se guarda su toma",
+    "save_one_take": "pasá uno solo de take_id, render_id o take",
+    "render_has_no_take": "el render {id} no tiene toma para guardar (no se grabó nada entre evidence_start y evidence_finish)",
+    "type_needs_text": "browser_type necesita text, o sólo secret en un chat de grabación",
+    "secret_not_available": "acá no hay un login de prueba llamado \"{name}\": sin text, secret funciona sólo en un chat de grabación y con un nombre que tenga su entorno (evidence_recording los lista). Fuera de uno, pasá text junto con secret",
+    "job_bad_next": "el daemon respondió la próxima corrida sin id de corrida"
+  },
+  "labels": {
+    "inline": "(inline)",
+    "no_return_value": "(sin valor de retorno)",
+    "no_description": "(sin descripción)",
+    "pass": "pasa",
+    "fail": "falla",
+    "what": "qué",
+    "expected": "esperado",
+    "observed": "observado",
+    "before": "Antes",
+    "after": "Después",
+    "mode_live": "en vivo",
+    "mode_replay": "reproducción",
+    "mode_compare": "antes/después"
+  },
+  "text": {
+    "screenshot_of": "Captura de {url} ({width}x{height}, full_page={full_page}, {bytes} bytes)",
+    "screenshot_session": "Captura ({width}x{height}, full_page={full_page}, {bytes} bytes)\nURL: {url}",
+    "attached": "\nAdjuntada en resolución completa a la task {task} como \"{file}\" (id {id}, {bytes} bytes). Sin achicar.",
+    "attach_failed": "\nAVISO: falló el adjunto directo ({err}). Se cae a persistir/inline.",
+    "saved": "\nGuardada en {path}: se adjunta sola a la task cuando termina el run.",
+    "persist_failed": "\nAVISO: no se pudo persistir ({err}). Se devuelve inline.",
+    "session_created": "Sesión creada.\nsession_id: {id}\nViewport: {width}x{height}",
+    "session_recording": "Grabación: activada; el video se guarda en browser_close_session.",
+    "session_usage": "Pasá este session_id a todas las tools browser_*.\nLas sesiones vencen tras {minutes} min de inactividad.",
+    "session_gone": "No se encontró la sesión '{id}' (puede que ya haya vencido).",
+    "video_saved": "\nVideo guardado en {path}",
+    "video_missing": "\nAVISO: la grabación estaba activada pero no apareció ningún .webm al cerrar.",
+    "video_persist_failed": "\nAVISO: no se pudo persistir el video ({err})",
+    "session_closed": {
+      "one": "Sesión {id} cerrada. Se registró {count} interacción.",
+      "other": "Sesión {id} cerrada. Se registraron {count} interacciones."
+    },
+    "take_unfinished": "\nLa toma \"{title}\" nunca se terminó y se descartó.",
+    "recorded": "Registrado: {what}\nURL actual: {url}",
+    "navigated": "Navegó a: {url}\nTítulo: {title}",
+    "state_header": "Página: {title}\nURL:    {url}\n\nElementos interactivos (usá el índice para click/type/select/hover):",
+    "state_total": {
+      "one": "Total: {count} elemento",
+      "other": "Total: {count} elementos"
+    },
+    "clicked": "Clic en{element}.\nURL actual: {url}",
+    "secret_value": "el secreto \"{name}\"",
+    "typed": "Se escribió {value}{target}.",
+    "typed_into": " en {element}",
+    "selected": "Se eligió \"{value}\"{target}.",
+    "selected_in": " en {element}",
+    "scrolled_by": "Scroll {direction} de {amount}px.",
+    "scrolled": "Scroll {direction}.",
+    "hovered": "Mouse sobre{element}.",
+    "pressed": "Tecla apretada: {key}",
+    "script_executed": "Script \"{name}\" ejecutado.\nResultado: {result}",
+    "no_scripts_dir": "No hay directorio de scripts en {dir}",
+    "no_scripts": "No se encontraron scripts en {dir}",
+    "scripts_in": "Scripts en {dir}:\n{list}",
+    "waited": "Se esperó {ms}ms.",
+    "exported_from_session": "Exportado de la sesión {id}",
+    "export_generated": "// Generado:    {date}",
+    "export_steps": {
+      "one": "// Pasos:       {count} interacción",
+      "other": "// Pasos:       {count} interacciones"
+    },
+    "export_todo_click": "  // TODO: browser_click — no se capturó un selector estable (el índice era {index})",
+    "export_todo_type": "  // TODO: browser_type — sin selector estable (el índice era {index}, text=\"{text}\")",
+    "export_todo_select": "  // TODO: browser_select — sin selector estable (el índice era {index}, value=\"{value}\")",
+    "script_exported": "Script exportado a {path}\n\n{code}",
+    "render_summary": "{mode} · {seconds}s de video · {chapters} capítulos · {captures} capturas",
+    "render_no_video": "Sin video: no se filmó nada (ningún paso llegó a la pantalla).",
+    "render_verdict": "{result} {run}{case}: se esperaba \"{expected}\", se observó \"{observed}\"",
+    "render_verdict_reported": "{result} {run}{case}: se esperaba \"{expected}\", se observó \"{observed}\" (según lo reportado)",
+    "render_step_failed": "PASO FALLIDO {run}{step} ({label}): {error}",
+    "render_shot_missing": "Captura \"{name}\": no está en pantalla: {missing}",
+    "render_shot_crowded": "Captura \"{name}\": demasiado cargada, sus notas tapan un elemento marcado. Dividila en capturas con menos elementos marcados o notas más cortas.",
+    "render_next_steps": "Revisá la hoja de contactos de abajo. Si se lee bien, llamá a evidence_publish con este render_id;\nsi no, corregí la toma (labels, targets, beats) y renderizá de nuevo. Todavía no llegó nada a la task.",
+    "case_not_reached_after": "no se llegó: falló el paso {step} ({error})",
+    "case_not_reached": "no se llegó",
+    "auto_open": "Abrir {url}",
+    "auto_click": "Clic en {target}",
+    "auto_fill": "Completar {target}",
+    "auto_type": "Escribir en {target}",
+    "auto_select": "Elegir \"{value}\" en {target}",
+    "auto_check": "Marcar {target}",
+    "auto_uncheck": "Desmarcar {target}",
+    "auto_hover": "Pasar el mouse por {target}",
+    "auto_press": "Apretar {key}",
+    "auto_scroll_to": "Scroll hasta {target}",
+    "auto_scroll": "Scroll {direction}",
+    "auto_verify": "Verificar {case}",
+    "where_step": "paso {step}",
+    "where_nested_step": "{trail} paso {step}",
+    "report_step": "Paso {step}",
+    "report_verdict_header": "| Resultado | Caso | Esperado | Observado | En |",
+    "report_observed_note": "¹ Lo observó el agente, no lo midió la reproducción.",
+    "report_pair_header": "| Caso | Esperado | {left} | {right} |",
+    "report_captures": "### Capturas",
+    "report_shot_missing": " — no está en pantalla: {missing}",
+    "report_clean": "Sin anotaciones: {link}",
+    "report_findings": "### Hallazgos",
+    "report_step_failed": "- ❌ El paso {step} ({label}) no se pudo reproducir: {error}",
+    "report_facts": "### Hechos",
+    "report_chapters": "Capítulos",
+    "report_checks_pass": "{passed}/{count} chequeos pasan",
+    "report_replay": "Para reproducirlo: {files}",
+    "cases_recorded": "Corridas registradas: {runs}",
+    "cases_unknown": "No son casos de prueba de esta task: {keys}",
+    "cases_error": "No se pudieron registrar las corridas de los casos de prueba: {error}. Los archivos y el reporte están en la task; registrá las corridas que faltan con task_test_case_run y report_id={report}.",
+    "recording_started": "Grabando \"{title}\" contra {url}.\nCada acción browser_* de esta sesión se filma y queda escrita; pasá `label` en cada una. Terminá con evidence_finish.",
+    "shot_not_on_screen": "\nNo está en pantalla: {missing}",
+    "shot_crowded": "\nDemasiado cargada: sus notas tapan un elemento marcado. Dividila en capturas con menos elementos marcados o notas más cortas.",
+    "shot_recorded": "La captura \"{name}\" quedó registrada en la toma; se publica con ella.",
+    "shot_attached": "Se adjuntó \"{name}.png\" a la task {task}: ![{name}.png](/task-attachments/{id})",
+    "shot_clean": "Sin anotaciones: [{name}-clean.png](/task-attachments/{id})",
+    "verify_result": "{result} {case}: se esperaba \"{expected}\", se observó \"{observed}\"",
+    "verify_measured": " (medido)",
+    "verify_in_take": " · registrado en la toma",
+    "noted": "Anotado ({level}).",
+    "take_discarded": "Toma \"{title}\" descartada.",
+    "report_posted": "Reporte publicado en la pestaña Reports ({id}).",
+    "publish_video": "Video: ![{filename}](/task-attachments/{id})",
+    "publish_no_video": "Sin video.",
+    "publish_captures": {
+      "one": "{count} captura adjuntada.",
+      "other": "{count} capturas adjuntadas."
+    },
+    "recording_case": "Caso a grabar: {case}",
+    "recording_description": "Contexto:",
+    "recording_steps": "Pasos:",
+    "recording_expected": "Resultado esperado:",
+    "recording_environment": "Entorno: {name} · {url}",
+    "recording_logins": "Logins de prueba: {names}. Escribí uno con browser_type(secret=\"NOMBRE\") sin text; nunca se lo pidas a la persona.",
+    "recording_no_logins": "Este entorno no tiene logins de prueba.",
+    "recording_next": "Después: browser_new_session, browser_navigate a la URL base, evidence_start, el flujo con un label por paso, evidence_verify con check + target, evidence_finish, evidence_save_case.",
+    "case_saved_queued": "Guardada como la grabación de {key}; quedó encolada una primera corrida en {env} (lote {batch}).",
+    "case_saved": "Guardada como la grabación de {key}.",
+    "case_saved_changes_data": "La toma cambia datos, así que no se va a reproducir sola: esa primera corrida va a terminar en error. Decíselo a la persona.",
+    "case_saved_no_checks": "La toma no tiene verificaciones: un replay sólo puede decir si sus pasos corrieron.",
+    "case_saved_observed_only": "Algunas verificaciones son observadas, no medidas (sin check + target): los replays copian lo que viste en vez de medirlo."
+  },
+  "log": {
+    "session_expired": "[session] venció: {id}",
+    "session_created": "[session] creada: {id} ({agent}/{instance})",
+    "session_created_recording": "[session] creada: {id} ({agent}/{instance}) [grabando]",
+    "session_closed": "[session] cerrada: {id}",
+    "listening": "thulu-browser v{version}: servidor MCP escuchando en {host}:{port}",
+    "mode_shared": "  Modo:              compartido (cualquier key de run)",
+    "mode_per_run": "  Modo:              por run (sólo la key de este run)",
+    "mode_catalog_only": "  Modo:              sólo catálogo (lista tools, no corre ninguna)",
+    "agents_root": "  AGENTS_ROOT:       {path}",
+    "session_idle": "  SESSION_IDLE_MS:   {ms}",
+    "tools_available": "  Tools disponibles: {count}",
+    "sse_endpoint": "  Endpoint SSE:      GET  /sse",
+    "health_endpoint": "  Health check:      GET  /health",
+    "shutting_down": "\nllegó {signal}, apagando",
+    "job_env_missing": "runner de evidencia: hacen falta OCTOPUS_API, OCTOPUS_API_KEY y EVIDENCE_BATCH_ID",
+    "job_retry": "runner de evidencia: {method} {route} falló ({error}); reintento en {ms} ms",
+    "job_run_start": "runner de evidencia: empezó la corrida {run} ({case})",
+    "job_run_done": "runner de evidencia: terminó la corrida {run}: {status} en {ms} ms",
+    "job_upload_refused": "runner de evidencia: el daemon rechazó {kind} {filename}: {error}",
+    "job_result_refused": "runner de evidencia: el daemon rechazó el resultado de la corrida {run}: {error}",
+    "job_done": "runner de evidencia: al lote {batch} no le queda nada",
+    "job_fatal": "runner de evidencia: me detengo: {error}",
+    "job_unreachable": "runner de evidencia: {url} nunca respondió ({error}); el lote se cierra como falla del entorno",
+    "host_gateway": "  Loopback del host: {host} (sesiones de corridas en un runner)",
+    "host_loopback_unconfigured": "[session] una corrida en un runner pidió el localhost del host, pero HOST_GATEWAY no está configurado: sus páginas abren el localhost de este contenedor"
+  }
+}

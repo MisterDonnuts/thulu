@@ -1,0 +1,80 @@
+{
+  "comment": {
+    "default": "Si nadie contesta: {default}",
+    "free_answer": "   _(contestá con tus palabras)_",
+    "heading_blocker": "**{agent} está trabado y te necesita.**",
+    "heading_blocking": "**{agent} tiene una pregunta y espera la respuesta.**",
+    "heading_non_blocking": "**{agent} tiene una pregunta.** Mientras tanto sigue trabajando.",
+    "multi": "   _(elegí una o más)_",
+    "multi_and_other": "   _(elegí una o más, o contestá con tus palabras)_",
+    "option": "   - {label}",
+    "option_described": "   - {label}: {description}",
+    "other": "   _(o contestá con tus palabras)_",
+    "resume_failed": "Las respuestas llegaron, pero no se pudo retomar al agente con ellas: {err}. Thulu vuelve a intentar cuando reinicia el daemon; relanzá la etapa para seguir ahora."
+  },
+  "errors": {
+    "bad_index": "question_index {index} no nombra ninguna pregunta de esta consulta",
+    "bad_kind": "{kind:%q} no es un tipo de pregunta: usá question o blocker",
+    "blocker_needs_text": "un bloqueo se contesta con palabras: completá other o note",
+    "count": "contar las preguntas de la tarea",
+    "decode": "decodificar la pregunta {id}",
+    "default_required": "una pregunta que no bloquea necesita un default: qué hace el agente si nadie contesta",
+    "duplicate_index": "la pregunta {index} está contestada dos veces",
+    "encode": "codificar la pregunta",
+    "header_too_long": "pregunta {index}: el encabezado pasa de {max} caracteres",
+    "insert": "guardar la pregunta",
+    "list": "listar las preguntas",
+    "not_found": "no existe la pregunta {id}",
+    "not_open": "la pregunta ya no está abierta (está {status})",
+    "open_limit": "esta tarea ya tiene {max} preguntas abiertas: esperá respuestas antes de preguntar más",
+    "option_label_duplicate": "pregunta {index}: la opción {label:%q} aparece dos veces",
+    "option_label_required": "pregunta {index}: cada opción necesita una etiqueta",
+    "other_not_allowed": "la pregunta {index} sólo acepta una de sus opciones",
+    "question_count": "preguntá entre 1 y {max} cosas por vez",
+    "question_required": "la pregunta {index} no tiene texto",
+    "run_limit": "esta corrida ya preguntó {max} veces: decidí con lo que tenés, o terminá tu turno",
+    "scan": "leer una pregunta",
+    "single_select": "la pregunta {index} acepta una sola opción",
+    "too_long": "{field} pasa de {max} caracteres",
+    "too_many_options": "la pregunta {index} tiene más de {max} opciones",
+    "unanswered": "contestá cada pregunta, o dejá una nota que las conteste",
+    "unknown_option": "la pregunta {index} no tiene la opción {label:%q}",
+    "update": "actualizar la pregunta"
+  },
+  "events": {
+    "answered": "{kind} contestada",
+    "asked": "{kind} hecha ({count} pregunta(s))",
+    "awaiting_input": "la corrida espera {count} pregunta(s) que bloquean",
+    "canceled": "{kind} cancelada"
+  },
+  "log": {
+    "cancel": "cancelar la pregunta {question}",
+    "list_open": "listar las preguntas abiertas de la tarea {task}",
+    "list_run": "listar las preguntas de una corrida de la tarea {task}",
+    "post_reply": "publicar la respuesta de la pregunta {question}",
+    "reconcile_list": "listar las tareas que esperan respuestas",
+    "record_event": "registrar un evento de pregunta en la tarea {task}",
+    "record_message": "guardar las respuestas como mensaje en la tarea {task}",
+    "reload_task": "releer la tarea {task} para entregar una respuesta",
+    "set_delivery": "marcar la entrega {delivery} en preguntas contestadas",
+    "set_session": "marcar la sesión en las preguntas de la tarea {task}",
+    "steer": "pasar las respuestas a la corrida {run} de la tarea {task}",
+    "unpark": "sacar la tarea {task} de awaiting_input",
+    "decorate_counts": "contar las preguntas abiertas"
+  },
+  "prompts": {
+    "answer": "Respuesta: {answer}",
+    "answered_by": "{author} contestó tus preguntas.",
+    "note": "Nota: {note}",
+    "question": "**{label}.** {question}"
+  },
+  "reply": {
+    "canceled": "Cancelada por {author}, sin respuesta.",
+    "canceled_moved": "Cancelada sin respuesta: la tarea pasó a otra etapa.",
+    "canceled_relaunch": "Cancelada sin respuesta: se relanzó la etapa.",
+    "heading": "Respuesta:",
+    "line": "\n- **{label}:** {answer}",
+    "note": "\n\n{note}",
+    "picked_and_other": "{picked}. {other}"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "cli": {
+    "flag_out": "output file",
+    "usage": "usage: deploy-bundle -o octopus_<version>_deploy.tar.gz",
+    "error": "deploy-bundle: {err}"
+  }
+}

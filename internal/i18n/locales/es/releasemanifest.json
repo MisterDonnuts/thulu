@@ -1,0 +1,38 @@
+{
+  "errors": {
+    "third_party_format": "-third-party {value:%q}: se espera nombre=ref",
+    "bad_version": "versión {version:%q}",
+    "channel_mismatch": "la versión {version} no puede ir en el canal {channel}",
+    "lock_not_ready": "el lock de migraciones no está listo para {version}:\n{cause}",
+    "lock_mismatch": "el lock de migraciones no coincide con el código:\n{cause}",
+    "flag_required": "{flag} es obligatorio",
+    "no_ref_files": "no hay archivos *.ref en {dir}",
+    "no_binaries": "no hay binarios {prefix}<os>_<arch> en {dir}",
+    "meta_file": "{dir}/{version}.json",
+    "signature": "firma",
+    "bundle_sha_mismatch": "{file}: sha256 {got}, el manifiesto dice {want}",
+    "signatures_failed": "fallaron {failed} de {total} firmas:\n  {list}"
+  },
+  "cli": {
+    "failed": "release-manifest: {err}",
+    "manifest_signature_ok": "manifiesto {version}: firma ok",
+    "sha256_ok": "{file}: sha256 ok",
+    "signature_ok": "{ref}: firma ok"
+  },
+  "flags": {
+    "verify": "verifica este manifiesto firmado como lo haría un cliente, y termina",
+    "version": "versión de la release, sin la v adelante",
+    "channel": "stable, prerelease o preview (por defecto: según la versión)",
+    "commit": "sha de git completo del commit taggeado",
+    "images": "directorio de archivos <name>.ref, cada uno con repo@sha256:…",
+    "chart_ref": "referencia oci:// del chart publicado",
+    "chart_digest": "digest sha256 del chart publicado",
+    "bundle": "ruta del bundle de deploy",
+    "binaries": "directorio con octopus_<version>_<os>_<arch>",
+    "lock": "lock de migraciones",
+    "meta": "directorio con los datos de release <version>.json",
+    "notes_url": "URL de las notas de la release",
+    "output": "archivo de salida (por defecto stdout)",
+    "third_party": "nombre=imagen@sha256:… (se puede repetir)"
+  }
+}

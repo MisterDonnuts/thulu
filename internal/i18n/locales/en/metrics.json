@@ -1,0 +1,17 @@
+{
+  "help": {
+    "http_requests_total": "Total HTTP requests by method, path group, and status code.",
+    "http_request_duration_seconds": "HTTP request duration in seconds.",
+    "sandboxes_active": "Number of currently active (non-released) sandboxes.",
+    "tasks_by_stage": "Number of tasks per board and stage.",
+    "tasks_by_type": "Number of tasks per board and task type (empty type = untyped).",
+    "agent_runs_total": "Total agent runs by agent type and stop reason.",
+    "tokens_consumed_total": "Total LLM tokens consumed by model and token type.",
+    "cost_usd_total": "Total estimated cost in USD by model.",
+    "env_metrics_polls_total": "Cloud metric collection passes per environment, by result (ok, fail).",
+    "auth_events_total": "Authentication events by kind (register, refresh, logout, sso).",
+    "event_hub_streams": "Open multiplexed event streams (one per browser tab).",
+    "event_hub_sources": "Running event sources (chat bus bridges, log tails).",
+    "event_hub_subscriptions": "Topic subscriptions across all open streams."
+  }
+}

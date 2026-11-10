@@ -1,0 +1,82 @@
+{
+  "title": "Sandboxes",
+  "stats": {
+    "active_of": "de {max} activos",
+    "queued": "en cola"
+  },
+  "panels": {
+    "active": "Sandboxes activos",
+    "queue": "Cola",
+    "settings": "Configuración"
+  },
+  "columns": {
+    "task": "Tarea",
+    "container": "Contenedor",
+    "status": "Estado",
+    "idle": "Inactivo",
+    "ports": "Puertos",
+    "stage": "Etapa",
+    "priority": "Prioridad",
+    "waiting": "Esperando",
+    "position": "Posición",
+    "actions": "Acciones"
+  },
+  "labels": {
+    "max": "Máximo de sandboxes simultáneos",
+    "idle_evict": "Desalojo por inactividad (minutos)",
+    "acquire_block": "Espera por un lugar libre (segundos)",
+    "priority_by_stage": "Prioridad por etapa"
+  },
+  "hints": {
+    "queue_order": "Primero la prioridad más alta · FIFO dentro de cada clase",
+    "priority": "Gana el número más alto. Cuando se libera un lugar, se lo lleva la tarea en cola con la prioridad más alta.",
+    "install_wide": "Los límites de sandboxes y las prioridades por etapa se aplican a todos los espacios de trabajo de esta instalación.",
+    "max_default": "Por defecto: {n}",
+    "idle_default": "Por defecto: {n}. Con 0 no se desaloja nunca.",
+    "block_default": "Por defecto: {n}. Con 0 la tarea pasa a la cola enseguida.",
+    "no_agent": "Ningún agente tiene thulu-sandbox tildado en una etapa, así que ninguna tarea va a abrir un sandbox.",
+    "no_agent_link": "Tildalo en Agentes → pestaña MCP"
+  },
+  "buttons": {
+    "save": "Guardar configuración",
+    "kill": "Matar",
+    "kill_sandbox": "Matar sandbox",
+    "dequeue": "Sacar de la cola",
+    "dequeue_label": "Sacar {task} de la cola"
+  },
+  "confirm": {
+    "kill_title": "¿Matar el sandbox?"
+  },
+  "toasts": {
+    "killed": "Sandbox eliminado",
+    "kill_failed": "No se pudo matar: {error}",
+    "dequeued": "Salió de la cola. La siguiente tarea toma su lugar.",
+    "dequeue_failed": "No se pudo sacar de la cola: {error}"
+  },
+  "status": {
+    "saved": "Guardado",
+    "error": "Error: {error}",
+    "fix_fields": "Corregí los campos marcados; no se guardó nada"
+  },
+  "empty": {
+    "no_sandboxes": "No hay sandboxes activos",
+    "queue": "La cola está vacía"
+  },
+  "subtitle": "Contenedores de ejecución por tarea · se crean con el primer {cmd} y se eliminan cuando quedan inactivos.",
+  "owners": {
+    "prewarm": "Precalentado de {project}",
+    "evidence": "Tanda de Evidencia"
+  },
+  "stages": {
+    "prewarm": "Precalentado"
+  },
+  "errors": {
+    "required": "Completá este campo",
+    "number": "Tiene que ser un número",
+    "integer": "Tiene que ser un número entero",
+    "min1": "Tiene que ser 1 o más",
+    "min0": "No puede ser negativo",
+    "whole_min0": "Tiene que ser un número entero, 0 o más",
+    "refused": "El daemon no aceptó este valor"
+  }
+}

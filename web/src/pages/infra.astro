@@ -1,0 +1,2851 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Badge from "../components/Badge.astro";
+import Button from "../components/Button.astro";
+import Callout from "../components/Callout.astro";
+import Chart from "../components/Chart.astro";
+import ChartLegend from "../components/ChartLegend.astro";
+import Check from "../components/Check.astro";
+import Disclosure from "../components/Disclosure.astro";
+import Dot from "../components/Dot.astro";
+import EmptyState from "../components/EmptyState.astro";
+import Facts from "../components/Facts.astro";
+import FilterBar from "../components/FilterBar.astro";
+import FilterField from "../components/FilterField.astro";
+import Icon from "../components/Icon.astro";
+import PageHead from "../components/PageHead.astro";
+import Panel from "../components/Panel.astro";
+import SearchInput from "../components/SearchInput.astro";
+import Segmented from "../components/Segmented.astro";
+import StatGroup from "../components/StatGroup.astro";
+import StatTile from "../components/StatTile.astro";
+import Table from "../components/Table.astro";
+import Tabs from "../components/Tabs.astro";
+import { t } from "../i18n";
+import { containerColumns, groupColumns, quotaColumns, workspaceColumns } from "../lib/infra";
+import { cacheProjectColumns, cacheToolColumns, cacheWorkspaceColumns } from "../lib/infra-cache";
+
+const tileMeter = { value: 0, thresholds: true, attrs: { "data-meter": "", hidden: true } };
+const cacheMeter = { ...tileMeter, size: "xs" as const };
+---
+
+<Layout title={t("infra.title")}>
+  <main class="page infra-page" style="--page-max: 1280px">
+    <PageHead title={t("infra.heading")} subtitle={t("infra.subtitle")} subMax={720} flush>
+      <Fragment slot="actions">
+        <span id="live" class="live" aria-live="polite">
+          <Dot id="live-dot" hidden />
+          <span class="live-warn" id="live-warn" hidden><Icon name="warn" /></span>
+          <span id="live-text">{t("infra.live.loading")}</span>
+        </span>
+        <Button id="btn-refresh" size="md" icon="refresh">{t("common.buttons.refresh")}</Button>
+      </Fragment>
+    </PageHead>
+
+    <div id="blocked" class="blocked" hidden role="status"></div>
+
+    <div id="content" class="infra-content" aria-busy="true">
+      <Callout
+        tone="warn"
+        icon="warn"
+        title={t("infra.problems.title")}
+        id="problems"
+        hidden
+        role="status"
+      >
+        <ul id="problems-list"></ul>
+      </Callout>
+
+      <StatGroup tag="section" label={t("infra.tiles.aria")}>
+        <StatTile id="tile-cpu" label={t("infra.tiles.cpu")} value="—" meter={tileMeter} />
+        <StatTile id="tile-mem" label={t("infra.tiles.memory")} value="—" meter={tileMeter} />
+        <StatTile id="tile-disk" label={t("infra.tiles.disk")} value="—" meter={tileMeter} />
+        <StatTile id="tile-runs" label={t("infra.tiles.runs")} value="—" meter={tileMeter} />
+      </StatGroup>
+
+      <Tabs
+        id="tabs"
+        class="infra-tabs"
+        label={t("infra.tabs.aria")}
+        active="overview"
+        panels
+        items={[
+          { id: "overview", label: t("infra.tabs.overview") },
+          {
+            id: "containers",
+            label: t("infra.tabs.containers"),
+            labelId: "tab-containers-label",
+            count: 0,
+          },
+          { id: "workspaces", label: t("infra.tabs.workspaces"), count: 0 },
+          { id: "storage", label: t("infra.tabs.storage") },
+          {
+            id: "cache",
+            label: t("infra.tabs.cache"),
+            flag: t("infra.tabs.attention"),
+            flagHidden: true,
+          },
+          { id: "machine", label: t("infra.tabs.machine") },
+        ]}
+      />
+
+      <div class="tab-panel" role="tabpanel" id="panel-overview" aria-labelledby="tab-overview">
+        <Panel icon="zap" title={t("infra.activity.title")} flush>
+          <Segmented
+            slot="actions"
+            id="range-chips"
+            name="infra-range"
+            size="sm"
+            label={t("infra.activity.range_aria")}
+            options={[
+              { value: "15m", label: "15m" },
+              { value: "1h", label: "1h" },
+              { value: "2h", label: "2h" },
+            ]}
+          />
+          <div class="ic-grid-4">
+            <div class="ic-block">
+              <div class="ic-block-head">
+                <span class="ic-block-label">{t("infra.charts.cpu")}</span>
+                <span class="ic-block-now" id="now-cpu"></span>
+              </div>
+              <Chart id="chart-cpu" size="sm" interactive />
+            </div>
+            <div class="ic-block">
+              <div class="ic-block-head">
+                <span class="ic-block-label">{t("infra.charts.memory")}</span>
+                <span class="ic-block-now" id="now-mem"></span>
+              </div>
+              <Chart id="chart-mem" size="sm" interactive />
+            </div>
+            <div class="ic-block">
+              <div class="ic-block-head">
+                <span class="ic-block-label">{t("infra.charts.network")}</span>
+                <ChartLegend id="legend-net" placement="head" items={[]} />
+              </div>
+              <Chart id="chart-net" size="sm" interactive />
+            </div>
+            <div class="ic-block">
+              <div class="ic-block-head">
+                <span class="ic-block-label">{t("infra.charts.containers")}</span>
+                <ChartLegend id="legend-ctr" placement="head" items={[]} />
+              </div>
+              <Chart id="chart-ctr" size="sm" interactive />
+            </div>
+          </div>
+          <Fragment slot="foot">
+            <span id="history-young" hidden></span>
+            <span>{t("infra.activity.note")}</span>
+          </Fragment>
+        </Panel>
+
+        <div class="grid-2 grid-stretch">
+          <Panel tag="div" icon="columns" title={t("infra.usage.title")} flush>
+            <span slot="aside" id="usage-hint"></span>
+            <div class="table-wrap" id="t-groups-wrap">
+              <Table bare id="t-groups" cols={groupColumns()} stack />
+            </div>
+            <EmptyState icon="box" title={t("infra.usage.empty_title")} id="t-groups-empty" hidden>
+              {t("infra.usage.empty")}
+            </EmptyState>
+          </Panel>
+
+          <Panel tag="div" icon="flag" title={t("infra.capacity.title")} pad="md">
+            <div class="limits" id="limits"></div>
+            <div id="limits-extra"></div>
+            <h3 class="sub-head">{t("infra.capacity.running_now")}</h3>
+            <ul class="row-list run-list" id="runs"></ul>
+          </Panel>
+        </div>
+      </div>
+
+      <div
+        class="tab-panel"
+        role="tabpanel"
+        id="panel-containers"
+        aria-labelledby="tab-containers"
+        hidden
+      >
+        <Panel
+          tag="div"
+          icon="box"
+          title={t("infra.containers.title")}
+          titleId="containers-title"
+          flush
+          id="containers-panel"
+        >
+          <span slot="aside" id="containers-count"></span>
+          <FilterBar look="inset">
+            <SearchInput
+              id="f-search"
+              type="search"
+              width={340}
+              kbd={false}
+              label={t("infra.containers.search")}
+              placeholder={t("infra.containers.search_placeholder")}
+            />
+            <FilterField label={t("infra.containers.filter_kind")} for="f-group" inline hideLabel>
+              <select id="f-group">
+                <option value="">{t("infra.containers.all_kinds")}</option>
+              </select>
+            </FilterField>
+            <Check id="f-running" checked label={t("infra.containers.running_only")} />
+          </FilterBar>
+          <Table id="t-containers" cols={containerColumns()} stack />
+          <EmptyState
+            icon="search"
+            titleId="t-containers-empty-title"
+            bodyId="t-containers-empty-msg"
+            id="t-containers-empty"
+            hidden
+          >
+            <Button slot="action" id="btn-clear-filters" hidden
+              >{t("infra.containers.clear")}</Button
+            >
+          </EmptyState>
+        </Panel>
+      </div>
+
+      <div
+        class="tab-panel"
+        role="tabpanel"
+        id="panel-workspaces"
+        aria-labelledby="tab-workspaces"
+        hidden
+      >
+        <StatGroup layout="strip" id="ws-stats" label={t("infra.workspaces.stats_aria")}>
+          <StatTile
+            id="ws-count-workspaces"
+            label={t("infra.workspaces.stats.workspaces")}
+            value="—"
+          />
+          <StatTile id="ws-count-users" label={t("infra.workspaces.stats.users")} value="—" />
+          <StatTile id="ws-count-projects" label={t("infra.workspaces.stats.projects")} value="—" />
+          <StatTile id="ws-count-tasks" label={t("infra.workspaces.stats.tasks")} value="—" />
+        </StatGroup>
+        <Panel tag="div" icon="tt-users" title={t("infra.workspaces.title")} flush>
+          <div class="table-wrap" id="t-workspaces-wrap">
+            <Table bare id="t-workspaces" cols={workspaceColumns()} stack />
+          </div>
+          <EmptyState
+            icon="tt-users"
+            title={t("infra.workspaces.empty_title")}
+            id="t-workspaces-empty"
+            hidden
+          >
+            {t("infra.workspaces.empty")}
+          </EmptyState>
+        </Panel>
+
+        <p class="row-sub quota-note" id="quotas-docker-note" hidden>
+          {t("infra.quotas.docker_note")}
+        </p>
+
+        <Panel tag="div" icon="flag" title={t("infra.quotas.title")} flush id="quotas-panel" hidden>
+          <div class="table-wrap" id="t-quotas-wrap">
+            <Table bare id="t-quotas" cols={quotaColumns()} stack />
+          </div>
+          <EmptyState size="inline" title={t("infra.quotas.empty")} id="t-quotas-empty" hidden />
+        </Panel>
+      </div>
+
+      <div
+        class="tab-panel"
+        role="tabpanel"
+        id="panel-storage"
+        aria-labelledby="tab-storage"
+        hidden
+      >
+        <div class="grid-2">
+          <Panel tag="div" icon="tt-database" title={t("infra.disks.title")} pad="md">
+            <div class="stack" id="disks"></div>
+            <Disclosure
+              id="disks-help"
+              summary={t("infra.disks.missing_q")}
+              ruled
+              class="infra-help"
+              hidden
+            >
+              <p id="disks-help-text"></p>
+            </Disclosure>
+          </Panel>
+          <Panel tag="div" icon="folder" title={t("infra.storage.title")} pad="md">
+            <span slot="aside" id="storage-hint"></span>
+            <div class="chart-bars" id="storage-dirs"></div>
+          </Panel>
+        </div>
+        <div class="grid-2">
+          <Panel tag="div" icon="tt-database" title={t("infra.postgres.title")} pad="md">
+            <Facts id="pg-facts" />
+            <h3 class="sub-head" id="pg-tables-head" hidden>{t("infra.postgres.largest")}</h3>
+            <div class="chart-bars" id="pg-tables"></div>
+          </Panel>
+          <Panel
+            tag="div"
+            icon="box"
+            title={t("infra.docker.title")}
+            id="docker-panel"
+            pad="md"
+            hidden
+          >
+            <Facts id="docker-df" />
+            <h3 class="sub-head" id="docker-volumes-head" hidden>
+              {t("infra.docker.largest_volumes")}
+            </h3>
+            <div class="chart-bars" id="docker-volumes"></div>
+          </Panel>
+        </div>
+      </div>
+
+      <div class="tab-panel" role="tabpanel" id="panel-cache" aria-labelledby="tab-cache" hidden>
+        <section class="cache" id="cache" aria-labelledby="cache-title">
+          <PageHead
+            level="section"
+            title={t("infra.cache.title")}
+            titleId="cache-title"
+            subtitle={t("infra.cache.hint")}
+            flush
+          >
+            <Segmented
+              slot="actions"
+              id="cache-range"
+              name="infra-cache-range"
+              size="sm"
+              label={t("infra.cache.aria")}
+              options={[
+                { value: "7d", label: "7d" },
+                { value: "30d", label: "30d" },
+                { value: "90d", label: "90d" },
+              ]}
+            />
+          </PageHead>
+
+          <Panel tag="div" id="cache-msg" hidden role="status">
+            <EmptyState icon="tt-database" titleId="cache-msg-title" bodyId="cache-msg-text" />
+          </Panel>
+
+          <div class="cache-body" id="cache-body" hidden>
+            <Callout
+              tone="warn"
+              icon="warn"
+              title={t("infra.cache.signals")}
+              id="cache-signals"
+              hidden
+              role="status"
+            >
+              <ul class="signal-list" id="cache-signals-list"></ul>
+            </Callout>
+
+            <StatGroup layout="strip" label={t("infra.cache.title")}>
+              <StatTile
+                id="ct-hit"
+                label={t("infra.cache.tiles.hit_rate")}
+                value="—"
+                meter={cacheMeter}
+              />
+              <StatTile id="ct-installs" label={t("infra.cache.tiles.installs")} value="—" />
+              <StatTile id="ct-downloads" label={t("infra.cache.tiles.downloads")} value="—" />
+              <StatTile id="ct-saved" label={t("infra.cache.tiles.time_saved")} value="—" />
+              <StatTile
+                id="ct-used"
+                label={t("infra.cache.tiles.cache_used")}
+                value="—"
+                meter={cacheMeter}
+              />
+            </StatGroup>
+
+            <Panel
+              as="h3"
+              tag="div"
+              icon="tt-database"
+              title={t("infra.cache.chart.title")}
+              pad="md"
+            >
+              <ChartLegend id="cache-legend" slot="aside" placement="head" items={[]} />
+              <Chart id="cache-chart" label={t("infra.cache.chart.title")} />
+              <span slot="foot" id="cache-partial" hidden></span>
+            </Panel>
+
+            <Panel as="h3" tag="div" icon="folder" title={t("infra.cache.projects.title")} flush>
+              <div class="table-wrap" id="ct-projects-wrap">
+                <Table bare id="ct-projects" cols={cacheProjectColumns()} stack />
+              </div>
+              <EmptyState
+                size="inline"
+                title={t("infra.cache.projects.empty")}
+                id="ct-projects-empty"
+                hidden
+              />
+            </Panel>
+
+            <!-- Full width on purpose: six columns with a 160 px area bar overflow half a 1440 px page, and overlay scrollbars hide the overflow. -->
+            <div class="cache-tables">
+              <Panel
+                as="h3"
+                tag="div"
+                icon="tt-users"
+                title={t("infra.cache.workspaces.title")}
+                flush
+              >
+                <div class="table-wrap" id="ct-workspaces-wrap">
+                  <Table bare id="ct-workspaces" cols={cacheWorkspaceColumns()} stack />
+                </div>
+                <EmptyState
+                  size="inline"
+                  title={t("infra.cache.workspaces.empty")}
+                  id="ct-workspaces-empty"
+                  hidden
+                />
+                <ChartLegend id="cache-area-legend" slot="foot" items={[]} />
+              </Panel>
+              <Panel as="h3" tag="div" icon="box" title={t("infra.cache.tools.title")} flush>
+                <div class="table-wrap" id="ct-tools-wrap">
+                  <Table bare id="ct-tools" cols={cacheToolColumns()} stack />
+                </div>
+                <EmptyState
+                  size="inline"
+                  title={t("infra.cache.tools.empty")}
+                  id="ct-tools-empty"
+                  hidden
+                />
+              </Panel>
+            </div>
+          </div>
+          <p class="section-foot">{t("infra.cache.note")}</p>
+        </section>
+      </div>
+
+      <div
+        class="tab-panel"
+        role="tabpanel"
+        id="panel-machine"
+        aria-labelledby="tab-machine"
+        hidden
+      >
+        <div class="grid-2">
+          <Panel tag="div" icon="server" title={t("infra.host.title")} pad="md">
+            <Facts id="host-facts" />
+            <Disclosure
+              id="host-help"
+              summary={t("infra.host.about_q")}
+              ruled
+              class="infra-help"
+              hidden
+            >
+              <p id="host-help-text"></p>
+            </Disclosure>
+          </Panel>
+          <Panel tag="div" icon="terminal" title={t("infra.runtime.title")} pad="md">
+            <Badge tone="muted" slot="status" id="runtime-mode" />
+            <Facts id="runtime-facts" />
+            <EmptyState
+              size="inline"
+              title={t("infra.runtime.none_note")}
+              id="runtime-none"
+              hidden
+            />
+            <span slot="foot" id="runtime-note" hidden></span>
+          </Panel>
+        </div>
+        <Panel
+          tag="div"
+          icon="server"
+          title={t("infra.runtime.nodes")}
+          id="nodes-panel"
+          pad="md"
+          hidden
+        >
+          <div class="nodes" id="nodes"></div>
+        </Panel>
+      </div>
+    </div>
+  </main>
+
+  <style is:global>
+    .infra-page {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-7);
+      --page-pad-b: var(--s-9);
+    }
+    @media (max-width: 640px) {
+      .infra-page {
+        --page-pad-y: var(--s-5);
+        --page-pad-x: var(--s-5);
+      }
+    }
+    .infra-page .infra-content {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-5);
+    }
+
+    /* ─── Live line + blocked + problems ───────────────────── */
+    .infra-page .live {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--s-2);
+      margin-right: var(--s-3);
+      font-size: var(--t-xs);
+      color: var(--fg-3);
+      font-variant-numeric: tabular-nums;
+    }
+    .infra-page .live[data-state="stale"] {
+      color: var(--fg-2);
+    }
+    .infra-page .live-warn {
+      display: inline-flex;
+      color: var(--warn);
+    }
+    .infra-page .blocked {
+      max-width: 720px;
+    }
+    .infra-page .signal-list {
+      list-style: none;
+      padding-left: var(--s-1);
+    }
+    .infra-page .signal-list li {
+      display: flex;
+      gap: var(--s-3);
+      align-items: baseline;
+    }
+
+    /* ─── Tabs ──────────────────────────────────────────────── */
+    .infra-page .infra-tabs {
+      margin-top: var(--s-3);
+    }
+    .infra-page .tab-panel {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-5);
+    }
+
+    /* ─── Panels: hints, foot, notes ────────────────────────── */
+    .infra-page .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--s-5);
+      align-items: start;
+    }
+    .infra-page .grid-stretch {
+      align-items: stretch;
+    }
+    @media (max-width: 980px) {
+      .infra-page .grid-2 {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+    .infra-page #history-young {
+      color: var(--fg-2);
+    }
+    /* The help at a panel's foot, set apart from the facts above it. */
+    .infra-page .infra-help {
+      margin-top: var(--s-5);
+    }
+    /* ─── Charts ────────────────────────────────────────────── */
+    .infra-page .ic-grid-4 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .infra-page .ic-block {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-3);
+      padding: var(--s-5);
+      min-width: 0;
+    }
+    .infra-page .ic-block:nth-child(odd) {
+      border-right: 1px solid var(--line);
+    }
+    .infra-page .ic-block:nth-child(-n + 2) {
+      border-bottom: 1px solid var(--line);
+    }
+    @media (max-width: 760px) {
+      .infra-page .ic-grid-4 {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .infra-page .ic-block:nth-child(odd) {
+        border-right: 0;
+      }
+      .infra-page .ic-block:not(:last-child) {
+        border-bottom: 1px solid var(--line);
+      }
+      .infra-page .ic-block {
+        padding: var(--s-4);
+      }
+    }
+    .infra-page .ic-block-head {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--s-1) var(--s-4);
+      align-items: baseline;
+    }
+    .infra-page .ic-block-label {
+      font-size: var(--t-sm);
+      font-weight: 600;
+      color: var(--fg);
+    }
+    .infra-page .ic-block-now {
+      margin-left: auto;
+      font-size: var(--t-sm);
+      color: var(--fg-2);
+      font-variant-numeric: tabular-nums;
+    }
+    /* ─── Facts, tables, bars ───────────────────────────────── */
+    .infra-page .kind {
+      color: var(--fg-2);
+    }
+    .infra-page .kind-foreign {
+      color: var(--fg-3);
+    }
+    .infra-page .cell-link {
+      color: inherit;
+      text-decoration: underline;
+      text-decoration-color: var(--line-strong, var(--line));
+      text-underline-offset: 2px;
+    }
+    .infra-page .cell-link:hover {
+      color: var(--accent);
+    }
+    .infra-page .lead-dot {
+      margin-right: var(--s-2);
+    }
+    .infra-page .share {
+      display: inline-flex;
+      gap: var(--s-3);
+      align-items: center;
+      justify-content: flex-end;
+    }
+    .infra-page .share .meter-bar {
+      width: 56px;
+    }
+
+    .infra-page .stack,
+    .infra-page .limits,
+    .infra-page .nodes {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-5);
+    }
+    .infra-page .limit-live {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-2);
+    }
+    .infra-page .cap-edit {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--s-2);
+    }
+    /* A limit is a short number: the box keeps to it. */
+    .infra-page .cap-edit input {
+      width: calc(7ch + 2 * var(--control-pad-x));
+    }
+    .infra-page .cap-hint {
+      flex-basis: 100%;
+    }
+    .infra-page .limit-row,
+    .infra-page .disk-row {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-2);
+    }
+    .infra-page .row-head {
+      display: flex;
+      gap: var(--s-3);
+      align-items: baseline;
+      justify-content: space-between;
+      font-size: var(--t-sm);
+      color: var(--fg);
+    }
+    .infra-page .row-head .num {
+      flex: none;
+      color: var(--fg);
+      font-variant-numeric: tabular-nums;
+    }
+    .infra-page .row-head .num.quiet {
+      color: var(--fg-3);
+    }
+    .infra-page .row-head .path {
+      font-family: var(--font-mono);
+      font-size: var(--t-xs);
+      overflow-wrap: anywhere;
+    }
+    .infra-page .row-sub {
+      font-size: var(--t-xs);
+      color: var(--fg-3);
+    }
+    .infra-page .quota-note {
+      margin: var(--s-3) 0 var(--s-4);
+    }
+    .infra-page .row-sub a {
+      color: var(--accent);
+    }
+    .infra-page .role-tags {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: var(--s-1);
+      margin-left: var(--s-2);
+      vertical-align: 1px;
+    }
+    .infra-page .conds {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--s-2);
+    }
+
+    /* ─── Dependency cache ──────────────────────────────────── */
+    .infra-page .cache,
+    .infra-page .cache-body {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-5);
+    }
+    .infra-page .signal-link {
+      color: inherit;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .infra-page .cell-err {
+      display: block;
+      max-width: 32ch;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--danger);
+    }
+    .infra-page .prewarm-now {
+      margin-top: var(--s-1);
+    }
+    .infra-page .cache-tables {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-5);
+    }
+    .infra-page .section-foot {
+      font-size: var(--t-xs);
+      color: var(--fg-3);
+    }
+    .infra-page .area-bar {
+      width: 160px;
+    }
+    .infra-page .tag-quiet {
+      margin-left: var(--s-2);
+    }
+
+    /* Phone: each table row is a card (list-table-stack); a cell with
+       nothing to say (data-none) leaves the card, and the bars start at the
+       card's edge. */
+    @media (max-width: 640px) {
+      .infra-page .list-table-stack td[data-none] {
+        display: none;
+      }
+      .infra-page .list-table-stack .share {
+        justify-content: flex-start;
+      }
+      .infra-page .list-table-stack .area-bar {
+        width: 100%;
+      }
+    }
+  </style>
+
+  <script>
+    import { ApiError, api } from "../lib/api";
+    import { authDisabled, sessionInfo } from "../lib/auth";
+    import { fmtCount, fmtUsdCompact } from "../lib/format";
+    import {
+      bindCrosshair,
+      CAPACITY_SETTINGS,
+      capacityOf,
+      containerColumns,
+      checkCapacity,
+      storedCapacity,
+      type CapacityProblem,
+      type CapacitySetting,
+      chartSummary,
+      chartWindow,
+      containerOwnerName,
+      seriesLegend,
+      dataDisk,
+      fmtBytes,
+      fmtCores,
+      fmtPercent,
+      fmtQuantity,
+      fmtRate,
+      groupColumns,
+      groupOf,
+      groupUsage,
+      GROUP_ORDER,
+      labelIsTask,
+      niceBytes,
+      quotaColumns,
+      reachableFrom,
+      share,
+      sortContainers,
+      stageLabelOf,
+      stateLabel,
+      stopToasts,
+      timeChart,
+      workspaceColumns,
+      workspaceLabel,
+      type AgentImageBuild,
+      type Capacity,
+      type ChartSeries,
+      type Container,
+      type Group,
+      type History,
+      type Kind,
+      type Point,
+      type Quota,
+      type Snapshot,
+      type SortKey,
+    } from "../lib/infra";
+    import {
+      isOperatorRefusal,
+      mayWriteInstallWide,
+      OPERATOR_ENV,
+      showReadOnly,
+    } from "../lib/operator";
+    import { formatSeconds, uptime } from "../lib/time";
+    import {
+      $,
+      badgeHTML,
+      bindTabs,
+      buttonEl,
+      buttonHTML,
+      calloutHTML,
+      cardHTML,
+      chartBarRowHTML,
+      chartEmptyHTML,
+      confirmDialog,
+      dotClasses,
+      dotHTML,
+      emptyStateHTML,
+      esc,
+      factHTML,
+      factRows,
+      inlineStatusHTML,
+      listRowHTML,
+      makeToast,
+      meterHTML,
+      segmentedValue,
+      setCount,
+      setInlineStatus,
+      setMeter,
+      setChartLegend,
+      setSegmentedValue,
+      setStat,
+      setTableSort,
+      tableRowHTML,
+      type DotTone,
+      type ProgressSize,
+      type TableCell,
+      type TableColumn,
+      type TableRow,
+    } from "../lib/ui";
+    import { t } from "../i18n";
+    import { every, onPage } from "../lib/page";
+    import { killMessage, taskHref } from "../lib/sandboxes";
+    import type { Stage } from "../lib/stages";
+
+    const TABS = ["overview", "containers", "workspaces", "storage", "cache", "machine"] as const;
+    type Tab = (typeof TABS)[number];
+
+    onPage("/infra", (signal) => {
+      const GROUP_LABEL: Record<Group, string> = {
+        agents: t("infra.groups.agents"),
+        sandboxes: t("infra.groups.sandboxes"),
+        chats: t("infra.groups.chats"),
+        browsers: t("infra.groups.browsers"),
+        mcp: t("infra.groups.mcp"),
+        platform: t("infra.groups.platform"),
+        system: t("infra.groups.system"),
+        other_install: t("infra.groups.other_install"),
+        other: t("infra.groups.other"),
+      };
+      const KIND_LABEL: Record<Kind, string> = {
+        daemon: t("infra.kinds.daemon"),
+        postgres: t("infra.kinds.postgres"),
+        web: t("infra.kinds.web"),
+        agent: t("infra.kinds.agent"),
+        sandbox: t("infra.kinds.sandbox"),
+        chat: t("infra.kinds.chat"),
+        mcp: t("infra.kinds.mcp"),
+        browser: t("infra.kinds.browser"),
+        platform: t("infra.kinds.platform"),
+        system: t("infra.kinds.system"),
+        other_install: t("infra.kinds.other_install"),
+        other: t("infra.kinds.other"),
+      };
+      const LIMIT_LABEL: Record<string, string> = {
+        "agent.max_containers": t("infra.capacity.agents"),
+        "mention.max_containers": t("infra.capacity.mentions"),
+        "sandbox.max": t("infra.capacity.sandboxes"),
+        "chat.max_containers": t("infra.capacity.chats"),
+        "agent.max_queue_minutes": t("infra.capacity.queue_minutes"),
+      };
+      const ROLE_LABEL: Record<string, string> = {
+        data: t("infra.disks.roles.data"),
+        root: t("infra.disks.roles.root"),
+        docker: t("infra.disks.roles.docker"),
+        containerd: t("infra.disks.roles.containerd"),
+        postgres: t("infra.disks.roles.postgres"),
+        extra: t("infra.disks.roles.extra"),
+      };
+      const DIR_LABEL: Record<string, string> = {
+        projects: t("infra.storage.dirs.projects"),
+        worktrees: t("infra.storage.dirs.worktrees"),
+        "task-attachments": t("infra.storage.dirs.attachments"),
+        logs: t("infra.storage.dirs.logs"),
+        runs: t("infra.storage.dirs.runs"),
+        other: t("infra.storage.dirs.other"),
+      };
+      const SOURCE_LABEL: Record<string, string> = {
+        docker: t("infra.problems.sources.docker"),
+        kubernetes: t("infra.problems.sources.kubernetes"),
+        metrics: t("infra.problems.sources.metrics"),
+        postgres: t("infra.problems.sources.postgres"),
+        settings: t("infra.problems.sources.settings"),
+      };
+      const DASH = "—";
+
+      const REFRESH_MS = 5000;
+      const RANGE_KEY = "octopus.infra.range";
+      const RANGES: Record<string, number> = {
+        "15m": 15 * 60e3,
+        "1h": 60 * 60e3,
+        "2h": 120 * 60e3,
+      };
+      let range = "1h";
+      try {
+        const saved = localStorage.getItem(RANGE_KEY);
+        if (saved && saved in RANGES) range = saved;
+      } catch {
+        /* storage blocked: the default range */
+      }
+      let snap: Snapshot | null = null;
+      let containers: Container[] = [];
+      let history: History | null = null;
+      let sortKey: SortKey = "cpu";
+      let sortDesc = true;
+      let timer: number | undefined;
+      let inflight = false;
+      let reloadAfter = false;
+      let stopped = false;
+      let staleError = "";
+      const unbind: Array<() => void> = [];
+
+      function el<K extends keyof HTMLElementTagNameMap>(
+        tag: K,
+        cls?: string,
+        text?: string,
+      ): HTMLElementTagNameMap[K] {
+        const e = document.createElement(tag);
+        if (cls) e.className = cls;
+        if (text !== undefined) e.textContent = text;
+        return e;
+      }
+      function node(html: string): HTMLElement {
+        const tpl = document.createElement("template");
+        tpl.innerHTML = html;
+        return tpl.content.firstElementChild as HTMLElement;
+      }
+      function meter(pct: number, label: string, sev = true, size?: ProgressSize): HTMLElement {
+        return node(meterHTML(pct, { label, thresholds: sev, size }));
+      }
+      function emptyLine(text: string, as: "div" | "li" = "div"): HTMLElement {
+        return node(emptyStateHTML({ size: "inline", title: text, as }));
+      }
+      const AGENT_IMAGE_STATE = {
+        pending: "infra.runtime.agent_image_pending",
+        building: "infra.runtime.agent_image_building",
+        ready: "infra.runtime.agent_image_ready",
+        failed: "infra.runtime.agent_image_failed",
+        skipped: "infra.runtime.agent_image_skipped",
+      } as const;
+      function agentImageText(b: AgentImageBuild): string {
+        return t(AGENT_IMAGE_STATE[b.state] ?? AGENT_IMAGE_STATE.pending, {
+          base: b.base,
+          image: b.image ?? "",
+          job: b.job ?? "",
+          message: b.message ?? "",
+        });
+      }
+      function facts(host: HTMLElement, rows: Array<[string, string]>) {
+        host.innerHTML = factRows(
+          rows.filter(([, v]) => v).map(([label, value]) => ({ label, value })),
+        )
+          .map(factHTML)
+          .join("");
+      }
+      const NONE = { "data-none": true };
+      function cell(text: string): TableCell {
+        return text === DASH ? { text, attrs: NONE } : text;
+      }
+      function two(main: string, sub: string): TableCell {
+        const value = main || DASH;
+        return {
+          text: value,
+          sub: sub || undefined,
+          attrs: !sub && value === DASH ? NONE : undefined,
+        };
+      }
+      function fill(id: string, cols: TableColumn[], rows: TableRow[]) {
+        $(id).querySelector("tbody")!.innerHTML = rows
+          .map((r) => tableRowHTML(cols, r, { stack: true }))
+          .join("");
+      }
+      function setTile(id: string, value: string, sub: string, pct?: number) {
+        const tile = $(id);
+        setStat(tile, { value, sub });
+        const m = tile.querySelector<HTMLElement>("[data-meter]");
+        if (!m) return;
+        m.hidden = pct === undefined;
+        if (pct !== undefined) setMeter(m, pct, { thresholds: true });
+      }
+      function showEmpty(table: string, empty: string, isEmpty: boolean) {
+        $(table).hidden = isEmpty;
+        $(empty).hidden = !isEmpty;
+      }
+      const wsLabel = (name: string, id: string) => workspaceLabel(name, id);
+      let stageLabels: ReadonlyMap<string, string> = new Map();
+      const GROUP_COLS = groupColumns();
+      const CONTAINER_COLS = containerColumns();
+      const WORKSPACE_COLS = workspaceColumns();
+      const QUOTA_COLS = quotaColumns();
+
+      let tab: Tab = "overview";
+      let tabShown = false;
+      function onTab(next: Tab) {
+        tab = next;
+        tabShown = true;
+        if (next === "overview") renderCharts();
+        document.dispatchEvent(new CustomEvent("infra:tab", { detail: next }));
+      }
+      const tabs = bindTabs($("tabs"), { hash: true, signal, onChange: (id) => onTab(id as Tab) });
+      if (!tabShown) onTab((tabs.current() ?? "overview") as Tab);
+
+      function renderTiles(s: Snapshot) {
+        const h = s.host;
+        if (h.proc_available) {
+          const load = h.load?.length ? h.load[0].toFixed(2) : DASH;
+          setTile(
+            "tile-cpu",
+            fmtPercent(h.cpu_percent),
+            t("infra.tiles.cpu_sub", { load, threads: h.threads }),
+            h.cpu_percent,
+          );
+          setTile(
+            "tile-mem",
+            fmtPercent(h.memory.percent),
+            t("infra.tiles.memory_sub", {
+              used: fmtBytes(h.memory.used),
+              total: fmtBytes(h.memory.total),
+            }),
+            h.memory.percent,
+          );
+        } else {
+          setTile("tile-cpu", DASH, t("infra.tiles.no_proc"));
+          setTile("tile-mem", DASH, t("infra.tiles.no_proc"));
+        }
+        const disk = dataDisk(h.disks);
+        if (disk) {
+          setTile(
+            "tile-disk",
+            fmtPercent(disk.percent),
+            t("infra.tiles.disk_sub", { free: fmtBytes(disk.free), path: disk.path }),
+            disk.percent,
+          );
+        } else {
+          setTile("tile-disk", DASH, t("infra.tiles.no_disks"));
+        }
+        const q = s.octopus.queue;
+        const waiting = q.agent.waiting + q.mention.waiting + (q.room ?? 0);
+        setTile(
+          "tile-runs",
+          fmtCount(s.octopus.active_runs_total),
+          waiting > 0
+            ? t("infra.tiles.waiting", { count: waiting })
+            : t("infra.tiles.none_waiting"),
+          q.agent.cap > 0 ? share(q.agent.inflight, q.agent.cap) : undefined,
+        );
+      }
+
+      function renderProblems(s: Snapshot) {
+        const list = s.problems ?? [];
+        const box = $("problems");
+        box.hidden = list.length === 0;
+        const ul = $("problems-list");
+        ul.replaceChildren();
+        for (const p of list) {
+          const li = el("li");
+          li.append(
+            el("b", undefined, SOURCE_LABEL[p.source] ?? p.source),
+            document.createTextNode(": "),
+            document.createTextNode(p.message),
+          );
+          ul.appendChild(li);
+        }
+      }
+
+      function emptyChart(host: HTMLElement, text: string) {
+        host.innerHTML = chartEmptyHTML(text, { icon: "clock" });
+      }
+
+      function drawChart(
+        id: string,
+        title: string,
+        points: Point[],
+        series: ChartSeries[],
+        fmt: (v: number) => string,
+        windowMs: number,
+        scale: { yMax?: number; nice?: (max: number) => number } = {},
+      ) {
+        const host = $(id);
+        host.setAttribute("aria-label", chartSummary(title, points, series, fmt));
+        const span =
+          points.length < 2 ? 0 : Date.parse(points[points.length - 1].t) - Date.parse(points[0].t);
+        if (span < 60_000) {
+          emptyChart(host, t("infra.charts.warming_up"));
+          return;
+        }
+        const model = timeChart(points, series, {
+          width: host.clientWidth || 600,
+          height: host.clientHeight || 140,
+          rangeMs: windowMs,
+          end: Date.parse(points[points.length - 1].t),
+          intervalMs: (history?.interval_seconds || 15) * 1000,
+          ...scale,
+          fmtY: fmt,
+        });
+        host.innerHTML = model.svg;
+        unbind.push(bindCrosshair(host, model, points, series, fmt));
+      }
+
+      function renderCharts() {
+        if (tab !== "overview" || !snap) return;
+        while (unbind.length) unbind.pop()!();
+        const points = history?.points ?? [];
+        const rangeMs = RANGES[range];
+        const windowMs = chartWindow(points, rangeMs);
+        const young = $("history-young");
+        const span =
+          points.length < 2 ? 0 : Date.parse(points[points.length - 1].t) - Date.parse(points[0].t);
+        young.hidden = windowMs >= rangeMs || span < 60_000;
+        if (!young.hidden)
+          young.textContent = t("infra.activity.young", {
+            count: Math.max(1, Math.round(windowMs / 60_000)),
+          });
+        const noProc = !snap.host.proc_available;
+        const cpu: ChartSeries[] = [
+          { label: t("infra.charts.cpu"), color: "var(--viz-1)", value: (p) => p.cpu },
+        ];
+        const mem: ChartSeries[] = [
+          { label: t("infra.charts.memory"), color: "var(--viz-1)", value: (p) => p.mem },
+        ];
+        const net: ChartSeries[] = [
+          { label: t("infra.charts.rx"), color: "var(--viz-1)", value: (p) => p.rx },
+          { label: t("infra.charts.tx"), color: "var(--viz-3)", value: (p) => p.tx },
+        ];
+        const ctr: ChartSeries[] = [
+          {
+            label:
+              snap.runtime.mode === "kubernetes"
+                ? t("infra.charts.pods_running")
+                : t("infra.charts.running"),
+            color: "var(--viz-1)",
+            value: (p) => p.running,
+          },
+          { label: t("infra.charts.runs"), color: "var(--viz-3)", value: (p) => p.runs },
+        ];
+        setChartLegend($("legend-net"), seriesLegend(net));
+        setChartLegend($("legend-ctr"), seriesLegend(ctr));
+        const h = snap.host;
+        $("now-cpu").textContent = h.proc_available ? fmtPercent(h.cpu_percent) : "";
+        $("now-mem").textContent = h.proc_available
+          ? t("infra.charts.memory_now", {
+              used: fmtBytes(h.memory.used),
+              pct: fmtPercent(h.memory.percent),
+            })
+          : "";
+        if (noProc) {
+          for (const id of ["chart-cpu", "chart-mem", "chart-net"])
+            emptyChart($(id), t("infra.charts.no_proc"));
+        } else {
+          drawChart("chart-cpu", t("infra.charts.cpu"), points, cpu, fmtPercent, windowMs, {
+            yMax: 100,
+          });
+          drawChart("chart-mem", t("infra.charts.memory"), points, mem, fmtPercent, windowMs, {
+            yMax: 100,
+          });
+          // Inside a container /proc/net counts only the container's own traffic, which would read
+          // as an idle machine.
+          if (h.net_in_container) emptyChart($("chart-net"), t("infra.charts.net_container"));
+          else
+            drawChart("chart-net", t("infra.charts.network"), points, net, fmtRate, windowMs, {
+              nice: niceBytes,
+            });
+        }
+        drawChart(
+          "chart-ctr",
+          t("infra.charts.containers"),
+          points,
+          ctr,
+          (v) => fmtCount(Math.round(v)),
+          windowMs,
+        );
+      }
+
+      function shareHTML(pct: number, label: string): string {
+        return `<span class="share"><span>${esc(fmtPercent(pct))}</span>${meterHTML(pct, { label, size: "xs" })}</span>`;
+      }
+
+      function renderGroups(s: Snapshot, cap: Capacity) {
+        const rows = groupUsage(s.kinds ?? []);
+        showEmpty("t-groups-wrap", "t-groups-empty", rows.length === 0);
+        $("usage-hint").textContent = t("infra.usage.hint", {
+          cpus: fmtCores(cap.cpus),
+          mem: fmtBytes(cap.mem),
+        });
+        fill(
+          "t-groups",
+          GROUP_COLS,
+          rows.map((r) => ({
+            cells: [
+              r.group === "other"
+                ? two(GROUP_LABEL[r.group], t("infra.usage.other_note"))
+                : r.group === "other_install"
+                  ? two(GROUP_LABEL[r.group], t("infra.usage.other_install_note"))
+                  : cell(GROUP_LABEL[r.group]),
+              t("infra.usage.running_value", { running: r.running, total: r.count }),
+              { html: shareHTML(share(r.cpuCores, cap.cpus), t("infra.usage.columns.cpu")) },
+              { html: shareHTML(share(r.memBytes, cap.mem), t("infra.usage.columns.memory")) },
+            ],
+          })),
+        );
+      }
+
+      function stateTone(c: Container): DotTone {
+        const st = c.state.toLowerCase();
+        if (st === "running") return /backoff|error/i.test(c.status) ? "warn" : "ok";
+        if (st === "pending" || st === "paused" || st === "restarting" || st === "created")
+          return "warn";
+        if (st === "failed" || st === "dead" || /error|oom|backoff/i.test(c.status))
+          return "danger";
+        return "neutral";
+      }
+
+      function filtersActive(): boolean {
+        return (
+          ($("f-group") as HTMLSelectElement).value !== "" ||
+          ($("f-search") as HTMLInputElement).value.trim() !== ""
+        );
+      }
+
+      const STOPPABLE = new Set<Kind>(["agent", "chat", "sandbox"]);
+      const toast = makeToast();
+      let myWorkspace: string | null = null;
+      void sessionInfo().then((me) => {
+        myWorkspace = me?.workspace_id ?? "";
+        rerenderTable();
+      });
+
+      const stopping = new Set<string>();
+
+      async function stopContainer(c: Container) {
+        const ok = await confirmDialog(
+          c.orphan
+            ? {
+                title: t("infra.containers.remove_orphan_title", { name: c.name }),
+                message: t("infra.containers.remove_orphan_message"),
+                confirmLabel: t("infra.containers.remove_orphan"),
+                danger: true,
+              }
+            : {
+                title: t("infra.containers.stop_title", { name: c.name }),
+                message:
+                  c.kind === "sandbox"
+                    ? killMessage(
+                        c.task_id
+                          ? containerOwnerName(c.task_id, c.task_title, c.project_name)
+                          : c.name,
+                        snap?.runtime.mode !== "kubernetes",
+                      )
+                    : c.kind === "chat"
+                      ? t("infra.containers.stop_chat")
+                      : t("infra.containers.stop_agent"),
+                confirmLabel: t("infra.containers.stop"),
+                danger: true,
+              },
+        );
+        if (!ok) return;
+        stopping.add(c.id);
+        rerenderTable();
+        const words = stopToasts(c);
+        toast(words.pending, "info");
+        try {
+          await api.post(`/infra/containers/${encodeURIComponent(c.id)}/stop`);
+          toast(words.done, "ok");
+        } catch (e) {
+          toast(words.failed(e instanceof ApiError ? e.message : String(e)), "err");
+        } finally {
+          stopping.delete(c.id);
+          void load();
+        }
+      }
+
+      function renderContainers(cap: Capacity) {
+        const group = ($("f-group") as HTMLSelectElement).value;
+        const runningOnly = ($("f-running") as HTMLInputElement).checked;
+        const q = ($("f-search") as HTMLInputElement).value.trim().toLowerCase();
+        const rows = sortContainers(
+          containers.filter((c) => {
+            if (group && groupOf(c.kind) !== group) return false;
+            if (runningOnly && c.state.toLowerCase() !== "running") return false;
+            if (!q) return true;
+            return [
+              c.name,
+              c.workspace_name,
+              c.workspace_id,
+              c.task_id,
+              c.task_title,
+              c.project_name,
+              c.agent,
+              c.stage,
+              c.service,
+              c.image,
+              c.namespace,
+            ]
+              .filter(Boolean)
+              .some((v) => v!.toLowerCase().includes(q));
+          }),
+          sortKey,
+          sortDesc,
+        );
+        const empty = rows.length === 0;
+        $("t-containers").hidden = empty;
+        $("t-containers-empty").hidden = !empty;
+        $("containers-count").textContent = t("infra.containers.count", {
+          shown: fmtCount(rows.length),
+          total: fmtCount(containers.length),
+        });
+        if (empty) {
+          const none = containers.length === 0;
+          const filtered = filtersActive() || runningOnly;
+          $("t-containers-empty-title").textContent = none
+            ? t("infra.containers.none_title")
+            : t("infra.containers.empty_title");
+          $("t-containers-empty-msg").textContent = none
+            ? t("infra.containers.none")
+            : t("infra.containers.empty");
+          $("btn-clear-filters").hidden = none || !filtered;
+        }
+        fill(
+          "t-containers",
+          CONTAINER_COLS,
+          rows.map((c) => containerRow(c, cap)),
+        );
+        setTableSort($("t-containers"), sortKey, sortDesc ? "descending" : "ascending");
+      }
+
+      function containerRow(c: Container, cap: Capacity): TableRow {
+        const running = c.state.toLowerCase() === "running";
+        const kindCls =
+          c.kind === "other" || c.kind === "other_install" ? "kind kind-foreign" : "kind";
+        let ws: TableCell = cell(DASH);
+        if (c.workspace_id || c.workspace_name) {
+          const label = esc(wsLabel(c.workspace_name, c.workspace_id));
+          ws = {
+            html: c.workspace_id
+              ? `<a class="cell-link" href="#workspaces" data-goto="workspaces">${label}</a>`
+              : label,
+            sub: c.workspace_name ? c.workspace_id : undefined,
+          };
+        }
+        const work =
+          [c.agent, c.stage && stageLabelOf(c.stage, stageLabels)].filter(Boolean).join(", ") ||
+          c.service;
+        let task: TableCell = cell(DASH);
+        if (work || c.task_id) {
+          // Task links only resolve in this session's workspace; another workspace's task stays
+          // text.
+          const subText = !c.task_id
+            ? ""
+            : c.task_title || !labelIsTask(c.task_id)
+              ? containerOwnerName(c.task_id, c.task_title, c.project_name)
+              : t("infra.containers.task_value", { id: c.task_id });
+          const linked =
+            c.task_id && labelIsTask(c.task_id) && reachableFrom(c.workspace_id, myWorkspace);
+          const inner = linked
+            ? `<a class="cell-link" href="${esc(taskHref(c.task_id!))}">${esc(subText)}</a>`
+            : esc(subText);
+          task = {
+            text: work || DASH,
+            subHTML: !subText
+              ? undefined
+              : c.task_title && c.task_id
+                ? `<span title="${esc(c.task_id)}">${inner}</span>`
+                : inner,
+          };
+        }
+        const unlimited = !c.mem_limit || (cap.mem > 0 && c.mem_limit >= cap.mem * 0.98);
+        const cpu = c.has_usage
+          ? two(
+              fmtPercent(share(c.cpu_cores, cap.cpus)),
+              c.cpu_cores >= 0.005 ? t("infra.containers.cores", { n: fmtCores(c.cpu_cores) }) : "",
+            )
+          : cell(DASH);
+        const mem = c.has_usage
+          ? two(
+              fmtBytes(c.mem_bytes),
+              unlimited
+                ? ""
+                : t("infra.containers.of_limit", {
+                    limit: fmtBytes(c.mem_limit),
+                    pct: fmtPercent(share(c.mem_bytes, c.mem_limit)),
+                  }),
+            )
+          : two(
+              DASH,
+              c.mem_limit ? t("infra.containers.limit_only", { limit: fmtBytes(c.mem_limit) }) : "",
+            );
+        const troubled = /error|oom|backoff/i.test(c.status);
+        const state: TableCell = {
+          html: dotHTML(stateTone(c), { cls: "lead-dot" }) + esc(stateLabel(c.state)),
+          sub: troubled
+            ? c.status
+            : c.restarts
+              ? t("infra.containers.restarts", { count: c.restarts })
+              : undefined,
+          attrs: c.status ? { title: c.status } : undefined,
+        };
+        const busy = stopping.has(c.id);
+        const act: TableCell =
+          STOPPABLE.has(c.kind) && running
+            ? {
+                actions: [
+                  {
+                    iconOnly: true,
+                    icon: "power",
+                    variant: "danger",
+                    label: c.orphan
+                      ? t("infra.containers.remove_orphan_named", { name: c.name })
+                      : t("infra.containers.stop_named", { name: c.name }),
+                    title: c.orphan
+                      ? t("infra.containers.remove_orphan")
+                      : t("infra.containers.stop"),
+                    disabled: busy,
+                    attrs: { "data-stop": c.id, "aria-busy": busy ? "true" : undefined },
+                  },
+                ],
+              }
+            : "";
+        return {
+          cells: [
+            {
+              text: c.name || DASH,
+              sub: c.image || undefined,
+              attrs: c.namespace ? { title: `${c.namespace}/${c.name}` } : undefined,
+            },
+            {
+              html:
+                `<span class="${kindCls}">${esc(KIND_LABEL[c.kind] ?? c.kind)}</span>` +
+                (c.orphan
+                  ? " " +
+                    badgeHTML(t("infra.containers.orphan"), "warn", {
+                      title: t("infra.containers.orphan_hint"),
+                    })
+                  : ""),
+              sub: c.runtime_class || undefined,
+            },
+            ws,
+            task,
+            cpu,
+            mem,
+            cell(running ? uptime(c.started_at) : DASH),
+            state,
+            act,
+          ],
+        };
+      }
+      $("t-containers").addEventListener("click", (e) => {
+        const target = e.target as Element;
+        if (target.closest("a[data-goto]")) {
+          e.preventDefault();
+          $("tab-workspaces").click();
+          return;
+        }
+        const stop = target.closest<HTMLButtonElement>("button[data-stop]");
+        if (!stop || stop.disabled) return;
+        const c = containers.find((x) => x.id === stop.dataset.stop);
+        if (c) void stopContainer(c);
+      });
+
+      function renderContainerTab(s: Snapshot) {
+        const kube = s.runtime.mode === "kubernetes";
+        const label = kube ? t("infra.tabs.pods") : t("infra.tabs.containers");
+        $("tab-containers-label").textContent = label;
+        $("containers-title").textContent = kube
+          ? t("infra.containers.title_pods")
+          : t("infra.containers.title");
+        setCount($("tab-containers-count"), fmtCount(s.totals.running), {
+          pill: true,
+          title: t("infra.tabs.running_count", { count: s.totals.running }),
+        });
+      }
+
+      function renderWorkspaces(s: Snapshot, cap: Capacity) {
+        const list = s.octopus.workspaces ?? [];
+        showEmpty("t-workspaces-wrap", "t-workspaces-empty", list.length === 0);
+        const c = s.octopus.counts;
+        setStat($("ws-count-workspaces"), { value: fmtCount(c.workspaces) });
+        setStat($("ws-count-users"), { value: fmtCount(c.users) });
+        setStat($("ws-count-projects"), { value: fmtCount(c.projects) });
+        setStat($("ws-count-tasks"), { value: fmtCount(c.tasks) });
+        setCount($("tab-workspaces-count"), list.length, { pill: true, hideZero: true });
+        fill(
+          "t-workspaces",
+          WORKSPACE_COLS,
+          list.map((w) => ({
+            cells: [
+              two(wsLabel(w.name, w.id), w.name ? w.id : ""),
+              cell(w.plan || DASH),
+              cell(fmtCount(w.running_containers)),
+              cell(
+                w.concurrency_limit > 0
+                  ? t("infra.workspaces.agents_of", {
+                      n: w.running_agents,
+                      cap: w.concurrency_limit,
+                    })
+                  : String(w.running_agents),
+              ),
+              cell(w.running_containers ? fmtPercent(share(w.cpu_cores, cap.cpus)) : DASH),
+              cell(w.running_containers ? fmtBytes(w.mem_bytes) : DASH),
+              cell(fmtCount(w.runs_today)),
+              cell(s.storage.computed_at ? fmtBytes(w.storage_bytes) : DASH),
+              cell(fmtCount(w.tokens_today)),
+              cell(fmtUsdCompact(w.cost_today)),
+            ],
+          })),
+        );
+      }
+
+      // /settings holds the stored cap, which on a shared install can differ from the cap in force (a stored 0
+      // is derived from the host).
+      let capStored: Record<string, unknown> | null = null;
+      let capLocked = false;
+      async function loadCapSettings() {
+        try {
+          capStored = await api.get<Record<string, unknown>>("/settings");
+        } catch {
+          capStored = null;
+        }
+        if (snap) renderCapacity(snap);
+      }
+      function lockCapacity() {
+        capLocked = true;
+        const body = $("limits").closest<HTMLElement>(".panel-body");
+        if (body)
+          showReadOnly(
+            body,
+            t("infra.capacity.install_wide"),
+            body.querySelectorAll(".cap-edit input, .cap-edit button"),
+          );
+      }
+      void mayWriteInstallWide().then((ok) => {
+        if (!ok) lockCapacity();
+      });
+
+      function capProblem(p: CapacityProblem, spec: CapacitySetting): string {
+        switch (p) {
+          case "required":
+            return t("infra.capacity.errors.required");
+          case "integer":
+            return t("infra.capacity.errors.integer");
+          case "range":
+            return spec.max !== undefined
+              ? t("infra.capacity.errors.between", { min: spec.min, max: spec.max })
+              : t("infra.capacity.errors.at_least", { min: spec.min });
+        }
+      }
+      function capHint(spec: CapacitySetting): string {
+        if (spec.max !== undefined)
+          return t("infra.capacity.hint_range", { min: spec.min, max: spec.max, def: spec.def });
+        return spec.zeroUnlimited
+          ? t("infra.capacity.hint_unlimited", { def: spec.def })
+          : t("infra.capacity.hint", { def: spec.def });
+      }
+
+      // Editors are built once and kept across the 5 s redraws; rebuilding them would discard what
+      // the user is typing.
+      function capEditor(spec: CapacitySetting): HTMLFormElement {
+        const form = el("form", "cap-edit");
+        form.noValidate = true;
+        const label = el("label", "cap-field");
+        const name = el(
+          "span",
+          "visually-hidden",
+          t("infra.capacity.edit_label", {
+            name: LIMIT_LABEL[spec.key] ?? spec.key,
+          }),
+        );
+        const input = el("input");
+        input.type = "text";
+        input.inputMode = "numeric";
+        const save = buttonEl({ label: t("infra.capacity.save"), size: "sm", type: "submit" });
+        const tpl = document.createElement("template");
+        tpl.innerHTML = inlineStatusHTML({ id: `cap-status-${spec.key.replace(/[^\w-]/g, "-")}` });
+        const msg = tpl.content.firstElementChild as HTMLElement;
+        const refuse = (text: string) => {
+          input.setAttribute("aria-invalid", "true");
+          input.setAttribute("aria-describedby", msg.id);
+          setInlineStatus(msg, "danger", text);
+        };
+        input.addEventListener("input", () => {
+          input.dataset.dirty = "1";
+          input.removeAttribute("aria-invalid");
+          input.removeAttribute("aria-describedby");
+          setInlineStatus(msg, "neutral", "");
+        });
+        label.append(name, input);
+        const hint = el("span", "row-sub cap-hint", capHint(spec));
+        form.append(label, save, msg, hint);
+        if (capLocked) {
+          input.disabled = true;
+          save.disabled = true;
+        }
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const check = checkCapacity(spec, input.value);
+          if (!check.ok) {
+            refuse(capProblem(check.problem, spec));
+            return;
+          }
+          save.disabled = true;
+          try {
+            await api.put(`/settings/${spec.key}`, check.value);
+            if (capStored) capStored[spec.key] = check.value;
+            delete input.dataset.dirty;
+            setInlineStatus(msg, "ok", t("infra.capacity.saved"));
+            void load();
+          } catch (err) {
+            if (isOperatorRefusal(err)) {
+              delete input.dataset.dirty;
+              lockCapacity();
+              await loadCapSettings();
+              return;
+            }
+            refuse(err instanceof ApiError ? err.message : String(err));
+          } finally {
+            if (!capLocked) save.disabled = false;
+          }
+        });
+        return form;
+      }
+
+      function capRow(host: HTMLElement, key: string, index: number): HTMLElement {
+        let row = host.querySelector<HTMLElement>(`:scope > [data-limit="${key}"]`);
+        if (!row) {
+          row = el("div", "limit-row");
+          row.dataset.limit = key;
+          row.appendChild(el("div", "limit-live"));
+          const spec = CAPACITY_SETTINGS.find((c) => c.key === key);
+          if (spec) row.appendChild(capEditor(spec));
+        }
+        if (host.children[index] !== row) host.insertBefore(row, host.children[index] ?? null);
+        const spec = CAPACITY_SETTINGS.find((c) => c.key === key);
+        const input = row.querySelector<HTMLInputElement>(".cap-edit input");
+        if (spec && input && capStored && document.activeElement !== input && !input.dataset.dirty)
+          input.value = String(storedCapacity(spec, capStored));
+        const editor = row.querySelector<HTMLElement>(".cap-edit");
+        if (editor) editor.hidden = !capStored;
+        return row;
+      }
+
+      function renderCapacity(s: Snapshot) {
+        const host = $("limits");
+        const extra = $("limits-extra");
+        extra.replaceChildren();
+        const q = s.octopus.queue;
+        const keys: string[] = [];
+        const waiting: Record<string, number> = {
+          "agent.max_containers": q.agent.waiting,
+          "mention.max_containers": q.mention.waiting,
+        };
+        for (const l of s.octopus.limits ?? []) {
+          keys.push(l.key);
+          const row = capRow(host, l.key, keys.length - 1).querySelector<HTMLElement>(
+            ".limit-live",
+          )!;
+          row.replaceChildren();
+          const head = el("div", "row-head");
+          head.append(
+            el("span", undefined, LIMIT_LABEL[l.key] ?? l.key),
+            el(
+              "span",
+              "num",
+              l.cap > 0
+                ? t("infra.capacity.of_cap", { n: l.in_use, cap: l.cap })
+                : t("infra.capacity.no_cap", { n: l.in_use }),
+            ),
+          );
+          head.lastElementChild!.classList.toggle("quiet", l.cap <= 0);
+          row.appendChild(head);
+          if (l.cap > 0)
+            row.appendChild(meter(share(l.in_use, l.cap), LIMIT_LABEL[l.key] ?? l.key));
+          if (waiting[l.key])
+            row.appendChild(
+              el("span", "row-sub", t("infra.capacity.waiting", { count: waiting[l.key] })),
+            );
+          if (l.key === "sandbox.max") {
+            const sub = el("span", "row-sub");
+            const a = el("a", undefined, t("infra.capacity.sandboxes_link"));
+            a.href = "/sandboxes/";
+            sub.appendChild(a);
+            row.appendChild(sub);
+          }
+        }
+        if (keys.length) {
+          keys.push("agent.max_queue_minutes");
+          const live = capRow(
+            host,
+            "agent.max_queue_minutes",
+            keys.length - 1,
+          ).querySelector<HTMLElement>(".limit-live")!;
+          const head = el("div", "row-head");
+          head.append(el("span", undefined, LIMIT_LABEL["agent.max_queue_minutes"]));
+          live.replaceChildren(head);
+        }
+        for (const row of Array.from(host.querySelectorAll<HTMLElement>(":scope > [data-limit]")))
+          if (!keys.includes(row.dataset.limit!)) row.remove();
+        if (q.room)
+          extra.appendChild(el("p", "row-sub", t("infra.capacity.room", { count: q.room })));
+        if (!keys.length) extra.appendChild(emptyLine(t("infra.capacity.none")));
+
+        const runs = s.octopus.active_runs ?? [];
+        const list = $("runs");
+        if (!runs.length) {
+          list.replaceChildren(emptyLine(t("infra.capacity.runs_empty"), "li"));
+          return;
+        }
+        list.innerHTML = runs
+          .map((r) =>
+            listRowHTML({
+              as: "li",
+              title: r.agent || DASH,
+              meta: r.stage
+                ? t("infra.capacity.run_where", {
+                    workspace: wsLabel(r.workspace_name, r.workspace_id),
+                    stage: stageLabelOf(r.stage, stageLabels),
+                  })
+                : wsLabel(r.workspace_name, r.workspace_id),
+              aside: t("infra.capacity.runs_count", { count: r.count }),
+            }),
+          )
+          .join("");
+      }
+
+      function barRow(label: string, pct: number, num: string, title?: string): HTMLElement {
+        return node(chartBarRowHTML({ label, share: pct, value: num, title }));
+      }
+
+      function renderDisks(s: Snapshot) {
+        const host = $("disks");
+        host.replaceChildren();
+        const disks = s.host.disks ?? [];
+        for (const d of disks) {
+          const row = el("div", "disk-row");
+          const head = el("div", "row-head");
+          const name = el("span");
+          name.appendChild(el("span", "path", d.path));
+          const tags = el("span", "role-tags");
+          for (const r of d.roles) tags.appendChild(node(badgeHTML(ROLE_LABEL[r] ?? r)));
+          name.appendChild(tags);
+          head.append(name, el("span", "num", fmtPercent(d.percent)));
+          row.append(
+            head,
+            meter(d.percent, d.path),
+            el(
+              "span",
+              "row-sub",
+              t("infra.disks.detail", {
+                used: fmtBytes(d.used),
+                size: fmtBytes(d.size),
+                free: fmtBytes(d.free),
+                inodes: fmtPercent(d.inodes_percent),
+              }),
+            ),
+          );
+          host.appendChild(row);
+        }
+        if (!disks.length) host.appendChild(emptyLine(t("infra.tiles.no_disks")));
+        $("disks-help").hidden = !s.host.in_container;
+        $("disks-help-text").textContent = t("infra.disks.note_container", {
+          env: "OCTOPUS_INFRA_DISK_PATHS", // i18n-ignore: an environment variable's name
+        });
+      }
+
+      function renderStorage(s: Snapshot) {
+        const st = s.storage;
+        const dirs = $("storage-dirs");
+        dirs.replaceChildren();
+        if (!st.computed_at) {
+          dirs.appendChild(
+            emptyLine(st.data_dir ? t("infra.storage.pending") : t("infra.storage.no_data_dir")),
+          );
+          $("storage-hint").textContent = "";
+        } else {
+          $("storage-hint").textContent = t("infra.storage.hint", {
+            dir: st.data_dir,
+            ago: uptime(st.computed_at),
+          });
+          const head = el("div", "row-head");
+          head.append(
+            el("span", undefined, t("infra.storage.total")),
+            el("span", "num", fmtBytes(st.total)),
+          );
+          dirs.appendChild(head);
+          if (st.total > 0) {
+            for (const d of st.dirs ?? []) {
+              dirs.appendChild(
+                barRow(DIR_LABEL[d.name] ?? d.name, share(d.bytes, st.total), fmtBytes(d.bytes)),
+              );
+            }
+          } else {
+            dirs.appendChild(emptyLine(t("infra.storage.empty")));
+          }
+          if (st.partial) dirs.appendChild(el("p", "row-sub", t("infra.storage.partial")));
+        }
+
+        const pg = s.octopus.postgres;
+        const tables = $("pg-tables");
+        tables.replaceChildren();
+        if (pg) {
+          facts($("pg-facts"), [
+            [t("infra.postgres.size"), fmtBytes(pg.database_size)],
+            [
+              t("infra.postgres.connections"),
+              t("infra.postgres.connections_value", {
+                n: pg.connections,
+                max: pg.max_connections,
+              }),
+            ],
+            [t("infra.postgres.version"), pg.version],
+          ]);
+          const top = pg.largest_tables ?? [];
+          $("pg-tables-head").hidden = top.length === 0;
+          const biggest = top[0]?.bytes || 1;
+          for (const tb of top.slice(0, 6)) {
+            tables.appendChild(
+              barRow(
+                tb.name,
+                share(tb.bytes, biggest),
+                fmtBytes(tb.bytes),
+                t("infra.postgres.rows", { name: tb.name, n: fmtCount(tb.rows) }),
+              ),
+            );
+          }
+        } else {
+          facts($("pg-facts"), [[t("infra.postgres.size"), t("infra.postgres.unavailable")]]);
+          $("pg-tables-head").hidden = true;
+        }
+
+        const d = s.runtime.docker;
+        $("docker-panel").hidden = !d;
+        const vols = $("docker-volumes");
+        vols.replaceChildren();
+        $("docker-volumes-head").hidden = true;
+        if (d) {
+          facts(
+            $("docker-df"),
+            d.disk_usage_at
+              ? [
+                  [
+                    t("infra.docker.images"),
+                    t("infra.docker.images_value", { n: d.images, size: fmtBytes(d.images_size) }),
+                  ],
+                  [t("infra.docker.volumes"), fmtBytes(d.volumes_size)],
+                  [t("infra.docker.build_cache"), fmtBytes(d.build_cache_size)],
+                ]
+              : [[t("infra.docker.images"), t("infra.storage.pending")]],
+          );
+          const top = (d.volumes ?? []).filter((v) => v.size > 0).slice(0, 5);
+          $("docker-volumes-head").hidden = top.length === 0;
+          const biggest = top[0]?.size || 1;
+          for (const v of top)
+            vols.appendChild(barRow(v.name, share(v.size, biggest), fmtBytes(v.size)));
+        }
+      }
+
+      function renderHost(s: Snapshot) {
+        const h = s.host;
+        const m = h.memory;
+        const rows: Array<[string, string]> = [
+          [t("infra.host.hostname"), h.hostname],
+          [
+            t("infra.host.os"),
+            h.arch ? t("infra.host.os_value", { os: h.os, arch: h.arch }) : h.os,
+          ],
+          [t("infra.host.kernel"), h.kernel],
+          [t("infra.host.cpu"), h.cpu_model],
+          [
+            t("infra.host.cores"),
+            t("infra.host.cores_value", { cores: h.cores, threads: h.threads }),
+          ],
+        ];
+        if (h.proc_available) {
+          rows.push(
+            [
+              t("infra.host.uptime"),
+              h.uptime_seconds ? formatSeconds(Math.floor(h.uptime_seconds)) : DASH,
+            ],
+            [t("infra.host.load"), (h.load ?? []).map((v) => v.toFixed(2)).join(", ")],
+            [
+              t("infra.host.memory"),
+              t("infra.host.memory_value", {
+                used: fmtBytes(m.used),
+                total: fmtBytes(m.total),
+                available: fmtBytes(m.available),
+                cached: fmtBytes(m.cached + m.buffers),
+              }),
+            ],
+            [
+              t("infra.host.swap"),
+              m.swap_total
+                ? t("infra.host.swap_value", {
+                    used: fmtBytes(m.swap_used),
+                    total: fmtBytes(m.swap_total),
+                  })
+                : t("infra.host.no_swap"),
+            ],
+            [
+              t("infra.host.network"),
+              t("infra.host.network_value", {
+                rx: fmtRate(h.net.rx_bps),
+                tx: fmtRate(h.net.tx_bps),
+              }),
+            ],
+            [t("infra.host.interfaces"), (h.net.interfaces ?? []).map((i) => i.name).join(", ")],
+          );
+        }
+        facts($("host-facts"), rows);
+        $("host-help").hidden = !h.in_container && h.proc_available;
+        $("host-help-text").textContent = !h.proc_available
+          ? t("infra.host.note_no_proc", {
+              env: "OCTOPUS_INFRA_PROC_ROOT", // i18n-ignore: an environment variable's name
+            })
+          : t("infra.host.note_container");
+      }
+
+      function renderRuntime(s: Snapshot) {
+        const mode = s.runtime.mode;
+        $("runtime-mode").textContent =
+          mode === "docker"
+            ? t("infra.runtime.docker")
+            : mode === "kubernetes"
+              ? t("infra.runtime.kubernetes")
+              : t("infra.runtime.none");
+        const note = $("runtime-note");
+        note.hidden = true;
+        const d = s.runtime.docker;
+        const k = s.runtime.kube;
+        $("runtime-facts").hidden = !d && !k;
+        $("runtime-none").hidden = !!d || !!k;
+        $("nodes-panel").hidden = !k;
+        $("quotas-panel").hidden = !k;
+        $("quotas-docker-note").hidden = mode !== "docker";
+        if (d) {
+          facts($("runtime-facts"), [
+            [t("infra.runtime.version"), d.server_version],
+            [
+              t("infra.runtime.engine_os"),
+              [d.operating_system, d.kernel_version].filter(Boolean).join(", "),
+            ],
+            [
+              t("infra.runtime.engine_resources"),
+              t("infra.runtime.engine_resources_value", {
+                cpus: d.ncpu,
+                mem: fmtBytes(d.mem_total),
+              }),
+            ],
+            [t("infra.runtime.storage_driver"), d.storage_driver],
+            [t("infra.runtime.root_dir"), d.root_dir],
+            [t("infra.runtime.compose_project"), d.compose_project],
+            [
+              t("infra.runtime.container_states"),
+              t("infra.runtime.container_states_value", {
+                running: d.running,
+                paused: d.paused,
+                stopped: d.stopped,
+              }),
+            ],
+          ]);
+        } else if (k) {
+          facts($("runtime-facts"), [
+            [
+              t("infra.runtime.runtime_class"),
+              k.runtime_class || t("infra.runtime.default_runtime"),
+            ],
+            [t("infra.runtime.control_plane"), k.control_plane_namespace],
+            [
+              t("infra.runtime.pod_phases"),
+              t("infra.runtime.pod_phases_value", {
+                running: k.pods.running,
+                pending: k.pods.pending,
+                failed: k.pods.failed,
+                succeeded: k.pods.succeeded,
+              }),
+            ],
+            [t("infra.runtime.pvcs"), String((k.pvcs ?? []).length)],
+            ...(k.agent_images ?? []).map((b): [string, string] => [
+              t("infra.runtime.agent_image"),
+              agentImageText(b),
+            ]),
+          ]);
+          if (!k.metrics_available) {
+            note.hidden = false;
+            note.textContent = t("infra.runtime.no_metrics");
+          }
+          renderNodes(s);
+          renderQuotas(s);
+        } else {
+          facts($("runtime-facts"), []);
+        }
+      }
+
+      function renderNodes(s: Snapshot) {
+        const k = s.runtime.kube!;
+        const host = $("nodes");
+        host.replaceChildren();
+        for (const n of k.nodes ?? []) {
+          const card = node(
+            cardHTML({
+              title: n.name,
+              headHTML: `<span class="row-sub">${esc([n.os_image, n.container_runtime].filter(Boolean).join(", "))}</span>`,
+              bodyHTML: " ",
+            }),
+          );
+          const body = card.querySelector<HTMLElement>(".card-body")!;
+          body.replaceChildren();
+          const cpuCap = n.cpu_allocatable_milli || n.cpu_capacity_milli;
+          const memCap = n.mem_allocatable || n.mem_capacity;
+          const lines: Array<[string, number, string]> = [
+            [
+              t("infra.runtime.node_cpu_requests"),
+              share(n.cpu_requests_milli, cpuCap),
+              t("infra.runtime.node_cores", {
+                used: fmtCores(n.cpu_requests_milli / 1000),
+                total: fmtCores(cpuCap / 1000),
+              }),
+            ],
+            [
+              t("infra.runtime.node_mem_requests"),
+              share(n.mem_requests, memCap),
+              t("infra.runtime.node_bytes", {
+                used: fmtBytes(n.mem_requests),
+                total: fmtBytes(memCap),
+              }),
+            ],
+          ];
+          if (k.metrics_available) {
+            lines.unshift(
+              [
+                t("infra.runtime.node_cpu_usage"),
+                share(n.cpu_usage_milli, n.cpu_capacity_milli),
+                t("infra.runtime.node_cores", {
+                  used: fmtCores(n.cpu_usage_milli / 1000),
+                  total: fmtCores(n.cpu_capacity_milli / 1000),
+                }),
+              ],
+              [
+                t("infra.runtime.node_mem_usage"),
+                share(n.mem_usage, n.mem_capacity),
+                t("infra.runtime.node_bytes", {
+                  used: fmtBytes(n.mem_usage),
+                  total: fmtBytes(n.mem_capacity),
+                }),
+              ],
+            );
+          }
+          const bars = el("div", "chart-bars");
+          for (const [label, pct, num] of lines) bars.appendChild(barRow(label, pct, num));
+          body.appendChild(bars);
+          const conds = el("div", "conds");
+          for (const c of n.conditions ?? []) {
+            const good = c.type === "Ready" ? c.status === "True" : c.status === "False";
+            conds.appendChild(
+              node(
+                badgeHTML(
+                  t("infra.runtime.condition", { type: c.type, status: c.status }),
+                  good ? "ok" : "danger",
+                  { icon: good ? "check" : "alert", title: c.message || undefined },
+                ),
+              ),
+            );
+          }
+          body.appendChild(conds);
+          body.appendChild(
+            el(
+              "span",
+              "row-sub",
+              t("infra.runtime.node_meta", {
+                kubelet: n.kubelet_version,
+                kernel: n.kernel,
+                pods: n.pods_capacity,
+              }),
+            ),
+          );
+          host.appendChild(card);
+        }
+        if (!host.childElementCount) host.appendChild(emptyLine(t("infra.runtime.no_nodes")));
+      }
+
+      function quotaCell(q: Quota, res: "cpu" | "memory"): TableCell {
+        const pair = (key: string) =>
+          q.hard[key]
+            ? t("infra.quotas.pair", {
+                used: fmtQuantity(q.used[key] ?? "0", res),
+                hard: fmtQuantity(q.hard[key], res),
+              })
+            : "";
+        const reserved = pair(`requests.${res}`);
+        const ceiling = pair(`limits.${res}`);
+        if (!reserved) return cell(ceiling || DASH);
+        return two(reserved, ceiling ? t("infra.quotas.ceiling", { value: ceiling }) : "");
+      }
+
+      function renderQuotas(s: Snapshot) {
+        const quotas = s.runtime.kube?.quotas ?? [];
+        showEmpty("t-quotas-wrap", "t-quotas-empty", quotas.length === 0);
+        fill(
+          "t-quotas",
+          QUOTA_COLS,
+          quotas.map((q) => ({
+            cells: [
+              two(
+                wsLabel(q.workspace_name, q.workspace_id),
+                q.workspace_name ? q.workspace_id : "",
+              ),
+              q.namespace,
+              quotaCell(q, "cpu"),
+              quotaCell(q, "memory"),
+              cell(
+                q.hard.pods
+                  ? t("infra.quotas.pair", {
+                      used: fmtQuantity(q.used.pods ?? "0", "count"),
+                      hard: fmtQuantity(q.hard.pods, "count"),
+                    })
+                  : DASH,
+              ),
+            ],
+          })),
+        );
+      }
+
+      function renderLive() {
+        const live = $("live");
+        const text = $("live-text");
+        const dot = $("live-dot");
+        const warn = $("live-warn");
+        if (!snap) return;
+        const stale = Boolean(staleError);
+        live.dataset.state = stale ? "stale" : document.hidden ? "paused" : "live";
+        dot.hidden = stale;
+        dot.className = dotClasses(document.hidden ? "neutral" : "ok");
+        warn.hidden = !stale;
+        live.title = staleError;
+        text.textContent = stale
+          ? t("infra.live.stale", { ago: uptime(snap.collected_at) })
+          : document.hidden
+            ? t("infra.live.paused")
+            : t("infra.live.updated", { ago: uptime(snap.collected_at) });
+      }
+
+      function renderAll() {
+        if (!snap) return;
+        const cap = capacityOf(snap);
+        renderProblems(snap);
+        renderTiles(snap);
+        renderCharts();
+        renderGroups(snap, cap);
+        renderCapacity(snap);
+        renderContainerTab(snap);
+        renderContainers(cap);
+        renderWorkspaces(snap, cap);
+        renderDisks(snap);
+        renderStorage(snap);
+        renderHost(snap);
+        renderRuntime(snap);
+        renderLive();
+      }
+
+      function block(title: string, text: string, retry = false) {
+        $("content").hidden = true;
+        const box = $("blocked");
+        box.innerHTML = calloutHTML({
+          icon: "tt-shield",
+          title,
+          body: text,
+          actionsHTML: retry
+            ? buttonHTML({
+                label: t("infra.blocked.retry"),
+                size: "sm",
+                attrs: { "data-act": "retry" },
+              })
+            : undefined,
+        });
+        box.hidden = false;
+        $("live-text").textContent = "";
+      }
+
+      async function load() {
+        if (stopped) return;
+        if (inflight) {
+          reloadAfter = true;
+          return;
+        }
+        inflight = true;
+        const refresh = $("btn-refresh") as HTMLButtonElement;
+        refresh.disabled = true;
+        try {
+          const [o, c, h] = await Promise.all([
+            api.get<Snapshot>("/infra/overview"),
+            api.get<{ containers: Container[] | null }>("/infra/containers"),
+            api.get<History>(`/infra/history?range=${encodeURIComponent(range)}`),
+          ]);
+          snap = o;
+          containers = c.containers ?? [];
+          history = h;
+          staleError = "";
+          $("content").hidden = false;
+          $("content").removeAttribute("aria-busy");
+          $("blocked").hidden = true;
+          renderAll();
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          if (isOperatorRefusal(e)) {
+            stopped = true;
+            block(
+              t("infra.blocked.not_operator_title"),
+              t("infra.blocked.not_operator", { env: OPERATOR_ENV }),
+            );
+          } else if (e instanceof ApiError && e.status === 403) {
+            stopped = true;
+            block(t("infra.blocked.forbidden_title"), t("infra.blocked.forbidden"));
+          } else if (e instanceof ApiError && e.status === 503) {
+            block(t("infra.blocked.unavailable_title"), t("infra.blocked.unavailable"), true);
+          } else if (!snap) {
+            block(t("infra.blocked.failed_title"), t("infra.blocked.failed", { error: msg }), true);
+          } else {
+            staleError = msg;
+            renderLive();
+          }
+        } finally {
+          inflight = false;
+          refresh.disabled = false;
+          if (reloadAfter && !stopped) {
+            reloadAfter = false;
+            void load();
+          } else {
+            schedule();
+          }
+        }
+      }
+
+      function schedule() {
+        window.clearTimeout(timer);
+        if (stopped || document.hidden) return;
+        timer = window.setTimeout(() => void load(), REFRESH_MS);
+      }
+      signal.addEventListener("abort", () => {
+        stopped = true;
+        window.clearTimeout(timer);
+      });
+
+      void api
+        .get<Stage[]>("/stages")
+        .then((stages) => {
+          stageLabels = new Map(stages.map((st) => [st.id, st.label || st.id]));
+          if (snap) renderAll();
+        })
+        .catch(() => {});
+      const groupSel = $("f-group") as HTMLSelectElement;
+      for (const g of GROUP_ORDER) {
+        const opt = el("option", undefined, GROUP_LABEL[g]);
+        opt.value = g;
+        groupSel.appendChild(opt);
+      }
+      const rerenderTable = () => {
+        if (!snap) return;
+        renderContainers(capacityOf(snap));
+      };
+      groupSel.addEventListener("change", rerenderTable);
+      $("f-running").addEventListener("change", rerenderTable);
+      $("f-search").addEventListener("input", rerenderTable);
+      $("btn-clear-filters").addEventListener("click", () => {
+        groupSel.value = "";
+        ($("f-search") as HTMLInputElement).value = "";
+        ($("f-running") as HTMLInputElement).checked = false;
+        rerenderTable();
+        ($("f-search") as HTMLInputElement).focus();
+      });
+      $("t-containers")
+        .querySelectorAll<HTMLElement>("th[data-sort] button")
+        .forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const key = btn.parentElement!.dataset.sort as SortKey;
+            if (key === sortKey) sortDesc = !sortDesc;
+            else {
+              sortKey = key;
+              sortDesc = key === "cpu" || key === "mem";
+            }
+            rerenderTable();
+          });
+        });
+
+      const rangeGroup = $("range-chips");
+      setSegmentedValue(rangeGroup, range);
+      rangeGroup.addEventListener("change", () => {
+        range = segmentedValue(rangeGroup) ?? range;
+        try {
+          localStorage.setItem(RANGE_KEY, range);
+        } catch {
+          /* storage blocked: the choice lasts for this page */
+        }
+        void load();
+      });
+
+      $("btn-refresh").addEventListener("click", () => void load());
+      $("blocked").addEventListener("click", (e) => {
+        const retry = (e.target as Element).closest<HTMLButtonElement>("[data-act='retry']");
+        if (!retry) return;
+        retry.disabled = true;
+        retry.setAttribute("aria-busy", "true");
+        void load();
+      });
+      document.addEventListener(
+        "visibilitychange",
+        () => {
+          renderLive();
+          if (document.hidden) window.clearTimeout(timer);
+          else void load();
+        },
+        { signal },
+      );
+      every(1000, renderLive, signal);
+      let resizeFrame = 0;
+      window.addEventListener(
+        "resize",
+        () => {
+          cancelAnimationFrame(resizeFrame);
+          resizeFrame = requestAnimationFrame(renderCharts);
+        },
+        { signal },
+      );
+
+      // Only an explicit operator === false skips the request; no login or an older daemon without
+      // the field falls through to the server.
+      void Promise.all([sessionInfo(), authDisabled()]).then(([me, open]) => {
+        if (me?.operator === false && !open) {
+          stopped = true;
+          block(
+            t("infra.blocked.not_operator_title"),
+            t("infra.blocked.not_operator", { env: OPERATOR_ENV }),
+          );
+          return;
+        }
+        void load();
+        void loadCapSettings();
+      });
+    });
+  </script>
+
+  <script>
+    // Refreshes every 60 s: the figures span days of install log, so the 5 s host tick would
+    // re-read the same rows.
+    import { ApiError, api } from "../lib/api";
+    import { fmtBytes, fmtPercent, reachableFrom, workspaceLabel } from "../lib/infra";
+    import {
+      areaLabel,
+      areaLegend,
+      areaSegments,
+      areaTone,
+      barsSummary,
+      cacheProjectColumns,
+      cacheToolColumns,
+      cacheWorkspaceColumns,
+      CACHE_RANGES,
+      fmtDuration,
+      fmtGrowth,
+      fmtHitRate,
+      isEmptyReport,
+      namesOf,
+      partialSince,
+      projectInitScriptHref,
+      projectTone,
+      signalText,
+      signalTone,
+      sortProjects,
+      stackedBars,
+      stackLegend,
+      statusLabel,
+      type CacheRange,
+      type CacheReport,
+      type Tone,
+    } from "../lib/infra-cache";
+    import { fmtDate, uptime } from "../lib/time";
+    import {
+      $,
+      badgeHTML,
+      buttonHTML,
+      dotHTML,
+      esc,
+      makeToast,
+      meterTone,
+      progressBarHTML,
+      segmentedValue,
+      setChartLegend,
+      setMeter,
+      setSegmentedValue,
+      setStat,
+      tableRowHTML,
+      type TableCell,
+      type TableColumn,
+      type TableRow,
+    } from "../lib/ui";
+    import { sessionInfo } from "../lib/auth";
+    import { t } from "../i18n";
+    import { onPage } from "../lib/page";
+
+    onPage("/infra", (signal) => {
+      const REFRESH_MS = 60_000;
+      const toast = makeToast();
+      // Project links and prewarm only work in this session's workspace; without a session
+      // (no-login, API key) the daemon picks the workspace.
+      let myWorkspace: string | null = null;
+      void sessionInfo().then((me) => {
+        myWorkspace = me?.workspace_id ?? "";
+        render();
+      });
+      function here(workspaceID?: string): boolean {
+        return reachableFrom(workspaceID, myWorkspace);
+      }
+      const RANGE_KEY = "octopus.infra.cache_range";
+      const DASH = "—";
+      let range: CacheRange = "7d";
+      try {
+        const saved = localStorage.getItem(RANGE_KEY) as CacheRange | null;
+        if (saved && CACHE_RANGES.includes(saved)) range = saved;
+      } catch {
+        /* storage blocked: the default range */
+      }
+      let report: CacheReport | null = null;
+      let timer: number | undefined;
+      let stopped = false;
+      let seq = 0;
+
+      function el<K extends keyof HTMLElementTagNameMap>(
+        tag: K,
+        cls?: string,
+        text?: string,
+      ): HTMLElementTagNameMap[K] {
+        const e = document.createElement(tag);
+        if (cls) e.className = cls;
+        if (text !== undefined) e.textContent = text;
+        return e;
+      }
+      const NONE = { "data-none": true };
+      function cell(text: string): TableCell {
+        return text === DASH ? { text, attrs: NONE } : text;
+      }
+      function fill(id: string, cols: TableColumn[], rows: TableRow[]) {
+        $(id).querySelector("tbody")!.innerHTML = rows
+          .map((r) => tableRowHTML(cols, r, { stack: true }))
+          .join("");
+      }
+      const PROJECT_COLS = cacheProjectColumns();
+      const WORKSPACE_COLS = cacheWorkspaceColumns();
+      const TOOL_COLS = cacheToolColumns();
+      function node(html: string): HTMLElement {
+        const tpl = document.createElement("template");
+        tpl.innerHTML = html;
+        return tpl.content.firstElementChild as HTMLElement;
+      }
+      function dot(tone: Tone): HTMLElement {
+        return node(dotHTML(tone || "neutral", { cls: "lead-dot" }));
+      }
+      function setTile(id: string, value: string, sub: string, pct?: number) {
+        const tile = $(id);
+        setStat(tile, { value, sub });
+        const m = tile.querySelector<HTMLElement>("[data-meter]");
+        if (!m) return;
+        m.hidden = pct === undefined;
+        if (pct !== undefined) setMeter(m, pct, { thresholds: true });
+      }
+      function showEmpty(wrap: string, empty: string, isEmpty: boolean) {
+        $(wrap).hidden = isEmpty;
+        $(empty).hidden = !isEmpty;
+      }
+      function message(title: string, text: string) {
+        $("cache-body").hidden = true;
+        $("cache-msg").hidden = false;
+        $("cache-msg-title").textContent = title;
+        $("cache-msg-text").textContent = text;
+        $("tab-cache-flag").hidden = true;
+      }
+      const ago = (iso: string | null) =>
+        iso ? t("infra.cache.workspaces.ago", { ago: uptime(iso) }) : DASH;
+
+      function renderSignals(r: CacheReport) {
+        const list = r.signals ?? [];
+        $("cache-signals").hidden = list.length === 0;
+        $("tab-cache-flag").hidden = list.length === 0;
+        const ul = $("cache-signals-list");
+        ul.replaceChildren();
+        const names = namesOf(r);
+        for (const s of list) {
+          const li = el("li");
+          const text = signalText(s, names, r.thresholds);
+          if (s.project_id && here(s.workspace_id)) {
+            const a = el("a", "signal-link", text);
+            a.href = projectInitScriptHref(s.project_id);
+            li.append(dot(signalTone(s)), a);
+          } else li.append(dot(signalTone(s)), el("span", undefined, text));
+          ul.appendChild(li);
+        }
+      }
+
+      function renderTiles(r: CacheReport) {
+        const tot = r.totals;
+        // The meter fills with hits, so its severity tone comes from the miss share.
+        const hit = tot.hit_rate;
+        setTile(
+          "ct-hit",
+          fmtHitRate(hit),
+          t("infra.cache.tiles.hit_rate_sub", { hits: tot.hits, runs: tot.with_setup }),
+          hit === null ? undefined : hit * 100,
+        );
+        const m = $("ct-hit").querySelector<HTMLElement>("[data-meter]");
+        if (m && hit !== null) setMeter(m, hit * 100, { tone: meterTone((1 - hit) * 100) });
+        setTile(
+          "ct-installs",
+          String(tot.runs),
+          t("infra.cache.tiles.installs_sub", {
+            prewarms: tot.prewarms,
+            failed: tot.prewarms_failed,
+          }),
+        );
+        setTile(
+          "ct-downloads",
+          String(tot.statuses.ran ?? 0),
+          t("infra.cache.tiles.downloads_sub", { tools: tot.tool_downloads }),
+        );
+        setTile(
+          "ct-saved",
+          fmtDuration(tot.time_saved_ms),
+          tot.avg_ran_setup_ms > 0
+            ? t("infra.cache.tiles.time_saved_sub", { avg: fmtDuration(tot.avg_ran_setup_ms) })
+            : t("infra.cache.tiles.time_saved_none"),
+        );
+        const names = namesOf(r);
+        if (tot.fullest_pct !== null && tot.fullest_workspace) {
+          setTile(
+            "ct-used",
+            fmtBytes(tot.cache_bytes),
+            t("infra.cache.tiles.cache_used_sub", {
+              workspace: names.workspace(tot.fullest_workspace),
+              pct: fmtPercent(tot.fullest_pct),
+            }),
+            tot.fullest_pct,
+          );
+        } else {
+          setTile(
+            "ct-used",
+            (r.workspaces ?? []).length ? fmtBytes(tot.cache_bytes) : DASH,
+            t("infra.cache.tiles.cache_used_none"),
+          );
+        }
+      }
+
+      function renderChart(r: CacheReport) {
+        const host = $("cache-chart");
+        const days = r.daily ?? [];
+        host.innerHTML = stackedBars(days, {
+          width: host.clientWidth || 600,
+          height: host.clientHeight || 180,
+        });
+        host.setAttribute("aria-label", barsSummary(days));
+        setChartLegend($("cache-legend"), stackLegend());
+        const since = partialSince(r);
+        const note = $("cache-partial");
+        note.hidden = !since;
+        if (since) note.textContent = t("infra.cache.partial", { date: fmtDate(since) });
+      }
+
+      function renderProjects(r: CacheReport) {
+        const list = sortProjects(r.projects ?? []);
+        showEmpty("ct-projects-wrap", "ct-projects-empty", list.length === 0);
+        fill(
+          "ct-projects",
+          PROJECT_COLS,
+          list.map((p) => {
+            const label = esc(p.project_name || p.project_id);
+            const name: TableCell = {
+              html:
+                dotHTML(projectTone(p, r.thresholds) || "neutral", { cls: "lead-dot" }) +
+                (here(p.workspace_id)
+                  ? `<a class="cell-link" href="${esc(projectInitScriptHref(p.project_id))}">${label}</a>`
+                  : label),
+              sub:
+                p.workspace_name || p.workspace_id
+                  ? workspaceLabel(p.workspace_name, p.workspace_id)
+                  : undefined,
+            };
+            const last: TableCell = p.last_status
+              ? { text: statusLabel(p.last_status), sub: ago(p.last_run_at) }
+              : cell(DASH);
+            const snaps = p.snapshot_count
+              ? t("infra.cache.projects.snapshots", {
+                  size: fmtBytes(p.snapshot_bytes),
+                  count: p.snapshot_count,
+                })
+              : DASH;
+            let prewarm: TableCell = cell(DASH);
+            if (p.last_prewarm) {
+              const ok = p.last_prewarm.status !== "failed";
+              const sub =
+                p.prewarm_fail_streak > 1
+                  ? t("infra.cache.projects.prewarm_streak", { count: p.prewarm_fail_streak })
+                  : ago(p.last_prewarm.at);
+              const err =
+                !ok && p.last_prewarm.error
+                  ? `<span class="cell-err">${esc(p.last_prewarm.error)}</span>`
+                  : "";
+              const again =
+                p.prewarm_fail_streak > 0 && here(p.workspace_id)
+                  ? buttonHTML({
+                      label: t("infra.cache.projects.prewarm_now"),
+                      size: "sm",
+                      cls: "prewarm-now",
+                      attrs: { "data-prewarm": p.project_id },
+                    })
+                  : "";
+              prewarm = {
+                html:
+                  esc(
+                    ok
+                      ? t("infra.cache.projects.prewarm_ok")
+                      : t("infra.cache.projects.prewarm_failed"),
+                  ) +
+                  `<span class="cell-sub">${esc(sub)}</span>` +
+                  err +
+                  again,
+                attrs: p.last_prewarm.error ? { title: p.last_prewarm.error } : undefined,
+              };
+            }
+            return {
+              cells: [
+                name,
+                String(p.runs),
+                fmtHitRate(p.hit_rate),
+                last,
+                cell(p.avg_setup_ms ? fmtDuration(p.avg_setup_ms) : DASH),
+                cell(snaps),
+                prewarm,
+              ],
+            };
+          }),
+        );
+      }
+      $("ct-projects").addEventListener("click", (e) => {
+        const b = (e.target as Element).closest<HTMLButtonElement>("button[data-prewarm]");
+        if (b && !b.disabled) void prewarmNow(b.dataset.prewarm!, b);
+      });
+
+      async function prewarmNow(projectID: string, b: HTMLButtonElement) {
+        b.disabled = true;
+        try {
+          await api.post(`/projects/${encodeURIComponent(projectID)}/init-script/prewarm`);
+          toast(t("infra.cache.projects.prewarm_started"), "ok");
+        } catch (e) {
+          b.disabled = false;
+          toast(
+            t("infra.cache.projects.prewarm_refused", {
+              error: e instanceof ApiError ? e.message : String(e),
+            }),
+            "err",
+          );
+        }
+      }
+
+      function renderWorkspaces(r: CacheReport) {
+        const list = [...(r.workspaces ?? [])]
+          .filter((w) => w.measured_at)
+          .sort((a, b) => b.total_bytes - a.total_bytes);
+        showEmpty("ct-workspaces-wrap", "ct-workspaces-empty", list.length === 0);
+        const seen = new Set<string>();
+        fill(
+          "ct-workspaces",
+          WORKSPACE_COLS,
+          list.map((w) => {
+            const segs = areaSegments(w.areas, w.total_bytes);
+            for (const s of segs) seen.add(s.area);
+            return {
+              cells: [
+                cell(workspaceLabel(w.workspace_name, w.workspace_id)),
+                fmtBytes(w.total_bytes),
+                {
+                  html: progressBarHTML(
+                    segs.map((s) => ({
+                      value: s.pct,
+                      tone: areaTone(s.area),
+                      label: `${areaLabel(s.area)}: ${fmtBytes(s.bytes)}`,
+                    })),
+                    { total: 100, size: "md", cls: "area-bar" },
+                  ),
+                },
+                fmtGrowth(w.growth_bytes, w.growth_pct),
+                cell(w.capacity_pct === null ? DASH : fmtPercent(w.capacity_pct)),
+                cell(ago(w.measured_at)),
+              ],
+            };
+          }),
+        );
+        const legend = $("cache-area-legend");
+        const keys = areaLegend(seen);
+        setChartLegend(legend, keys);
+        const foot = legend.closest<HTMLElement>(".panel-foot");
+        if (foot) foot.hidden = keys.length === 0;
+      }
+
+      function renderTools(r: CacheReport) {
+        const list = r.tools ?? [];
+        showEmpty("ct-tools-wrap", "ct-tools-empty", list.length === 0);
+        const names = namesOf(r);
+        fill(
+          "ct-tools",
+          TOOL_COLS,
+          list.map((tl) => {
+            const ws = (tl.workspaces ?? []).map((id) => names.workspace(id));
+            return {
+              cells: [
+                {
+                  html:
+                    esc(`${tl.tool}@${tl.version}`) +
+                    (tl.unused
+                      ? badgeHTML(t("infra.cache.tools.unused"), "warn", { cls: "tag-quiet" })
+                      : ""),
+                },
+                fmtBytes(tl.bytes),
+                cell(ws.join(", ") || DASH),
+                tl.last_used ? ago(tl.last_used) : t("infra.cache.tools.never"),
+              ],
+            };
+          }),
+        );
+      }
+
+      const visible = () => !$("panel-cache").hidden;
+
+      function render() {
+        const r = report;
+        if (!r) return;
+        $("cache-msg").hidden = true;
+        if (isEmptyReport(r)) {
+          message(t("infra.cache.empty_title"), t("infra.cache.empty"));
+          return;
+        }
+        $("cache-body").hidden = false;
+        renderSignals(r);
+        renderTiles(r);
+        if (visible()) renderChart(r);
+        renderProjects(r);
+        renderWorkspaces(r);
+        renderTools(r);
+      }
+
+      async function load() {
+        if (stopped) return;
+        const mine = ++seq;
+        try {
+          const r = await api.get<CacheReport>(`/infra/cache?range=${encodeURIComponent(range)}`);
+          if (mine !== seq) return;
+          report = r;
+          render();
+        } catch (e) {
+          if (mine !== seq) return;
+          if (e instanceof ApiError && e.status === 403) {
+            // The page's main script explains the 403; this tab only hides.
+            stopped = true;
+            $("cache").hidden = true;
+          } else if (e instanceof ApiError && e.status === 503) {
+            message(t("infra.cache.unavailable_title"), t("infra.cache.unavailable"));
+          } else if (report) {
+            // Deliberate no-op: keep the last report on screen; the next tick retries.
+          } else {
+            message(
+              t("infra.cache.failed_title"),
+              t("infra.cache.failed", { error: e instanceof Error ? e.message : String(e) }),
+            );
+          }
+        } finally {
+          if (mine === seq) schedule();
+        }
+      }
+
+      function schedule() {
+        window.clearTimeout(timer);
+        if (stopped || document.hidden) return;
+        timer = window.setTimeout(() => void load(), REFRESH_MS);
+      }
+      signal.addEventListener("abort", () => {
+        stopped = true;
+        window.clearTimeout(timer);
+      });
+
+      const rangeGroup = $("cache-range");
+      setSegmentedValue(rangeGroup, range);
+      rangeGroup.addEventListener("change", () => {
+        const picked = segmentedValue(rangeGroup);
+        if (picked && CACHE_RANGES.includes(picked as CacheRange)) range = picked as CacheRange;
+        try {
+          localStorage.setItem(RANGE_KEY, range);
+        } catch {
+          /* storage blocked: the choice lasts for this page */
+        }
+        void load();
+      });
+      $("btn-refresh").addEventListener("click", () => void load());
+      document.addEventListener(
+        "visibilitychange",
+        () => {
+          if (document.hidden) window.clearTimeout(timer);
+          else void load();
+        },
+        { signal },
+      );
+      // The chart is drawn at its rendered width, so it waits until the tab is visible.
+      document.addEventListener(
+        "infra:tab",
+        (e) => {
+          if ((e as CustomEvent<string>).detail === "cache" && report && !isEmptyReport(report))
+            renderChart(report);
+        },
+        { signal },
+      );
+      let resizeFrame = 0;
+      window.addEventListener(
+        "resize",
+        () => {
+          cancelAnimationFrame(resizeFrame);
+          resizeFrame = requestAnimationFrame(() => {
+            if (report && visible() && !isEmptyReport(report)) renderChart(report);
+          });
+        },
+        { signal },
+      );
+      void load();
+    });
+  </script>
+</Layout>

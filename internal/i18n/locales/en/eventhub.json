@@ -1,0 +1,14 @@
+{
+  "errors": {
+    "unknown_topic": "unknown topic",
+    "unknown_stream": "unknown stream",
+    "forbidden": "forbidden",
+    "too_many_topics": "too many topics",
+    "too_many_streams": "too many streams",
+    "stream_read_failed": "internal error reading this stream"
+  },
+  "log": {
+    "source_panicked": "source {source} panicked: {panic}\n{stack}",
+    "marshal_frame": "eventhub: marshal {type} frame for {topic}"
+  }
+}

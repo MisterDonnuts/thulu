@@ -1,0 +1,23 @@
+{
+  "errors": {
+    "bad_code": "paste the code exactly as the sign-in page shows it",
+    "code_not_accepted": "the CLI did not accept that code; copy the whole code from the sign-in page and paste it again",
+    "command_failed": "the CLI command ended with code {code}",
+    "command_timeout": "the CLI command did not finish in time",
+    "container": "the login container could not be started",
+    "login_failed": "the CLI did not accept the code; start again",
+    "login_timeout": "the CLI did not finish signing in in time; start again",
+    "no_agent_image": "no agent image to run the CLI from: set {env}",
+    "no_pending_login": "no sign-in is waiting for a code; start again",
+    "no_url": "the CLI did not print a sign-in link",
+    "unsupported_engine": "engine {engine} has no personal login",
+    "volume": "the personal login volume could not be read or changed",
+    "volume_in_use": "a run is still using this login; disconnect it when your runs end",
+    "volume_taken": "a Docker volume named {volume} already exists and is not this install's login; remove it or rename it to connect"
+  },
+  "log": {
+    "logout_failed": "{engine} logout before removing the login volume",
+    "remove_container_failed": "remove login container {id}",
+    "remove_volume_failed": "remove unused login volume {volume}"
+  }
+}

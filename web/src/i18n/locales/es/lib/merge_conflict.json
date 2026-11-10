@@ -1,0 +1,10 @@
+{
+  "redo_note": {
+    "one": "Copia para rehacer este trabajo sobre {target}: al integrar la tarea original chocó con {target} en 1 archivo. Arrancá desde {target} como está ahora y conservá sus cambios en este archivo:",
+    "other": "Copia para rehacer este trabajo sobre {target}: al integrar la tarea original chocó con {target} en {count} archivos. Arrancá desde {target} como está ahora y conservá sus cambios en estos archivos:"
+  },
+  "comment": {
+    "one": "Al integrar en {target} chocó 1 archivo. Traé {target} a esta rama, resolvé el archivo conservando los dos cambios y hacé commit:",
+    "other": "Al integrar en {target} chocaron {count} archivos. Traé {target} a esta rama, resolvé los archivos conservando los cambios de los dos lados y hacé commit:"
+  }
+}

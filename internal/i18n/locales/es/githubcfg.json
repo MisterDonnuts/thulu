@@ -1,0 +1,5 @@
+{
+  "log": {
+    "invalid_base_url": "se ignora {name} porque no es válida (tiene que ser una URL https absoluta sin credenciales)"
+  }
+}

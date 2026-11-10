@@ -1,0 +1,35 @@
+{
+  "reject": {
+    "ip_not_allowed": "dirección fuera de la lista permitida",
+    "revoked": "token revocado",
+    "bad_token": "token no reconocido",
+    "refused": "rechazado"
+  },
+  "empty": {
+    "tokens": "Todavía no hay tokens. Creá uno y apuntá un colector hacia él.",
+    "sources": "Todavía no se conectó nada."
+  },
+  "labels": {
+    "any_address": "cualquier dirección"
+  },
+  "status": {
+    "revoked": "revocado",
+    "active": "activo"
+  },
+  "buttons": {
+    "allowed": "Direcciones permitidas",
+    "revoke": "Revocar",
+    "revoke_aria": "Revocar token"
+  },
+  "columns": {
+    "token": "Token",
+    "allowed_from": "Permitido desde",
+    "status": "Estado",
+    "last_used": "Último uso",
+    "address": "Dirección",
+    "accepted": "Aceptados",
+    "refused": "Rechazados",
+    "last_seen": "Visto por última vez",
+    "actions": "Acciones"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "title": "Run time limit",
+  "intro": "How long one agent run in this workspace may take before Thulu stops it and says so on the task. Without a value of its own the workspace gets the install's default.",
+  "read_only": "Only a workspace admin can change the run time limit.",
+  "label": "Limit",
+  "unit": "minutes",
+  "help": "Install default: {default}. The most this workspace may choose: {ceiling}.",
+  "now_default": "Runs get the install default: {limit}.",
+  "now_own": "Runs get this workspace's limit: {limit}.",
+  "now_capped": "This workspace chose {value}, above what the install now allows, so runs get {limit}.",
+  "minutes": {
+    "one": "{count} minute",
+    "other": "{count} minutes"
+  },
+  "no_limit": "no limit",
+  "use_default": "Use default",
+  "out_of_range": "Enter whole minutes from 1 to {max}.",
+  "saved": "Run time limit saved",
+  "cleared": "Run time limit back to the install default",
+  "save_failed": "Couldn't save the run time limit."
+}

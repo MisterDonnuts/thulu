@@ -1,0 +1,28 @@
+{
+  "audit": {
+    "decided": "aprobación {approval:%q} de la tarea {task}: {decision}",
+    "deleted": "se quitó la aprobación {approval:%q} de la tarea {task}"
+  },
+  "errors": {
+    "gate_closed": "{stage} está esperando aprobación: {approvals}. Aprobalas o saltealas antes de avanzar.",
+    "no_dispatcher": "ahora no se pueden decidir aprobaciones: el dispatcher no está corriendo",
+    "note_required": "{decision} necesita una nota que diga por qué",
+    "open_limit": "los agentes ya pidieron {max} aprobaciones en esta tarea que nadie decidió: esperá a que las decidan antes de pedir más",
+    "stage_requirement": "{approval:%q} la pide la etapa y no se puede quitar: salteala, con una nota",
+    "gate_closed_create": "Una tarea nueva arranca en {stage}, y para salir de ahí necesita aprobación: {approvals}. Creala en {stage} y movela cuando esté aprobada."
+  },
+  "events": {
+    "skipped": "pasó sin que nadie decidiera ({cause}): {approvals}",
+    "waived_note": "salteada por un movimiento administrativo ({cause})"
+  },
+  "log": {
+    "hook_task": "leer la tarea {task} para el webhook de una aprobación",
+    "skipped": "leer las aprobaciones que salteó la tarea {task}"
+  },
+  "prompts": {
+    "brief_heading": "## Aprobaciones\n\n",
+    "brief_line": "- **{label}**{stage}: {status}\n",
+    "brief_note": "  {by}: {note}\n",
+    "brief_stage": " ({stage})"
+  }
+}

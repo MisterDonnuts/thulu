@@ -1,0 +1,8 @@
+{
+  "errors": {
+    "mode": "{env}={value}: tiene que ser {shared} o {per_run}",
+    "port": "{env}={value}: tiene que ser un puerto TCP entre 1 y 65535",
+    "quantity": "{env}={value}: tiene que ser una cantidad de Kubernetes positiva (por ejemplo 500m, 1Gi)",
+    "request_over_limit": "{request_env} es mayor que {limit_env}"
+  }
+}

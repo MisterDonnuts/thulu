@@ -1,0 +1,9 @@
+{
+  "errors": {
+    "registry_unavailable": "mcp registry not configured",
+    "missing_name": "missing name",
+    "unknown_action": "unknown action",
+    "invalid_url": "invalid url",
+    "forwarding_needs_private_url": "\"Acts on Thulu for the agent\" needs an https URL, or http to a private, loopback or cluster-internal address: the run's key would travel unencrypted"
+  }
+}

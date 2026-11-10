@@ -1,0 +1,73 @@
+---
+import Icon from "./Icon.astro";
+import {
+  segmentedCheck,
+  segmentedClasses,
+  segmentedLabelClasses,
+  type SegmentedOption,
+  type SegmentedSize,
+} from "../lib/ui/segmented";
+
+interface Props {
+  name: string;
+  options: SegmentedOption[];
+  value?: string;
+  size?: SegmentedSize;
+  iconOnly?: boolean;
+  cards?: boolean;
+  fill?: boolean;
+  label?: string;
+  labelledBy?: string;
+  describedBy?: string;
+  disabled?: boolean;
+  id?: string;
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  name,
+  options,
+  value,
+  size,
+  iconOnly,
+  cards,
+  fill,
+  label,
+  labelledBy,
+  describedBy,
+  disabled,
+  id,
+  class: extra,
+  ...rest
+} = Astro.props;
+segmentedCheck(options, iconOnly);
+const cls = segmentedClasses({ size, iconOnly, cards, fill, cls: extra });
+---
+
+<div
+  class={cls}
+  {id}
+  role="radiogroup"
+  aria-label={label}
+  aria-labelledby={labelledBy}
+  aria-describedby={describedBy}
+  {...rest}
+>
+  {
+    options.map((opt) => (
+      <label class="segmented-opt" title={iconOnly ? opt.label : undefined} {...opt.attrs}>
+        <input
+          type="radio"
+          class="segmented-input"
+          {name}
+          value={opt.value}
+          checked={(value !== undefined && opt.value === value) || undefined}
+          disabled={disabled || opt.disabled || undefined}
+          {...opt.inputAttrs}
+        />
+        {opt.icon && <Icon name={opt.icon} size="sm" class="segmented-ico" />}
+        <span class={segmentedLabelClasses(iconOnly)}>{opt.label}</span>
+      </label>
+    ))
+  }
+</div>

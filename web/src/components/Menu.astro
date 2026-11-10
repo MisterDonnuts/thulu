@@ -1,0 +1,76 @@
+---
+// Markup must match menuHTML() in lib/ui/menu.ts.
+import MenuItem from "./MenuItem.astro";
+import {
+  isMenuHead,
+  isMenuNote,
+  isMenuSep,
+  isMenuSlot,
+  menuAttrs,
+  menuClasses,
+  menuNoteAttrs,
+  menuSepAttrs,
+  type MenuAlign,
+  type MenuDensity,
+  type MenuEntry,
+} from "../lib/ui/menu";
+
+interface Props {
+  items?: MenuEntry[];
+  id?: string;
+  label?: string;
+  labelledBy?: string;
+  density?: MenuDensity;
+  align?: MenuAlign;
+  floating?: boolean;
+  open?: boolean;
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  items = [],
+  id,
+  label,
+  labelledBy,
+  density = "compact",
+  align = "end",
+  floating = false,
+  open = false,
+  class: extra,
+  ...rest
+} = Astro.props;
+const cls = menuClasses({ density, align, floating, cls: extra });
+const own = menuAttrs({ id, label, labelledBy, open });
+for (const e of items) {
+  if ("leadHTML" in e && e.leadHTML) {
+    throw new Error("Menu: leadHTML is for menuHTML(); write a MenuItem with a lead slot"); // i18n-ignore a programming error
+  }
+}
+---
+
+<div class={cls} {...own} {...rest}>
+  {
+    items.map((e) => {
+      if (isMenuSep(e)) return <div {...menuSepAttrs(e)} />;
+      if (isMenuNote(e)) return <p {...menuNoteAttrs(e)}>{e.note}</p>;
+      if (isMenuSlot(e))
+        return (
+          <div class="menu-slot">
+            <slot name={e.slot} />
+          </div>
+        );
+      if (isMenuHead(e))
+        return (
+          <div id={e.id} class="menu-head">
+            <span class="menu-head-body">
+              <span class="menu-head-title">{e.head}</span>
+              {e.sub && <span class="menu-head-sub">{e.sub}</span>}
+            </span>
+          </div>
+        );
+      const { cls: itemCls, attrs = {}, ...item } = e;
+      return <MenuItem {...item} class={itemCls} {...attrs} />;
+    })
+  }
+  <slot />
+</div>

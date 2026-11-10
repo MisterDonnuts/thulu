@@ -1,0 +1,10 @@
+{
+  "errors": {
+    "disabled": "audit log not enabled",
+    "export_requires_ee": "audit export requires an Enterprise Edition license",
+    "verify_operator_only": "the audit chain spans every workspace; verify it with an admin credential from {env}"
+  },
+  "log": {
+    "export_failed": "export stream failed for {query}: {err}"
+  }
+}

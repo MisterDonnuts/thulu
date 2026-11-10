@@ -1,0 +1,11 @@
+{
+  "errors": {
+    "agent_not_found": "no se encontró el agente: {id}",
+    "ambiguous_identifier": "identificador ambiguo {id:%q}: coincide con varios agentes",
+    "schema": "esquema del registro",
+    "marshal_agent": "no se pudo serializar el agente {id}"
+  },
+  "log": {
+    "mirror_failed": "espejo del registro: {op} {id}"
+  }
+}

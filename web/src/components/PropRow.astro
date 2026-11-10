@@ -1,0 +1,25 @@
+---
+import Icon from "./Icon.astro";
+import { propValueA11y, propValueClasses } from "../lib/ui/prop";
+import type { Attrs } from "../lib/ui/dom";
+
+interface Props {
+  name: string;
+  label: string;
+  icon?: string;
+  edit?: string;
+  valueAttrs?: Attrs;
+  class?: string;
+  [key: string]: unknown;
+}
+const { name, label, icon, edit, valueAttrs, class: extra, ...rest } = Astro.props;
+const editable = Boolean(edit);
+const cls = ["nprop", extra].filter(Boolean).join(" ");
+---
+
+<div class={cls} data-prop={name} {...rest}>
+  <span class="nprop-label">{icon && <Icon name={icon} />}<span>{label}</span></span>
+  <div class={propValueClasses(editable)} {...propValueA11y(edit)} {...valueAttrs}>
+    <slot />{!editable && <slot name="trailing" />}
+  </div>
+</div>

@@ -1,0 +1,332 @@
+{
+  "title": "Agents",
+  "subtitle": "Agents live in the database · settings managed, prompts edited as markdown.",
+  "buttons": {
+    "new_agent": "New agent",
+    "open_board": "Open board",
+    "done": "Done",
+    "delete_agent": "Delete agent",
+    "revert": "Revert",
+    "save_settings": "Save settings",
+    "clean_up": "Clean up",
+    "create_override": "Write its own",
+    "create_file": "Create {name}",
+    "use_in_column": "Use in {column}",
+    "copy_to_stages": "Copy to the other stages",
+    "copy_to_stages_title": "Overwrites what this agent's other stages have with this one's",
+    "deploy_template": "Deploy template"
+  },
+  "kbd": {
+    "new_agent": "New agent",
+    "navigate": "Navigate agents",
+    "save": "Save current file / settings",
+    "close": "Close modal / clear search"
+  },
+  "sidebar": {
+    "search": "Search agents",
+    "navigate": "navigate",
+    "none": "No agents. Click + New agent.",
+    "load_failed": "Could not load agents: {error}",
+    "no_matches": "No matches for “{query}”."
+  },
+  "empty": {
+    "select": "Select an agent to edit.",
+    "create_hint": "or press {key} to create a new one"
+  },
+  "modal": {
+    "title": "New agent",
+    "name": "Name",
+    "name_hint": "lowercase, digits, - and _; it is how you @mention it and cannot change later",
+    "name_placeholder": "my-agent",
+    "clone": "Clone from an existing agent",
+    "clone_hint": "off = clean agent from scratch",
+    "description_hint": "shown in cards",
+    "description_placeholder": "What does this agent do?",
+    "default_skills": "Default skills",
+    "default_skills_hint": "applied to every stage ticked above; adjust them later in the Skills tab",
+    "name_errors": {
+      "required": "The name is missing.",
+      "invalid": "Lowercase letters, digits, - and _ only, up to 64 characters, not starting with -.",
+      "reserved": "Thulu uses that name. Pick another.",
+      "taken": "An agent with that name already exists."
+    },
+    "name_suggest": "Use “{name}”",
+    "stages": "Stages",
+    "stages_hint": "where it runs; change them later in Settings",
+    "default_skills_hint_clone": "added to the skills the cloned agent already has, on each of its stages",
+    "default_skills_needs_stage": "tick at least one stage to pick skills"
+  },
+  "tabs": {
+    "settings": "Settings",
+    "skills": "Skills",
+    "mcp": "MCP",
+    "prompts": "Prompts",
+    "aria": "Agent sections"
+  },
+  "status": {
+    "creating": "Creating…"
+  },
+  "labels": {
+    "description": "Description",
+    "turns": "Turns",
+    "model": "Model",
+    "skills": "Skills",
+    "engine": "Engine",
+    "effort": "Effort",
+    "stage_html": "stage <strong>{stage}</strong> <code class=\"code-inline\">{id}</code>",
+    "mode_html": "mode <strong>{mode}</strong>"
+  },
+  "settings": {
+    "turns_placeholder": "turns",
+    "turns_label": "Max turns on {stage}",
+    "mention": "Mention",
+    "mention_hint": "the agent answers when someone @mentions it in a comment",
+    "chat": "Chat",
+    "chat_hint": "people can open a chat with this agent from the chats panel",
+    "skills_mode_auto": "Auto — follow the engine (recommended)",
+    "skills_mode_native": "Native — files the engine opens on demand",
+    "skills_mode_inline": "Inline — paste every skill into the prompt",
+    "model_credentials": "Model & credentials",
+    "model_credentials_hint_html": "what this agent runs with; takes effect on the next run. Keys and profiles live in <a href=\"/settings/#llm\">Settings → AI engines</a>",
+    "skills_delivery": "Skills delivery",
+    "skills_delivery_hint_html": "how granted skills reach the model. Auto follows the engine: engines that discover skills get them as files and open what they need; the rest get every skill pasted into the prompt (~12k tokens up front). Skills set to \"Always in the prompt\" on /skills/ stay in the prompt either way.",
+    "repo_requirement": "Repo requirement",
+    "repo_requirement_hint": "tasks moving into a stage assigned to this agent get blocked if no repo is linked",
+    "works_without_repo": "Works without a linked repo",
+    "works_without_repo_hint": "(research, text polish, ideation — anything that doesn't touch code)",
+    "valid_stages": "Valid stages",
+    "valid_stages_hint": "tick the stages this agent runs on, plus its max turns per stage",
+    "valid_stages_hint_no_turns": "tick the stages this agent runs on; {engine} has no turn limit, so there is none to set",
+    "orphaned": "⚠ orphaned per-stage config for deleted stage(s): {stages} — kept on disk, has no effect until a stage with that id exists again",
+    "auditor": "Auditor per stage",
+    "auditor_hint": "tick the stages where the auditor reviews the run when it ends; the settings are optional (left empty, it uses the auditor's own)",
+    "columns": "Board columns",
+    "modes": "Modes",
+    "modes_hint": "not columns: the agent runs when someone calls it. Prompts, skills and MCP are picked per mode just as per column."
+  },
+  "auditor": {
+    "engine_same": "Same as the agent ({engine})",
+    "engine_no_key": "{engine} has no default key: the auditor will not start and the task will be blocked until you add one.",
+    "engine_no_turns": "{engine} has no turn limit, so Turns does not apply.",
+    "model_default": "— default —",
+    "skills_hint": "comma-separated names; they add to the base skill and the quality-review one, when the workspace has them",
+    "pick_stage": "Pick at least one valid stage above."
+  },
+  "llm": {
+    "key_line_html": "Key: {engine} default profile <code class=\"code-inline\">{profile}</code>",
+    "no_default_key_html": "No default key for {engine}: runs use the daemon host's credential. <a href=\"/settings/#llm\">Add one in AI engines</a>",
+    "no_default_key_blocked_html": "No default key for {engine}: runs will not start until you add one. <a href=\"/settings/#llm\">Add it in AI engines</a>",
+    "cli_default": "CLI default",
+    "no_key_set": "no key set",
+    "no_key_blocked": "no key: will not start",
+    "default_for": "Default for {engine} · {details}",
+    "effort_value": "effort {effort}",
+    "cannot_run": "this agent can't run on it",
+    "group_defaults": "Engine defaults",
+    "group_profiles": "Profiles",
+    "from_profile_html": "Engine, model and key come from <strong>{profile}</strong>. Editing that profile changes every agent that uses it.",
+    "follows_default": "Follows the {engine} default profile: when the default changes, this agent changes with it.",
+    "no_named_profiles_html": "No named profiles yet. Create them in <a href=\"/settings/#llm\">Settings → AI engines</a>.",
+    "effort_low": "low",
+    "effort_medium": "medium",
+    "effort_high": "high",
+    "default_model": "default: {model}",
+    "empty_fields": "Empty fields use the engine's default profile.",
+    "mode_label": "Model source",
+    "mode_profile": "Profile",
+    "mode_custom": "Custom",
+    "source_binding_html": "profile <code class=\"code-inline\">{profile}</code>",
+    "source_default_html": "the {engine} default profile <code class=\"code-inline\">{profile}</code>",
+    "source_legacy": "the key saved on the workspace, outside any profile",
+    "source_host": "the daemon host's credential",
+    "effective_html": "<span class=\"llm-eff-label\">Saved config runs with</span> {parts}, key from {source}",
+    "effective_no_key_html": "<span class=\"llm-eff-label\">Saved config uses</span> {parts}, but has no key: runs will not start",
+    "no_credential": "(no credential)",
+    "key_refused_short": "key refused",
+    "key_unanswered_short": "the provider did not answer the key check",
+    "key_fix": "Check it in AI engines"
+  },
+  "skills": {
+    "title": "Skills per stage",
+    "intro_html": "Workspace skills this agent gets on each stage; they are written in <a href=\"/skills/\">Skills</a>. With an engine that discovers skills (Claude Code) the model sees each skill's name and description and opens the one it needs; with other engines, and for skills set to \"Always in the prompt\", the whole text goes into the prompt. \"Skills delivery\", in Settings, can force one way or the other.",
+    "none": "No skills available.",
+    "pick_stage": "Pick at least one valid stage in the Settings tab.",
+    "stage_group": "Skills on {stage}",
+    "system_title": "System skills",
+    "system_intro": "Thulu adds these on its own: some to every run, others when the stage has their MCP server. Untick one to leave it out of this agent's runs on this stage.",
+    "system_every_run": "Every run",
+    "system_included_by": "Included by {mcp}",
+    "system_needs": "Needs {mcp} on this stage",
+    "system_run_off_warning": "octopus-run is off: runs on this stage will not learn where the repos and the output dir are, who commits and opens the PR, or what to leave when they finish. Without it an agent can move its own task or lose its report. Turn it off only if this agent's prompt already covers that."
+  },
+  "mcp": {
+    "title": "MCP servers per stage",
+    "intro_html": "Which MCP servers the agent can use on each stage. Ticking a server grants what its scope covers; tools granted by name are picked under Tools. Servers are registered in <a href=\"/mcps/\">MCPs</a>.",
+    "no_tools_html": "No MCP servers yet. Register them in <a href=\"/mcps/\">MCPs</a>.",
+    "tools": "Tools",
+    "tools_title": "Choose which tools of {server} this stage may call",
+    "tools_unknown_title": "The daemon could not read this server's tool list — it may be stopped, or it isn't reachable. The whole server is granted.",
+    "all_tools": "all tools",
+    "default_unknown": "default scope (unknown)",
+    "default_unknown_title": "Granted by bare name. This server has no descriptor saying which tools it grants without a scope, so no tool is shown as ticked and the server applies its own default. Pick tools, or untick and tick the server to grant every tool explicitly.",
+    "drawer_all": "All tools",
+    "drawer_untick_hint": "Unticking every tool removes the server from this stage.",
+    "drawer_sub": {
+      "one": "stage {stage} · {count} tools",
+      "other": "stage {stage} · {count} tools"
+    },
+    "drawer_count": "{selected}/{total} selected",
+    "grant_bare": {
+      "read": "Ticked grants read.",
+      "write": "Ticked grants read and write.",
+      "admin": "Ticked grants read, write and admin.",
+      "all": "Ticked grants all of its tools.",
+      "unknown": "With no descriptor there is no telling what the server grants with no tools picked."
+    },
+    "grant_by_name": {
+      "one": "{count} tool is granted by name only.",
+      "other": "{count} tools are granted by name only."
+    },
+    "drawer_all_scoped": "All, except the ones granted by name",
+    "group": {
+      "read": "Read",
+      "write": "Write",
+      "admin": "Admin",
+      "deploy": "Deploy",
+      "board": "Other boards",
+      "other": "Other"
+    },
+    "group_by_name": "{group} · granted by name",
+    "group_hint": {
+      "deploy": "They merge PRs, dispatch workflows and approve deployments. No scope includes them: tick them only on the stage that has to do that.",
+      "board": "They read and change tasks on the workspace's other boards. No scope includes them: tick them only if this stage works across boards.",
+      "other": "No scope includes them: the server grants them only when named one by one."
+    },
+    "deploy_template_title": "Grants thulu-github@read plus run_dispatch, run_watch and run_logs: what a stage that deploys through GitHub Actions needs",
+    "grant_stage": {
+      "read": "On this stage it grants read.",
+      "write": "On this stage it grants read and write.",
+      "admin": "On this stage it grants read, write and admin.",
+      "other": "On this stage it grants the {scope} scope.",
+      "extras": "Plus, by name: {tools}.",
+      "list": {
+        "one": "On this stage it grants {count} tool picked by hand.",
+        "other": "On this stage it grants {count} tools picked by hand."
+      }
+    },
+    "deploy_note": "run_dispatch starts GitHub Actions workflows: the GitHub App needs the Actions: write permission."
+  },
+  "prompts": {
+    "intro": "Per-stage files are named after the stage id, so a prompt written for a custom stage lives or dies with it. Every save is kept: open a file and use History to read or restore an earlier version.",
+    "status_fallback": "Uses the general prompt",
+    "status_missing": "Missing: write it and every stage without its own prompt uses it",
+    "fallback": "General prompt",
+    "overrides": "Prompts per stage",
+    "orphans": "Orphaned files",
+    "orphans_hint": "Files for a stage this agent no longer runs on, or one that left every board. No run loads them: delete them, or move their text to one of the stages above.",
+    "status_orphan": "{path} (not loaded)",
+    "other_title": "Other markdown",
+    "other_intro_html": "Other <code class=\"code-inline\">.md</code> files in the agent directory not covered by the conventions above.",
+    "back": "Back to list",
+    "new_suffix": "(new)",
+    "history": "History",
+    "view": "View"
+  },
+  "confirm": {
+    "prune_title": "Clean up orphaned stage config?",
+    "prune_message": "Removes this agent's config for {stages} — the labels and the matching prompts/*.md and auditor/*.md files. Unsaved edits in this pane are discarded.",
+    "discard_prompt_edits": "Edits to this prompt will be lost.",
+    "delete_file_title": "Delete \"{path}\"?",
+    "delete_file_message": "This removes the file from the agent.",
+    "discard_prompt_title": "Discard unsaved prompt changes?",
+    "discard_prompt_message": "Your edits to this prompt will be lost.",
+    "discard_settings_title": "Discard unsaved settings?",
+    "discard_settings_message": "Your changes to this agent will be lost.",
+    "delete_agent_title": "Delete agent \"{name}\"?",
+    "delete_agent_message": "It leaves the list and the pickers, and its prompts stay in the history. Tasks that had it assigned keep naming it: if you later create another agent with this name, those tasks run with the new one.",
+    "delete_agent_used": {
+      "one": "{count} task or project template names it today.",
+      "other": "{count} tasks or project templates name it today."
+    }
+  },
+  "toasts": {
+    "cleaned_up": "Cleaned up {stages}",
+    "cleaned_up_files": {
+      "one": "Cleaned up {stages}, {count} file(s) removed",
+      "other": "Cleaned up {stages}, {count} file(s) removed"
+    },
+    "cleaned_nothing": "nothing",
+    "reverted": "Reverted unsaved changes",
+    "settings_saved": "Settings saved",
+    "saved": "Saved {path}",
+    "deleted": "Deleted {name}",
+    "created": "Created {name}",
+    "use_in_column_offer": "{name} is ready. Put it to work in {column}?",
+    "copied": {
+      "one": "Copied {stage} to {count} more stage",
+      "other": "Copied {stage} to {count} more stages"
+    },
+    "deploy_template": "Deploy template applied to {stage}."
+  },
+  "errors": {
+    "cleanup_failed": "Clean-up failed",
+    "save_failed": "Save failed: {error}",
+    "unknown": "unknown",
+    "delete_file_failed": "Couldn't delete file",
+    "delete_agent_failed": "Couldn't delete agent",
+    "create_failed": "Create failed: {error}",
+    "use_in_column_failed": "Could not use it in {column}: {error}"
+  },
+  "role": {
+    "developer": "Only an admin changes settings, skills, MCP and prompts. Your role can pick the agent's model profile.",
+    "viewer": "Your role is read-only: you see the agent's settings but cannot change them.",
+    "new_needs_admin": "Creating agents takes an admin"
+  },
+  "checklist": {
+    "title": "What it still needs to run",
+    "ready": "Ready to run: it has stages, a prompt and a credential. {assigned}.",
+    "stages_ok": "Has stages",
+    "stages_todo": "It has no valid stage.",
+    "stages_any": "Runs in any column",
+    "stages_go": "Pick stages",
+    "prompt_ok": "Has a prompt",
+    "prompt_todo": "It has no prompt (main.md).",
+    "prompt_missing": "No prompt for: {stages}.",
+    "prompt_go": "Write the prompt",
+    "credential_ok": "Has a credential",
+    "credential_todo": "Its engine has no key.",
+    "credential_rejected": "The provider refused its key.",
+    "credential_go": "Set up a key",
+    "assigned_ok": "Assigned",
+    "assigned_count": "Assigned in {list}",
+    "assigned_tasks": {
+      "one": "{count} task",
+      "other": "{count} tasks"
+    },
+    "assigned_projects": {
+      "one": "{count} project template",
+      "other": "{count} project templates"
+    },
+    "assigned_and": "{a} and {b}",
+    "assigned_modes": "Runs when someone mentions it or opens a chat with it",
+    "assigned_todo": "No task or project template assigns it.",
+    "assigned_go": "Assign it in a project's template",
+    "unknown": "{what} (could not check)",
+    "assigned_mention": "Runs when someone mentions it",
+    "assigned_chat": "Runs when someone opens a chat with it"
+  },
+  "history": {
+    "button": "History",
+    "button_title": "The configurations this agent had, what changed in each, and how to go back to one"
+  },
+  "optimizer": {
+    "title": "Large reads",
+    "hint_html": "Hands large file reads to a cheaper model so the agent spends fewer tokens; Suggest leaves it to the agent, Enforce always does it. That model runs with the workspace's default credential for its engine, set in <a href=\"/settings/#llm\">Settings → AI engines</a>.",
+    "mode": "Mode",
+    "engine": "Engine",
+    "model": "Model",
+    "engines_missing_html": "An engine without a usable default credential can't be picked. <a href=\"/settings/#llm\">Set one in Settings → AI engines</a>.",
+    "engine_required": "Pick the engine of the model that reads large files.",
+    "model_required": "Name the model that reads large files."
+  }
+}

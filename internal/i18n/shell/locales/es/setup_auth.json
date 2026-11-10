@@ -1,0 +1,24 @@
+{
+  "cli": {
+    "usage": "Crea un token OAuth de Claude Code con `claude setup-token` y lo escribe en <repo>/.env.\nEl token factura una suscripción Claude Pro/Max: Thulu lo mantiene para las\npruebas del dueño de la instalación, y sólo el dueño puede guardarlo en un daemon.\n\nUso:\n  scripts/setup-auth.sh                 # sólo local: escribe .env\n  scripts/setup-auth.sh --push          # además lo sube a $OCTOPUS_SERVER_URL\n                                        # (por defecto http://localhost:8585)\n  scripts/setup-auth.sh --push=http://host:8585\n  scripts/setup-auth.sh --push --workspace <id>\n  printf '%s\\n' \"$TOKEN\" | scripts/setup-auth.sh --push   # token por stdin\n\nVariables del push (las dos primeras son obligatorias para --push):\n  OCTOPUS_API_KEY        key de owner creada en OCTOPUS_OPERATOR_WORKSPACE (oct_…)\n  OCTOPUS_WORKSPACE_ID   workspace donde instalarlo (--workspace la pisa)\n  OCTOPUS_SERVER_URL     URL base remota          (por defecto http://localhost:8585)\n  OCTOPUS_LLM_ENGINE     engine de la key          (por defecto claude-code)\n\nEl id del workspace es el `workspace_id` de GET /auth/me en un navegador logueado\n(DevTools → Network), o la columna `workspace_id` de la tabla `projects` del\ndaemon.",
+    "running_setup_token": "Corriendo `claude setup-token`: entrá con la cuenta de Claude en el navegador que abre.",
+    "paste_token": "Pegá el token que imprimió (sk-ant-oat…) y Enter: ",
+    "wrote_token": "Token escrito en {file}\n    El engine claude-code del daemon relee este archivo en cada\n    invocación — no hace falta reiniciar.",
+    "pushing": "Subiendo el token OAuth a {server} (engine: {engine}, workspace: {workspace})…",
+    "installed": "Key OAuth BYOK instalada en {server} para el engine '{engine}' en el workspace {workspace}.",
+    "copy_token": "Token OAuth (copialo en Settings → AI Engines → Claude Code, elegí\n    \"Token OAuth (Claude Pro/Max): sólo el dueño de la instalación, para pruebas\"):"
+  },
+  "labels": {
+    "none": "<ninguno>"
+  },
+  "errors": {
+    "no_claude": "no encontré 'claude' en el PATH. Instalá Claude Code (npm install -g @anthropic-ai/claude-code)\n       o pasale por stdin un token que ya tengas.",
+    "not_oauth_token": "eso no es un token OAuth de Claude Code (empiezan con sk-ant-oat).",
+    "push_needs_curl": "--push necesita 'curl' en el PATH.",
+    "push_needs_key": "--push necesita OCTOPUS_API_KEY (una key de operador sin scope, oct_…).",
+    "push_needs_workspace": "--push necesita el workspace donde instalarla.\n       Pasá --workspace <id> o seteá OCTOPUS_WORKSPACE_ID. Sin eso la\n       key cae en el workspace llamado \"default\", que ninguna corrida de\n       agente lee — el push diría que funcionó y no cambiaría nada.",
+    "put_failed": "falló PUT /llm-key (¿key rechazada? ¿nombre del engine? ¿servidor caído?).",
+    "workspace_mismatch": "se pidió el workspace '{asked}' pero la key cayó en '{landed}'.\n       El servidor es más viejo que este script (no soporta ?workspace=).",
+    "push_owner_only": "el daemon rechazó el token (403): sólo el dueño de la instalación puede guardarlo.\n       OCTOPUS_API_KEY tiene que ser una key de owner creada en el workspace que nombra OCTOPUS_OPERATOR_WORKSPACE."
+  }
+}

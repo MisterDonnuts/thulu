@@ -1,0 +1,159 @@
+.step-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.step-item {
+  display: grid;
+  grid-template-columns: var(--icon-md) minmax(0, 1fr);
+  column-gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+}
+.step-item + .step-item {
+  border-top: 1px solid var(--line-soft);
+}
+
+.step-mark {
+  margin-top: calc((var(--t-base) * var(--lh-snug) - var(--icon-md)) / 2);
+  color: var(--warn);
+}
+.step-item-done .step-mark {
+  color: var(--ok);
+}
+.step-item-blocked .step-mark,
+.step-item-unknown .step-mark {
+  color: var(--fg-3);
+}
+.step-item-now .step-mark {
+  color: var(--accent);
+  animation: octopus-pulse-dot 2.4s ease-in-out infinite;
+}
+
+.step-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  min-width: 0;
+}
+.step-body > p {
+  margin: 0;
+}
+.step-title {
+  color: var(--fg);
+  font-size: var(--t-base);
+  font-weight: 600;
+  line-height: var(--lh-snug);
+  overflow-wrap: anywhere;
+}
+.step-item-done .step-title {
+  color: var(--fg-2);
+  font-weight: 500;
+}
+.step-detail,
+.step-note {
+  color: var(--fg-2);
+  font-size: var(--t-sm);
+  overflow-wrap: anywhere;
+}
+.step-note {
+  margin-top: var(--s-1);
+}
+.step-finish,
+.step-action {
+  font-size: var(--t-sm);
+  overflow-wrap: anywhere;
+}
+
+.step-title a,
+.step-finish a {
+  color: var(--accent);
+  font-weight: 500;
+  text-decoration: none;
+}
+.step-title a:hover,
+.step-finish a:hover {
+  text-decoration: underline;
+}
+
+.step-list-compact {
+  display: grid;
+  gap: var(--s-2);
+}
+.step-list-compact .step-item {
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-md);
+}
+.step-list-compact .step-item + .step-item {
+  border-top: 1px solid var(--line-soft);
+}
+.step-list-compact .step-mark {
+  margin-top: calc((var(--t-sm) * var(--lh-snug) - var(--icon-md)) / 2);
+}
+.step-list-compact .step-title {
+  font-size: var(--t-sm);
+}
+.step-list-compact .step-detail,
+.step-list-compact .step-note,
+.step-list-compact .step-finish,
+.step-list-compact .step-action {
+  font-size: var(--t-xs);
+}
+.step-list-compact .step-note {
+  margin-top: 0;
+}
+
+.step-list-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-1) var(--s-3);
+  color: var(--fg-3);
+  font-size: var(--t-xs);
+}
+.step-list-inline .step-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 0;
+}
+.step-list-inline .step-item + .step-item {
+  border-top: 0;
+}
+.step-list-inline:has(> .step-item-now) .step-item + .step-item::before {
+  content: "";
+  width: var(--s-3);
+  height: 1px;
+  margin-right: var(--s-1);
+  background: var(--line-strong);
+}
+.step-list-inline .step-mark {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  margin-top: 0;
+}
+.step-list-inline .step-item-now ~ .step-item-pending .step-mark {
+  color: var(--fg-3);
+}
+.step-list-inline .step-body {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--s-2);
+}
+.step-list-inline .step-title {
+  color: inherit;
+  font-size: inherit;
+  font-weight: 500;
+}
+.step-list-inline .step-action {
+  font-size: inherit;
+}
+.step-list-inline .step-item-done {
+  color: var(--fg-2);
+}
+.step-list-inline .step-item-now {
+  color: var(--accent);
+}
+.step-list-inline .step-item-now .step-title {
+  font-weight: 600;
+}

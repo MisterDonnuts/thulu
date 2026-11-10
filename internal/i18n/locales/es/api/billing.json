@@ -1,0 +1,20 @@
+{
+  "errors": {
+    "disabled": "la facturación no está activada",
+    "webhook_unconfigured": "el webhook de facturación no está configurado",
+    "read_body": "leer el cuerpo de la solicitud",
+    "invalid_signature": "la firma no es válida",
+    "bad_event": "el evento no es válido",
+    "apply_plan_failed": "no se pudo aplicar el plan",
+    "entitlements_disabled": "los planes no están activados",
+    "unknown_plan": "no existe ese plan",
+    "negative_limit": "un límite no puede ser negativo; usá 0 para sin límite"
+  },
+  "audit": {
+    "plan_set": "Plan cambiado a {plan}",
+    "plan_set_stripe": "Plan cambiado a {plan} desde Stripe"
+  },
+  "log": {
+    "apply_plan_failed": "aplicar el plan {plan} a {workspace}: {err}"
+  }
+}

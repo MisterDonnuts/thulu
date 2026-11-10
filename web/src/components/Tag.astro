@@ -1,0 +1,96 @@
+---
+import Icon from "./Icon.astro";
+import {
+  tagClasses,
+  tagColorStyle,
+  tagDot,
+  tagElement,
+  tagRemoveLabel,
+  type TagRemove,
+  type TagSize,
+  type TagTone,
+} from "../lib/ui/tag";
+
+interface Props {
+  label: string;
+  color?: string;
+  tone?: TagTone;
+  size?: TagSize;
+  dot?: boolean | string;
+  icon?: string;
+  inline?: boolean;
+  dashed?: boolean;
+  mono?: boolean;
+  href?: string;
+  button?: boolean;
+  pressed?: boolean;
+  disabled?: boolean;
+  removable?: boolean | TagRemove;
+  title?: string;
+  id?: string;
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  label,
+  color,
+  tone,
+  size,
+  dot,
+  icon,
+  inline,
+  dashed,
+  mono,
+  href,
+  button,
+  pressed,
+  disabled,
+  removable,
+  title,
+  id,
+  class: extra,
+  ...rest
+} = Astro.props;
+const El = tagElement({ href, button, pressed, removable });
+const cls = tagClasses({
+  color,
+  tone,
+  size,
+  inline,
+  dashed,
+  mono,
+  removable: !!removable,
+  cls: extra,
+});
+const d = tagDot(dot);
+const remove = removable ? (removable === true ? {} : removable) : null;
+---
+
+<El
+  {id}
+  class={cls}
+  style={tagColorStyle(color)}
+  href={El === "a" ? href : undefined}
+  type={El === "button" ? "button" : undefined}
+  aria-pressed={pressed === undefined ? undefined : pressed ? "true" : "false"}
+  {title}
+  disabled={El === "button" && disabled ? true : undefined}
+  {...rest}
+>
+  {pressed !== undefined && <Icon name="check" class="tag-check" />}
+  {d && <span class={d.cls} style={d.style} aria-hidden="true" />}
+  {icon && <Icon name={icon} />}
+  <span class="tag-label">{label}</span>
+  {
+    remove && (
+      <button
+        type="button"
+        class="tag-x"
+        aria-label={remove.label ?? tagRemoveLabel(label)}
+        {...remove.attrs}
+      >
+        <Icon name="x" />
+      </button>
+    )
+  }
+</El>

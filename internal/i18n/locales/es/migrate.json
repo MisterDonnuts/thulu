@@ -1,0 +1,19 @@
+{
+  "errors": {
+    "component": "migrar {component}",
+    "create_history": "migrar {component}: crear schema_migrations",
+    "load_history": "migrar {component}: leer el historial",
+    "out_of_order": "la migración {id} viene después de la {prev}: los IDs tienen que ser únicos y estrictamente crecientes",
+    "begin": "migrar {component}#{id}: abrir la transacción",
+    "apply": "migrar {component}#{id}",
+    "commit": "migrar {component}#{id}: confirmar la transacción",
+    "record": "migrar {component}#{id}: registrarla",
+    "inspect_table": "migrar: inspeccionar {table}",
+    "lock": "migrar {component}: tomar el lock de migraciones",
+    "lock_busy": "otro proceso está migrando esta base y no terminó en {wait}"
+  },
+  "log": {
+    "release_conn": "migrar: devolver la conexión del lock",
+    "drop_conn": "migrar: descartar la conexión cuyo unlock falló"
+  }
+}

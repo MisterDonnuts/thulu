@@ -1,0 +1,7 @@
+{
+  "errors": {
+    "schema": "esquema de entitlements",
+    "workspace_id_required": "falta workspace_id",
+    "marshal_features": "serializar las features"
+  }
+}

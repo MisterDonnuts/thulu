@@ -1,0 +1,60 @@
+---
+import Icon from "./Icon.astro";
+import {
+  messageBodyClasses,
+  messageClasses,
+  messageSpeaker,
+  type MessageRole,
+  type MessageTone,
+} from "../lib/ui/conversation";
+
+interface Props {
+  role: MessageRole;
+  tone?: MessageTone;
+  author?: string;
+  text?: string;
+  lead?: string;
+  fold?: string;
+  meta?: string;
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  role,
+  tone = "default",
+  author,
+  text,
+  lead,
+  fold,
+  meta,
+  class: extra,
+  ...rest
+} = Astro.props;
+const markdown = Astro.slots.has("default");
+const hasMeta = Astro.slots.has("meta") || Boolean(meta);
+const bodyClass = messageBodyClasses(markdown);
+---
+
+<div class={messageClasses({ role, tone, folded: Boolean(fold), cls: extra })} {...rest}>
+  <span class="visually-hidden">{messageSpeaker({ role, tone, author })} </span>
+  {tone === "error" && <Icon name="warn" class="msg-ico" />}
+  {lead && <p class="msg-lead">{lead}</p>}
+  {
+    fold ? (
+      <details class="msg-fold">
+        <summary>{fold}</summary>
+        <div class={bodyClass}>{markdown ? <slot /> : text}</div>
+      </details>
+    ) : (
+      <div class={bodyClass}>{markdown ? <slot /> : text}</div>
+    )
+  }
+  <slot name="after" />
+  {
+    hasMeta && (
+      <div class="msg-meta">
+        <slot name="meta">{meta}</slot>
+      </div>
+    )
+  }
+</div>

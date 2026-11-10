@@ -1,0 +1,71 @@
+---
+// Markup must match mdEditorHTML() in lib/ui/catalog.ts.
+import Button from "./Button.astro";
+import SaveState from "./SaveState.astro";
+import { t } from "../i18n";
+import { mdEditorClasses, type MdEditorSave } from "../lib/ui/catalog";
+
+interface Props {
+  path: string;
+  pathId: string;
+  note?: string;
+  textId: string;
+  value?: string;
+  readOnly?: boolean;
+  back?: boolean;
+  backLabel?: string;
+  backId?: string;
+  stateId?: string;
+  save?: MdEditorSave;
+  box?: boolean;
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  path,
+  pathId,
+  note,
+  textId,
+  value = "",
+  readOnly = false,
+  back = true,
+  backLabel,
+  backId,
+  stateId,
+  save,
+  box = false,
+  class: extra,
+  ...rest
+} = Astro.props;
+---
+
+<div class={mdEditorClasses(box, extra)} {...rest}>
+  <div class="md-editor-bar">
+    {
+      back && (
+        <Button size="sm" icon="chevron-left" id={backId}>
+          {backLabel ?? t("common.buttons.back")}
+        </Button>
+      )
+    }
+    <span id={pathId} class="md-editor-path"
+      >{path}{note && <span class="md-editor-note">{note}</span>}</span
+    >
+    {stateId && <SaveState id={stateId} quiet />}
+    <slot name="buttons" />
+    {
+      save && !save.hidden && (
+        <Button variant="primary" size="sm" kbd={save.kbd} id={save.id} disabled={save.disabled}>
+          {save.label ?? t("common.buttons.save")}
+        </Button>
+      )
+    }
+  </div>
+  <textarea
+    id={textId}
+    class="md-editor-text"
+    spellcheck="false"
+    aria-labelledby={pathId}
+    readonly={readOnly || undefined}>{value}</textarea
+  >
+</div>

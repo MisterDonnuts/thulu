@@ -1,0 +1,83 @@
+---
+import {
+  cardClasses,
+  cardTags,
+  type CardHeading,
+  type CardReveal,
+  type CardTag,
+} from "../lib/ui/card";
+
+interface Props {
+  title?: string;
+  heading?: CardHeading;
+  href?: string;
+  reveal?: CardReveal;
+  dashed?: boolean;
+  off?: boolean;
+  target?: boolean;
+  tag?: CardTag;
+  id?: string;
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  title,
+  heading = "h3",
+  href,
+  reveal = "always",
+  dashed = false,
+  off = false,
+  target = false,
+  tag = "article",
+  id,
+  class: extra,
+  ...rest
+} = Astro.props;
+const tags = cardTags(tag, heading);
+const Tag = tags.tag;
+const Heading = tags.heading;
+const link = href !== undefined;
+const hasHead = title !== undefined || Astro.slots.has("head");
+---
+
+<Tag {id} class={cardClasses({ link, reveal, dashed, off, target, cls: extra })} {...rest}>
+  {
+    Astro.slots.has("media") && (
+      <div class="card-media">
+        <slot name="media" />
+      </div>
+    )
+  }
+  {
+    hasHead && (
+      <div class="card-head">
+        {title !== undefined && (
+          <Heading>
+            {link ? (
+              <a class="card-cover" href={href}>
+                {title}
+              </a>
+            ) : (
+              title
+            )}
+          </Heading>
+        )}
+        <slot name="head" />
+      </div>
+    )
+  }
+  {
+    Astro.slots.has("default") && (
+      <div class="card-body">
+        <slot />
+      </div>
+    )
+  }
+  {
+    Astro.slots.has("foot") && (
+      <div class="card-foot">
+        <slot name="foot" />
+      </div>
+    )
+  }
+</Tag>

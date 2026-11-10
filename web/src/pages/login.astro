@@ -1,0 +1,569 @@
+---
+import "@fontsource-variable/inter";
+import "@fontsource/jetbrains-mono/400.css";
+import Button from "../components/Button.astro";
+import Callout from "../components/Callout.astro";
+import CodeBlock from "../components/CodeBlock.astro";
+import IconSprite from "../components/IconSprite.astro";
+import { locale, SLOT, t, tParts } from "../i18n";
+
+const devLinkParts = tParts("login.notices.dev_link", { cmd: SLOT });
+const noProviderParts = tParts("login.notices.no_provider", {
+  issuer: SLOT,
+  client_id: SLOT,
+  client_secret: SLOT,
+});
+const CODE: Record<string, string> = {
+  // i18n-ignore a shell command, not a message
+  cmd: "thulu open",
+  issuer: "OCTOPUS_OIDC_ISSUER",
+  client_id: "OCTOPUS_OIDC_CLIENT_ID",
+  client_secret: "OCTOPUS_OIDC_CLIENT_SECRET",
+};
+---
+
+<!doctype html>
+<html lang={locale}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="color-scheme" content="light dark" />
+    <script is:inline src="/boot/theme.js"></script>
+    <title>{t("layout.page_title", { page: t("login.title") })}</title>
+    <style is:global>
+      /* This page never loads Layout.astro — it is the screen you land on
+         before there is a session — so it imports the sheets it needs into
+         the same layers Layout uses: the tokens, the reset with the icon
+         sizing, the buttons, the callouts and the code blocks. Global like Layout's, because
+         the script builds buttons that carry no scope attribute. The page's own rules,
+         in the scoped block below, are unlayered and win over all three. */
+      @layer octopus.tokens, octopus.base, octopus.primitives;
+      @import "../styles/tokens.css" layer(octopus.tokens);
+      @import "../styles/base.css" layer(octopus.base);
+      @import "../styles/primitives/button.css" layer(octopus.primitives);
+      @import "../styles/primitives/callout.css" layer(octopus.primitives);
+      @import "../styles/primitives/code.css" layer(octopus.primitives);
+    </style>
+    <style>
+      body {
+        font-family: var(--font-sans);
+        font-size: var(--t-base);
+        background: var(--surface-0);
+        color: var(--fg);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* ── Card ── */
+      .login-card {
+        position: relative;
+        width: 380px;
+        max-width: 92vw;
+        background: var(--surface-1);
+        border: 1px solid var(--line-strong);
+        border-radius: var(--r-lg);
+        padding: var(--s-8);
+        box-shadow: var(--shadow-modal);
+      }
+
+      /* ── Brand ── */
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: var(--s-3);
+        margin-bottom: var(--s-7);
+      }
+      .brand-logo {
+        display: block;
+        height: 44px;
+        width: auto;
+      }
+      /* The one tentacle of the product: it comes up from behind the card, whose edge stays whole. The
+         card must not open a stacking context, or z-index would leave this in front of its background. */
+      .card-tentacle {
+        position: absolute;
+        z-index: -1;
+        right: var(--s-7);
+        bottom: 100%;
+        height: 64px;
+        width: auto;
+        margin-bottom: -12px;
+        fill: var(--brand-iris);
+        pointer-events: none;
+      }
+
+      /* ── Heading ── */
+      .login-title {
+        font-size: var(--t-xl);
+        font-weight: 600;
+        letter-spacing: var(--tracking-tight);
+        margin-bottom: var(--s-1);
+        color: var(--fg);
+      }
+      .login-sub {
+        font-size: var(--t-sm);
+        color: var(--fg-3);
+        margin-bottom: var(--s-7);
+        line-height: 1.5;
+      }
+
+      /* ── Callouts: an error, an invitation, a missing provider ── */
+      .login-callout {
+        margin-bottom: var(--s-4);
+      }
+
+      /* ── Provider buttons ── */
+      /* The way forward on each screen spans the card. :global because
+         renderSSOProviders builds the provider links in a script, and Astro's
+         scoped CSS only matches elements carrying its data-astro-cid
+         attribute, which script-created nodes never do. */
+      :global(.login-wide) {
+        width: 100%;
+      }
+      #sso-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: var(--s-3);
+      }
+
+      .footnote {
+        margin-top: var(--s-5);
+        font-size: var(--t-xs);
+        color: var(--fg-4);
+        text-align: center;
+        line-height: 1.5;
+      }
+
+      /* ── Terms and privacy, readable before signing in ── */
+      .legal-links {
+        display: flex;
+        justify-content: center;
+        gap: var(--s-4);
+        margin-top: var(--s-6);
+        font-size: var(--t-xs);
+      }
+      .legal-links a {
+        color: var(--fg-3);
+      }
+      .legal-links a:hover {
+        color: var(--fg-2);
+      }
+
+      /* ── Pending access ── */
+      .pending-text {
+        font-size: var(--t-sm);
+        color: var(--fg-2);
+        line-height: 1.6;
+        margin-bottom: var(--s-6);
+      }
+      .pending-cmd {
+        margin: calc(-1 * var(--s-4)) 0 var(--s-6);
+      }
+      .screen-actions {
+        display: flex;
+        flex-direction: column;
+        gap: var(--s-3);
+      }
+
+      /* ── Invitation and invite-only lines ── */
+      .invite-note {
+        margin-top: var(--s-1);
+      }
+      .beta-line {
+        margin: calc(-1 * var(--s-5)) 0 var(--s-6);
+      }
+      .beta-line a {
+        margin-left: var(--s-1);
+      }
+      .screen-note {
+        margin-top: var(--s-5);
+        font-size: var(--t-sm);
+        color: var(--fg-2);
+        line-height: 1.6;
+      }
+      .screen-note a {
+        color: var(--accent);
+        margin-left: var(--s-1);
+      }
+    </style>
+  </head>
+  <body>
+    <IconSprite />
+    <div class="login-card" id="card">
+      <svg class="card-tentacle" viewBox="0 0 125 163" aria-hidden="true"
+        ><use href="#i-tentacle"></use></svg
+      >
+      <div class="brand">
+        <svg
+          class="brand-logo"
+          viewBox="0 0 1636 512"
+          role="img"
+          aria-label={t("layout.brand.name")}><use href="#i-thulu"></use></svg
+        >
+      </div>
+
+      <div id="pending-access" hidden>
+        <h1 class="login-title">{t("login.pending.title")}</h1>
+        <p class="login-sub">{t("login.pending.subtitle")}</p>
+        <p class="pending-text" id="pending-text">
+          {t("login.pending.text")}
+        </p>
+        <p class="pending-text" id="pending-first-text" hidden>{t("login.pending.first_text")}</p>
+        <p class="pending-text" id="pending-first-workspace" hidden>
+          {t("login.pending.first_workspace_hint")}
+        </p>
+        <CodeBlock
+          id="pending-first-cmd"
+          class="pending-cmd"
+          textId="pending-first-pre"
+          multiline
+          copy
+          label={t("login.pending.command_name")}
+          hidden
+        />
+        <Button id="pending-signout" size="md" class="login-wide"
+          >{t("login.pending.sign_out")}</Button
+        >
+      </div>
+
+      <div id="not-invited" hidden>
+        <h1 class="login-title">{t("login.not_invited.title")}</h1>
+        <p class="login-sub" id="not-invited-text"></p>
+        <p class="pending-text" id="not-invited-invited" hidden></p>
+        <p class="pending-text" id="not-invited-done" role="status" hidden></p>
+        <Callout
+          id="not-invited-error"
+          tone="danger"
+          icon="alert"
+          class="login-callout"
+          role="alert"
+          hidden><span id="not-invited-error-text"></span></Callout
+        >
+        <p class="pending-text" id="not-invited-request-hint" hidden>
+          {t("login.not_invited.request_hint")}
+        </p>
+        <div class="screen-actions">
+          <Button id="not-invited-request" size="md" class="login-wide" hidden
+            >{t("login.not_invited.request")}</Button
+          >
+          <Button id="not-invited-signout" size="md" class="login-wide"
+            >{t("login.not_invited.other_account")}</Button
+          >
+        </div>
+        <p class="screen-note" id="not-invited-waitlist-line" hidden>
+          {t("login.not_invited.waitlist_hint")}<a id="not-invited-waitlist-link"
+            >{t("login.beta.waitlist")}</a
+          >
+        </p>
+      </div>
+
+      <div id="sign-in">
+        <h1 class="login-title">{t("login.title")}</h1>
+        <p class="login-sub" id="form-sub">{t("login.subtitle")}</p>
+        <Callout id="beta-line" icon="lock" class="beta-line" hidden>
+          <span id="beta-line-text"></span><a id="beta-line-link" hidden
+            >{t("login.beta.waitlist")}</a
+          >
+        </Callout>
+
+        <Callout
+          id="invite-banner"
+          tone="accent"
+          icon="user-plus"
+          class="login-callout"
+          role="status"
+          hidden
+        >
+          <p id="invite-banner-text"></p>
+          <p id="invite-banner-note" class="invite-note" hidden></p>
+        </Callout>
+
+        <Callout
+          id="error-banner"
+          tone="danger"
+          icon="alert"
+          class="login-callout"
+          role="alert"
+          hidden><span id="error-text"></span></Callout
+        >
+
+        <div id="sso-buttons"></div>
+
+        <Callout id="dev-link" icon="info" hidden>
+          {devLinkParts.map((p, i) => (i % 2 ? <code>{CODE[p]}</code> : p))}
+        </Callout>
+
+        <Callout id="no-provider" tone="warn" icon="warn" hidden>
+          {noProviderParts.map((p, i) => (i % 2 ? <code>{CODE[p]}</code> : p))}
+        </Callout>
+
+        <p class="footnote" id="first-user-note" hidden>
+          {t("login.notices.first_user")}
+        </p>
+      </div>
+
+      <nav class="legal-links" aria-label={t("legal.links.nav")}>
+        <a href="/legal/terms/">{t("legal.links.terms")}</a>
+        <a href="/legal/privacy/">{t("legal.links.privacy")}</a>
+      </nav>
+    </div>
+
+    <script>
+      import { apiBase, isAuthenticated, logout } from "../lib/auth";
+      import {
+        firstOwnerCommand,
+        loginNotice,
+        noticeText,
+        type LoginNotice,
+      } from "../lib/login-notice";
+      import { safeUrl, sameOriginPath } from "../lib/safe-url";
+      import { bindCodeCopy, buttonEl } from "../lib/ui";
+      import { t } from "../i18n";
+
+      const API = apiBase();
+      bindCodeCopy(document);
+
+      interface AuthConfig {
+        has_users?: boolean;
+        dev_mode?: boolean;
+        dev_session?: boolean;
+        sso_providers?: { key: string; name: string; kind: string }[];
+        signup_mode?: string;
+        saas?: boolean;
+        waitlist_url?: string;
+      }
+
+      function waitlistHref(cfg: AuthConfig | null): string {
+        return safeUrl(cfg?.waitlist_url);
+      }
+
+      async function readConfig(): Promise<AuthConfig | null> {
+        try {
+          const r = await fetch(`${API}/auth/config`);
+          return r.ok ? ((await r.json()) as AuthConfig) : null;
+        } catch {
+          return null;
+        }
+      }
+
+      // Same-origin path only: "/\evil.com" passes startsWith("/") and the browser reads it as
+      // "//evil.com".
+      function nextUrl(): string {
+        const next = new URLSearchParams(window.location.search).get("next");
+        return sameOriginPath(next, window.location.origin);
+      }
+
+      function showError(msg: string) {
+        (document.getElementById("error-text") as HTMLElement).textContent = msg;
+        document.getElementById("error-banner")!.hidden = false;
+      }
+
+      function renderSSOProviders(providers: { key: string; name: string; kind: string }[]) {
+        const container = document.getElementById("sso-buttons")!;
+        container.innerHTML = "";
+        for (const p of providers) {
+          container.appendChild(
+            buttonEl({
+              label: t("login.sso.continue_with", { provider: p.name }),
+              href: `${API}/auth/oidc/authorize?provider=${encodeURIComponent(p.key)}&next=${encodeURIComponent(nextUrl())}`,
+              icon: p.kind === "github" ? "github" : "user",
+              size: "md",
+              cls: "login-wide",
+            }),
+          );
+        }
+      }
+
+      // Must run before the session-cookie check: a stale cookie would send the browser to a
+      // dashboard that 401s straight back here.
+      function showPendingAccess(notice: LoginNotice) {
+        document.title = t("layout.page_title", { page: t("login.pending.page_title") });
+        document.getElementById("sign-in")!.hidden = true;
+        document.getElementById("pending-access")!.hidden = false;
+        if (notice.first) {
+          const cmd = firstOwnerCommand(
+            API || window.location.origin,
+            notice.workspace,
+            notice.email,
+          );
+          document.getElementById("pending-text")!.hidden = true;
+          document.getElementById("pending-first-text")!.hidden = false;
+          document.getElementById("pending-first-workspace")!.hidden = notice.workspace !== "";
+          document.getElementById("pending-first-cmd")!.hidden = false;
+          document.getElementById("pending-first-pre")!.textContent = cmd;
+        }
+        document.getElementById("pending-signout")!.addEventListener("click", async () => {
+          window.location.href = await logout();
+        });
+      }
+
+      async function showNotInvited(notice: LoginNotice) {
+        document.title = t("layout.page_title", { page: t("login.not_invited.page_title") });
+        document.getElementById("sign-in")!.hidden = true;
+        document.getElementById("not-invited")!.hidden = false;
+        document.getElementById("not-invited-text")!.textContent = t("login.not_invited.text", {
+          email: notice.email,
+        });
+        if (notice.invited.length) {
+          const el = document.getElementById("not-invited-invited")!;
+          const key =
+            notice.invited.length > 1
+              ? "login.not_invited.invited_many"
+              : "login.not_invited.invited";
+          el.textContent = t(key, { workspaces: notice.invited.join(", ") });
+          el.hidden = false;
+        }
+        document.getElementById("not-invited-signout")!.addEventListener("click", async () => {
+          window.location.href = await logout();
+        });
+        const request = document.getElementById("not-invited-request") as HTMLButtonElement;
+        const requestHint = document.getElementById("not-invited-request-hint")!;
+        request.hidden = !notice.request;
+        requestHint.hidden = !notice.request;
+        request.addEventListener("click", async () => {
+          request.disabled = true;
+          request.textContent = t("login.not_invited.requesting");
+          const errEl = document.getElementById("not-invited-error")!;
+          errEl.hidden = true;
+          try {
+            const r = await fetch(`${API}/auth/access-request`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ token: notice.request }),
+            });
+            if (!r.ok) {
+              const body = (await r.json().catch(() => ({}))) as { error?: string };
+              throw new Error(body.error || String(r.status));
+            }
+            request.hidden = true;
+            requestHint.hidden = true;
+            const done = document.getElementById("not-invited-done")!;
+            done.textContent = t("login.not_invited.requested", { email: notice.email });
+            done.hidden = false;
+          } catch (err) {
+            request.disabled = false;
+            request.textContent = t("login.not_invited.request");
+            document.getElementById("not-invited-error-text")!.textContent = t(
+              "login.not_invited.request_failed",
+              { error: err instanceof Error ? err.message : String(err) },
+            );
+            errEl.hidden = false;
+          }
+        });
+        const href = waitlistHref(await readConfig());
+        if (href) {
+          if (notice.request) {
+            const line = document.getElementById("not-invited-waitlist-line")!;
+            (document.getElementById("not-invited-waitlist-link") as HTMLAnchorElement).href = href;
+            line.hidden = false;
+          } else {
+            document
+              .getElementById("not-invited-signout")!
+              .before(
+                buttonEl({ label: t("login.beta.waitlist"), href, size: "md", cls: "login-wide" }),
+              );
+          }
+        }
+      }
+
+      async function showInvitation(id: string) {
+        const banner = document.getElementById("invite-banner")!;
+        const text = document.getElementById("invite-banner-text")!;
+        try {
+          const r = await fetch(`${API}/auth/invitation?id=${encodeURIComponent(id)}`);
+          if (!r.ok) {
+            text.textContent = t("login.invite.gone");
+            banner.hidden = false;
+            return;
+          }
+          const inv = (await r.json()) as {
+            workspace: string;
+            email: string;
+            awaiting_access?: boolean;
+          };
+          text.textContent = t("login.invite.for", { workspace: inv.workspace, email: inv.email });
+          if (inv.awaiting_access) {
+            const note = document.getElementById("invite-banner-note")!;
+            note.textContent = t("login.invite.awaiting");
+            note.hidden = false;
+          }
+          banner.hidden = false;
+        } catch {
+          // Deliberate no-op: the config fetch in boot() reports an unreachable daemon.
+        }
+      }
+
+      async function boot() {
+        const notice = loginNotice(window.location.search);
+        if (notice.pending) {
+          showPendingAccess(notice);
+          return;
+        }
+        if (notice.notInvited) {
+          void showNotInvited(notice);
+          return;
+        }
+        if (notice.invite) void showInvitation(notice.invite);
+
+        if (isAuthenticated()) {
+          window.location.href = nextUrl();
+          return;
+        }
+
+        if (notice.error) showError(noticeText(notice));
+
+        let cfg: AuthConfig;
+        try {
+          const r = await fetch(`${API}/auth/config`);
+          if (!r.ok) {
+            showError(t("login.errors.config_rejected"));
+            return;
+          }
+          cfg = (await r.json()) as AuthConfig;
+        } catch {
+          showError(t("login.errors.unreachable"));
+          return;
+        }
+
+        if (cfg.dev_mode) {
+          if (cfg.dev_session) {
+            window.location.href = nextUrl();
+            return;
+          }
+          document.getElementById("dev-link")!.hidden = false;
+          return;
+        }
+
+        const providers = cfg.sso_providers ?? [];
+        if (providers.length === 0) {
+          document.getElementById("no-provider")!.hidden = false;
+          return;
+        }
+        renderSSOProviders(providers);
+        if (cfg.signup_mode === "allowlist") {
+          document.getElementById("beta-line-text")!.textContent = cfg.saas
+            ? t("login.beta.saas")
+            : t("login.beta.allowlist");
+          const href = waitlistHref(cfg);
+          if (href) {
+            const link = document.getElementById("beta-line-link") as HTMLAnchorElement;
+            link.href = href;
+            link.hidden = false;
+          }
+          document.getElementById("beta-line")!.hidden = false;
+        }
+        if (cfg.has_users === false) {
+          document.getElementById("first-user-note")!.hidden = false;
+        }
+      }
+
+      void boot();
+    </script>
+  </body>
+</html>

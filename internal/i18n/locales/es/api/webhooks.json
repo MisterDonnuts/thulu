@@ -1,0 +1,18 @@
+{
+  "errors": {
+    "url_required": "falta la url",
+    "invalid_url": "url: {cause}",
+    "unknown_event": "no existe el evento de webhook {events} (mirá GET /webhooks/events)",
+    "id_required": "falta el id",
+    "dispatcher_unavailable": "el despachador de webhooks no está disponible",
+    "not_found": "no existe el webhook",
+    "delivery_not_found": "esa entrega no existe en este webhook",
+    "delivery_not_retryable": "ese evento todavía se está reintentando o ya se entregó: reintentarlo ahora lo mandaría dos veces"
+  },
+  "text": {
+    "test_delivery": "Esta es una entrega de prueba de Thulu. Tu webhook está bien configurado."
+  },
+  "audit": {
+    "secret_rotated": "rotó el secreto de firma del webhook de {url}"
+  }
+}

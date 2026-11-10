@@ -1,0 +1,33 @@
+{
+  "errors": {
+    "bundle": "deploy bundle",
+    "bundle_too_large": "deploy bundle: larger than {max} bytes",
+    "bundle_entry_read": "deploy bundle: {name:%q}",
+    "bundle_entry_truncated": "deploy bundle: {name:%q} is truncated",
+    "bundle_empty": "deploy bundle is empty",
+    "bundle_not_regular": "deploy bundle: {name:%q} is not a regular file (type {type:%q})",
+    "bundle_bad_path": "deploy bundle: refusing path {name:%q}",
+    "bundle_duplicate": "deploy bundle: {name:%q} appears twice",
+    "bundle_too_many_files": "deploy bundle: more than {max} files",
+    "bundle_entry_too_large": "deploy bundle: {name:%q} is {size} bytes",
+    "read_file": "read {path}",
+    "parse_file": "parse {path}",
+    "write_file": "write {path}",
+    "invalid_path": "{path:%q} is not a deploy file path",
+    "tree": "deploy files",
+    "open_dir": "open deploy/",
+    "read_deploy_file": "read deploy/{path}",
+    "edited_by_hand": {
+      "one": "{count} deploy file edited by hand",
+      "other": "{count} deploy files edited by hand"
+    },
+    "stat_deploy_file": "stat deploy/{path}",
+    "not_regular": "deploy/{path} is not a regular file",
+    "create_deploy_dir": "create deploy/{path}",
+    "write_deploy_file": "write deploy/{path}"
+  },
+  "labels": {
+    "diff_header": "--- {name} (on disk)\n+++ {name} (release)\n",
+    "diff_too_long": "(files differ; too long to diff here)\n"
+  }
+}

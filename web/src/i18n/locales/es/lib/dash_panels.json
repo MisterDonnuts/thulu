@@ -1,0 +1,27 @@
+{
+  "options": {
+    "no_group": "— ninguno —",
+    "half_row": "media fila",
+    "full_row": "fila completa"
+  },
+  "labels": {
+    "title_placeholder": "Título del panel",
+    "multi_series": "{count} series: editalas desde la API"
+  },
+  "buttons": {
+    "remove": "Quitar panel"
+  },
+  "hints": {
+    "group_required": "Este gráfico necesita un label para dividir",
+    "group_optional": "Dividir por un label"
+  },
+  "fields": {
+    "title": "Título",
+    "type": "Gráfico",
+    "metric": "Métrica",
+    "agg": "Agregación",
+    "group_by": "Dividir por",
+    "range": "Horas",
+    "width": "Ancho"
+  }
+}

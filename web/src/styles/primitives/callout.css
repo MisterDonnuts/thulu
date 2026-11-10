@@ -1,0 +1,174 @@
+/* Depends only on tokens.css and base.css so pages without Layout (login) can import it alone. */
+
+.callout {
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  color: var(--fg-2);
+  font-size: var(--t-sm);
+  line-height: var(--lh-snug);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--s-2) var(--s-3);
+  min-width: 0;
+}
+
+.callout-accent {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+}
+.callout-warn {
+  background: var(--warn-soft);
+  border-color: var(--warn-line);
+}
+.callout-danger {
+  background: var(--danger-soft);
+  border-color: var(--danger-line);
+}
+.callout-ok {
+  background: var(--ok-soft);
+  border-color: var(--ok-line);
+}
+.callout-special {
+  background: var(--color-special-bg);
+  border-color: var(--color-special-border);
+}
+
+.callout-ico {
+  flex: none;
+  margin-block: calc((var(--t-sm) * var(--lh-snug) - var(--icon-md)) / 2);
+  color: var(--fg-3);
+}
+.callout-accent > .callout-ico {
+  color: var(--accent);
+}
+.callout-warn > .callout-ico {
+  color: var(--warn);
+}
+.callout-danger > .callout-ico {
+  color: var(--color-danger-strong);
+}
+.callout-ok > .callout-ico {
+  color: var(--ok);
+}
+.callout-special > .callout-ico {
+  color: var(--color-special);
+}
+
+.callout-body {
+  display: flex;
+  flex: 1 1 calc(var(--s-9) * 5);
+  flex-direction: column;
+  gap: var(--s-1);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.callout-title {
+  margin: 0;
+  color: var(--fg);
+  font-weight: 600;
+}
+.callout-text > :first-child {
+  margin-top: 0;
+}
+.callout-text > :last-child {
+  margin-bottom: 0;
+}
+.callout-text > p + p {
+  margin-top: var(--s-2);
+}
+.callout-text a {
+  color: var(--accent);
+}
+.callout-text a:hover {
+  text-decoration: none;
+}
+.callout-text ul,
+.callout-text ol {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  margin: var(--s-2) 0;
+  padding-left: var(--s-6);
+}
+.callout-text b,
+.callout-text strong {
+  color: var(--fg);
+  font-weight: 500;
+}
+
+.callout-detail {
+  margin-top: var(--s-1);
+}
+.callout-detail > summary {
+  width: fit-content;
+  color: var(--fg-2);
+  cursor: pointer;
+}
+.callout-detail > summary:hover {
+  color: var(--fg);
+}
+.callout-detail > pre {
+  max-height: calc(var(--s-9) * 5);
+  margin: var(--s-2) 0 0;
+  padding: var(--s-2) var(--s-3);
+  overflow: auto;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-sm);
+  background: var(--surface-1);
+  color: var(--fg-2);
+  font-family: var(--font-mono);
+  font-size: var(--t-xs);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.callout-actions {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+  margin-left: auto;
+}
+
+.callout-band {
+  align-items: center;
+  padding: var(--s-2) var(--s-5);
+  border-width: 0 0 1px;
+  border-radius: 0;
+}
+.callout-band > .callout-ico {
+  margin-block: 0;
+}
+
+.callout-bare {
+  display: block;
+}
+.callout-bare.callout-danger {
+  color: var(--color-danger-strong);
+}
+
+/* lib/operator.ts and its test find the read-only note by this class. */
+.readonly-note {
+  margin-bottom: var(--s-3);
+}
+
+.text-warn {
+  color: var(--warn);
+}
+.text-danger {
+  color: var(--danger);
+}
+.text-warn-hint {
+  font-size: var(--t-xs);
+  line-height: var(--lh-snug);
+}
+
+@media (pointer: coarse) {
+  .callout-detail > summary {
+    padding-block: calc((var(--tap-min) - var(--t-sm) * var(--lh-snug)) / 2);
+  }
+}

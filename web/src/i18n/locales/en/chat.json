@@ -1,0 +1,142 @@
+{
+  "aria": {
+    "drawer": "Agent chat",
+    "unread": "Unread messages"
+  },
+  "buttons": {
+    "back_to_chats": "Back to chats"
+  },
+  "new": {
+    "title": "New chat",
+    "agent": "Agent",
+    "linked_task": "Linked task (optional)",
+    "no_task": "— no task —",
+    "title_label": "Title (optional)",
+    "title_placeholder": "e.g. Sprint plan",
+    "create": "Create chat",
+    "no_agents": "— no agent has the Chat stage —",
+    "option_lacks_prompt": "{agent} (no chat prompt)",
+    "option_lacks_llm": "{agent} (no model credential)",
+    "option_lacks_both": "{agent} (no prompt or credential)",
+    "hint_no_agents": "No agent has the Chat stage. Add it to one in its settings.",
+    "hint_no_agents_link": "Go to Agents",
+    "hint_no_prompt": "{agent} has no prompt for the Chat stage: the chat is created, but the first message fails.",
+    "hint_no_prompt_link": "Add the prompt",
+    "hint_no_llm": "This workspace has no model credential for {agent}.",
+    "hint_no_llm_link": "Open AI engines",
+    "reused": "@{agent} already had a chat about “{task}”. You are in that one."
+  },
+  "conversation": {
+    "default_title": "Chat",
+    "rename_hint": "Click to rename",
+    "rename_prompt": "Chat title:",
+    "replying": "Replying"
+  },
+  "subtitle": {
+    "agent_task": "@{agent} · {task}",
+    "context": "{tokens} of 200k context",
+    "open_task": "Open the task"
+  },
+  "menu": {
+    "aria": "Chat options",
+    "title": "Options",
+    "delegate": "Act for me",
+    "reset": "Reset conversation",
+    "reset_sub": "Clears the history and the agent's session",
+    "archive": "Archive",
+    "delete": "Delete chat",
+    "unarchive": "Unarchive"
+  },
+  "delegate": {
+    "pill": "Acts for you",
+    "pill_until": "Acts for you until {time}",
+    "sub_off": "Handles the boards' tasks on your behalf",
+    "sub_on": "Acts for {person}. Click to turn it off",
+    "sub_linked": "Only in a chat that is not linked to a task",
+    "disabled_by_owner": "An owner turned off delegated chats in this workspace.",
+    "confirm_title": "Let @{agent} act for you?",
+    "confirm_message": {
+      "one": "It will be able to create, edit and move tasks on every board in this workspace. The audit log records it as the agent, delegated by you. It cannot decide approvals or resolve threads, and to delete anything it asks you to confirm here. While it is on, only you can write in this chat. It turns itself off in {count} hour.",
+      "other": "It will be able to create, edit and move tasks on every board in this workspace. The audit log records it as the agent, delegated by you. It cannot decide approvals or resolve threads, and to delete anything it asks you to confirm here. While it is on, only you can write in this chat. It turns itself off in {count} hours."
+    },
+    "confirm_ok": "Turn on",
+    "no_write": "@{agent} has no octopus-api with write on the Chat stage: even with this on, it cannot touch the boards.",
+    "no_write_link": "Set up its MCPs"
+  },
+  "actions": {
+    "asks_confirmation": "@{agent} asks for confirmation",
+    "confirm": "Confirm",
+    "confirmed_by": "Confirmed by {person}",
+    "confirmed_by_you": "Confirmed by you",
+    "failed": "Failed: HTTP {status}",
+    "failed_with_error": "Failed: HTTP {status} · {error}",
+    "canceled_by": "Canceled by {person}",
+    "canceled_expired": "Canceled: the delegation ended",
+    "canceled_by_you": "Canceled by you",
+    "forbidden": "Could not: your role does not allow this.",
+    "forbidden_task": "Your role does not allow deleting this task (it takes admin)."
+  },
+  "confirm": {
+    "reset_title": "Reset the conversation?",
+    "reset_message": "Clears the history and the agent's session — the next message starts from scratch.",
+    "reset_ok": "Reset",
+    "delete_title": "Delete the chat?",
+    "delete_message": "The whole conversation is deleted. This action cannot be undone.",
+    "delete_ok": "Delete",
+    "archive_title": "Archive the chat?",
+    "archive_message": "It leaves the list and stops taking messages. Find it under “Show archived” at the foot of the list, and unarchive it from there.",
+    "archive_ok": "Archive"
+  },
+  "composer": {
+    "aria": "Send a message",
+    "label": "Message",
+    "placeholder": "Write to the agent…",
+    "send": "Send",
+    "archived_note": "Archived chat. Unarchive it to write.",
+    "thread_note": "What you write here stays in this chat; it does not go back to the task's thread.",
+    "open_task": "Open the task"
+  },
+  "empty": {
+    "no_chats": "No conversations yet. Create a chat with an agent to discuss a task or an implementation without cluttering the comments."
+  },
+  "errors": {
+    "http_status": "HTTP {status}",
+    "http_daemon": "Error — HTTP {status} from the daemon.",
+    "offline_decide": "Daemon offline — could not decide.",
+    "offline_create": "Daemon offline — could not create the chat.",
+    "offline_delegation": "Daemon offline — could not change it.",
+    "offline_send": "Daemon offline — the message was not sent.",
+    "busy_reset": "The agent is replying — wait for it to finish.",
+    "busy_send": "The agent is still replying to the previous message.",
+    "offline_archive": "Daemon offline: could not archive.",
+    "no_prompt_link": "Add the chat prompt",
+    "no_prompt": "{agent} has no prompt for the Chat stage: until you add one, every message fails."
+  },
+  "archived": {
+    "show": "Show archived",
+    "hide": "Hide archived",
+    "done": "Archived “{title}”.",
+    "undo": "Undo"
+  },
+  "tools": {
+    "summary": {
+      "one": "Used {count} tool",
+      "other": "Used {count} tools"
+    },
+    "omitted": {
+      "one": "and {count} more",
+      "other": "and {count} more"
+    }
+  },
+  "brief": {
+    "evidence_recording": "Recording {key} on {env}",
+    "show_instructions": "Show the agent instructions",
+    "summary": "Context the agent received"
+  },
+  "intro": {
+    "task": "@{agent} answers about “{task}”: it gets the task and its code, if any, and reads the rest with its tools.",
+    "loose": "@{agent} starts with no task or code: it knows what you write and what it reads with its tools.",
+    "shared": "Every member of the workspace sees this chat: @{agent} answers mentions on the task from it.",
+    "personal": "Only you see this chat."
+  }
+}

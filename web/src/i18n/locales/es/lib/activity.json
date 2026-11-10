@@ -1,0 +1,160 @@
+{
+  "just_now": "recién",
+  "today": "Hoy",
+  "yesterday": "Ayer",
+  "you": "Vos",
+  "an_agent": "Un agente",
+  "octopus": "Thulu",
+  "someone": "Alguien",
+  "the_agent": "el agente",
+  "show_earlier": {
+    "one": "Mostrar {count} elemento anterior",
+    "other": "Mostrar {count} elementos anteriores"
+  },
+  "group": {
+    "stage": {
+      "one": "{count} cambio de etapa",
+      "other": "{count} cambios de etapa"
+    },
+    "run": {
+      "one": "{count} corrida",
+      "other": "{count} corridas"
+    },
+    "dep": {
+      "one": "{count} cambio de dependencias",
+      "other": "{count} cambios de dependencias"
+    },
+    "subtask": {
+      "one": "{count} cambio de subtareas",
+      "other": "{count} cambios de subtareas"
+    },
+    "other": {
+      "one": "{count} actualización",
+      "other": "{count} actualizaciones"
+    },
+    "note": {
+      "one": "{count} aviso",
+      "other": "{count} avisos"
+    }
+  },
+  "sys": {
+    "stage": "Pasó de {from} a {to}",
+    "run": "{agent} terminó una corrida en {stage}, {duration}",
+    "subtask_added": "Subtarea agregada:",
+    "run_nostage": "{agent} terminó una corrida, {duration}",
+    "pr_by_agent": "El agente abrió un PR",
+    "pr_by_force": "Forzar PR abrió un PR",
+    "pr_discovered": "Se vinculó un PR que ya estaba abierto",
+    "pr_by_octopus": "Thulu abrió un PR",
+    "merged": "Integró {branch} en {target} ({commit})",
+    "merged_nocommit": "Integró {branch} en {target}"
+  },
+  "run": {
+    "state": {
+      "running": "Corriendo",
+      "queued": "En cola",
+      "done": "Terminada",
+      "failed": "Falló",
+      "ended": "Cortada",
+      "not_started": "No arrancó",
+      "stopped": "Frenada",
+      "out_of_turns": "Sin turnos"
+    },
+    "title": "Corrida {number}: {agent} en {stage}",
+    "title_nostage": "Corrida {number}: {agent}",
+    "queued_title": "Próxima corrida: {agent} en {stage}",
+    "queued_title_nostage": "Próxima corrida: {agent}",
+    "for": "lleva {duration}",
+    "took": "duró {duration}",
+    "queued_wait": "Espera lugar para arrancar",
+    "exit": "Código de salida {code}",
+    "view_log": "Ver log",
+    "open_chat": "Abrir chat",
+    "stop": "Detener",
+    "attempt_title": "{agent} en {stage}",
+    "attempt_title_nostage": "{agent}",
+    "attempt_title_noagent": "Sin agente en {stage}",
+    "attempt_title_noagent_nostage": "Sin agente",
+    "not_started_why": "La corrida no llegó a tener un contenedor.",
+    "used_every_turn": "Usó todos los turnos que tenía.",
+    "turns_of": "{used} de {max} turnos",
+    "turns": {
+      "one": "{count} turno",
+      "other": "{count} turnos"
+    },
+    "stopped_by": "Frenada por {who}",
+    "stopped_by_you": "Frenada por vos",
+    "stopped_by_someone": "Frenada por una persona",
+    "cancel_wait": "Cancelar espera"
+  },
+  "thread": {
+    "reply": "Responder",
+    "resolve": "Resolver hilo",
+    "reopen": "Reabrir",
+    "send_to": "Mandar a {agent}",
+    "send_to_stage": "Mandar al agente de la etapa",
+    "send_to_title": "Mandale este hilo a {agent} para que lo lleve a cabo",
+    "make_subtask": "Crear subtarea",
+    "hide": "Ocultar",
+    "show": "Mostrar",
+    "show_label": "Mostrar el hilo resuelto {excerpt}",
+    "show_earlier": {
+      "one": "Mostrar {count} respuesta anterior",
+      "other": "Mostrar {count} respuestas anteriores"
+    },
+    "resolved_line": {
+      "one": "Resuelto: \"{excerpt}\" por {who}, {count} respuesta",
+      "other": "Resuelto: \"{excerpt}\" por {who}, {count} respuestas"
+    },
+    "resolved_line_nobody": {
+      "one": "Resuelto: \"{excerpt}\", {count} respuesta",
+      "other": "Resuelto: \"{excerpt}\", {count} respuestas"
+    },
+    "send_to_agent_gone": "{agent}, el agente que trabajó esta tarea, ya no existe: no hay sesión a la que mandarle el hilo.",
+    "send_to_never_ran": "Esta tarea todavía no corrió: no hay sesión a la que mandarle el hilo. El primer agente lo lee en su brief.",
+    "apply_note_label": "Indicación para {agent}",
+    "apply_note_placeholder": "Indicación (opcional): qué hacer con lo que se decidió",
+    "apply_hint": "{agent} recibe el hilo entero y lleva a cabo lo que se concluyó."
+  },
+  "filter": {
+    "all": "Todo",
+    "comments": "Comentarios",
+    "runs": "Corridas",
+    "system": "Sistema"
+  },
+  "question": {
+    "waiting": "{agent} espera tu respuesta",
+    "waiting_unnamed": "Un agente espera tu respuesta",
+    "pinned": "Fijada",
+    "asked_working": "{agent} preguntó y sigue trabajando",
+    "asked_working_unnamed": "Un agente preguntó y sigue trabajando"
+  },
+  "audience": {
+    "workspace": "Lo ve todo el workspace.",
+    "replies_one": "{who} le responde.",
+    "replies_many": "{who} le responden.",
+    "notified": "{agent} lo lee cuando termina el turno en curso."
+  },
+  "thread_event": {
+    "thread": "el hilo «{title}»",
+    "thread_unnamed": "un hilo",
+    "resolved": "{who} resolvió {thread}",
+    "reopened": "{who} reabrió {thread}",
+    "applied": "Se le mandó {thread} a {agent}",
+    "applied_steered": "Se le mandó {thread} a {agent}, que lo lee al terminar el turno en curso",
+    "applied_queued": "Se le mandó {thread} a {agent}: entra cuando termine la corrida en curso",
+    "applied_continuation": "Se le mandó {thread} a {agent}, que retoma su sesión con él",
+    "applied_unreachable": "Se le mandó {thread} a {agent}: no había sesión que retomar",
+    "applied_nobody": "Se mandó {thread}: no había sesión que retomar",
+    "mention_started": "{agent} empezó a responder en {thread}",
+    "mention_silent": "{agent} terminó sin responder en {thread}",
+    "mention_failed": "{agent} no pudo responder en {thread} (código {code})",
+    "mention_answered": "{agent} respondió en {thread}"
+  },
+  "link": {
+    "credentials": "Abrir Credenciales",
+    "ai_engines": "Abrir Motores de IA",
+    "agents": "Abrir Agentes"
+  },
+  "automation": "Una automatización"
+}

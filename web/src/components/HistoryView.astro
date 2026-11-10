@@ -1,0 +1,40 @@
+---
+// Markup must match historyViewHTML() in lib/ui/history.ts.
+import Button from "./Button.astro";
+import EmptyRow from "./EmptyRow.astro";
+import EmptyState from "./EmptyState.astro";
+import { t } from "../i18n";
+import { historyViewClasses } from "../lib/ui/history";
+
+interface Props {
+  title: string;
+  pick: string;
+  bar?: boolean;
+  backLabel?: string;
+  boxed?: boolean;
+  class?: string;
+  [key: string]: unknown;
+}
+const { title, pick, bar = true, backLabel, boxed = false, class: extra, ...rest } = Astro.props;
+---
+
+<div class={historyViewClasses(boxed, extra)} {...rest}>
+  {
+    bar && (
+      <div class="md-editor-bar">
+        <Button size="sm" icon="chevron-left" data-rev-back="">
+          {backLabel ?? t("common.buttons.back")}
+        </Button>
+        <span class="md-editor-path">{title}</span>
+      </div>
+    )
+  }
+  <div class="rev-body">
+    <ul class="rev-list" data-rev-list aria-label={title}>
+      <EmptyRow as="li" loading />
+    </ul>
+    <div class="rev-preview" data-rev-preview>
+      <EmptyState size="sm">{pick}</EmptyState>
+    </div>
+  </div>
+</div>

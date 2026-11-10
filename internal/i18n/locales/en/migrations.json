@@ -1,0 +1,40 @@
+{
+  "errors": {
+    "unknown_command": "unknown command {command:%q}",
+    "base_lock": "base lock",
+    "lint_blocked": {
+      "one": "{count} destructive statement breaks the expand/contract rule; see docs/migrations.md",
+      "other": "{count} destructive statements break the expand/contract rule; see docs/migrations.md"
+    },
+    "version_required": "-version is required",
+    "lock_stale": "the lock is not up to date; fix this first:\n{cause}"
+  },
+  "cli": {
+    "error": "migrations: {err}",
+    "usage": "usage: migrations list|lock|check|lint|release|ready|mode [flags]",
+    "flag_json": "print JSON",
+    "flag_base_stdin": "read the lock of the branch this one merges into from stdin",
+    "flag_enforce": "block even before the lock lists {version}",
+    "flag_release_version": "release being cut (1.1.0)",
+    "flag_ready_version": "release being tagged (1.1.0)",
+    "relocked": "{path}: {count} migrations, {unreleased} unreleased",
+    "lock_not_canonical": "{path} is not in the form cmd/migrations writes: run `make migrations-lock`",
+    "check_ok": "migrations lock OK: {count} migrations, {unreleased} unreleased, latest release {latest}",
+    "mode_report": "report mode (blocks once the lock lists {version})",
+    "mode_enforcing": "enforcing",
+    "lint_summary": {
+      "one": "migrations lint: {count} destructive statement in unreleased migrations, {blocked} without a valid Contract; {mode}",
+      "other": "migrations lint: {count} destructive statements in unreleased migrations, {blocked} without a valid Contract; {mode}"
+    },
+    "lint_annotation": {
+      "one": "{count} destructive statement without a Contract (report mode until {version})",
+      "other": "{count} destructive statements without a Contract (report mode until {version})"
+    },
+    "released": {
+      "one": "{path}: release {version}, {count} migration marked as shipped in it",
+      "other": "{path}: release {version}, {count} migrations marked as shipped in it"
+    },
+    "ready": "migrations lock ready for {version}",
+    "none": "none"
+  }
+}

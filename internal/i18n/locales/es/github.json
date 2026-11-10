@@ -1,0 +1,25 @@
+{
+  "errors": {
+    "token_required": "falta el token",
+    "open_pr_fields_required": "faltan owner, repo, head, base o title",
+    "find_pr_fields_required": "faltan owner, repo o head",
+    "read_pulls_response": "leer el cuerpo de la respuesta de pulls",
+    "decode_pulls_response": "interpretar la respuesta de pulls",
+    "read_pulls_list": "leer el cuerpo de la lista de pulls",
+    "decode_pulls_list": "interpretar la lista de pulls",
+    "pulls_api": "API de pulls de GitHub: {message}",
+    "pr_already_exists": "ya hay un pull request para esta rama",
+    "merge_fields_required": "faltan owner, repo o el número del pull request, o el método de merge no es merge, squash ni rebase",
+    "review_fields_required": "faltan owner, repo, el id del run, algún id de environment o el estado (approved o rejected)",
+    "read_response": "leer el cuerpo de la respuesta de GitHub",
+    "decode_response": "interpretar la respuesta de GitHub",
+    "api": "GitHub respondió {status}: {message}"
+  },
+  "log": {
+    "parse_pulls_error_failed": "API de pulls de GitHub: no se pudo interpretar la respuesta de error (HTTP {status})",
+    "parse_error_failed": "API de GitHub: no se pudo interpretar la respuesta de error (HTTP {status})",
+    "reviews_read_failed": "leer las revisiones de {repo}#{number}",
+    "check_runs_read_failed": "leer los check runs de {repo}",
+    "actions_read_failed": "leer las corridas de GitHub Actions de {repo}"
+  }
+}

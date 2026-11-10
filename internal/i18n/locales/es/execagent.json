@@ -1,0 +1,20 @@
+{
+  "errors": {
+    "method_not_allowed": "método no permitido",
+    "unauthorized": "no autorizado",
+    "bad_request": "pedido inválido",
+    "command_required": "falta el comando",
+    "marshal_request": "execagent: no se pudo serializar el pedido",
+    "build_request": "execagent: no se pudo armar el pedido",
+    "call_sandbox": "execagent: no se pudo llamar al sandbox",
+    "kill_group": "execagent: no se pudo matar el grupo de procesos del comando",
+    "sandbox_status": "execagent: el sandbox respondió {status}: {body}",
+    "decode_result": "execagent: no se pudo decodificar el resultado"
+  },
+  "log": {
+    "token_required": "sandbox-execagent: falta OCTOPUS_EXEC_TOKEN",
+    "unset_token_failed": "sandbox-execagent: no se pudo borrar la variable del token: {err}",
+    "listening": "sandbox-execagent: escuchando en {addr}",
+    "serve_failed": "sandbox-execagent: {err}"
+  }
+}

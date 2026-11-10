@@ -1,0 +1,13 @@
+{
+  "errors": {
+    "not_linked": "no es un worktree de git vinculado",
+    "git_dir_not_directory": "el git dir {dir} no es un directorio",
+    "not_registered": "el worktree {worktree} no está registrado en {common}",
+    "pointer_not_regular": "{pointer} no es un archivo regular",
+    "pointer_empty": "{pointer} no tiene un puntero gitdir",
+    "pointer_relative": "{pointer} apunta a un gitdir relativo {gitdir:%q}",
+    "admin_dir": "dir de administración del worktree {dir}",
+    "admin_dir_empty_commondir": "el dir de administración del worktree {dir} tiene el commondir vacío",
+    "pointer_mismatch": "{pointer} apunta a {gitdir}, pero {common} registra el worktree en {admin}"
+  }
+}

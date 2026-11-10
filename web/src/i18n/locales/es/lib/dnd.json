@@ -1,0 +1,11 @@
+{
+  "blocked": {
+    "waiting": "Esperando a {titles}",
+    "waiting_more": {
+      "one": "Esperando a {titles} y {count} más",
+      "other": "Esperando a {titles} y {count} más"
+    },
+    "transition": "transición bloqueada",
+    "approvals": "Falta aprobación: {labels}"
+  }
+}

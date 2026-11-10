@@ -1,0 +1,80 @@
+processor	: 0
+vendor_id	: GenuineIntel
+cpu family	: 6
+model		: 158
+model name	: Example CPU 4C/8T @ 3.00GHz
+physical id	: 0
+siblings	: 8
+core id		: 0
+cpu cores	: 4
+
+processor	: 1
+vendor_id	: GenuineIntel
+cpu family	: 6
+model		: 158
+model name	: Example CPU 4C/8T @ 3.00GHz
+physical id	: 0
+siblings	: 8
+core id		: 1
+cpu cores	: 4
+
+processor	: 2
+vendor_id	: GenuineIntel
+cpu family	: 6
+model		: 158
+model name	: Example CPU 4C/8T @ 3.00GHz
+physical id	: 0
+siblings	: 8
+core id		: 2
+cpu cores	: 4
+
+processor	: 3
+vendor_id	: GenuineIntel
+cpu family	: 6
+model		: 158
+model name	: Example CPU 4C/8T @ 3.00GHz
+physical id	: 0
+siblings	: 8
+core id		: 3
+cpu cores	: 4
+
+processor	: 4
+vendor_id	: GenuineIntel
+cpu family	: 6
+model		: 158
+model name	: Example CPU 4C/8T @ 3.00GHz
+physical id	: 0
+siblings	: 8
+core id		: 0
+cpu cores	: 4
+
+processor	: 5
+vendor_id	: GenuineIntel
+cpu family	: 6
+model		: 158
+model name	: Example CPU 4C/8T @ 3.00GHz
+physical id	: 0
+siblings	: 8
+core id		: 1
+cpu cores	: 4
+
+processor	: 6
+vendor_id	: GenuineIntel
+cpu family	: 6
+model		: 158
+model name	: Example CPU 4C/8T @ 3.00GHz
+physical id	: 0
+siblings	: 8
+core id		: 2
+cpu cores	: 4
+
+processor	: 7
+vendor_id	: GenuineIntel
+cpu family	: 6
+model		: 158
+model name	: Example CPU 4C/8T @ 3.00GHz
+physical id	: 0
+siblings	: 8
+core id		: 3
+cpu cores	: 4
+

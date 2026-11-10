@@ -1,0 +1,23 @@
+---
+import { statGroupClasses, statGroupRole, type StatLayout } from "../lib/ui/stat";
+
+interface Props {
+  layout?: StatLayout;
+  label?: string;
+  tag?: "div" | "section" | "ul";
+  id?: string;
+  class?: string;
+  [key: string]: unknown;
+}
+const { layout = "grid", label, tag: Tag = "div", id, class: extra, ...rest } = Astro.props;
+---
+
+<Tag
+  {id}
+  class={statGroupClasses({ layout, cls: extra })}
+  role={statGroupRole(Tag, label)}
+  aria-label={label}
+  {...rest}
+>
+  <slot />
+</Tag>

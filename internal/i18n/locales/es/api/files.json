@@ -1,0 +1,7 @@
+{
+  "errors": {
+    "file_not_found": "no existe el archivo",
+    "invalid_path": "ruta inválida",
+    "walk_output_dir": "recorrer el directorio de salida"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "kind": {
+    "question": "Pregunta",
+    "blocker": "Trabado",
+    "question_working": "Pregunta, sigue trabajando"
+  },
+  "more_questions": {
+    "one": "{question} (+{count} más)",
+    "other": "{question} (+{count} más)"
+  },
+  "changes_requested": "pidieron cambios",
+  "approve": "Aprobar",
+  "stalled_hint": {
+    "resume_failed": "Las respuestas quedaron guardadas. Abrí la tarea y usá Relanzar etapa.",
+    "retry": "Abrí la tarea para ver por qué y usá Reintentar.",
+    "more_turns": "Abrí la tarea y usá Más turnos.",
+    "blocked": "Leé el veredicto del auditor en la tarea y usá Revisar y reintentar.",
+    "credentials": "Renová la credencial en Credenciales y reintentá.",
+    "no_agent": "Elegí un agente en el campo Agente de la tarea."
+  }
+}

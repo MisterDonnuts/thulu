@@ -1,0 +1,48 @@
+{
+  "errors": {
+    "github_app_token_failed": "token de la GitHub App",
+    "invalid_kind_or_stage": "kind o etapa inválidos",
+    "invalid_path": "ruta inválida",
+    "name_and_repo_required": "faltan name y repo_url",
+    "project_not_found": "no existe el proyecto: {project}",
+    "repo_url_not_a_repository": "repo_url no nombra un repositorio (se espera https://<github>/<owner>/<repo>)",
+    "stage_file_missing": "el archivo no existe",
+    "unknown_stage": "no existe la etapa {stage:%q}",
+    "init_revision_invalid": "la revisión {rev:%q} debe ser un entero positivo",
+    "name_required": "falta name",
+    "upload_multipart": "la subida tiene que ser un cuerpo multipart/form-data",
+    "upload_meta_first": "la primera parte de la subida tiene que ser \"meta\", los campos del proyecto en JSON",
+    "upload_archive_missing": "a la subida le falta la parte \"archive\" con la carpeta",
+    "upload_read": "la subida se cortó antes de terminar",
+    "reupload_mode": "el modo {mode} no es merge ni replace",
+    "main_moved": "la rama principal se movió desde que se descargó la carpeta",
+    "reupload_conflict": "la carpeta choca con lo que cambió en la rama principal"
+  },
+  "hints": {
+    "pre_launch_hooks": "Script que corre dentro de la copia de la tarea antes de que arranque el agente. Lo que imprime y su código de salida se suman al prompt del agente.",
+    "stage_prompts": "Texto que se suma al prompt del agente cuando trabaja en esa etapa sobre este proyecto."
+  },
+  "labels": {
+    "pre_launch_hooks": "Hooks previos al lanzamiento",
+    "stage_prompts": "Prompts por etapa"
+  },
+  "log": {
+    "create_failed": "falló la creación del proyecto: {err}",
+    "creating": "creando proyecto: {name} (repo: {repo}, credential={credential}, token={token}, installation={installation})",
+    "delete_environments": "borrar los entornos del proyecto {project}",
+    "delete_metric_mappings": "borrar los mapeos de métricas del entorno {environment}",
+    "list_environments": "listar los entornos del proyecto borrado {project}",
+    "revoke_environment_grants": "revocar los permisos de credenciales del entorno {environment}",
+    "revoke_project_grants": "revocar los permisos de credenciales del proyecto borrado {project}",
+    "unlink_tasks": "desvincular tareas del proyecto borrado {project}",
+    "unlinked_tasks": "proyecto {project} borrado: desvinculado de {count} tarea(s)",
+    "creating_upload": "creando proyecto desde una subida: {name}",
+    "remove_upload": "borrar la subida recibida {path}",
+    "archive_stream": "enviar el zip del proyecto {project}, rama {branch}",
+    "task_branches": "listar las ramas de tareas del proyecto {project}"
+  },
+  "audit": {
+    "init_script_saved": "Script de arranque de {project} guardado como revisión {revision}",
+    "init_script_restored": "Script de arranque de {project} restaurado desde la revisión {from} como revisión {revision}"
+  }
+}

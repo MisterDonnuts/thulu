@@ -1,0 +1,17 @@
+{
+  "errors": {
+    "credential_failed": "could not read the credential for MCP server {server}",
+    "credential_refused": "MCP server {server} needs a credential this run cannot use ({reason}): {detail}",
+    "credentials_unavailable": "MCP server {server} authenticates with a stored credential, and the credential manager is not configured",
+    "run_key_required": "the MCP proxy only serves agent runs: call it with the run's own key",
+    "run_without_reach": "this run's task cannot be found, so no credential can be resolved for it",
+    "server_not_granted": "MCP server {server} is not granted to this run",
+    "sse_get_only": "MCP server {server} speaks SSE: open the stream with GET and post to the endpoint it announces",
+    "unavailable": "the MCP proxy is not configured on this daemon",
+    "unknown_server": "no MCP server {server} on this route"
+  },
+  "log": {
+    "read_grant_failed": "mcp proxy: reading the MCP grant of run {run} failed, using the agent's definition",
+    "read_registration_failed": "mcp proxy: reading registration {server} failed, using the forwarding table"
+  }
+}

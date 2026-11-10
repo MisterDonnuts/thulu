@@ -1,0 +1,59 @@
+{
+  "blank": {
+    "title": "En blanco",
+    "blurb": "Un disparador manual y un paso que crea una tarea. La receta más chica que corre.",
+    "spec": {
+      "name": "mi automatización",
+      "description": "qué hace y por qué",
+      "task_title": "Algo para revisar",
+      "task_body": "Lo escribió una automatización."
+    }
+  },
+  "error_guard": {
+    "title": "Guardia de errores",
+    "blurb": "Cada 15 minutos lee la tasa de errores de un entorno y abre un ticket por incidente; la segunda vez comenta en el primer ticket. Antes de guardar, elegí el entorno con el selector.",
+    "spec": {
+      "name": "guardia de errores",
+      "description": "mira la tasa de errores de prod y abre un ticket de incidente cuando se dispara",
+      "env_comment": "El ID del entorno, no su nombre. Elegilo con el selector de Entorno arriba del editor.",
+      "env_comment_save": "Guardar rechaza un ID que no existe.",
+      "task_title": "Tasa de errores en {{ steps.errs.value }}%",
+      "task_body": "La tasa de errores promedio de los últimos 15 minutos es {{ steps.errs.value }}%.",
+      "task_body_ask": "Investigá, y abrí un PR si hace falta cambiar código."
+    }
+  },
+  "pr_sweep": {
+    "title": "Barrido de reviews de PR",
+    "blurb": "Cada hora busca tareas con un PR abierto que nadie tocó en un día y le pide a su agente que atienda las reviews.",
+    "spec": {
+      "name": "barrido de reviews de PR",
+      "description": "le avisa al agente de los PR que quedaron quietos",
+      "agent_comment": "Sin agent: la mención despierta al de la etapa actual de la tarea.",
+      "body": "Tu PR no tuvo actividad en un día.",
+      "body_ask": "Fijate si tiene reviews o comentarios para atender, y contestá acá qué cambiaste."
+    }
+  },
+  "review_comments": {
+    "title": "Responder comentarios de review",
+    "blurb": "Cuando GitHub entrega un comentario de review en un PR que pertenece a una tarea, menciona al agente de esa tarea, salvo que lo haya escrito un bot.",
+    "spec": {
+      "name": "responder comentarios de review",
+      "description": "un comentario de review de una persona despierta al agente dueño del PR",
+      "debounce_comment": "El debounce junta una ráfaga en una sola corrida; todos los comentarios quedan en trigger.payload.events.",
+      "body": "Comentario de review nuevo en {{ trigger.payload.pr_url }} de {{ trigger.payload.comment_by }}:",
+      "body_ask": "Atendelo y hacé push."
+    }
+  },
+  "script_decides": {
+    "title": "Decide un script",
+    "blurb": "Corre un script en un sandbox cada mañana; sólo si su salida lo pide se involucra un modelo.",
+    "spec": {
+      "name": "decide un script",
+      "description": "primero un chequeo barato y determinista, después el modelo",
+      "script_comment": "Todo lo que imprime queda disponible en steps.check.stdout.",
+      "task_title": "El chequeo de la mañana marcó algo",
+      "task_body": "El chequeo imprimió:",
+      "fingerprint_comment": "Una tarjeta por día. La fecha sale del disparo, así que una corrida que arranca a las 23:59 no cae en la tarjeta de mañana."
+    }
+  }
+}

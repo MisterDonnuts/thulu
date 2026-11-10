@@ -1,0 +1,142 @@
+{
+  "aria": {
+    "drawer": "Chat con agentes",
+    "unread": "Mensajes sin leer"
+  },
+  "buttons": {
+    "back_to_chats": "Volver a los chats"
+  },
+  "new": {
+    "title": "Nuevo chat",
+    "agent": "Agente",
+    "linked_task": "Tarea vinculada (opcional)",
+    "no_task": "— sin tarea —",
+    "title_label": "Título (opcional)",
+    "title_placeholder": "p. ej. Plan del sprint",
+    "create": "Crear chat",
+    "no_agents": "— ningún agente tiene la etapa Chat —",
+    "option_lacks_prompt": "{agent} (sin prompt de chat)",
+    "option_lacks_llm": "{agent} (sin credencial de modelo)",
+    "option_lacks_both": "{agent} (sin prompt ni credencial)",
+    "hint_no_agents": "Ningún agente tiene la etapa Chat. Agregásela a uno en su configuración.",
+    "hint_no_agents_link": "Ir a Agentes",
+    "hint_no_prompt": "{agent} no tiene prompt para la etapa Chat: el chat se crea, pero el primer mensaje falla.",
+    "hint_no_prompt_link": "Cargar el prompt",
+    "hint_no_llm": "Este workspace no tiene una credencial de modelo para {agent}.",
+    "hint_no_llm_link": "Abrir Motores de IA",
+    "reused": "@{agent} ya tenía un chat sobre «{task}». Seguís en ese."
+  },
+  "conversation": {
+    "default_title": "Chat",
+    "rename_hint": "Hacé clic para renombrar",
+    "rename_prompt": "Título del chat:",
+    "replying": "Respondiendo"
+  },
+  "subtitle": {
+    "agent_task": "@{agent} · {task}",
+    "context": "contexto {tokens} de 200k",
+    "open_task": "Abrir la tarea"
+  },
+  "menu": {
+    "aria": "Opciones del chat",
+    "title": "Opciones",
+    "delegate": "Actuar por mí",
+    "reset": "Resetear conversación",
+    "reset_sub": "Borra el historial y la sesión del agente",
+    "archive": "Archivar",
+    "delete": "Borrar chat",
+    "unarchive": "Desarchivar"
+  },
+  "delegate": {
+    "pill": "Actúa por vos",
+    "pill_until": "Actúa por vos hasta {time}",
+    "sub_off": "Maneja las tareas de los tableros en tu nombre",
+    "sub_on": "Actúa por {person}. Tocá para apagarlo",
+    "sub_linked": "Sólo en un chat que no está ligado a una tarea",
+    "disabled_by_owner": "Un owner apagó los chats delegados en este workspace.",
+    "confirm_title": "¿Dejar que @{agent} actúe por vos?",
+    "confirm_message": {
+      "one": "Va a poder crear, editar y mover tareas en todos los tableros de este workspace. El log de auditoría lo registra como el agente, delegado por vos. No puede decidir aprobaciones ni resolver hilos, y para borrar algo te pide que lo confirmes acá. Mientras esté activo, sólo vos podés escribir en este chat. Se apaga solo en {count} hora.",
+      "other": "Va a poder crear, editar y mover tareas en todos los tableros de este workspace. El log de auditoría lo registra como el agente, delegado por vos. No puede decidir aprobaciones ni resolver hilos, y para borrar algo te pide que lo confirmes acá. Mientras esté activo, sólo vos podés escribir en este chat. Se apaga solo en {count} horas."
+    },
+    "confirm_ok": "Activar",
+    "no_write": "@{agent} no tiene octopus-api con escritura en la etapa Chat: aunque lo actives, no puede tocar los tableros.",
+    "no_write_link": "Configurar sus MCP"
+  },
+  "actions": {
+    "asks_confirmation": "@{agent} pide confirmación",
+    "confirm": "Confirmar",
+    "confirmed_by": "Confirmado por {person}",
+    "confirmed_by_you": "Confirmado por vos",
+    "failed": "No se pudo: HTTP {status}",
+    "failed_with_error": "No se pudo: HTTP {status} · {error}",
+    "canceled_by": "Cancelado por {person}",
+    "canceled_expired": "Cancelado: la delegación terminó",
+    "canceled_by_you": "Cancelado por vos",
+    "forbidden": "No se pudo: tu rol no alcanza para esto.",
+    "forbidden_task": "Tu rol no alcanza para borrar esta tarea (hace falta admin)."
+  },
+  "confirm": {
+    "reset_title": "¿Resetear la conversación?",
+    "reset_message": "Borra el historial y la sesión del agente — el próximo mensaje arranca de cero.",
+    "reset_ok": "Resetear",
+    "delete_title": "¿Borrar el chat?",
+    "delete_message": "Se elimina la conversación completa. Esta acción no se puede deshacer.",
+    "delete_ok": "Borrar",
+    "archive_title": "¿Archivar el chat?",
+    "archive_message": "Sale de la lista y deja de recibir mensajes. Lo encontrás en «Ver archivados», al pie de la lista, y desde ahí lo desarchivás.",
+    "archive_ok": "Archivar"
+  },
+  "composer": {
+    "aria": "Enviar un mensaje",
+    "label": "Mensaje",
+    "placeholder": "Escribile al agente…",
+    "send": "Enviar",
+    "archived_note": "Chat archivado. Desarchivalo para escribir.",
+    "thread_note": "Lo que escribas acá queda en este chat; no vuelve al hilo de la tarea.",
+    "open_task": "Abrir la tarea"
+  },
+  "empty": {
+    "no_chats": "Sin conversaciones todavía. Creá un chat con un agente para discutir una tarea o una implementación sin llenar los comentarios."
+  },
+  "errors": {
+    "http_status": "HTTP {status}",
+    "http_daemon": "Error — HTTP {status} del daemon.",
+    "offline_decide": "Daemon offline — no se pudo decidir.",
+    "offline_create": "Daemon offline — no se pudo crear el chat.",
+    "offline_delegation": "Daemon offline — no se pudo cambiar.",
+    "offline_send": "Daemon offline — el mensaje no se envió.",
+    "busy_reset": "El agente está respondiendo — esperá a que termine.",
+    "busy_send": "El agente sigue respondiendo el mensaje anterior.",
+    "offline_archive": "Daemon offline: no se pudo archivar.",
+    "no_prompt_link": "Cargar el prompt de chat",
+    "no_prompt": "{agent} no tiene prompt para la etapa Chat: hasta que lo cargues, cada mensaje falla."
+  },
+  "archived": {
+    "show": "Ver archivados",
+    "hide": "Ocultar archivados",
+    "done": "Archivaste «{title}».",
+    "undo": "Deshacer"
+  },
+  "tools": {
+    "summary": {
+      "one": "Usó {count} herramienta",
+      "other": "Usó {count} herramientas"
+    },
+    "omitted": {
+      "one": "y {count} más",
+      "other": "y {count} más"
+    }
+  },
+  "brief": {
+    "evidence_recording": "Grabando {key} en {env}",
+    "show_instructions": "Ver las instrucciones para el agente",
+    "summary": "Contexto que recibió el agente"
+  },
+  "intro": {
+    "task": "@{agent} responde sobre «{task}»: recibe la tarea y su código, si tiene, y lee el resto con sus herramientas.",
+    "loose": "@{agent} arranca sin tarea ni código: sabe lo que le escribas y lo que lea con sus herramientas.",
+    "shared": "Todos los miembros del workspace ven este chat: con él @{agent} contesta las menciones en la tarea.",
+    "personal": "Sólo vos ves este chat."
+  }
+}

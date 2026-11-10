@@ -1,0 +1,200 @@
+name: octopus-api
+description: |
+  Thulu daemon REST behind an MCP. Lets agents drive the board: create,
+  patch, delete, clone, relaunch and comment on tasks; ask the people on a
+  task for a decision and add approvals it needs; manage task
+  dependencies; inspect and stop running agent containers; read and edit
+  agent types (settings + prompt files); CRUD projects; and browse the
+  catalog of skills, tools and stages. Scoped tool exposure: read | write
+  (write ⊃ read). Wire it to an agent with `octopus-api@read` or
+  `octopus-api@write` in MCP_TOOLS.
+type: mcp
+# A bare `octopus-api` grants default_scope; the dashboard picker reads it and each tool's `scope`.
+# `board` tools sit outside the read/write ladder and are granted only by name.
+default_scope: read
+tools:
+  - name: task_list
+    description: List every task on the board (id, title, stage, status, project_ids, branch_name, tags, timestamps).
+    scope: read
+  - name: task_get
+    description: Fetch a single task with its full payload (body, comments, questions, approvals, flags, worktree_paths, pr_urls, current_run_id).
+    scope: read
+  - name: task_sections_get
+    description: Parsed view of the body's structured sections (Goal, Definition of Done, …) with checklist items and their checked state. Cases live in task_test_cases, not in a Test Cases section.
+    scope: read
+  - name: board_current
+    description: Where am I. The board of this run's task, its columns in order and which one the task sits in.
+    scope: read
+  - name: task_create
+    description: Create a task. Required title; optional body/project_ids/stage/stage_assignments/tags. Placing a task directly in a stage triggers the dispatcher.
+    scope: write
+  - name: subtask_create
+    description: Carve a subtask off a parent task (one level deep). Shares the parent's sandbox and worktrees; own stage flow, assignments, tags and depends_on ordering.
+    scope: write
+  - name: task_update
+    description: Patch a task (only provided fields change). Changing stage triggers the dispatcher; pending approvals of the stage being left hold forward moves.
+    scope: write
+  - name: task_section_set
+    description: Create or replace one structured section of the task body (goal, context, definition-of-done, test-cases, out-of-scope, risks, notes, or custom). Server-side rewrite — never clobbers sibling sections. New test cases go through task_test_case_add, not the test-cases section.
+    scope: write
+  - name: task_checklist_check
+    description: Check/uncheck one checklist item inside a section (1-based index) with an optional evidence note appended to the line. Test cases are recorded with task_test_case_run, not ticked here.
+    scope: write
+  - name: task_delete
+    description: Delete a task and its worktrees. Irreversible.
+    scope: write
+  - name: task_clone
+    description: Clone a task into its board's initial stage (same title/body/projects/assignments/tags; no comments, flags, branches or runtime state).
+    scope: write
+  - name: task_relaunch
+    description: Re-fire the agent for the task's current stage. Optional turn budget override.
+    scope: write
+  - name: task_add_comment
+    description: Post a comment on a task. @<agent-name> triggers that agent's mention stage; an agent's comment does too, up to 3 agent turns in a row per thread since a person last wrote.
+    scope: write
+  - name: task_add_report
+    description: File a markdown report (test evidence, logs) in the task's Reports tab instead of the comment thread. Its id goes into task_test_case_run as report_id.
+    scope: write
+  - name: task_ask
+    description: Ask the people on the task for a decision (1-4 questions with options, or a blocker). Blocking by default, so the agent ends its turn and the run resumes with the answer; with blocking false it goes on with its default.
+    scope: write
+  - name: task_request_approval
+    description: Add an approval (label + reason) the task needs before it moves forward out of its current stage. Agents can only add one; approving, waiving or deleting is for people.
+    scope: write
+  - name: task_attach
+    description: Upload a file (screenshot/PDF/log) as a task attachment via base64 content. The durable way to deliver visual evidence under K8s; images and videos render inline in the dashboard. Optionally binds the file to a comment.
+    scope: write
+  - name: task_attachments
+    description: List every file on a task — body pastes, comment uploads and agent output — with id, filename, mime type, size, author and the comment it belongs to.
+    scope: read
+  - name: task_attachment_delete
+    description: Delete one attachment, row and file. Anything that embedded it shows a broken link afterwards.
+    scope: write
+  - name: task_test_cases
+    description: List a task's test cases in order (key TC-n, title, steps, expected, priority, status, covered) with their runs newest first.
+    scope: read
+  - name: task_test_case_add
+    description: Add one or several test cases to a task as a cases array. The key is assigned as TC-<max+1> when omitted.
+    scope: write
+  - name: task_test_case_update
+    description: Patch one test case (by key TC-3 or id) — title, description, steps, expected, priority, status, covered or position.
+    scope: write
+  - name: task_test_case_delete
+    description: Delete one test case (by key or id) and its runs.
+    scope: write
+  - name: task_test_case_run
+    description: Record a run of a test case with its evidence ids (video, take JSON, captures, report_id of the report in the Reports tab; comment_id names a report posted as a comment). The verdict sets the case's status and marks it covered. thulu-browser's evidence_publish already records runs for verify steps whose case is a task key.
+    scope: write
+  - name: task_list_dependencies
+    description: List the dependency edges of a task (blocked_by, blocking) and whether it is currently hard-blocked.
+    scope: read
+  - name: task_add_dependency
+    description: Declare that a task depends on another. hard (default) keeps the task in its initial stage until the blocker reaches a terminal stage; soft is informational.
+    scope: write
+  - name: task_remove_dependency
+    description: Drop the dependency edge id → depends_on_task_id. No-op if it didn't exist.
+    scope: write
+  - name: agent_list
+    description: List active and recently-exited agent containers (id, type, project, instance, status, uptime, exit_code).
+    scope: read
+  - name: agent_get
+    description: Fetch one agent container's full state by short id.
+    scope: read
+  - name: agent_stop
+    description: Stop a running agent container (graceful). The dispatcher will not auto-restart it.
+    scope: write
+  - name: agent_type_list
+    description: List every agent type defined under agents/ (name, type, model, valid_stages, description).
+    scope: read
+  - name: agent_type_get_settings
+    description: Read an agent type's full settings (model, effort, valid_stages, turns/skills/mcp by stage, auditor block).
+    scope: read
+  - name: agent_type_list_prompts
+    description: List the prompt files an agent type owns (main + per-stage + auditor) and which would fall back to defaults.
+    scope: read
+  - name: agent_type_list_files
+    description: List the editable markdown files inside an agent type's directory (prompts/*.md, auditor/*.md).
+    scope: read
+  - name: agent_type_read_file
+    description: Read one editable file inside an agent type's directory (path is relative, e.g. prompts/main.md).
+    scope: read
+  - name: agent_type_update_settings
+    description: Patch an agent type's settings (writes back to its docker-compose.yml labels). Only provided fields change.
+    scope: write
+  - name: agent_type_write_file
+    description: Overwrite an editable markdown file inside an agent type's directory. Full new contents (no diff support).
+    scope: write
+  - name: agent_type_create
+    description: Create a new agent type, cloning an existing one when a template is given or starting from the built-in scaffold otherwise.
+    scope: write
+  - name: agent_type_delete
+    description: Delete an agent type (removes its directory). Active tasks assigned to it on a stage will fail to dispatch.
+    scope: write
+  - name: project_list
+    description: List every linked project (id, name, repo_url, default_branch, description, stage_template, path).
+    scope: read
+  - name: project_get
+    description: Fetch one project's full record.
+    scope: read
+  - name: project_create
+    description: Register a new project. Required name + repo_url; optional description/default_branch/ai_review_cmd/testing_cmd/stage_template.
+    scope: write
+  - name: project_update
+    description: Patch a project. Only provided fields change.
+    scope: write
+  - name: project_delete
+    description: Delete a project (does NOT remove on-disk worktrees or the source repo). Tasks lose the link.
+    scope: write
+  - name: skills_list
+    description: List every skill available under skills/ (knowledge blocks loadable per-stage via skills_by_stage).
+    scope: read
+  - name: tools_list
+    description: List every MCP tool service registered under tools/ (used to populate mcp_by_stage on agent types).
+    scope: read
+  - name: stages_list
+    description: List the canonical stage definitions (id + label) the board uses for validation.
+    scope: read
+  - name: environment_list
+    description: Deployed environments of a project (dev/staging/prod) with provider, region, selectors, system grouping and credential status.
+    scope: read
+  - name: environment_mapping_list
+    description: Current metric mappings of an environment with their status (proposed | active | disabled | not_applicable).
+    scope: read
+  - name: environment_mapping_propose
+    description: Propose where each dashboard signal comes from. Inert until a human approves — nothing is collected from a proposal.
+    scope: write
+  - name: custom_metric_list
+    description: Custom metrics of an environment, meaning what the app sent over OTLP that no fixed signal covers.
+    scope: read
+  - name: custom_metric_series
+    description: Stored points of a custom metric over a window, with their labels.
+    scope: read
+  - name: chart_types_list
+    description: The closed catalog of chart types and their contract (series, group_by, accepted kinds).
+    scope: read
+  - name: dashboard_list
+    description: Dashboards of an environment with their status (proposed | active | archived) and their panels.
+    scope: read
+  - name: dashboard_get
+    description: The full record of a dashboard, panels included.
+    scope: read
+  - name: dashboard_data
+    description: Resolves a dashboard to numbers. Each panel with its series and values, aggregated server-side.
+    scope: read
+  - name: dashboard_propose
+    description: Proposes a dashboard of custom metric panels. Inert until a human approves it.
+    scope: write
+  # No scope grants these: they reach tasks and boards outside this run's, so they must be named
+  # (octopus-api@write+task_create_on_board).
+  - name: boards_list
+    description: Lists every board in the instance. A deliberate cross-board read.
+    scope: board
+  - name: board_tasks_list
+    description: Lists the tasks of ANOTHER board, by id. task_list already covers your own.
+    scope: board
+  - name: task_create_on_board
+    description: Creates a task on an explicit board. The cross-board write.
+    scope: board
+  - name: task_move_to_board
+    description: Moves an existing task to another board; the target stage has to be a column of that board.
+    scope: board

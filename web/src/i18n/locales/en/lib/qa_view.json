@@ -1,0 +1,11 @@
+{
+  "group_count": "{pass}/{total} pass",
+  "never_run": "Never run",
+  "coverage": {
+    "covered": "Covered",
+    "not_covered": "Not covered"
+  },
+  "open": "Open",
+  "add_to_library": "Add to library",
+  "in_library": "In library · {key}"
+}

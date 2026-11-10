@@ -1,0 +1,15 @@
+# Pinned to match the `go` directive in ../go.mod. Bump both together.
+FROM golang:1.26.10-alpine@sha256:9ce231b28998b32e116927c61aa5c406183061d4f3f2d61b292c88e7f6bdf7ca
+
+ARG AIR_VERSION=v1.67.4
+RUN for attempt in 1 2 3; do \
+      apk add --no-cache git curl ca-certificates tzdata \
+      && go install "github.com/air-verse/air@${AIR_VERSION}" && break; \
+      [ "$attempt" = 3 ] && exit 1; echo "install failed, retry $attempt/2" >&2; sleep $((attempt * 15)); \
+    done
+
+WORKDIR /workspace
+
+EXPOSE 8585
+
+CMD ["air", "-c", ".air.toml"]

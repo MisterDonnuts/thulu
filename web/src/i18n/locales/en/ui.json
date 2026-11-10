@@ -1,0 +1,84 @@
+{
+  "labels": {
+    "search": "Search",
+    "breadcrumb": "Breadcrumb"
+  },
+  "tag": {
+    "remove": "Remove {name}"
+  },
+  "author": {
+    "agent": "agent",
+    "in_stage": "in {stage}"
+  },
+  "save_state": {
+    "clean": "No changes",
+    "dirty": "Unsaved changes"
+  },
+  "progress": {
+    "short": "{done} of {total}",
+    "long": "{done} of {total} done",
+    "none": "No items"
+  },
+  "field": {
+    "optional": "(optional)"
+  },
+  "confirm": {
+    "require": "Type {text} to confirm",
+    "failed": "That did not go through. Try again."
+  },
+  "table": {
+    "details": "Details"
+  },
+  "stat": {
+    "stale": "stale"
+  },
+  "picker": {
+    "no_matches": "No matches"
+  },
+  "drawer": {
+    "resize": "Resize panel",
+    "resize_hint": "Drag or use the arrow keys to resize · double-click to reset"
+  },
+  "message": {
+    "you": "You:",
+    "agent": "Agent:",
+    "named": "{name}:",
+    "system": "Note from Thulu:",
+    "error": "Error:"
+  },
+  "composer": {
+    "post": "Post",
+    "post_key": "Post ({keys})",
+    "send": "Send",
+    "send_key": "Send (Enter; Shift+Enter for a new line)",
+    "attach": "Attach",
+    "attach_title": "Attach a file. You can also paste or drop one in the box."
+  },
+  "code": {
+    "copy_named": "Copy {name}",
+    "copied": "Copied",
+    "copy_failed": "Press {keys} to copy"
+  },
+  "steps": {
+    "done": "Done",
+    "now": "In progress",
+    "pending": "To do",
+    "blocked": "Blocked",
+    "unknown": "Not checked"
+  },
+  "date": {
+    "day": "DD",
+    "month": "MM",
+    "year": "YYYY",
+    "hour": "hh",
+    "minute": "mm",
+    "pick_datetime": "Pick a date and time",
+    "pick_date": "Pick a date",
+    "pick_time": "Pick a time",
+    "invalid": "Not a date. Write it as {example}.",
+    "invalid_time": "Not a time. Write it as {example}."
+  },
+  "dropzone": {
+    "pick_json": "Choose a .json file"
+  }
+}

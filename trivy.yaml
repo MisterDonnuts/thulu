@@ -1,0 +1,5 @@
+# Makefile flags override this file; keep severity, scanners and exit-code there.
+skip-dirs:
+  - web/node_modules
+  - .git
+ignorefile: .trivyignore.yaml

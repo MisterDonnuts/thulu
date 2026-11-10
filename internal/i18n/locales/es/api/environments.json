@@ -1,0 +1,30 @@
+{
+  "errors": {
+    "not_found": "no existe el entorno",
+    "metrics_store_unavailable": "el almacén de métricas de entorno no está configurado",
+    "collector_unavailable": "el recolector de métricas no está configurado en esta instancia",
+    "task_store_unavailable": "el almacén de tareas no está configurado",
+    "mappings_required": "falta mappings",
+    "mapping_not_found": "no existe el mapeo",
+    "unknown_signal": "no existe esa señal",
+    "flag_needs_task": "flag_id necesita el task_id de la tarea a la que pertenece",
+    "flag_not_on_task": "no existe el flag {flag} en la tarea {task}"
+  },
+  "hints": {
+    "no_active_mappings": "no hay mapeos activos: primero aprobá una propuesta"
+  },
+  "comments": {
+    "mapping_flag": "Mapeo de observabilidad propuesto para {environment}: {mappings} mapeo(s) en {services} servicio(s), revisalo y aprobalo",
+    "flag_approved": "aprobado junto con la propuesta de observabilidad"
+  },
+  "log": {
+    "list_granted_failed": "listar los entornos con acceso",
+    "list_granted_project_failed": "listar los entornos con acceso del proyecto {project}",
+    "read_public_url_failed": "leer ingest.public_url",
+    "revoke_grants_failed": "revocar los accesos a credenciales del entorno {environment}",
+    "delete_mappings_failed": "borrar los mapeos de métricas del entorno {environment}",
+    "marshal_flag_payload_failed": "serializar el payload del flag de mapeo: {err}",
+    "raise_flag_failed": "levantar el flag de mapeo en la tarea {task}: {err}",
+    "resolve_flag_failed": "resolver el flag de mapeo {id}"
+  }
+}

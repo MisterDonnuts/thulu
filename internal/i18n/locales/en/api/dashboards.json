@@ -1,0 +1,13 @@
+{
+  "errors": {
+    "not_found": "dashboard not found",
+    "range_hours_invalid": "range_hours must be a positive integer"
+  },
+  "comments": {
+    "proposal_flag": "Dashboard {name:%q} proposed for {environment} — {panels} panel(s) over {metrics} metric(s), review and approve"
+  },
+  "log": {
+    "marshal_flag_payload_failed": "marshal dashboard flag payload: {err}",
+    "raise_flag_failed": "raise dashboard flag for task {task}: {err}"
+  }
+}

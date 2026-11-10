@@ -1,0 +1,70 @@
+name: thulu-browser
+description: Headless Chromium via Playwright. Persistent sessions, interaction, scripts and filmed evidence (video with cursor, subtitles and verdicts, annotated captures, before/after).
+type: mcp
+version: "2.1.0"
+tools:
+  - name: screenshot
+    description: PNG of a URL in a fresh context (no session).
+  - name: get_text
+    description: Rendered innerText of a URL (no session).
+
+  - name: browser_new_session
+    description: "Creates an isolated BrowserContext. Returns session_id for the rest of the tools. record_video=true records the session as .webm (for mobile/9:16 use viewport 390x844)."
+  - name: browser_close_session
+    description: Closes the session and frees resources. If record_video was true, finalizes the .webm and persists it to the agent's output dir.
+
+  - name: browser_navigate
+    description: Navigates to a URL inside the session.
+  - name: browser_get_state
+    description: Lists the interactive elements of the current page with numbered indices.
+  - name: browser_get_text
+    description: Visible text of the current page (post-JS).
+  - name: browser_screenshot
+    description: Screenshot of the current page. Persists to the output dir if the session has instance_id + agent_type.
+
+  - name: browser_click
+    description: Clicks an element by index (from get_state) or CSS selector.
+  - name: browser_type
+    description: Types text into an input/textarea by index or selector. With secret, the value stays out of the log, the response and the take; in a recording chat, secret without text types one of the environment's test logins, which the model never sees.
+  - name: browser_select
+    description: Selects an option in a <select> by index or selector.
+  - name: browser_scroll
+    description: Scrolls the page (down/up/top/bottom).
+  - name: browser_hover
+    description: Hovers over an element to trigger dropdowns/tooltips.
+  - name: browser_press_key
+    description: Simulates a key (Enter, Escape, Tab, ArrowDown, etc.).
+
+  - name: browser_wait
+    description: Waits N ms. Useful in recordings to let the video breathe between interactions (max 10 000 ms).
+
+  - name: browser_run_script
+    description: Runs a Playwright script by name (from the agent's repo), path, or inline code (for evidence use a take).
+  - name: browser_list_scripts
+    description: Lists the scripts available in the agent's scripts directory.
+
+  - name: browser_get_session_log
+    description: Returns the JSON log of every interaction in the session.
+  - name: browser_export_script
+    description: Generates a reusable Playwright script from the session log.
+
+  - name: evidence_start
+    description: Starts recording a take in the session. From then on each browser_* is filmed with cursor, ring and subtitle (label) and annotated with a stable selector. Only the actions are filmed.
+  - name: evidence_shot
+    description: Annotated capture of the page (numbered spotlight, notes, data redaction, header with host and time). Inside a take it goes into the video; outside one, it is uploaded to the task.
+  - name: evidence_verify
+    description: Records a test case with expected and observed. With check + target the tool measures it (and measures it again on every replay); in video it shows a pass/fail card.
+  - name: evidence_note
+    description: Held subtitle in the video; level fact or issue also lists it in the report.
+  - name: evidence_finish
+    description: Stops the recording and builds a draft (MP4 with dead time cut + contact sheet that comes back as an image). Returns render_id and take_id. Nothing reaches the task yet.
+  - name: evidence_get_take
+    description: Returns a take as JSON, to fix it or save it in the repo (.octopus/evidence/takes/).
+  - name: evidence_render
+    description: Replays a JSON take in a clean browser and films it. Accepts the repo's library of targets and flows, secrets by name, and compare_base_url for a side-by-side before/after.
+  - name: evidence_recording
+    description: In a recording chat of the Evidence library, returns the case to record (title, steps, expected), the environment (name, base URL) and the names of its test logins.
+  - name: evidence_save_case
+    description: In a recording chat, saves the take as the case's recording in the Evidence library and queues a first run in the recording's environment.
+  - name: evidence_publish
+    description: Uploads video, captures, chapters and take to the task, publishes the report that embeds them in the task's Reports tab and records each verdict whose case is one of the task's test cases (TC-1) as a run of that case. record_runs=false skips recording them.

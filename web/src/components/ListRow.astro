@@ -1,0 +1,130 @@
+---
+// Markup must match listRowHTML() in lib/ui/list-row.ts.
+import Icon from "./Icon.astro";
+import {
+  listRowAttrs,
+  listRowClasses,
+  listRowTag,
+  listRowTitleClasses,
+  type ListRowClamp,
+  type ListRowSize,
+  type ListRowTag,
+} from "../lib/ui/list-row";
+import type { Attrs } from "../lib/ui/dom";
+
+interface Props {
+  as?: ListRowTag;
+  href?: string;
+  title?: string;
+  titleHref?: string;
+  titleAttrs?: Attrs;
+  mono?: boolean;
+  meta?: string;
+  aside?: string;
+  size?: ListRowSize;
+  wrap?: boolean | "all";
+  clamp?: ListRowClamp;
+  inline?: boolean;
+  boxed?: boolean;
+  reveal?: boolean;
+  dim?: boolean;
+  current?: boolean | "page";
+  expanded?: boolean;
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  as,
+  href,
+  title,
+  titleHref,
+  titleAttrs = {},
+  mono = false,
+  meta,
+  aside,
+  size = "md",
+  wrap = false,
+  clamp,
+  inline = false,
+  boxed = false,
+  reveal = false,
+  dim = false,
+  current,
+  expanded,
+  class: extra,
+  ...rest
+} = Astro.props;
+const Tag = listRowTag({ as, href });
+// A slot a wrapper (FileRow) forwards counts as present even when empty; only count it if it
+// renders something.
+const filled = async (name: string) =>
+  Astro.slots.has(name) && (await Astro.slots.render(name)).trim() !== "";
+const hasActions = await filled("actions");
+const own = listRowAttrs({ as, href, current, expanded, hasActions });
+const cls = listRowClasses({ size, wrap, clamp, inline, boxed, reveal, dim, cls: extra });
+const titleCls = listRowTitleClasses(mono);
+const hasMeta = (meta !== undefined && meta !== "") || (await filled("meta"));
+const hasTags = await filled("tags");
+const hasAside = aside !== undefined && aside !== "" ? true : Astro.slots.has("aside");
+---
+
+<Tag class={cls} {...own} {...rest}>
+  {
+    expanded !== undefined && (
+      <span class="row-caret">
+        <Icon name="chevron-right" size="sm" />
+      </span>
+    )
+  }
+  {
+    Astro.slots.has("lead") && (
+      <span class="row-lead">
+        <slot name="lead" />
+      </span>
+    )
+  }
+  <span class="row-main">
+    <span class="row-top">
+      {
+        titleHref ? (
+          <a class={titleCls} href={titleHref} {...titleAttrs}>
+            <slot name="title">{title}</slot>
+          </a>
+        ) : (
+          <span class={titleCls} {...titleAttrs}>
+            <slot name="title">{title}</slot>
+          </span>
+        )
+      }
+      <slot name="badges" />
+    </span>
+    {
+      hasMeta && (
+        <span class="row-meta">
+          <slot name="meta">{meta}</slot>
+        </span>
+      )
+    }
+    {
+      hasTags && (
+        <span class="row-tags">
+          <slot name="tags" />
+        </span>
+      )
+    }
+  </span>
+  {
+    hasAside && (
+      <span class="row-aside">
+        <slot name="aside">{aside}</slot>
+      </span>
+    )
+  }
+  {
+    hasActions && (
+      <span class="row-actions">
+        <slot name="actions" />
+      </span>
+    )
+  }
+</Tag>

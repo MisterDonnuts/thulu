@@ -1,0 +1,161 @@
+---
+// Markup must match composerHTML() in lib/ui/conversation.ts; composerParts() finds the parts by
+// their classes.
+import Button from "./Button.astro";
+import {
+  COMPOSER_PART_CLASS,
+  composerClasses,
+  composerIds,
+  composerInputA11y,
+  composerKeyShortcuts,
+  composerText,
+  type ComposerAttach,
+  type ComposerPart,
+  type ComposerVariant,
+} from "../lib/ui/conversation";
+
+interface Props {
+  variant?: ComposerVariant;
+  id?: string;
+  ids?: Partial<Record<ComposerPart, string>>;
+  label?: string;
+  labelledBy?: string;
+  placeholder?: string;
+  rows?: number;
+  value?: string;
+  audience?: string | true;
+  attach?: boolean | ComposerAttach;
+  cancel?: boolean | string;
+  submitLabel?: string;
+  submitTitle?: string;
+  ready?: boolean;
+  as?: "div" | "form";
+  inputClass?: string;
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  variant = "comment",
+  id,
+  ids: givenIds,
+  label,
+  labelledBy,
+  placeholder,
+  rows,
+  value = "",
+  audience,
+  attach = false,
+  cancel = false,
+  submitLabel,
+  submitTitle,
+  ready = false,
+  as,
+  inputClass,
+  class: extra,
+  ...rest
+} = Astro.props;
+const text = composerText({ variant, rows, submitLabel, submitTitle, attach, cancel });
+const chat = variant === "chat";
+const Root = as ?? (chat ? "form" : "div");
+const ids = composerIds(id, givenIds);
+const hasAudience = audience !== undefined;
+const inputA11y = composerInputA11y({ label, labelledBy, ids, audience: hasAudience });
+const submitType = Root === "form" ? "submit" : "button";
+const keys = composerKeyShortcuts(variant);
+const hasExtra = Astro.slots.has("extra");
+const C = COMPOSER_PART_CLASS;
+---
+
+<Root class={composerClasses({ variant, cls: extra })} id={id} {...rest}>
+  {
+    chat ? (
+      <div class="composer-row">
+        <textarea
+          id={ids.input}
+          class={[C.input, inputClass].filter(Boolean).join(" ")}
+          rows={text.rows}
+          placeholder={placeholder}
+          {...inputA11y}
+          set:text={value}
+        />
+        <Button
+          iconOnly
+          icon="send"
+          size="lg"
+          variant="primary"
+          label={text.submitLabel}
+          title={text.submitTitle}
+          type={submitType}
+          id={ids.submit}
+          class={`${C.submit} composer-send`}
+          aria-keyshortcuts={keys}
+        />
+      </div>
+    ) : (
+      <textarea
+        id={ids.input}
+        class={[C.input, inputClass].filter(Boolean).join(" ")}
+        rows={text.rows}
+        placeholder={placeholder}
+        {...inputA11y}
+        set:text={value}
+      />
+    )
+  }
+  {attach && <div id={ids.atts} class={C.atts} hidden />}
+  <p id={ids.error} class={`field-error ${C.error}`} role="alert" hidden></p>
+  {
+    chat ? (
+      (hasAudience || hasExtra) && (
+        <div class="composer-foot">
+          {hasAudience && (
+            <span id={ids.audience} class={C.audience}>
+              {audience === true ? "" : audience}
+            </span>
+          )}
+          <slot name="extra" />
+        </div>
+      )
+    ) : (
+      <div class="composer-foot">
+        {hasAudience && (
+          <span id={ids.audience} class={C.audience}>
+            {audience === true ? "" : audience}
+          </span>
+        )}
+        <slot name="extra" />
+        <span class="composer-actions">
+          {attach && (
+            <Button
+              size="sm"
+              variant="ghost"
+              icon="file"
+              title={text.attachTitle}
+              id={ids.attach}
+              class={C.attach}
+            >
+              {text.attachLabel}
+            </Button>
+          )}
+          {attach && <input type="file" id={ids.file} class={C.file} multiple hidden />}
+          {cancel && (
+            <Button size="sm" variant="ghost" class={C.cancel}>
+              {text.cancelLabel}
+            </Button>
+          )}
+          <Button
+            size="sm"
+            variant={ready ? "primary" : "default"}
+            title={text.submitTitle}
+            type={submitType}
+            id={ids.submit}
+            class={C.submit}
+            aria-keyshortcuts={keys}
+          >
+            {text.submitLabel}
+          </Button>
+        </span>
+      </div>
+    )
+  }
+</Root>

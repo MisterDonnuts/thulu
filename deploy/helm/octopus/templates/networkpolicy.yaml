@@ -1,0 +1,104 @@
+{{- if .Values.networkPolicy.enabled -}}
+{{- $kube := eq .Values.agentRuntime.mode "kubernetes" -}}
+{{- $np := .Values.networkPolicy -}}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "octopus.fullname" . }}
+  labels:
+    {{- include "octopus.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "octopus.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              {{ $np.ingressNamespaceLabel }}: {{ $np.ingressNamespace }}
+        - podSelector: {}
+        {{- with $np.extraIngressFrom }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: 8585
+    {{- if $kube }}
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              thulu.dev/plane: data
+      ports:
+        - protocol: TCP
+          port: 8585
+        - protocol: TCP
+          port: {{ .Values.agentRuntime.gatewayPort }}
+    {{- end }}
+  egress:
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 443
+    - to:
+        - podSelector: {}
+    - to:
+        {{- if $np.postgres.cidrs }}
+        {{- range $np.postgres.cidrs }}
+        - ipBlock:
+            cidr: {{ . }}
+        {{- end }}
+        {{- else }}
+        []
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: {{ $np.postgres.port }}
+    {{- if $kube }}
+    - to:
+        {{- if $np.apiServer.cidrs }}
+        {{- range $np.apiServer.cidrs }}
+        - ipBlock:
+            cidr: {{ . }}
+        {{- end }}
+        {{- else }}
+        []
+        {{- end }}
+      ports:
+        {{- range $np.apiServer.ports }}
+        - protocol: TCP
+          port: {{ . }}
+        {{- end }}
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              thulu.dev/plane: data
+      ports:
+        - protocol: TCP
+          port: 8587
+    {{- if and (include "octopus.imageBuild.enabled" .) (include "octopus.imageBuild.bundled" .) }}
+    # The daemon checks the bundled registry for the agent image (image-build.yaml).
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ include "octopus.imageBuild.namespace" . }}
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: agent-image-registry
+      ports:
+        - protocol: TCP
+          port: 5000
+    {{- end }}
+    {{- end }}
+    {{- with $np.extraEgress }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+{{- end -}}

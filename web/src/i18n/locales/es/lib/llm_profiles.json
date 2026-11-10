@@ -1,0 +1,97 @@
+{
+  "used_by": {
+    "none_default": "Ningún agente corre con este motor",
+    "none_named": "Ningún agente lo usa",
+    "some": "Agentes que lo usan: {names}",
+    "some_more": "Agentes que lo usan: {names} y {count} más"
+  },
+  "meta": {
+    "model": "modelo {model}",
+    "model_default": "modelo: el predeterminado de la CLI",
+    "effort": "esfuerzo {effort}",
+    "workload_identity": "identidad de workload",
+    "key_html": "clave <code class=\"code-inline\">{hint}</code>",
+    "base": "base {url}",
+    "bearer": "auth bearer",
+    "org": "org {org}",
+    "last_used": "último uso {when}",
+    "never_used": "nunca se usó",
+    "federation_html": "regla de federación <code class=\"code-inline\">{rule}</code>"
+  },
+  "model": {
+    "engine_default": "{model} (predeterminado del motor)",
+    "cli_default": "modelo predeterminado de la CLI"
+  },
+  "providers": {
+    "anthropic": "Anthropic API",
+    "openai": "OpenAI API",
+    "openai-compatible": "API compatible con OpenAI (DeepSeek, OpenRouter, vLLM)",
+    "bedrock": "Amazon Bedrock",
+    "vertex": "Google Vertex AI"
+  },
+  "modal": {
+    "edit": "Editar {name}",
+    "default": "Perfil predeterminado de {engine}",
+    "new": "Nuevo perfil de {engine}"
+  },
+  "placeholders": {
+    "models": "{models}, … · vacío = el predeterminado de la CLI",
+    "model_empty": "Vacío = el predeterminado de la CLI",
+    "keep_hint": "Dejalo vacío para conservar {hint}",
+    "keep_current": "Dejalo vacío para conservar la clave actual",
+    "prefix": "{prefix}…",
+    "paste": "Pegá la credencial"
+  },
+  "errors": {
+    "name_required": "Ponele un nombre al perfil.",
+    "region_required": "Indicá la región donde corren los modelos.",
+    "project_required": "Indicá el proyecto de Google Cloud.",
+    "aws_pair": "El access key ID y el secret access key van juntos.",
+    "key_required": "Pegá la clave con la que corre este perfil.",
+    "base_url_required": "Un proveedor compatible con OpenAI no tiene dirección por defecto: completá la URL base.",
+    "prefix": "{kind} empieza con {prefix}",
+    "prefix_generic": "Esta credencial empieza con {prefix}",
+    "federation_prefix": "El {field} empieza con {prefix}.",
+    "federation_org": "El ID de organización es el UUID de la página Organization de la Claude Console."
+  },
+  "effort": {
+    "low": "bajo",
+    "medium": "medio",
+    "high": "alto"
+  },
+  "no_default": {
+    "blocked": "Sin perfil predeterminado: las corridas en {engine} no van a arrancar hasta que cargues una clave.",
+    "blocked_waiting": {
+      "one": "Sin perfil predeterminado: las corridas en {engine} no van a arrancar hasta que cargues una clave ({count} agente espera en este motor).",
+      "other": "Sin perfil predeterminado: las corridas en {engine} no van a arrancar hasta que cargues una clave ({count} agentes esperan en este motor)."
+    },
+    "host": "Sin perfil predeterminado: las corridas en {engine} usan la credencial propia del host del daemon.",
+    "host_waiting": {
+      "one": "Sin perfil predeterminado: las corridas en {engine} usan la credencial propia del host del daemon ({count} agente en este motor).",
+      "other": "Sin perfil predeterminado: las corridas en {engine} usan la credencial propia del host del daemon ({count} agentes en este motor)."
+    }
+  },
+  "key": {
+    "valid": "Válida",
+    "invalid": "Inválida",
+    "unreachable": "Sin respuesta",
+    "unchecked": "Sin verificar",
+    "refused": "Rechazada en una corrida",
+    "refused_when": "El proveedor rechazó una llamada de una corrida con esta clave (HTTP {status}) {when}.",
+    "refused_note": "El proveedor rechazó una llamada de una corrida con esta clave (HTTP {status}).",
+    "note": {
+      "no_upstream": "Sin verificar: el daemon no conoce la dirección del proveedor.",
+      "not_checkable": "Sin verificar: este tipo de clave (un token de suscripción, una credencial de nube) no responde la lista de modelos.",
+      "endpoint_refused": "Sin verificar: la dirección del perfil no está permitida.",
+      "no_answer": "No se pudo contactar a {host}. Probá Volver a verificar más tarde.",
+      "no_answer_unnamed": "El proveedor no respondió. Probá Volver a verificar más tarde.",
+      "rejected": "El proveedor rechazó la clave (HTTP {status}).",
+      "unexpected": "El proveedor respondió HTTP {status} y no se pudo confirmar la clave."
+    }
+  },
+  "labels": {
+    "federation_rule": "ID de la regla de federación",
+    "federation_service_account": "ID de la service account",
+    "federation_workspace": "ID del workspace"
+  }
+}

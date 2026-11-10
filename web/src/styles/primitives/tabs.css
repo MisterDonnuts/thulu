@@ -1,0 +1,126 @@
+.tabs {
+  display: flex;
+  gap: var(--s-1);
+  min-width: 0;
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: var(--tab-h);
+  padding: 0 var(--s-4);
+  border: 0;
+  border-bottom: var(--tab-line) solid transparent;
+  border-radius: var(--r-md) var(--r-md) 0 0;
+  background: none;
+  color: var(--fg-3);
+  font: inherit;
+  font-size: var(--t-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+.tab:hover {
+  background: var(--surface-2);
+  color: var(--fg);
+}
+.tab[aria-selected="true"] {
+  border-bottom-color: var(--accent);
+  color: var(--fg);
+}
+.tab[aria-selected="true"] .ico {
+  color: var(--accent);
+}
+/* The strip scrolls and clips outlines outside its children, so the focus ring goes inside the tab. */
+.tab:focus-visible {
+  outline-offset: calc(-1 * var(--tab-line));
+}
+.tab:disabled {
+  background: none;
+  color: var(--fg-4);
+  cursor: not-allowed;
+}
+.tab .tab-flag {
+  display: inline-flex;
+  color: var(--warn);
+}
+
+.tabs-pill {
+  gap: var(--s-2);
+  border-bottom: 0;
+}
+.tabs-pill .tab {
+  min-height: var(--control-h);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-pill);
+  color: var(--fg-2);
+}
+.tabs-pill .tab[aria-selected="true"] {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.tabs-vertical {
+  flex-direction: column;
+  border-bottom: 0;
+  overflow: visible;
+}
+.tabs-vertical .tab {
+  gap: var(--s-3);
+  min-height: var(--tab-h-vertical);
+  padding: 0 var(--s-3);
+  border: 0;
+  border-radius: var(--r-md);
+  color: var(--fg-2);
+}
+.tabs-vertical .tab:hover {
+  background: var(--color-tint-1);
+}
+.tabs-vertical .tab[aria-selected="true"] {
+  background: var(--accent-soft);
+  color: var(--fg);
+}
+.tabs-vertical .tab .count-pill {
+  margin-inline-start: auto;
+}
+@media (max-width: 760px) {
+  .tabs-vertical {
+    flex-direction: row;
+    overflow-x: auto;
+  }
+  .tabs-vertical .tab {
+    flex: 1;
+    justify-content: center;
+  }
+  .tabs-vertical .tab .count-pill {
+    margin-inline-start: 0;
+  }
+}
+
+@media (pointer: coarse) {
+  .tab,
+  .tabs-pill .tab,
+  .tabs-vertical .tab {
+    min-height: var(--tap-min);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab {
+    transition: none;
+  }
+}

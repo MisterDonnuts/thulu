@@ -1,0 +1,25 @@
+{
+  "errors": {
+    "blocked": "destination blocked by the egress policy",
+    "unresolved": "host does not resolve",
+    "invalid_address": "{cause}: invalid address",
+    "embedded": "{cause} (embedded in {ip})",
+    "metadata_endpoint": "{cause}: {ip} is a cloud metadata endpoint",
+    "reserved_address": "{cause}: {ip} is a reserved or link-local address",
+    "private_address": "{cause}: {ip} is a private address (allow it with OCTOPUS_EGRESS_ALLOW_PRIVATE_CIDRS)",
+    "local_address": "{cause}: {ip} is an address of this host (allow it with OCTOPUS_EGRESS_ALLOW_PRIVATE_CIDRS)",
+    "dial_address_unparsable": "{cause}: {err}",
+    "resolve_failed": "{cause}: resolve {host}: {err}",
+    "resolve_empty": "{cause}: resolve {host}: no addresses",
+    "host_blocked": "{host}",
+    "url_invalid": "invalid URL",
+    "url_scheme": "URL must be http or https, got {scheme:%q}",
+    "url_no_host": "URL has no host"
+  },
+  "log": {
+    "guard_disabled": "WARNING: OCTOPUS_EGRESS_GUARD=off — automation http steps and webhooks can reach loopback, private networks and the cloud metadata endpoint. Development only.",
+    "bad_allow_entry": "WARNING: OCTOPUS_EGRESS_ALLOW_PRIVATE_CIDRS entry #{index} is not a CIDR or IP; ignored",
+    "bad_public_ip_entry": "WARNING: OCTOPUS_PUBLIC_IPS entry #{index} is not a CIDR or IP; ignored",
+    "interfaces_failed": "WARNING: cannot list the network interfaces, so the host addresses known so far stay blocked: {err}"
+  }
+}

@@ -1,0 +1,461 @@
+{
+  "info": {
+    "title": "API de Thulu",
+    "description": "La API HTTP de Thulu, un tablero de tareas donde un agente (Claude Code, Codex u OpenCode) trabaja cada etapa y una persona decide qué se mergea."
+  },
+  "servers": {
+    "local": "Desarrollo local"
+  },
+  "tags": {
+    "health": "Salud",
+    "auth": "Autenticación",
+    "tasks": "Tareas",
+    "projects": "Proyectos",
+    "webhooks": "Webhooks",
+    "automations": "Automatizaciones",
+    "audit": "Auditoría",
+    "agents": "Agentes",
+    "usage": "Uso",
+    "chats": "Chats",
+    "events": "Eventos"
+  },
+  "params": {
+    "case": "Id o clave del caso (TC-3)",
+    "qid": "Id de la pregunta",
+    "aid": "Id de la aprobación",
+    "delivery_id": "Id de la entrega",
+    "run_id": "Id de la corrida de la automatización",
+    "setting_key": "el ajuste; por ahora sólo agent.max_run_minutes"
+  },
+  "responses": {
+    "created": "Creado",
+    "no_content": "Sin contenido",
+    "deleted": "Borrado",
+    "topic_list": "Lista actual de tópicos",
+    "unknown_stream": "Stream desconocido, o de otro cliente"
+  },
+  "schemas": {
+    "task": {
+      "body": "Descripción en Markdown. Sólo la trae {route}: los listados la devuelven vacía para que el sondeo del tablero no cargue todas las descripciones."
+    },
+    "test_case": {
+      "key": "TC-<n> si no se indica otra; única por tarea. {param} en una ruta acepta la clave o el id",
+      "priority": "low, medium, high o critical",
+      "status": "pending, pass, fail, blocked o skipped",
+      "runs": "Las más recientes primero"
+    },
+    "report": {
+      "source": "agent, auditor o user",
+      "kind": "agent_index, auditor_feedback o evidence",
+      "body": "Markdown"
+    },
+    "test_case_run": {
+      "verdict": "pass, fail o blocked",
+      "report_id": "El reporte de evidencia en la pestaña Reportes",
+      "comment_id": "Dónde guardaban su reporte las corridas registradas antes de que existieran los reportes"
+    },
+    "webhook": {
+      "secret": "Secreto de firma; se devuelve sólo al crearlo y al rotarlo",
+      "legacy_signing": "Firmado con HMAC con clave hex(sha256(secret)) hasta que se rote el secreto"
+    },
+    "audit_chain_report": {
+      "checked": "Filas cuyo hash se recalculó y coincidió",
+      "legacy": "Filas escritas antes de que existiera la cadena",
+      "broken_at": "Id de la primera fila que falló",
+      "head": "Hash de la fila más nueva; guardalo fuera de la base de datos",
+      "cause": "Por qué falló esa fila, sin su id",
+      "broken_created_at": "Cuándo se escribió la fila que falló"
+    },
+    "token_optimizer": {
+      "level": "off, suggest o enforce",
+      "reason": "por qué el nivel queda más bajo que lo configurado: no_worker (el agente no nombra un worker completo, su engine no tiene un perfil por defecto que sirva, o el worker es cli y el agente corre en otro engine que claude-code, cuya imagen no trae claude) o engine_without_hooks (enforce en un agente cuyo engine no corre hooks); vacío si no",
+      "via": "cómo llega la corrida al worker: api (el daemon llama al proveedor con la key del perfil por defecto, que nunca llega al pod) o cli (el pod de la propia corrida corre el CLI de Claude Code con el token de suscripción del perfil por defecto); vacío cuando no hay un worker que sirva",
+      "provider": "el proveedor del perfil LLM por defecto del engine",
+      "engine": "el engine del worker: claude-code, codex u opencode",
+      "model": "el modelo del worker, de la definición del agente",
+      "available": "si el perfil LLM por defecto del engine sirve para un worker",
+      "worker_reason": "por qué el worker no está disponible: no_default_profile o unsupported_credential; vacío si no",
+      "profile_name": "el nombre del perfil LLM por defecto del engine"
+    },
+    "workspace_run_limit": {
+      "about": "El límite de tiempo de una corrida de agente en este workspace, en minutos",
+      "value": "lo que eligió el workspace; null si no eligió nada",
+      "default": "el límite de la instalación, el que tiene un workspace sin valor propio; 0 = sin límite",
+      "ceiling": "lo máximo que puede elegir un workspace",
+      "effective": "lo que tienen las corridas del workspace: min(value, ceiling), o el default",
+      "body": "minutos enteros de 1 al tope, o null para volver al default de la instalación"
+    }
+  },
+  "ops": {
+    "health_full": {
+      "summary": "Chequeo de salud completo"
+    },
+    "health_live": {
+      "summary": "Sonda de vida (liveness)"
+    },
+    "health_ready": {
+      "summary": "Sonda de disponibilidad (readiness)"
+    },
+    "auth_config": {
+      "summary": "Configuración de autenticación del servidor (pública)"
+    },
+    "auth_refresh": {
+      "summary": "Renovar el token de acceso"
+    },
+    "auth_logout": {
+      "summary": "Revocar el token de renovación"
+    },
+    "auth_me": {
+      "summary": "Ver el usuario actual"
+    },
+    "list_members": {
+      "summary": "Listar los miembros del workspace"
+    },
+    "add_member": {
+      "summary": "Sumar un miembro al workspace"
+    },
+    "update_member_role": {
+      "summary": "Cambiar el rol de un miembro"
+    },
+    "remove_member": {
+      "summary": "Sacar a un miembro del workspace"
+    },
+    "list_invitations": {
+      "summary": "Listar las invitaciones pendientes"
+    },
+    "update_invitation": {
+      "summary": "Cambiar el rol de una invitación"
+    },
+    "delete_invitation": {
+      "summary": "Cancelar una invitación"
+    },
+    "list_tasks": {
+      "summary": "Listar todas las tareas",
+      "params": {
+        "board": "Filtrar por tablero (el flujo de la tarea). Conviene más que stage: un id de etapa puede pertenecer a varios tableros.",
+        "stage": "Filtrar por etapa (p. ej. backlog, in_progress, done)",
+        "limit": "Tamaño de página. Omitilo para traer la lista entera. Máximo 500.",
+        "cursor": "Token opaco del header X-Next-Cursor de una respuesta anterior. Si ese header no viene, se llegó a la última página."
+      }
+    },
+    "create_task": {
+      "summary": "Crear una tarea"
+    },
+    "get_task": {
+      "summary": "Ver una tarea"
+    },
+    "update_task": {
+      "summary": "Modificar una tarea"
+    },
+    "delete_task": {
+      "summary": "Borrar una tarea"
+    },
+    "add_comment": {
+      "summary": "Agregar un comentario"
+    },
+    "list_attachments": {
+      "summary": "Listar todos los adjuntos de la tarea"
+    },
+    "upload_attachment": {
+      "summary": "Subir un adjunto",
+      "description": "Dos formatos de pedido en la misma ruta: multipart/form-data con el archivo en la parte `file`, o application/json con los bytes en `content_base64`. Los dos aceptan `comment_id` (asocia el archivo a un comentario de esta tarea). El autor sale de la credencial. 50MB por archivo."
+    },
+    "serve_attachment": {
+      "summary": "Descargar los bytes de un adjunto",
+      "responses": {
+        "ok": "El archivo"
+      }
+    },
+    "delete_attachment": {
+      "summary": "Borrar un adjunto y su archivo"
+    },
+    "list_sections": {
+      "summary": "Secciones estructuradas del cuerpo de la tarea, ya parseadas"
+    },
+    "set_section": {
+      "summary": "Crear o reemplazar una sección del cuerpo"
+    },
+    "check_section_item": {
+      "summary": "Marcar o desmarcar un ítem de checklist"
+    },
+    "list_flags": {
+      "summary": "Listar las alertas"
+    },
+    "create_flag": {
+      "summary": "Crear una alerta"
+    },
+    "list_pull_requests": {
+      "summary": "Leer el estado, el CI y la revisión de los pull requests de la tarea",
+      "description": "Responde {pull_requests: [...]}, una fila por proyecto con pull request: project_id, project_name, url, number, title, state (open, draft, merged, closed), head, base, ci {source (checks o actions), total, passed, failed, running, state (none, running, passed, failed)}, review (none, pending, approved, changes_requested), mergeable (ready, blocked, behind, conflicts, unknown), changed_files, additions, deletions, commits, updated_at. Un pull request que GitHub no contestó conserva project_id, project_name y url, con error (la clave del catálogo) y error_message en vez del resto. Las respuestas se guardan 30 segundos; los webhooks de GitHub sobre un pull request, sus revisiones o sus checks las descartan antes. ci.source es actions cuando a la GitHub App le falta Checks: read: entonces sólo cuentan los jobs de GitHub Actions.",
+      "responses": {
+        "ok": "Los pull requests de la tarea"
+      }
+    },
+    "list_reports": {
+      "summary": "Listar los reportes de la tarea, los más viejos primero"
+    },
+    "add_report": {
+      "summary": "Cargar un reporte en la pestaña Reportes",
+      "description": "kind es evidence o agent_index (sólo corridas de agente); el feedback del auditor tiene su propia ruta. body es markdown, hasta 256 KB. instance_id, si viene, tiene que ser una corrida de esta tarea. Los reportes nunca publican un comentario, ni lanzan ni avisan a nadie."
+    },
+    "list_test_cases": {
+      "summary": "Listar los casos de prueba de la tarea, cada uno con sus corridas"
+    },
+    "add_test_cases": {
+      "summary": "Agregar un caso de prueba, o varios como {cases: [...]}",
+      "description": "Devuelve los casos creados. Un caso sin clave recibe TC-<max+1>; una clave ya usada responde 409."
+    },
+    "import_test_cases_from_body": {
+      "summary": "Convertir la checklist Test Cases del cuerpo en casos, salteando los títulos que ya existen"
+    },
+    "update_test_case": {
+      "summary": "Modificar un caso de prueba (parcial)"
+    },
+    "delete_test_case": {
+      "summary": "Borrar un caso de prueba y sus corridas"
+    },
+    "record_test_case_run": {
+      "summary": "Registrar una corrida de un caso de prueba",
+      "description": "verdict es obligatorio. Cada id de adjunto, reporte y comentario tiene que ser de la tarea (si no, 404). El caso toma el veredicto como estado y cuenta como cubierto. Responde {run, test_case}."
+    },
+    "list_workspace_test_cases": {
+      "summary": "Vista de QA: casos de prueba de todo el workspace de quien llama",
+      "description": "Responde {test_cases: [...], counts: {status: n}, covered_counts: {status: n}}. Cada fila es un TestCase sin corridas, más task_title, task_stage, board_id, last_run y runs_count. Los dos conteos traen todos los estados sobre el conjunto filtrado entero, sin aplicar el filtro de status; covered_counts cuenta sólo los casos cubiertos.",
+      "params": {
+        "status": "Estados separados por coma",
+        "q": "Busca en la clave del caso, el título del caso y el título de la tarea",
+        "uncovered": "1 para los casos que nadie ejercitó todavía",
+        "limit": "200 por defecto, máximo 1000"
+      }
+    },
+    "ask_question": {
+      "summary": "Hacerle una pregunta a las personas (sólo corridas de etapa)",
+      "description": "Body: el input de task_ask {kind, blocking, context, questions: [{header, question, options: [{label, description}], multi_select, allow_other}], default}. Sólo puede llamarla la corrida de etapa viva de la tarea, con su propia key. Responde {question, comment_id, instruction}. 409 si la tarea no está corriendo en la etapa de la key; 429 pasadas 3 consultas por corrida o 5 preguntas abiertas por tarea."
+    },
+    "answer_question": {
+      "summary": "Contestar la pregunta de un agente",
+      "description": "Body: {answers: [{question_index, selected: [label], other}], note}. Sólo una persona; se firma con la credencial de quien llama. La respuesta se publica en el hilo de la pregunta y se le pasa al agente: a su corrida viva, o retomando la etapa cuando todas las preguntas que bloquean de esa corrida tienen respuesta."
+    },
+    "cancel_question": {
+      "summary": "Cancelar sin respuesta la pregunta de un agente"
+    },
+    "inbox": {
+      "summary": "Lo que espera a una persona en el workspace",
+      "description": "Responde {questions: [...], approvals: [...]}: las preguntas abiertas de los agentes y las aprobaciones que todavía traban su etapa (pendientes o con cambios pedidos), cada una con task_id, task_title y stage, de la más vieja a la más nueva."
+    },
+    "list_approvals": {
+      "summary": "Listar las aprobaciones de una tarea"
+    },
+    "request_approval": {
+      "summary": "Pedir una aprobación",
+      "description": "Body: {label, reason, key}. Abre una aprobación pendiente en la etapa actual de la tarea; mover la tarea hacia adelante desde esa etapa responde 409 hasta que se apruebe o se saltee. Una corrida de agente puede llamarla sobre su propia tarea."
+    },
+    "decide_approval": {
+      "summary": "Decidir una aprobación",
+      "description": "Body: {decision, note}. decision es approved, changes_requested o waived; las dos últimas necesitan nota. Sólo una persona. changes_requested hace lo que dice el on_changes_requested de la etapa: retomar su agente con la nota, devolver la tarea o quedarse."
+    },
+    "delete_approval": {
+      "summary": "Quitar una aprobación (no una que pide la etapa: esa se saltea)"
+    },
+    "relaunch_task": {
+      "summary": "Relanzar el agente de la etapa actual"
+    },
+    "clone_task": {
+      "summary": "Clonar una tarea"
+    },
+    "list_deps": {
+      "summary": "Listar las dependencias"
+    },
+    "add_dep": {
+      "summary": "Agregar una dependencia"
+    },
+    "list_projects": {
+      "summary": "Listar los proyectos"
+    },
+    "create_project": {
+      "summary": "Crear un proyecto"
+    },
+    "get_project": {
+      "summary": "Ver un proyecto"
+    },
+    "update_project": {
+      "summary": "Modificar un proyecto"
+    },
+    "delete_project": {
+      "summary": "Borrar un proyecto"
+    },
+    "list_webhooks": {
+      "summary": "Listar los endpoints de webhook"
+    },
+    "create_webhook": {
+      "summary": "Registrar un endpoint de webhook",
+      "responses": {
+        "created": "Creado — incluye el secreto, que se muestra una sola vez"
+      }
+    },
+    "list_webhook_events": {
+      "summary": "Listar los eventos a los que se puede suscribir un endpoint",
+      "responses": {
+        "ok": "Array de nombres de evento; una suscripción también acepta * y <prefijo>.*"
+      }
+    },
+    "delete_webhook": {
+      "summary": "Borrar un webhook"
+    },
+    "rotate_webhook_secret": {
+      "summary": "Reemplazar el secreto de firma (se devuelve una vez) y dejar de firmar con el hash del secreto"
+    },
+    "test_webhook": {
+      "summary": "Mandar una entrega de prueba al webhook"
+    },
+    "list_webhook_deliveries": {
+      "summary": "Listar los últimos intentos de entrega de un webhook"
+    },
+    "retry_webhook_delivery": {
+      "summary": "Volver a mandar una entrega registrada de un webhook"
+    },
+    "list_automations": {
+      "summary": "Listar las automatizaciones"
+    },
+    "create_automation": {
+      "summary": "Crear una automatización a partir de una spec YAML"
+    },
+    "validate_automation": {
+      "summary": "Parsear una spec sin guardarla"
+    },
+    "get_automation": {
+      "summary": "Ver una automatización"
+    },
+    "update_automation": {
+      "summary": "Reemplazar la spec"
+    },
+    "delete_automation": {
+      "summary": "Borrar una automatización y su historial"
+    },
+    "set_automation_enabled": {
+      "summary": "Suspender o reanudar"
+    },
+    "run_automation": {
+      "summary": "Correr ahora"
+    },
+    "list_automation_runs": {
+      "summary": "Historial de corridas"
+    },
+    "get_automation_run": {
+      "summary": "Una corrida con la línea de tiempo de sus pasos"
+    },
+    "cancel_automation_run": {
+      "summary": "Cancelar una corrida en curso"
+    },
+    "verify_audit": {
+      "summary": "Recalcular la cadena de hashes de auditoría (sólo el workspace del operador)"
+    },
+    "list_audit": {
+      "summary": "Consultar el log de auditoría"
+    },
+    "list_agents": {
+      "summary": "Listar los agentes en ejecución"
+    },
+    "get_agent": {
+      "summary": "Ver un agente"
+    },
+    "stop_agent": {
+      "summary": "Detener un agente"
+    },
+    "agent_logs": {
+      "summary": "Ver los logs de un agente"
+    },
+    "get_usage": {
+      "summary": "Estadísticas de uso agregadas"
+    },
+    "list_sessions": {
+      "summary": "Listar las sesiones de agentes"
+    },
+    "list_chats": {
+      "summary": "Listar los chats con agentes"
+    },
+    "create_chat": {
+      "summary": "Crear un chat con un agente"
+    },
+    "get_chat": {
+      "summary": "Ver un chat"
+    },
+    "update_chat": {
+      "summary": "Renombrar o archivar un chat"
+    },
+    "delete_chat": {
+      "summary": "Borrar un chat"
+    },
+    "reset_chat": {
+      "summary": "Reiniciar el chat (borra la transcripción y la sesión del motor)"
+    },
+    "list_chat_messages": {
+      "summary": "Listar los mensajes del chat",
+      "params": {
+        "before": "Devolver sólo los mensajes anteriores a este id de mensaje"
+      }
+    },
+    "post_chat_message": {
+      "summary": "Enviar un mensaje (turno asíncrono; la respuesta llega por SSE)",
+      "responses": {
+        "accepted": "Aceptado — el turno está corriendo",
+        "conflict": "Ya hay un turno corriendo"
+      }
+    },
+    "chat_events": {
+      "summary": "Stream SSE de eventos de chat (message_added, turn_started/finished/failed, chat_*) — reemplazado por el tópico \"chat\" de /events"
+    },
+    "open_event_stream": {
+      "summary": "Abrir el canal SSE multiplexado; los frames llegan como eventos `msg` etiquetados con su tópico",
+      "params": {
+        "topics": "Tópicos separados por coma a los que suscribirse al abrir (chat, logs:<runID>)"
+      },
+      "responses": {
+        "ok": "text/event-stream; abre con un evento `hello` que trae stream_id"
+      }
+    },
+    "subscribe_topics": {
+      "summary": "Sumar tópicos a un stream abierto"
+    },
+    "unsubscribe_topics": {
+      "summary": "Quitar tópicos de un stream abierto"
+    },
+    "upload_project": {
+      "summary": "Crear un proyecto desde una carpeta subida",
+      "description": "multipart/form-data con dos partes en este orden: \"meta\", JSON {name, description, default_board_id, stage_template}, y después \"archive\", la carpeta como .tar.gz o .zip (200 MB como máximo). Las carpetas de dependencias (node_modules, .venv, ...) y los archivos que parecen secretos (.env, claves privadas) quedan afuera y aparecen en el reporte. Un .git en la raíz conserva su historial; sin él, la carpeta es el primer commit de main. Responde {project, report}."
+    },
+    "reupload_project": {
+      "summary": "Subir una versión nueva de la carpeta de un proyecto subido",
+      "description": "multipart/form-data con una parte \"archive\". La carpeta se vuelve un commit en la rama por defecto si difiere de lo que hay; los archivos que la subida dejó afuera a propósito quedan como estaban. Responde {project, report}.",
+      "params": {
+        "mode": "Qué hacer cuando la carpeta salió de un commit que la rama por defecto ya dejó atrás (el zip de una rama que da projectArchive lo nombra). Sin valor: responde 409 con code api.projects.errors.main_moved y ahead. merge: trae esos commits; si choca, responde 409 con conflicts. replace: gana la carpeta."
+      }
+    },
+    "project_branches": {
+      "summary": "Listar las ramas de un proyecto, sin las ramas de tareas"
+    },
+    "project_archive": {
+      "summary": "Descargar una rama del proyecto como zip",
+      "params": {
+        "branch": "Rama a descargar. Si falta, la rama por defecto del proyecto."
+      }
+    },
+    "merge_task": {
+      "summary": "Integrar la rama de una tarea en una rama de un proyecto subido",
+      "description": "Cuerpo {project_id, target}, ambos opcionales: el único proyecto subido de la tarea y su rama por defecto. Commitea lo que tenga el worktree, pushea la rama de la tarea (rebaseada sobre la rama por defecto) y después hace fast-forward del destino o escribe un commit de merge. 409 con los archivos en conflicto en conflicts si las ramas chocan; en ese caso no se escribe nada. Los runs de agente no pueden llamarla."
+    },
+    "resolve_token_optimizer": {
+      "summary": "Qué resuelve el optimizador de tokens para un agente"
+    },
+    "list_token_optimizer_workers": {
+      "summary": "Qué engines pueden contestar al optimizador de tokens",
+      "description": "Una entrada por engine registrado: si el perfil LLM por defecto del workspace para ese engine sirve para un worker del optimizador de tokens, y cómo llegaría una corrida a él. El formulario del agente ofrece los disponibles."
+    },
+    "get_workspace_settings": {
+      "summary": "Leer los ajustes propios del workspace: su límite de tiempo por corrida y los topes de la instalación"
+    },
+    "put_workspace_setting": {
+      "summary": "Fijar o borrar un ajuste propio del workspace (admin)"
+    }
+  }
+}

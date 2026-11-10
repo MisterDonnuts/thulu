@@ -1,0 +1,1046 @@
+---
+import Button from "./Button.astro";
+import Count from "./Count.astro";
+import Dot from "./Dot.astro";
+import Icon from "./Icon.astro";
+import Menu from "./Menu.astro";
+import { t } from "../i18n";
+---
+
+<aside
+  id="sidebar"
+  class="app-sidebar"
+  aria-label={t("nav.aria.navigation")}
+  transition:persist="sidebar"
+>
+  <div class="sb-head">
+    <span class="sb-head-label sb-only-app" id="sb-ws-static">{t("nav.head.workspace")}</span>
+    <div class="sb-ws sb-only-app" id="sb-ws" hidden>
+      <button
+        id="sb-ws-btn"
+        class="sb-ws-btn"
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded="false"
+        aria-controls="sb-ws-menu"
+        title={t("layout.workspaces.switch")}
+      >
+        <span class="sb-ws-mark" id="sb-ws-mark" aria-hidden="true"></span>
+        <span class="sb-ws-name" id="sb-ws-name"></span>
+        <Icon name="chevrons-v" size="sm" class="sb-ws-caret" />
+      </button>
+      <Menu
+        id="sb-ws-menu"
+        class="sb-ws-menu"
+        align="start"
+        label={t("layout.workspaces.heading")}
+        items={[
+          { head: t("layout.workspaces.heading"), id: "sb-ws-head" },
+          { sep: true },
+          {
+            id: "sb-ws-invite",
+            href: "/settings/#team",
+            icon: "user-plus",
+            title: t("layout.workspaces.invite"),
+            hidden: true,
+          },
+          {
+            id: "sb-ws-create",
+            icon: "plus",
+            title: t("layout.workspaces.create"),
+            sub: t("layout.workspaces.create_unavailable"),
+            subId: "sb-ws-create-hint",
+          },
+        ]}
+      />
+    </div>
+    <span class="sb-head-label sb-only-settings">{t("nav.head.settings")}</span>
+    <button
+      id="sb-toggle"
+      class="icon-btn sb-toggle"
+      type="button"
+      aria-controls="sidebar"
+      aria-expanded="true"
+      title={t("nav.buttons.collapse")}
+      aria-label={t("nav.buttons.collapse")}
+    >
+      <Icon name="panel-left" class="sb-toggle-rail" />
+      <Icon name="x" class="sb-toggle-close" />
+    </button>
+  </div>
+
+  <div class="sb-scroll">
+    <nav class="sb-nav sb-only-app" aria-label={t("nav.aria.primary")}>
+      <a class="sb-link" href="/" data-match="/" title={t("common.nav.dashboard")}
+        ><Icon name="home" /><span class="sb-link-label">{t("common.nav.dashboard")}</span></a
+      >
+      <a
+        class="sb-link"
+        href="/projects/"
+        data-match="/projects /project"
+        title={t("common.nav.projects")}
+        ><Icon name="folder" /><span class="sb-link-label">{t("common.nav.projects")}</span></a
+      >
+      <a class="sb-link" href="/inbox/" data-match="/inbox" title={t("nav.links.inbox")}
+        ><Icon name="tt-question" /><span class="sb-link-label">{t("nav.links.inbox")}</span><Count
+          pill
+          size="sm"
+          tone="accent"
+          n={0}
+          hideZero
+          id="sb-inbox-badge"
+          class="sb-count sb-link-badge"
+        /></a
+      >
+      <a
+        class="sb-link"
+        href="/evidence/"
+        data-match="/evidence /qa"
+        title={t("nav.links.evidence")}
+        ><Icon name="play" /><span class="sb-link-label">{t("nav.links.evidence")}</span></a
+      >
+      <a class="sb-link" href="/agents/" data-match="/agents" title={t("common.nav.agents")}
+        ><Icon name="bot" /><span class="sb-link-label">{t("common.nav.agents")}</span></a
+      >
+      <a class="sb-link" href="/skills/" data-match="/skills" title={t("nav.links.skills")}
+        ><Icon name="skills" /><span class="sb-link-label">{t("nav.links.skills")}</span></a
+      >
+      <a
+        class="sb-link"
+        href="/automations/"
+        data-match="/automations"
+        title={t("nav.links.automations")}
+        ><Icon name="clock" /><span class="sb-link-label">{t("nav.links.automations")}</span></a
+      >
+    </nav>
+
+    <section class="sb-section sb-only-app" data-section="boards">
+      <div class="sb-section-head">
+        <button
+          class="sb-section-toggle"
+          type="button"
+          data-expand="boards"
+          title={t("nav.sections.boards")}
+        >
+          <Icon name="board" size="sm" class="sb-section-ico" />
+          <span class="sb-label">{t("nav.sections.boards")}</span>
+        </button>
+      </div>
+      <div id="sb-boards" class="sb-list"></div>
+    </section>
+
+    <section class="sb-section sb-section-chats sb-only-app" data-section="chats">
+      <div class="sb-section-head">
+        <button
+          class="sb-section-toggle"
+          type="button"
+          data-expand="chats"
+          title={t("nav.sections.chats")}
+        >
+          <Icon name="message" size="sm" class="sb-section-ico" />
+          <span class="sb-label">{t("nav.sections.chats")}</span>
+          <Count pill size="sm" tone="accent" n={0} hideZero id="sb-chat-badge" class="sb-count" />
+        </button>
+        <Button
+          id="chat-new-btn"
+          class="sb-add"
+          iconOnly
+          size="xs"
+          variant="ghost"
+          icon="plus"
+          label={t("nav.buttons.new_chat")}
+        />
+      </div>
+      <!-- ChatDrawer's script owns chat state and fills #chat-rows. -->
+      <div id="chat-rows" class="chat-rows"></div>
+    </section>
+
+    <nav class="sb-nav sb-only-settings" aria-label={t("nav.aria.settings")}>
+      <a class="sb-link sb-back" id="sb-back" href="/" title={t("nav.links.back_to_app")}
+        ><Icon name="arrow-right" class="sb-back-ico" /><span class="sb-link-label"
+          >{t("nav.links.back_to_app")}</span
+        ></a
+      >
+
+      <div class="sb-group-label">{t("nav.groups.workspace")}</div>
+      <a
+        class="sb-link"
+        data-needs-login
+        href="/settings/#team"
+        data-match="/settings#team"
+        title={t("nav.links.members")}
+        ><Icon name="tt-users" /><span class="sb-link-label">{t("nav.links.members")}</span></a
+      >
+      <a
+        class="sb-link"
+        href="/settings/#boards"
+        data-match="/settings#boards"
+        title={t("nav.links.boards")}
+        ><Icon name="columns" /><span class="sb-link-label">{t("nav.links.boards")}</span></a
+      >
+      <a
+        class="sb-link"
+        href="/settings/#llm"
+        data-match="/settings#llm"
+        title={t("nav.links.ai_engines")}
+        ><Icon name="bot" /><span class="sb-link-label">{t("nav.links.ai_engines")}</span></a
+      >
+
+      <div class="sb-group-label">{t("nav.groups.integrations")}</div>
+      <a class="sb-link" href="/mcps/" data-match="/mcps" title={t("nav.links.mcps")}
+        ><Icon name="tt-plug" /><span class="sb-link-label">{t("nav.links.mcps")}</span></a
+      >
+      <a
+        class="sb-link"
+        href="/credentials/"
+        data-match="/credentials"
+        title={t("nav.links.credentials")}
+        ><Icon name="tt-shield" /><span class="sb-link-label">{t("nav.links.credentials")}</span></a
+      >
+      <a
+        class="sb-link"
+        href="/settings/#webhooks"
+        data-match="/settings#webhooks"
+        data-section="webhooks"
+        title={t("nav.links.webhooks")}
+        ><Icon name="link" /><span class="sb-link-label">{t("nav.links.webhooks")}</span></a
+      >
+      <a
+        class="sb-link"
+        href="/settings/#api"
+        data-match="/settings#api"
+        data-section="api"
+        title={t("nav.links.api")}
+        ><Icon name="terminal" /><span class="sb-link-label">{t("nav.links.api")}</span></a
+      >
+
+      <div class="sb-group-label">{t("nav.groups.operations")}</div>
+      <a class="sb-link" href="/sandboxes/" data-match="/sandboxes" title={t("nav.links.sandboxes")}
+        ><Icon name="box" /><span class="sb-link-label">{t("nav.links.sandboxes")}</span></a
+      >
+      <a class="sb-link" href="/usage/" data-match="/usage" title={t("nav.links.usage")}
+        ><Icon name="zap" /><span class="sb-link-label">{t("nav.links.usage")}</span></a
+      >
+      <a
+        class="sb-link"
+        id="sb-infra"
+        href="/infra/"
+        data-match="/infra"
+        title={t("nav.links.infra")}
+        hidden
+        ><Icon name="tt-database" /><span class="sb-link-label">{t("nav.links.infra")}</span></a
+      >
+      <a
+        class="sb-link"
+        href="/settings/#health"
+        data-match="/settings#health"
+        title={t("nav.links.health")}
+        ><Icon name="server" /><span class="sb-link-label">{t("nav.links.health")}</span></a
+      >
+      <a
+        class="sb-link"
+        href="/settings/#updates"
+        data-match="/settings#updates"
+        data-section="updates"
+        title={t("nav.links.updates")}
+        ><Icon name="refresh" /><span class="sb-link-label">{t("nav.links.updates")}</span></a
+      >
+      <a
+        class="sb-link"
+        href="/settings/#audit"
+        data-match="/settings#audit"
+        data-section="audit"
+        title={t("nav.links.audit_log")}
+        ><Icon name="list" /><span class="sb-link-label">{t("nav.links.audit_log")}</span></a
+      >
+      <a
+        class="sb-link"
+        href="/settings/#language"
+        data-match="/settings#language"
+        title={t("nav.links.language")}
+        ><Icon name="settings" /><span class="sb-link-label">{t("nav.links.language")}</span></a
+      >
+
+      <div class="sb-group-label" data-needs-login>{t("nav.groups.you")}</div>
+      <a
+        class="sb-link"
+        data-needs-login
+        href="/settings/#account"
+        data-match="/settings#account"
+        title={t("nav.links.account")}
+        ><Icon name="settings" /><span class="sb-link-label">{t("nav.links.account")}</span></a
+      >
+    </nav>
+  </div>
+
+  <div class="sb-foot sb-only-app">
+    <a class="sb-link" href="/settings/" title={t("nav.links.settings")}
+      ><Icon name="settings" /><span class="sb-link-label">{t("nav.links.settings")}</span></a
+    >
+  </div>
+  <!-- Layout's fetchInfo fills this; /info only returns a version to a signed-in caller. -->
+  <a class="sb-version" id="sb-version" href="/settings/#updates" hidden
+    ><span id="sb-version-text"></span><Dot
+      tone="accent"
+      id="sb-version-dot"
+      label={t("nav.version.update_available")}
+      hidden
+    /></a
+  >
+  <nav class="sb-legal" aria-label={t("legal.links.nav")}>
+    <a href="/legal/terms/">{t("legal.links.terms")}</a>
+    <a href="/legal/privacy/">{t("legal.links.privacy")}</a>
+    <!-- Layout's fetchInfo points it at the running version's source (AGPL §13). -->
+    <a
+      id="sb-source"
+      href="https://github.com/MisterDonnuts/thulu"
+      target="_blank"
+      rel="noopener noreferrer">{t("legal.links.source")}</a
+    >
+  </nav>
+</aside>
+
+<style is:global>
+  /* ════════════════════════════════════════════════════════════════════
+   SIDEBAR — left rail (boards + chats)
+   ════════════════════════════════════════════════════════════════════ */
+  :root {
+    --sb-w: 236px;
+    --sb-w-collapsed: 48px;
+    --sb-cur: var(--sb-w);
+    /* How much the chat panel adds on top of the rail. ChatDrawer owns the
+       value; the page offset is computed here so a single rule sets
+       `padding-left` — two rules racing on specificity is how the panel's
+       push silently lost to the rail's. */
+    --drawer-push: 0px;
+  }
+  html[data-sidebar="closed"] {
+    --sb-cur: var(--sb-w-collapsed);
+  }
+
+  /* One rule owns the page offset. Both panels feed it a width instead of each
+     writing `padding-left` themselves — two rules racing on specificity is a
+     worse failure than a variable that is obviously additive. */
+  body {
+    padding-left: calc(var(--sb-cur) + var(--drawer-push));
+    transition: padding-left var(--dur-normal) var(--ease-out);
+  }
+
+  /* Namespaced like every other selector in this file, and for the same reason.
+     These styles are `is:global`, so a bare `.sidebar` here would reach into any
+     page that happens to call something a sidebar — and one did: the agents page
+     has its own `<aside class="sidebar">` inside a grid. It inherited
+     `position: fixed` from this rule, dropped out of the grid flow, and left the
+     editor pane sitting in the 260px column meant for the list. */
+  .app-sidebar {
+    position: fixed;
+    left: 0;
+    top: var(--header-h);
+    bottom: 0;
+    width: var(--sb-cur);
+    z-index: var(--z-dropdown);
+    display: flex;
+    flex-direction: column;
+    background: var(--surface-1);
+    border-right: 1px solid var(--line);
+    overflow: hidden;
+    transition:
+      width var(--dur-normal) var(--ease-out),
+      transform var(--dur-normal) var(--ease-out);
+  }
+
+  .sb-head {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    padding: var(--s-3) var(--s-3) var(--s-3) var(--s-4);
+    border-bottom: 1px solid var(--line);
+    min-height: 40px;
+  }
+  .sb-head-label {
+    flex: 1;
+    font-size: var(--t-xs);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--fg-3);
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  html[data-sidebar="closed"] .sb-head {
+    padding: var(--s-3) 0;
+    justify-content: center;
+  }
+  html[data-sidebar="closed"] .sb-head-label,
+  html[data-sidebar="closed"] .sb-ws {
+    display: none;
+  }
+
+  /* ── workspace menu (head) ── */
+  .sb-ws {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    /* Pull the button's hover fill out to where the label's text started. */
+    margin-left: calc(-1 * var(--s-1));
+  }
+  .sb-ws-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    width: 100%;
+    min-height: 32px;
+    padding: var(--s-1);
+    border: 0;
+    border-radius: var(--r-md);
+    background: transparent;
+    color: var(--fg);
+    font-family: inherit;
+    font-size: var(--t-sm);
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition: background var(--dur-fast) var(--ease-out);
+  }
+  .sb-ws-btn:hover,
+  .sb-ws-btn[aria-expanded="true"] {
+    background: var(--surface-2);
+  }
+  .sb-ws-btn[aria-busy="true"] {
+    cursor: progress;
+  }
+  .sb-ws-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .sb-ws-caret {
+    flex: none;
+    color: var(--fg-3);
+  }
+  /* The workspace's letter on its colour. The colour comes from the id
+     (workspaceColor), so it lands as a custom property like any data colour. */
+  .sb-ws-mark {
+    --ws-color: var(--accent);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    flex: none;
+    border-radius: var(--r-sm);
+    background: color-mix(in srgb, var(--ws-color) 24%, var(--surface-1));
+    color: color-mix(in srgb, var(--ws-color) var(--mix-data-ink), var(--color-text));
+    font-size: var(--t-xs);
+    font-weight: 600;
+    line-height: 1;
+  }
+  .sb-ws-mark:empty {
+    visibility: hidden;
+  }
+  /* The rail clips its overflow, so the menu stays inside it: as wide as the
+     rail less a gutter on each side. */
+  .sb-ws-menu {
+    width: calc(var(--sb-w) - 2 * var(--s-3));
+    min-width: 0;
+    max-width: calc(100vw - 2 * var(--s-3));
+  }
+  /* Many workspaces scroll inside the menu; the actions stay in view. */
+  .sb-ws-list {
+    max-height: var(--popover-max-h);
+    overflow-y: auto;
+  }
+  @media (pointer: coarse) {
+    .sb-ws-btn {
+      min-height: 44px;
+    }
+  }
+  html[data-sidebar="closed"] .sb-toggle .ico {
+    transform: scaleX(-1);
+  }
+
+  .sb-scroll {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: var(--s-3) var(--s-2);
+    gap: var(--s-2);
+  }
+  html[data-sidebar="closed"] .sb-scroll {
+    padding: var(--s-3) 0;
+    align-items: center;
+  }
+
+  .sb-section {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  /* Chats take the leftover height so a long list scrolls inside the rail
+     instead of pushing the boards out of view. */
+  .sb-section-chats {
+    flex: 1 1 auto;
+    margin-top: var(--s-3);
+    border-top: 1px solid var(--line);
+    padding-top: var(--s-3);
+  }
+  html[data-sidebar="closed"] .sb-section-chats {
+    width: 100%;
+    align-items: center;
+  }
+
+  .sb-section-head {
+    display: flex;
+    align-items: center;
+    gap: var(--s-1);
+  }
+  .sb-section-toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    flex: 1;
+    min-width: 0;
+    padding: var(--s-2) var(--s-3);
+    border: 0;
+    border-radius: var(--r-md);
+    background: transparent;
+    color: var(--fg-3);
+    font-family: inherit;
+    font-size: var(--t-xs);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: default;
+  }
+  .sb-section-ico {
+    flex-shrink: 0;
+  }
+  .sb-label {
+    flex: 1;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  html[data-sidebar="closed"] .sb-section-toggle {
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    cursor: pointer;
+  }
+  html[data-sidebar="closed"] .sb-section-toggle:hover {
+    background: var(--surface-2);
+    color: var(--fg);
+  }
+  html[data-sidebar="closed"] .sb-label,
+  html[data-sidebar="closed"] .sb-add,
+  html[data-sidebar="closed"] .sb-list,
+  html[data-sidebar="closed"] .chat-rows {
+    display: none;
+  }
+
+  /* A count at the end of a nav link, like a board's task count. */
+  .sb-link-badge {
+    margin-left: auto;
+  }
+  /* On the closed rail a count sits on the corner of its icon. */
+  html[data-sidebar="closed"] #sidebar .sb-count {
+    position: absolute;
+    margin-left: 20px;
+    margin-bottom: 18px;
+  }
+
+  /* New chat: an xs ghost icon button (Button), kept at its size in the row. */
+  .sb-add {
+    flex-shrink: 0;
+  }
+
+  /* ── board rows ── */
+  .sb-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 2px 0;
+  }
+  .sb-item {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    width: 100%;
+    padding: 5px var(--s-3) 5px 26px;
+    border: 0;
+    border-radius: var(--r-md);
+    background: transparent;
+    color: var(--fg-2);
+    font-family: inherit;
+    font-size: var(--t-sm);
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .sb-item:hover {
+    background: var(--surface-2);
+    color: var(--fg);
+  }
+  .sb-item[aria-current="true"] {
+    background: var(--accent-soft);
+    color: var(--fg);
+    font-weight: 600;
+  }
+  .sb-item-label {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ── primary nav links (both modes) ── */
+  /* Which set of links shows is decided by one attribute, so a page can never
+     end up with both rails at once. */
+  html:not([data-sb-mode="settings"]) .sb-only-settings,
+  html[data-sb-mode="settings"] .sb-only-app {
+    display: none !important;
+  }
+
+  .sb-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .sb-link {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    padding: 6px var(--s-3);
+    border-radius: var(--r-md);
+    color: var(--fg-3);
+    font-size: var(--t-sm);
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .sb-link .ico {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+  }
+  .sb-link:hover {
+    background: var(--surface-2);
+    color: var(--fg);
+  }
+  .sb-link[aria-current="page"] {
+    background: var(--surface-2);
+    color: var(--fg);
+  }
+  .sb-link[aria-current="page"] .ico {
+    color: var(--accent);
+  }
+  .sb-link-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sb-back {
+    margin-bottom: var(--s-2);
+    color: var(--fg-3);
+  }
+  .sb-back-ico {
+    transform: scaleX(-1);
+  }
+  .sb-group-label {
+    padding: var(--s-4) var(--s-3) var(--s-1);
+    font-size: var(--t-xs);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--fg-3);
+    white-space: nowrap;
+  }
+  /* The app nav and the boards list read as two blocks, not one long list. */
+  .sb-nav.sb-only-app {
+    padding-bottom: var(--s-3);
+    margin-bottom: var(--s-1);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .sb-foot {
+    padding: var(--s-2);
+    border-top: 1px solid var(--line);
+  }
+
+  .sb-version {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 var(--s-3) var(--s-2);
+    font-size: 11px;
+    color: var(--text-3);
+    text-decoration: none;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sb-version:hover {
+    color: var(--text-2);
+  }
+  html[data-sidebar="closed"] .sb-version {
+    display: none;
+  }
+
+  /* The app's footer: the terms and privacy pages, under the version. */
+  .sb-legal {
+    display: flex;
+    gap: var(--s-3);
+    padding: 0 var(--s-3) var(--s-2);
+    font-size: 11px;
+  }
+  .sb-legal a {
+    color: var(--text-3);
+    text-decoration: none;
+  }
+  .sb-legal a:hover {
+    color: var(--text-2);
+  }
+  html[data-sidebar="closed"] .sb-legal {
+    display: none;
+  }
+
+  html[data-sidebar="closed"] .sb-nav {
+    align-items: center;
+  }
+  html[data-sidebar="closed"] .sb-link {
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+  }
+  html[data-sidebar="closed"] .sb-link-label,
+  html[data-sidebar="closed"] .sb-group-label {
+    display: none;
+  }
+  html[data-sidebar="closed"] .sb-nav.sb-only-app {
+    width: 100%;
+  }
+  html[data-sidebar="closed"] .sb-foot {
+    display: flex;
+    justify-content: center;
+    padding: var(--s-2) 0;
+  }
+
+  .sb-toggle-close {
+    display: none;
+  }
+
+  /* Below this width the rail would eat the content, so it overlays instead
+     of pushing — and starts hidden. */
+  @media (max-width: 900px) {
+    .sb-toggle-rail {
+      display: none;
+    }
+    .sb-toggle-close {
+      display: inline;
+    }
+    body {
+      padding-left: 0;
+    }
+    html .header {
+      margin-left: 0;
+    }
+    .app-sidebar {
+      width: var(--sb-w);
+      transform: translateX(-100%);
+    }
+    /* Shadow only while open; parked off screen it would fall on the page. */
+    html[data-sidebar="open"] .app-sidebar {
+      transform: translateX(0);
+      box-shadow: var(--shadow-drawer-start);
+    }
+    html[data-sidebar="closed"] .sb-label,
+    html[data-sidebar="closed"] .sb-list,
+    html[data-sidebar="closed"] .chat-rows,
+    html[data-sidebar="closed"] .sb-link-label,
+    html[data-sidebar="closed"] .sb-group-label {
+      display: revert;
+    }
+    html[data-sidebar="closed"] .sb-nav {
+      align-items: stretch;
+    }
+    html[data-sidebar="closed"] .sb-link {
+      justify-content: flex-start;
+      width: auto;
+      height: auto;
+      padding: 6px var(--s-3);
+    }
+    html[data-sidebar="closed"] .sb-foot {
+      display: block;
+      padding: var(--s-2);
+    }
+  }
+</style>
+
+<script>
+  import { apiBase, authDisabled, sessionInfo } from "../lib/auth";
+  import { sectionDenial } from "../lib/settings-sections";
+  import { t } from "../i18n";
+  import type { Board, BoardsResponse } from "../lib/stages";
+  import { initWorkspaceMenu } from "../lib/workspace-menu";
+  import { DEFAULT_SECTION } from "../lib/settings-sections";
+  import { api } from "../lib/api";
+  import { events, TASKS_TOPIC } from "../lib/events";
+  import { inboxBadgeText, inboxTotal, type InboxResponse } from "../lib/inbox";
+  import { countHTML, emptyStateHTML, setCount } from "../lib/ui";
+
+  initWorkspaceMenu();
+
+  (function () {
+    const root = document.documentElement;
+    const aside = document.getElementById("sidebar");
+    const toggle = document.getElementById("sb-toggle") as HTMLButtonElement | null;
+    const listEl = document.getElementById("sb-boards");
+    if (!aside || !toggle || !listEl) return;
+
+    const OPEN_KEY = "octopus.sidebar.open";
+    const BACK_KEY = "octopus.sidebar.back";
+    let boards: Board[] = [];
+    let activeBoard = "";
+
+    // Below 900px the rail overlays the page: start closed and don't persist its state,
+    // or opening it once on a phone covers every later page.
+    const narrow = window.matchMedia("(max-width: 900px)");
+    const menuBtn = document.getElementById("hdr-menu");
+
+    function setOpen(open: boolean) {
+      root.dataset.sidebar = open ? "open" : "closed";
+      toggle!.setAttribute("aria-expanded", String(open));
+      toggle!.title = narrow.matches
+        ? t("nav.buttons.close")
+        : open
+          ? t("nav.buttons.collapse")
+          : t("nav.buttons.expand");
+      toggle!.setAttribute("aria-label", toggle!.title);
+      menuBtn?.setAttribute("aria-expanded", String(open));
+      if (!narrow.matches) localStorage.setItem(OPEN_KEY, open ? "1" : "0");
+    }
+    const isOpen = () => root.dataset.sidebar !== "closed";
+
+    toggle.addEventListener("click", () => setOpen(!isOpen()));
+    menuBtn?.addEventListener("click", () => setOpen(!isOpen()));
+    document.addEventListener("click", (e) => {
+      if (!narrow.matches || !isOpen()) return;
+      const target = e.target as Node;
+      if (aside.contains(target) || menuBtn?.contains(target)) return;
+      setOpen(false);
+    });
+
+    // The rail persists across navigations (transition:persist), so location-dependent state is
+    // re-read on astro:page-load.
+
+    const currentPath = () => window.location.pathname.replace(/\/$/, "") || "/";
+    // Keep in sync with public/boot/sidebar-state.js, which sets the mode before first paint.
+    const SETTINGS_PATHS = ["/settings", "/mcps", "/credentials", "/sandboxes", "/usage", "/infra"];
+    const modeFor = (pathname: string) =>
+      SETTINGS_PATHS.includes(pathname.replace(/\/$/, "") || "/") ? "settings" : "app";
+
+    // The router replaces <html>'s attributes with the incoming page's; copy rail state and mode
+    // onto
+    // the new document before the swap or the rail flashes closed / shows the wrong nav.
+    document.addEventListener("astro:before-swap", (e: Event) => {
+      const ev = e as Event & { newDocument: Document; to: URL };
+      const next = ev.newDocument.documentElement;
+      next.dataset.sidebar = root.dataset.sidebar;
+      next.dataset.sbMode = modeFor(ev.to.pathname);
+    });
+
+    function markCurrent() {
+      const path = currentPath();
+      const here =
+        path === "/settings" ? `/settings${window.location.hash || `#${DEFAULT_SECTION}`}` : path;
+      aside!.querySelectorAll<HTMLAnchorElement>(".sb-link[data-match]").forEach((a) => {
+        const on = a.dataset.match!.split(" ").includes(here);
+        if (on) a.setAttribute("aria-current", "page");
+        else a.removeAttribute("aria-current");
+      });
+    }
+    window.addEventListener("hashchange", markCurrent);
+    // Settings may rewrite its hash without a hashchange; it dispatches octopus:settings-section
+    // instead.
+    document.addEventListener("octopus:settings-section", markCurrent);
+
+    void authDisabled().then((open) => {
+      if (!open) return;
+      aside!.querySelectorAll<HTMLElement>("[data-needs-login]").forEach((el) => {
+        el.hidden = true;
+      });
+    });
+
+    // Hiding the link is cosmetic; the daemon answers 403 to non-operators on the infra page.
+    void Promise.all([sessionInfo(), authDisabled()]).then(([me, open]) => {
+      const link = document.getElementById("sb-infra");
+      if (link) link.hidden = !(open || me?.operator === true);
+      aside!.querySelectorAll<HTMLElement>("[data-section]").forEach((el) => {
+        el.hidden = sectionDenial(el.dataset.section ?? "", me) !== null;
+      });
+    });
+
+    // Keep the trailing slash: the daemon serves pages at `/tasks/` and its API at `/tasks`,
+    // so a stored `/onboarding` opens raw JSON. Don't reuse currentPath(), which strips it.
+    const withSlash = (p: string) => (p.endsWith("/") ? p : `${p}/`);
+    const back = document.getElementById("sb-back") as HTMLAnchorElement | null;
+    function rememberBack() {
+      try {
+        if (root.dataset.sbMode !== "settings") {
+          const { pathname, search } = window.location;
+          sessionStorage.setItem(BACK_KEY, withSlash(pathname) + search);
+        } else if (back) {
+          const stored = sessionStorage.getItem(BACK_KEY) || "/";
+          const [p, ...rest] = stored.split("?");
+          back.href = withSlash(p) + (rest.length ? `?${rest.join("?")}` : "");
+        }
+      } catch {
+        /* storage blocked — the link keeps its "/" default */
+      }
+    }
+
+    aside.querySelectorAll<HTMLElement>("[data-expand]").forEach((head) => {
+      head.addEventListener("click", () => {
+        if (!isOpen()) setOpen(true);
+      });
+    });
+
+    const onTasks = () => window.location.pathname.replace(/\/$/, "") === "/tasks";
+
+    function renderBoards() {
+      listEl!.innerHTML = "";
+      if (boards.length === 0) {
+        listEl!.innerHTML = emptyStateHTML({ size: "sm", body: t("nav.empty.no_boards") });
+        return;
+      }
+      for (const b of boards) {
+        const item = document.createElement("a");
+        item.className = "sb-item";
+        item.href = `/tasks/?board=${encodeURIComponent(b.id)}`;
+        item.dataset.id = b.id;
+        if (onTasks() && b.id === activeBoard) item.setAttribute("aria-current", "true");
+
+        const label = document.createElement("span");
+        label.className = "sb-item-label";
+        label.textContent = b.label || b.id;
+        item.appendChild(label);
+
+        // open_count, not task_count: matches the board header's "open"; task_count includes
+        // finished and archived tasks.
+        if (b.open_count) item.insertAdjacentHTML("beforeend", countHTML(b.open_count));
+
+        item.addEventListener("click", (e) => {
+          const inPlace = (window as any).octopusSwitchBoard;
+          if (!onTasks() || typeof inPlace !== "function") return;
+          e.preventDefault();
+          setActiveBoard(b.id);
+          inPlace(b.id);
+        });
+        listEl!.appendChild(item);
+      }
+    }
+
+    function setActiveBoard(id: string) {
+      activeBoard = id;
+      listEl!.querySelectorAll<HTMLElement>(".sb-item").forEach((el) => {
+        if (onTasks() && el.dataset.id === id) el.setAttribute("aria-current", "true");
+        else el.removeAttribute("aria-current");
+      });
+    }
+
+    // Trust this event over the URL: if the remembered board was deleted, Tasks falls back to
+    // another one.
+    document.addEventListener("octopus:board-changed", (e: Event) => {
+      const id = (e as CustomEvent<{ id: string }>).detail?.id;
+      if (id) setActiveBoard(id);
+    });
+
+    document.addEventListener("octopus:board-count", (e: Event) => {
+      const d = (e as CustomEvent<{ id: string; open: number }>).detail;
+      const b = d && boards.find((x) => x.id === d.id);
+      if (!b || (b.open_count ?? 0) === d.open) return;
+      b.open_count = d.open;
+      renderBoards();
+    });
+
+    document.addEventListener("octopus:boards-changed", () => void loadBoards());
+
+    async function loadBoards() {
+      try {
+        const r = await fetch(apiBase() + "/boards");
+        if (!r.ok) return;
+        const resp = (await r.json()) as BoardsResponse;
+        boards = resp.boards || [];
+        if (!activeBoard) {
+          const fromURL = new URLSearchParams(window.location.search).get("board");
+          const remembered = localStorage.getItem("octopus.board");
+          const known = (id: string | null) => !!id && boards.some((b) => b.id === id);
+          activeBoard = known(fromURL)
+            ? fromURL!
+            : known(remembered)
+              ? remembered!
+              : resp.default || boards[0]?.id || "";
+        }
+        renderBoards();
+      } catch {
+        /* daemon offline — the rail stays empty rather than throwing */
+      }
+    }
+
+    const inboxBadge = document.getElementById("sb-inbox-badge");
+    let inboxTimer: number | undefined;
+    async function loadInboxCount() {
+      if (!inboxBadge) return;
+      try {
+        const n = inboxTotal(await api.get<InboxResponse>("/inbox"));
+        setCount(inboxBadge, inboxBadgeText(n), {
+          pill: true,
+          size: "sm",
+          tone: "accent",
+          hideZero: true,
+          title: t("nav.badges.inbox", { count: n }),
+          cls: "sb-count sb-link-badge",
+        });
+      } catch {
+        /* signed out or daemon offline — keep whatever the badge showed */
+      }
+    }
+    const pokeInbox = () => {
+      window.clearTimeout(inboxTimer);
+      inboxTimer = window.setTimeout(() => void loadInboxCount(), 1000);
+    };
+    events.subscribe(TASKS_TOPIC, pokeInbox, { replay: false });
+    events.onReconnect(pokeInbox);
+
+    setOpen(!narrow.matches && localStorage.getItem(OPEN_KEY) !== "0");
+    markCurrent();
+    rememberBack();
+    loadBoards();
+    void loadInboxCount();
+
+    let firstLoad = true;
+    document.addEventListener("astro:page-load", () => {
+      if (firstLoad) {
+        firstLoad = false;
+        return;
+      }
+      root.dataset.sbMode = modeFor(window.location.pathname);
+      markCurrent();
+      rememberBack();
+      const fromURL = new URLSearchParams(window.location.search).get("board");
+      if (onTasks() && fromURL) activeBoard = fromURL;
+      if (narrow.matches) setOpen(false);
+      void loadBoards();
+    });
+  })();
+</script>

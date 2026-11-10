@@ -1,0 +1,102 @@
+.drop-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-2);
+  margin-top: var(--s-3);
+  padding: var(--s-6) var(--s-4);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-lg);
+  background: var(--surface-1);
+  text-align: center;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out);
+}
+.drop-zone-overlay {
+  position: absolute;
+  inset: var(--s-3);
+  z-index: 2;
+  justify-content: center;
+  gap: var(--s-3);
+  margin-top: 0;
+  border: 2px dashed var(--color-accent-border);
+  background: color-mix(in srgb, var(--surface-3) 92%, transparent);
+  pointer-events: none;
+}
+.drop-zone-overlay .drop-ico {
+  color: var(--fg-2);
+}
+.drop-ico {
+  width: var(--icon-xl);
+  height: var(--icon-xl);
+  color: var(--fg-4);
+}
+.drop-zone.over {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.drop-title {
+  margin: 0;
+  color: var(--fg);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.drop-sub {
+  margin: 0;
+  color: var(--fg-3);
+  font-size: var(--t-sm);
+}
+.drop-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--s-2);
+  margin-top: var(--s-1);
+}
+.upload-rules {
+  margin: var(--s-3) 0 0;
+  color: var(--fg-3);
+  font-size: var(--t-xs);
+  line-height: var(--lh-loose);
+}
+
+.upload-plan {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin-top: var(--s-3);
+  font-size: var(--t-sm);
+}
+.upload-plan > p {
+  margin: 0;
+}
+.plan-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+}
+.plan-note {
+  color: var(--fg-3);
+}
+.upload-paths {
+  max-height: calc(var(--s-9) * 3);
+  margin: 0;
+  padding-left: var(--s-5);
+  overflow: auto;
+  color: var(--fg-3);
+  font-family: var(--font-mono);
+  font-size: var(--t-xs);
+  overflow-wrap: anywhere;
+}
+.upload-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin-top: var(--s-3);
+  font-size: var(--t-sm);
+}
+.upload-meter {
+  flex: 1;
+}

@@ -1,0 +1,7 @@
+{
+  "errors": {
+    "schema": "entitlements schema",
+    "workspace_id_required": "workspace_id required",
+    "marshal_features": "marshal features"
+  }
+}

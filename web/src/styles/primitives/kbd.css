@@ -1,0 +1,75 @@
+kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--key-h);
+  height: var(--key-h);
+  padding: 0 var(--s-1);
+  background: var(--color-tint-2);
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: var(--r-sm);
+  font-family: var(--font-mono);
+  font-size: var(--t-2xs);
+  line-height: 1;
+  color: var(--fg-3);
+}
+.kbd-sm {
+  min-width: var(--key-h-sm);
+  height: var(--key-h-sm);
+  border-bottom-width: 1px;
+}
+.kbd-group {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+}
+.kbd-group-end {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.kbd-inset {
+  position: absolute;
+  right: var(--s-3);
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+:is(input, textarea):is(:focus, :not(:placeholder-shown)) + .kbd-inset {
+  opacity: 0;
+}
+
+.btn-primary:not([disabled], [aria-disabled="true"]) kbd {
+  background: var(--color-shade);
+  color: var(--color-kbd-on-accent-fg);
+  border-color: var(--color-kbd-on-accent-border);
+}
+
+@media (hover: none) and (pointer: coarse), (max-width: 600px) {
+  .btn kbd {
+    display: none;
+  }
+}
+
+/* Explicit classes, not odd/even: .kbd-sep spans both columns and would shift the counting. */
+.kbd-grid {
+  display: grid;
+  grid-template-columns: minmax(88px, max-content) minmax(0, 1fr);
+  gap: var(--s-3) var(--s-5);
+  align-items: center;
+  font-size: var(--t-sm);
+  padding-bottom: var(--s-4);
+}
+.kbd-label {
+  color: var(--fg-2);
+}
+.kbd-sep {
+  grid-column: 1 / -1;
+  color: var(--fg-3);
+  font-size: var(--t-xs);
+  padding-top: var(--s-3);
+  margin-top: var(--s-1);
+  border-top: 1px solid var(--line);
+}

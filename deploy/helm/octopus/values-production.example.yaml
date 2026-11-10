@@ -1,0 +1,109 @@
+# Example production overrides. Copy, edit, and:
+#   helm install octopus deploy/helm/octopus -f my-values.yaml -n octopus --create-namespace
+#   kubectl label namespace octopus thulu.dev/plane=control
+#
+# For real secrets prefer secrets.existingSecret / database.existingSecret
+# (sealed-secrets / Vault / External Secrets / SOPS) over inlining them here.
+
+image:
+  # Pin by digest so a re-pushed tag cannot change what runs. The release
+  # page lists the digest of every image; verify its signature with
+  #   cosign verify ghcr.io/misterdonnuts/octopus@sha256:... \
+  #     --certificate-identity-regexp '^https://github\.com/MisterDonnuts/thulu/\.github/workflows/octopus-release\.yml@refs/tags/v' \
+  #     --certificate-oidc-issuer https://token.actions.githubusercontent.com
+  tag: ""
+  digest: ""
+
+config:
+  domain: thulu.acme.example
+  # The ingress-nginx controller pods' addresses (here, the pod CIDR of the
+  # node pool that runs them). Never "private": agent pods are private too.
+  trustedProxies: "10.42.3.0/24"
+  sso:
+    # Only these email domains may sign in, and nobody founds a workspace of
+    # their own: newcomers join "platform" as viewers until a group maps them.
+    allowedDomains: acme.example
+    allowPersonalWorkspaces: "false"
+    defaultWorkspace: platform
+    defaultRole: viewer
+  auditSink: stdout
+
+secrets:
+  # Generate: openssl rand -hex 32
+  jwtSecret: "REPLACE_WITH_openssl_rand_hex_32"
+  # Encrypts stored credentials. Generate once and keep it.
+  secretboxKey: "REPLACE_WITH_openssl_rand_hex_32"
+  # EE license (omit for Community Edition).
+  licenseKey: ""
+  # Protect /metrics for Prometheus.
+  metricsToken: "REPLACE_WITH_openssl_rand_hex_32"
+  oidc:
+    issuer: https://login.microsoftonline.com/<tenant>/v2.0
+    clientId: "..."
+    clientSecret: "..."
+    name: "Entra ID"
+    groupRoleMap: "octopus-admins:admin,octopus-devs:developer"
+
+# Postgres DSN from a Secret you manage; the key holds
+# postgres://octopus:<password>@<host>:5432/octopus?sslmode=verify-full
+database:
+  existingSecret: octopus-database
+  existingSecretKey: OCTOPUS_DATABASE_URL
+
+persistence:
+  enabled: true
+  storageClass: fast-nvme
+  size: 20Gi
+
+# Kubernetes runtime (the default): every agent, sandbox and chat is a pod in
+# a tenant-<workspace> namespace, under the admission policy. Install the
+# RuntimeClasses and tenant manifests from deploy/k8s-data-plane first.
+agentRuntime:
+  mode: kubernetes
+  runtimeClass: kata-clh
+  admissionPolicy:
+    enabled: true
+    allowedRuntimeClasses: [kata-clh, gvisor]
+
+ingress:
+  enabled: true
+  className: nginx
+  # Public ACME. For an internal PKI point this at your CA's ClusterIssuer, or
+  # leave both empty and provide the octopus-tls Secret yourself.
+  certManager:
+    clusterIssuer: letsencrypt-prod
+  hosts:
+    - host: thulu.acme.example
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: octopus-tls
+      hosts:
+        - thulu.acme.example
+
+# Keep the daemon on the control-plane node pool, away from agent pods.
+nodeSelector:
+  thulu.dev/role: daemon
+
+networkPolicy:
+  enabled: true
+  ingressNamespace: ingress-nginx
+  # Prometheus scraping /metrics.
+  extraIngressFrom:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: monitoring
+  postgres:
+    port: 5432
+    cidrs: ["10.20.0.0/24"]
+  apiServer:
+    ports: [443, 6443]
+    # kubectl get endpoints kubernetes
+    cidrs: ["10.0.0.10/32"]
+
+# Cap agent container RAM and request rate through env (see docs/deploy.md).
+extraEnv:
+  OCTOPUS_SANDBOX_MEMORY_BYTES: "6GB"
+  OCTOPUS_RATE_LIMIT_RPS: "100"
+  OCTOPUS_RATE_LIMIT_BURST: "200"

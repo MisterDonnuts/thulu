@@ -1,0 +1,15 @@
+{
+  "errors": {
+    "run_keys_only": "sólo la key propia de una corrida de agente puede delegar en el optimizador de tokens",
+    "body_too_large": "el cuerpo de una delegación puede tener como mucho {max} bytes",
+    "profile_not_found": "el perfil LLM {profile} no es de este workspace",
+    "base_url_required": "el perfil {provider} del worker no tiene base_url",
+    "endpoint_refused": "el endpoint del worker está rechazado",
+    "delegation_not_found": "no hay ninguna delegación {id} de esta corrida esperando que la cierren",
+    "usage_unavailable": "el registro de uso no está disponible en este servidor",
+    "no_default_profile": "el workspace no tiene un perfil LLM por defecto para el engine {engine}"
+  },
+  "log": {
+    "record_failed": "registrar la delegación {id}"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "errors": {
+    "bad_ref": "the session snapshot's task, agent or session id has characters it cannot have",
+    "no_agent_to_resume": "stage {stage} has no agent assigned to resume it",
+    "no_store": "this daemon has no directory for session snapshots",
+    "not_a_resume_kind": "{kind} is not a resume: use answer_resume or changes_resume",
+    "read_failed": "read the session snapshot",
+    "snapshot_empty": "the session snapshot is empty",
+    "snapshot_not_found": "no session snapshot for that task, agent and session",
+    "snapshot_too_large": "the session snapshot is over {max} bytes; the next resume starts from the transcript",
+    "store_failed": "store the session snapshot"
+  },
+  "log": {
+    "list_failed": "list the session snapshots in {dir}",
+    "remove_empty": "remove the empty session directory {dir}",
+    "remove_group": "remove the session snapshots of group {group}",
+    "remove_old": "remove the old session snapshot {name} in {dir}",
+    "remove_partial": "remove the unfinished session upload {path}",
+    "transcript_engine": "build the transcript: no parser for engine {engine}"
+  },
+  "transcript": {
+    "person_message": "## {author} wrote · {at}\n\n{body}",
+    "result": "**Result:**\n\n{text}",
+    "run_heading": "## Run in {stage} · {at}",
+    "title": "# Earlier conversation with {agent} on this task\n\nWhat this agent did in earlier runs (the tools it called and how each run ended) and what people wrote to it, oldest first. It is context: the task brief and the repository are the source of truth.",
+    "truncated": "_(Older entries were cut to fit.)_"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "errors": {
+    "task_id_not_found": "task {task} not found",
+    "task_not_found": "task not found",
+    "task_store_unavailable": "task store not configured",
+    "run_without_task": "this run is not bound to a task",
+    "key_other_task": "API key is scoped to a different task",
+    "run_key_refused": "an agent run's key cannot use this endpoint",
+    "task_id_required": "task id required",
+    "manager_unavailable": "sandbox manager not configured",
+    "not_queued": "the task is not in the sandbox line"
+  },
+  "timeline": {
+    "preview_url": "The app on port {port} opens at {url}"
+  },
+  "comments": {
+    "removed_from_queue": "{who} took the task out of the sandbox line."
+  },
+  "log": {
+    "note_removed_from_queue": "note the removal from the sandbox line on task {task}"
+  }
+}

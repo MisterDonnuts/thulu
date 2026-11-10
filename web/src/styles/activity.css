@@ -1,0 +1,531 @@
+/* Every rule is scoped under .activity or #pane-approvals so it outranks the page's own comment and approval rules. */
+
+.activity {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  min-width: 0;
+}
+.activity .act-head {
+  margin-bottom: 0;
+}
+
+.activity .act-stream {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  min-width: 0;
+}
+.activity .act-stream:empty {
+  display: none;
+}
+
+.activity .act-c {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  column-gap: var(--s-3);
+  align-items: start;
+  border-radius: var(--r-sm);
+}
+.activity .act-c.flash {
+  background: var(--color-accent-faint);
+}
+.activity .act-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  min-width: 0;
+}
+.activity .act-meta {
+  display: flex;
+  align-items: center;
+  min-height: var(--s-7);
+}
+.activity .act-time,
+.activity .act-day {
+  font-size: var(--t-xs);
+  color: var(--fg-2);
+  white-space: nowrap;
+}
+.activity .act-time {
+  flex: none;
+}
+.activity .comment-atts {
+  margin-top: var(--s-1);
+}
+
+.activity .act-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--s-1);
+}
+.activity .act-btn {
+  white-space: nowrap;
+}
+.activity .act-fold:focus-visible,
+.activity .act-group-btn:focus-visible,
+.activity .act-q-ref:focus-visible,
+.activity .act-sys-link:focus-visible,
+.activity .act-thread:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.activity .act-thread {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-radius: var(--r-sm);
+}
+.activity .act-thread:focus {
+  outline: none;
+}
+.activity .act-thread > .act-actions {
+  margin: 2px 0 0 calc(24px + var(--s-3) - var(--s-2));
+}
+@media (hover: hover) and (pointer: fine) {
+  .activity .act-thread {
+    position: relative;
+  }
+  .activity .act-thread:not(.is-open, .is-resolved, :has(.thread-composer)) > .act-actions {
+    position: absolute;
+    top: -6px;
+    right: 0;
+    z-index: 1;
+    margin: 0;
+    padding: 0 var(--s-1);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    background: var(--surface-3);
+    box-shadow: var(--shadow-2);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .activity .act-thread:not(.is-open, .is-resolved, :has(.thread-composer)):hover > .act-actions,
+  .activity
+    .act-thread:not(.is-open, .is-resolved, :has(.thread-composer)):focus-within
+    > .act-actions {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+@container drawer (max-width: 479px) {
+  .activity .act-thread:not(.is-open, .is-resolved, :has(.thread-composer)) > .act-actions {
+    position: static;
+    margin: 2px 0 0 calc(var(--s-2) * -1);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+.activity .act-thread > .thread-apply {
+  margin: var(--s-1) 0 0 calc(24px + var(--s-3));
+}
+.activity .act-replies {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  margin: var(--s-2) 0 0 var(--s-5);
+  padding-left: var(--s-4);
+  border-left: 1px solid var(--line);
+}
+/* A thread with no replies still shows the agent answering it: the typing slot lives in here. */
+.activity .act-replies.is-empty:not(:has(> .typing-row:not(:empty))) {
+  display: none;
+}
+.activity .act-replies .typing-row {
+  margin: 0;
+}
+.activity .act-fold {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  width: 100%;
+  min-height: 32px;
+  padding: 0 var(--s-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--fg-2);
+  font: inherit;
+  font-size: var(--t-sm);
+  cursor: pointer;
+}
+.activity .act-fold:hover {
+  background: var(--color-surface-hover);
+  color: var(--fg);
+}
+.activity .act-fold .ico {
+  width: 14px;
+  height: 14px;
+}
+
+.activity .act-resolved {
+  margin-inline: calc(-1 * var(--s-2));
+}
+.activity .act-resolved-ico {
+  display: inline-flex;
+  flex: none;
+  width: 24px;
+  justify-content: center;
+  color: var(--color-success);
+}
+.activity .act-resolved-ico .ico {
+  width: 14px;
+  height: 14px;
+}
+
+.activity .act-q-ref {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 32px;
+  padding: 0 var(--s-2);
+  margin-left: calc(var(--s-2) * -1);
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: var(--t-base);
+  cursor: pointer;
+}
+.activity .act-q-ref:hover {
+  background: var(--color-accent-faint);
+}
+.activity .act-q-ref .ico {
+  width: 14px;
+  height: 14px;
+}
+
+.activity .act-run {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  padding: var(--s-3) var(--s-4) var(--s-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  min-width: 0;
+}
+.activity .act-run-failed {
+  border-color: var(--color-danger-border);
+}
+.activity .act-run-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-1) var(--s-3);
+}
+.activity .act-run-title {
+  font-size: var(--t-base);
+  font-weight: 600;
+  color: var(--fg);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.activity .act-run-dur {
+  font-size: var(--t-xs);
+  color: var(--fg-2);
+  font-variant-numeric: tabular-nums;
+}
+.activity .act-run-head .act-time {
+  margin-left: auto;
+}
+.activity .act-run-line {
+  font-size: var(--t-sm);
+  color: var(--fg-2);
+  overflow-wrap: anywhere;
+}
+.activity .act-run-action {
+  font-family: var(--font-mono);
+  font-size: var(--t-xs);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.activity .act-run > .act-actions {
+  margin-left: calc(var(--s-2) * -1);
+}
+
+.activity .act-sys,
+.activity .act-group-btn {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--s-2);
+  min-width: 0;
+  font-size: var(--t-sm);
+  color: var(--fg-2);
+}
+.activity .act-sys > .ico,
+.activity .act-group-btn > .ico {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin: 0 5px;
+  color: var(--fg-3);
+}
+.activity .act-sys-text {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.activity .act-sys-sum {
+  flex: 1 1 12ch;
+  color: var(--fg-3);
+  min-width: 12ch;
+  overflow-wrap: anywhere;
+}
+.activity .act-sys-link {
+  color: var(--fg);
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 2px;
+}
+.activity .act-group-btn {
+  width: 100%;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  font: inherit;
+  font-size: var(--t-sm);
+  text-align: left;
+  cursor: pointer;
+}
+.activity .act-group-btn:hover {
+  color: var(--fg);
+}
+.activity .act-group-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin: var(--s-1) 0 0 11px;
+  padding-left: var(--s-4);
+  border-left: 1px solid var(--line);
+}
+
+.activity .act-pinned {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.activity .act-pinned:empty {
+  display: none;
+}
+.activity .act-q {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-4);
+  border: 1px solid var(--color-special-border);
+  border-radius: var(--r-lg);
+  background: var(--color-special-bg);
+}
+.activity .act-q-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: var(--t-sm);
+  color: var(--fg);
+}
+.activity .act-q-head > .ico {
+  width: 16px;
+  height: 16px;
+  color: var(--color-special);
+}
+.activity .act-q-who {
+  font-weight: 600;
+}
+.activity .act-q-pin {
+  margin-left: auto;
+  font-size: var(--t-xs);
+  color: var(--fg-2);
+}
+.activity .act-q .q-card {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.activity .act-q .q-actions {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+.activity .q-actions .q-cancel {
+  margin-left: auto;
+}
+.activity .act-c .q-card {
+  margin-top: var(--s-1);
+}
+
+.activity .act-composer-main {
+  position: sticky;
+  bottom: calc(var(--s-6) * -1);
+  z-index: var(--z-sticky);
+  margin: 0 calc(var(--s-6) * -1) calc(var(--s-6) * -1);
+  padding: var(--s-3) var(--s-6) var(--s-6);
+  border-top: 1px solid var(--line);
+  background: var(--surface-1);
+}
+/* At a fractional scroll offset the composer's last pixel row can round short and let the stream show through. */
+.activity .act-composer-main::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 2px;
+  background: var(--surface-1);
+}
+.activity .notify-slot:empty {
+  display: none;
+}
+.activity .notify-agent {
+  align-items: center;
+  min-height: 32px;
+}
+.activity .notify-agent .check-input {
+  margin-top: 0;
+}
+
+.activity .act-typing-line {
+  align-items: center;
+  font-size: var(--t-sm);
+  color: var(--fg-2);
+}
+.activity .act-typing-line .typing-who {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+.activity .typing-row {
+  margin: 0;
+}
+.activity .act-typing-line .typing-dots {
+  margin: 0;
+}
+.activity .act-c.act-typing-line {
+  grid-template-columns: 24px auto auto;
+  justify-content: start;
+}
+
+@media (max-width: 520px) {
+  .activity .act-replies {
+    margin-left: var(--s-3);
+    padding-left: var(--s-3);
+  }
+  .activity .act-thread > .act-actions {
+    margin-left: calc(var(--s-2) * -1);
+  }
+  .activity .act-thread > .thread-apply {
+    margin-left: 0;
+  }
+  .activity .act-head .sec-actions {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+@media (pointer: coarse) {
+  .activity .act-fold,
+  .activity .act-group-btn,
+  .activity .act-q-ref,
+  .activity .notify-agent {
+    min-height: 44px;
+  }
+}
+
+#pane-approvals .ap-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+#pane-approvals .approval {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin: 0;
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: transparent;
+}
+#pane-approvals .approval:hover {
+  background: transparent;
+}
+#pane-approvals .approval-pending {
+  border-color: var(--color-warning-border);
+}
+#pane-approvals .approval-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-1) var(--s-2);
+  margin: 0;
+}
+#pane-approvals .approval-label {
+  font-size: var(--t-base);
+  color: var(--fg);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+#pane-approvals .ap-effect {
+  margin: 0;
+  font-size: var(--t-xs);
+  color: var(--fg-2);
+}
+#pane-approvals .ap-menu-wrap {
+  position: relative;
+  margin-left: auto;
+}
+#pane-approvals .approval-reason,
+#pane-approvals .approval-decided,
+#pane-approvals .approval-note {
+  margin: 0;
+}
+#pane-approvals .approval-note-form textarea {
+  width: 100%;
+}
+#pane-approvals textarea {
+  resize: vertical;
+}
+#pane-approvals .approval-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: var(--s-2);
+  margin: 0;
+}
+#pane-approvals .approval-note-form {
+  margin: 0;
+}
+#pane-approvals .ap-ask {
+  margin-top: var(--s-5);
+}
+#pane-approvals .ap-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+#pane-approvals .ap-form-title {
+  margin: 0;
+  font-size: var(--t-md);
+  font-weight: 600;
+  color: var(--fg);
+}
+#pane-approvals .ap-form-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--s-2);
+}

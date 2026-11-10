@@ -1,0 +1,46 @@
+{
+  "events": {
+    "task_created": "A task was created, on the board or through the API.",
+    "task_stage_changed": "A task moved to another stage.",
+    "task_deleted": "A task was deleted.",
+    "chat_message": "Someone or an agent wrote in a chat.",
+    "stages_changed": "A board's columns changed: a stage added, edited, removed or reordered.",
+    "boards_changed": "A board was created, renamed, deleted or made the default.",
+    "task_types_changed": "A board's task types changed.",
+    "question_asked": "An agent asked a person a question and waits for the answer.",
+    "question_answered": "Someone answered an agent's question.",
+    "question_canceled": "An agent's question was canceled, by a person or because the task moved on without it.",
+    "approval_requested": "A task needs someone's sign-off: a stage opened one, or an agent or a person asked for it.",
+    "approval_decided": "Someone decided a sign-off: approved, changes requested or waived."
+  },
+  "test": {
+    "ok": "Test delivery OK: HTTP {status} in {ms} ms",
+    "failed_status": "Test delivery failed: HTTP {status}",
+    "failed_error": "Test delivery failed. {error}",
+    "failed": "Test delivery failed"
+  },
+  "deliveries": {
+    "http": "HTTP {status}",
+    "no_response": "No response",
+    "state_delivered": "Delivered",
+    "state_retrying": "Will retry",
+    "state_retried": "Another attempt followed",
+    "state_failed": "Failed; no more attempts"
+  },
+  "errors": {
+    "url_required": "URL is required.",
+    "url_invalid": "Enter a valid URL.",
+    "events_required": "Select at least one event."
+  },
+  "legacy": {
+    "title": "Signed with HMAC keyed by sha256(secret), not the secret itself. Rotate the secret to fix it.",
+    "note": {
+      "one": "One endpoint signs with a key derived from the secret you were shown, so a receiver checking X-Octopus-Signature with that secret rejects every delivery. Rotate the secret on each endpoint marked derived-key signing, then give the receiver the new one: from then on it signs with HMAC-SHA256 keyed by the secret itself.",
+      "other": "{count} endpoints sign with a key derived from the secret you were shown, so a receiver checking X-Octopus-Signature with that secret rejects every delivery. Rotate the secret on each endpoint marked derived-key signing, then give the receiver the new one: from then on it signs with HMAC-SHA256 keyed by the secret itself."
+    }
+  },
+  "secret": {
+    "created": "Signing secret for {url}. Copy it now: it will not be shown again.",
+    "rotated": "New signing secret for {url}. Copy it now: it will not be shown again."
+  }
+}

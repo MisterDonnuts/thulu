@@ -1,0 +1,44 @@
+{
+  "chart": {
+    "no_samples": "{title}: todavía sin muestras",
+    "summary": "{title}, último valor: {values}"
+  },
+  "cache": {
+    "status": {
+      "skipped": "Ya estaba",
+      "restored": "Desde snapshot",
+      "ran": "Instalado",
+      "failed": "Falló",
+      "none": "Sin setup"
+    },
+    "bar_title": "{date}: {skipped} ya estaban, {restored} desde snapshot, {ran} instaladas, {failed} fallidas, {prewarms} precalentados",
+    "bars_summary": "Instalaciones en {days} días: {skipped} ya estaban, {restored} desde snapshot, {ran} instaladas, {failed} fallidas",
+    "areas": {
+      "npm": "npm",
+      "go_mod": "Módulos de Go",
+      "go_build": "Caché de build de Go",
+      "pip": "pip",
+      "mise": "Toolchains de mise",
+      "snapshots": "Snapshots",
+      "other": "Otros"
+    },
+    "signals": {
+      "cache_growth": "{workspace}: la caché creció {value} en este rango (umbral {threshold})",
+      "cache_full": "{workspace}: el disco de la caché está al {value} (umbral {threshold})",
+      "low_hit_rate": "{project} ({workspace}): {value} de las instalaciones salieron de la caché (umbral {threshold})",
+      "prewarm_failing": {
+        "one": "{project} ({workspace}): falló el último precalentado",
+        "other": "{project} ({workspace}): fallaron los últimos {count} precalentados"
+      },
+      "key_churn": {
+        "one": "{project} ({workspace}): {count} clave de setup en {days} días",
+        "other": "{project} ({workspace}): {count} claves de setup distintas en {days} días, así que los snapshots casi nunca coinciden"
+      },
+      "tool_unused": {
+        "one": "{tool}: está en la caché y ninguna corrida la pidió en {count} día",
+        "other": "{tool}: está en la caché y ninguna corrida la pidió en {count} días"
+      },
+      "tool_never_used": "{tool}: está en la caché y ninguna corrida del registro la pidió"
+    }
+  }
+}

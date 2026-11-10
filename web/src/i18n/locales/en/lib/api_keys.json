@@ -1,0 +1,75 @@
+{
+  "groups": {
+    "tasks": "Tasks",
+    "flows": "Boards & stages",
+    "projects": "Projects",
+    "agents": "Agents",
+    "runs": "Runs & usage",
+    "credentials": "Credentials",
+    "settings": "Settings",
+    "members": "Members"
+  },
+  "extras": {
+    "mint_keys": "Mint keys",
+    "mint_keys_hint": "Let this key create more keys",
+    "service_routes": "Service routes",
+    "service_routes_hint": "The /internal/* routes agents' MCP servers call"
+  },
+  "labels": {
+    "read": "{group} — read",
+    "write": "{group} — write",
+    "expires": "Expires {date}",
+    "no_expiry": "No expiry",
+    "expired": "Expired on {date}",
+    "created_by": "minted by {email}",
+    "last_used": "last used: {date}",
+    "never_used": "never",
+    "grace_until": "Works until {date}, next to its replacement",
+    "replaced_on": "Stopped working on {date}, when it was rotated"
+  },
+  "errors": {
+    "expiry_not_whole": "Expiry must be a whole number of days.",
+    "expiry_over_cap": {
+      "one": "This install caps API keys at {count} day (OCTOPUS_API_KEY_MAX_TTL).",
+      "other": "This install caps API keys at {count} days (OCTOPUS_API_KEY_MAX_TTL)."
+    },
+    "expiry_under_day": "This install caps API keys at under a day (OCTOPUS_API_KEY_MAX_TTL); leave the expiry blank."
+  },
+  "hints": {
+    "no_cap": "This install sets no cap (OCTOPUS_API_KEY_MAX_TTL=0): leave the expiry blank for a key that never expires.",
+    "under_day": "Keys on this install live less than a day; leave the expiry blank.",
+    "cap": {
+      "one": "Keys on this install live at most {count} day; blank means the maximum.",
+      "other": "Keys on this install live at most {count} days; blank means the maximum."
+    },
+    "cap_unknown": "Leave it blank for the install's maximum (90 days unless OCTOPUS_API_KEY_MAX_TTL says otherwise)."
+  },
+  "granted": {
+    "nothing": "nothing",
+    "never": "{role} in this workspace · {granted} · never expires.",
+    "expires": "{role} in this workspace · {granted} · expires {date}."
+  },
+  "summary": {
+    "everything": "Everything",
+    "none": "no permissions",
+    "read": "Read: {groups}",
+    "write": "Write: {groups}"
+  },
+  "rotate": {
+    "grace_none": "Ends now",
+    "grace_hours": {
+      "one": "{count} hour",
+      "other": "{count} hours"
+    },
+    "grace_days": {
+      "one": "{count} day",
+      "other": "{count} days"
+    },
+    "old_revoked": "The old key no longer works.",
+    "old_until": "The old key works until {date}; change it wherever it is set before then."
+  },
+  "run": {
+    "expires_in": "expires {when}",
+    "expired": "expired"
+  }
+}

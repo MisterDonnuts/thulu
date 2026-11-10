@@ -1,0 +1,195 @@
+# SaaS mode on one dedicated node: k3s with its bundled Traefik, Kata
+# (kata-clh) for every agent, sandbox and chat pod, Postgres in-cluster, and
+# sign-in through an OIDC provider. The requests and limits below are an
+# example sizing; scale them to your node.
+#
+#   helm upgrade --install octopus deploy/helm/octopus -n octopus \
+#     -f deploy/helm/octopus/values-saas.example.yaml -f my-overrides.yaml
+#
+# No secret lives in this file. The chart reads them from two Secrets you
+# create before installing:
+#   octopus-secrets   OCTOPUS_JWT_SECRET, OCTOPUS_SECRETBOX_KEY,
+#                     OCTOPUS_METRICS_TOKEN, OCTOPUS_OIDC_ISSUER,
+#                     OCTOPUS_OIDC_CLIENT_ID, OCTOPUS_OIDC_CLIENT_SECRET,
+#                     OCTOPUS_OIDC_NAME
+#   octopus-database  OCTOPUS_DATABASE_URL
+#
+# Replace every thulu.example.com with your host.
+
+image:
+  # For images imported into containerd. Never "latest": the kubelet would try
+  # to pull it from the registry.
+  tag: "REPLACE_WITH_BUILD_TAG"
+  # A missing image fails with ErrImageNeverPull instead of pulling from a
+  # registry. Use the default policy with published images.
+  pullPolicy: Never
+
+config:
+  domain: thulu.example.com
+  # With Traefik on the host network, its connections to the daemon pod come from the node's cni0 bridge address.
+  # Check it with `ip -4 addr show cni0`; on a single k3s node it is 10.42.0.1.
+  # Trusting that one address is safe: agent pods cannot use the host network
+  # (admission policy + restricted Pod Security) and a TCP source address
+  # cannot be forged. Never expose the daemon through a NodePort or a
+  # LoadBalancer Service: that traffic is masqueraded and also arrives from
+  # 10.42.0.1, so a client could then set its own X-Forwarded-For.
+  # "private" would trust every pod, agents included.
+  trustedProxies: "10.42.0.1/32"
+  sso:
+    # Each person founds a workspace of their own. Who gets in at all is the
+    # signup allowlist (OCTOPUS_SIGNUP_MODE below).
+    allowPersonalWorkspaces: "1"
+  auditSink: stdout
+
+secrets:
+  existingSecret: octopus-secrets
+
+database:
+  existingSecret: octopus-database
+  existingSecretKey: OCTOPUS_DATABASE_URL
+
+# Worktrees, attachments and run output. local-path puts it under
+# /var/lib/rancher/k3s/storage. local-path does not enforce
+# the size; the janitor's disk floor below does.
+persistence:
+  enabled: true
+  storageClass: local-path
+  size: 200Gi
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: "2"
+    memory: 4Gi
+
+agentRuntime:
+  mode: kubernetes
+  runtimeClass: kata-clh
+  admissionPolicy:
+    enabled: true
+    # Only Kata; add gvisor if the node has it installed.
+    allowedRuntimeClasses: [kata-clh]
+
+mcp:
+  # Same build tag as the daemon, built and imported the same way.
+  imageTag: "REPLACE_WITH_BUILD_TAG"
+  pullPolicy: Never
+  thuluCloud:
+    enabled: false
+  # The MCP servers act for every tenant's agents, and thulu-browser opens any
+  # page an agent names: keep them to DNS, the daemon and public 443, never
+  # the node or another tenant's pods (templates/mcp-networkpolicy.yaml). The
+  # node addresses are read from the cluster at install, so run the helm
+  # install with the node's admin kubeconfig.
+  networkPolicy:
+    enabled: true
+
+ingress:
+  enabled: true
+  className: traefik
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    # `le`: the name of the ACME resolver in your Traefik config.
+    traefik.ingress.kubernetes.io/router.tls.certresolver: le
+  # With cert-manager instead of Traefik's resolver: drop the certresolver
+  # annotation, set certManager.clusterIssuer and give tls a secretName.
+  certManager:
+    clusterIssuer: ""
+  hosts:
+    - host: thulu.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  # Traefik's resolver stores the certificate itself; no Secret to name.
+  tls: []
+  blockedPaths:
+    enabled: true
+    # GitHub App webhook, setup and OAuth callback. Turn on once the App is
+    # registered and points at this host.
+    exposeGithub: false
+    # OTLP telemetry intake. Turn on only if a workspace sends telemetry here.
+    exposeIngest: false
+    exposeMetrics: false
+    exposeOpenAPI: false
+    # /health answers with the Go version, goroutine count, free disk and,
+    # when a check fails, the database driver's error text; /health/ready
+    # also returns that text. Monitors outside the cluster use /health/live,
+    # which says {"status":"ok"} and nothing else. The kubelet probes the pod
+    # directly and never goes through here.
+    extra:
+      - path: /health
+        pathType: Exact
+      - path: /health/ready
+        pathType: Exact
+
+networkPolicy:
+  enabled: true
+  # With Traefik in kube-system on the host network, its packets carry
+  # the cni0 address, not a pod in that namespace; the ipBlock below is what
+  # lets them in.
+  ingressNamespace: kube-system
+  extraIngressFrom:
+    - ipBlock:
+        cidr: 10.42.0.1/32
+
+extraEnv:
+  OCTOPUS_SAAS_MODE: "1"
+  OCTOPUS_OIDC_REDIRECT_URI: "https://thulu.example.com/auth/oidc/callback"
+
+  # Tenant pods: restricted Pod Security, open egress on 443 except the
+  # private ranges (the cluster, the pod network, link-local is always out).
+  OCTOPUS_TENANT_POD_SECURITY: restricted
+  OCTOPUS_TENANT_EGRESS_MODE: open
+  OCTOPUS_TENANT_PRIVATE_CIDRS: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,100.64.0.0/10"
+
+  # Per workspace. The quota budgets what pods reserve (their requests), not
+  # their ceilings: a pod rarely runs at its limit. What one pod reserves under
+  # Kata:
+  #   agent or chat with its browser  1 CPU, 1.7 GiB  (ceiling 3.25 CPU, 7.7 GiB)
+  #   sandbox                         0.5 CPU, 0.7 GiB (ceiling 2.25 CPU, 6.2 GiB)
+  # (the browser sidecar adds 0.5 CPU / 1 GiB, Kata's microVM 0.25 CPU / 160 MiB.)
+  # 6 CPU and 16 GiB reserved fit a chat plus three tasks with their sandboxes.
+  # CPU ceilings are not summed: CPU is throttled, never killed, and Kata
+  # sizes each microVM from its pod's own limit. Memory ceilings are, as an
+  # overcommit cap below the node's memory. A pod the quota has no room for
+  # waits in the workspace's line and starts when another pod ends
+  # (agent.max_queue_minutes). Any one container tops out at 2 CPU and 6 GiB.
+  OCTOPUS_TENANT_QUOTA_PODS: "10"
+  OCTOPUS_TENANT_QUOTA_CPU_REQUESTS: "6"
+  OCTOPUS_TENANT_QUOTA_MEMORY_REQUESTS: 16Gi
+  OCTOPUS_TENANT_QUOTA_MEMORY: 24Gi  # keep it below the node's memory
+  # Storage is the task worktrees' budget, 10Gi per task. A task keeps its
+  # claim until it is done, even while its sandbox is evicted, so a workspace
+  # holds more claims than pods: 60Gi is six tasks in flight. The 20Gi
+  # dependency cache (OCTOPUS_SANDBOX_CACHE_SIZE) is added on top, so the
+  # namespace's requests.storage ends up at 80Gi. local-path does not enforce
+  # claim sizes; this is accounting, the node's disk is the real limit.
+  OCTOPUS_TENANT_QUOTA_STORAGE: 60Gi
+  OCTOPUS_SANDBOX_CACHE_SIZE: 20Gi
+  OCTOPUS_TENANT_LIMIT_MAX_CPU: "2"
+  OCTOPUS_TENANT_LIMIT_MAX_MEMORY: 6Gi
+
+  # Model traffic goes through the daemon's gateway, which injects each
+  # workspace's own key; the pod never holds it.
+  OCTOPUS_LLM_GATEWAY: "on"
+  # Empty: no local bare-repo remotes; projects clone from GitHub.
+  OCTOPUS_GIT_LOCAL_REMOTE_ROOT: ""
+
+  # With "allowlist" only the emails added through the operator API can sign
+  # up.
+  OCTOPUS_SIGNUP_MODE: allowlist
+  # Where people outside the allowlist ask to join (a form, a mailing
+  # list). The login page links it next to the "by invitation" line and on
+  # the not-invited screen. Empty or unset: no link (docs/auth.md).
+  # OCTOPUS_WAITLIST_URL: https://example.com/waitlist
+  OCTOPUS_BROWSER_MODE: per-run
+
+# Runtime limits live in the database, not here. After the first sign-in,
+# set them as the operator (PUT /settings/<key>, see docs/admin-guide.md):
+#   agent.max_containers=6  sandbox.max=3  chat.max_containers=4
+#   janitor.disk_free_min_percent=15  audit.retention_days=180
+#   agent.max_run_minutes=60
+#   agent.max_queue_minutes=120 (the default; how long a run waits for room)

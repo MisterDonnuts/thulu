@@ -1,0 +1,33 @@
+name: thulu-sandbox
+description: |
+  Per-task sandbox (container on Docker, pod on Kubernetes) for running builds,
+  tests and dev servers outside the agent's container. Includes the per-project
+  startup scripts: the agent reads them, runs them and fixes them.
+type: mcp
+# internal/sandbox/init_test.go compares this list with the one the daemon serves.
+tools:
+  - name: exec
+    description: |
+      Runs a shell command inside the sandbox. Returns stdout, stderr and exit code.
+      Supports cwd, timeout and additional env vars.
+  - name: preview_url
+    description: |
+      Returns the URL of a published sandbox port (e.g. dev server): one for
+      other tools in containers (thulu-browser) and another for a person.
+  - name: attach_file
+    description: |
+      Attaches a sandbox file to the task, read server-side. Max 50 MB.
+  - name: init_status
+    description: |
+      Per project of the task: whether it has a startup script, revision, params, ports
+      and the state of the last run in this sandbox.
+  - name: init_run
+    description: |
+      Runs the project's startup script in the sandbox (stops the previous run)
+      and waits for the ready command. Returns state, ports and the tail of the log.
+  - name: init_script_get
+    description: |
+      Reads the project's current startup script, its manifest and who wrote it.
+  - name: init_script_update
+    description: |
+      Saves a new revision of the startup script, signed by the agent's run.

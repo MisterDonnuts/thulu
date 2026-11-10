@@ -1,0 +1,5 @@
+{
+  "instance_default": "— el de la instancia —",
+  "no_agent_columns": "Ninguna columna de este tablero puede correr un agente todavía: todas son de inicio o de fin.",
+  "no_agent_columns_link": "Agregá una en el editor del tablero"
+}

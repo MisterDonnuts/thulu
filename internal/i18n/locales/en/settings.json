@@ -1,0 +1,17 @@
+{
+  "errors": {
+    "key_not_found": "settings: key not found",
+    "create_table": "create settings table",
+    "seed_defaults": "seed defaults",
+    "seed_key": "seed {key:%q}",
+    "metrics_interval_too_short": "interval must be 0 (disabled) or at least 60 seconds, got {got}",
+    "ingest_url_unparsable": "ingest.public_url must start with http:// or https:// (got {value:%q}: {cause})",
+    "ingest_url_scheme": "ingest.public_url must start with http:// or https:// (got {value:%q})",
+    "ingest_url_no_host": "ingest.public_url has no host (got {value:%q})",
+    "ingest_url_not_base": "ingest.public_url must be a plain base URL, without a query or fragment (got {value:%q})",
+    "sandbox_max_too_low": "sandbox.max must be >= 1",
+    "not_retention_window": "settings: {key} is not a retention window",
+    "workspace_required": "settings: a workspace setting needs a workspace",
+    "not_workspace_key": "settings: {key} is not a setting a workspace may choose"
+  }
+}

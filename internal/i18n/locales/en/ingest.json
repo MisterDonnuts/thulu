@@ -1,0 +1,25 @@
+{
+  "errors": {
+    "token_not_found": "ingest token not found",
+    "schema": "ingest schema",
+    "environment_required": "environment id required",
+    "unreadable_allowlist": "token {id} has an unreadable allowlist",
+    "invalid_cidr": "not an IP address or CIDR range: {value:%q}",
+    "unknown_signal": "unknown OTLP signal {kind:%q}",
+    "otlp_json": "otlp json",
+    "otlp_protobuf": "otlp protobuf",
+    "parse_traces": "parse traces",
+    "parse_metrics": "parse metrics",
+    "rate_limited": "rate limit exceeded",
+    "payload_too_large": "payload too large",
+    "process_failed": "could not process payload"
+  },
+  "log": {
+    "dropped_custom_series": "warn: ingest: dropped {count} custom series past the in-memory ceiling (a label with unbounded values?)",
+    "decode_failed": "ingest: decode {kind} for env {env}",
+    "final_source_flush": "ingest: final source flush",
+    "source_flush": "ingest: source flush",
+    "final_rollup_flush": "ingest: final rollup flush",
+    "rollup_flush": "ingest: rollup flush"
+  }
+}

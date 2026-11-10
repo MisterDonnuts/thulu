@@ -1,0 +1,60 @@
+---
+import Icon from "./Icon.astro";
+import { calloutClasses, checkBare, type CalloutDetail, type CalloutTone } from "../lib/ui/callout";
+
+interface Props {
+  tone?: CalloutTone;
+  icon?: string;
+  title?: string;
+  band?: boolean;
+  bare?: boolean;
+  detail?: CalloutDetail;
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  tone = "info",
+  icon,
+  title,
+  band = false,
+  bare = false,
+  detail,
+  class: extra,
+  ...rest
+} = Astro.props;
+const hasText = Astro.slots.has("default");
+const hasActions = Astro.slots.has("actions");
+const cls = calloutClasses({ tone, band, bare, cls: extra });
+if (bare) checkBare({ icon, title, detail, actions: hasActions });
+---
+
+{
+  bare ? (
+    <p class={cls} {...rest}>
+      <slot />
+    </p>
+  ) : (
+    <div class={cls} {...rest}>
+      {icon && <Icon name={icon} class="callout-ico" />}
+      <div class="callout-body">
+        {title && <p class="callout-title">{title}</p>}
+        {hasText && (
+          <div class="callout-text">
+            <slot />
+          </div>
+        )}
+        {detail && (
+          <details class="callout-detail">
+            <summary>{detail.summary}</summary>
+            <pre>{detail.text}</pre>
+          </details>
+        )}
+      </div>
+      {hasActions && (
+        <div class="callout-actions">
+          <slot name="actions" />
+        </div>
+      )}
+    </div>
+  )
+}

@@ -1,0 +1,19 @@
+{
+  "audit": {
+    "answered": "answered a question of {agent} on task {task}",
+    "canceled": "canceled a question of {agent} on task {task}"
+  },
+  "errors": {
+    "continuation_run": "this run is answering a chat message: ask in your reply instead of with task_ask",
+    "not_running": "only the run working on the task may ask, and the task is {status}",
+    "own_task_only": "an agent run asks only on its own task",
+    "stage_run_only": "only an agent's stage run may ask questions: a chat, the auditor or a person comments instead"
+  },
+  "prompts": {
+    "brief_how_to_ask": "## Asking a person\n\nWhen you cannot go on without something only a person can decide or give you (a choice the task leaves open, a credential or an access you lack, a contradiction in the request), ask with `task_ask` instead of guessing. Do not ask what the description, the comments or the repository already answer.\n\n- Ask once, with everything you need: up to 4 questions per call, each with up to 6 short options when the choices are clear. Put what you found in `context`.\n- A blocking question: call `task_ask` and end your turn. Do not keep working on what depends on the answer. The answers come back to you in this same conversation.\n- A question that does not block carries a `default`: say what you will do if nobody answers, then keep working on it. An answer may reach you while you work.\n- `blocker` is for what you cannot do at all without the person (a key, an access). Pick it only then.\n\nA run may ask {per_run} times at most, and a task may have {open} questions open.\n\n",
+    "brief_open_heading": "## Open questions\n\nAsked and still unanswered. Do not ask them again.\n\n",
+    "brief_open_line": "- ({agent}) {question}\n",
+    "instruction_blocking": "Your question is posted. End your turn now and do not keep working on what depends on the answer: when a person answers, you are resumed in this same conversation with the answers.",
+    "instruction_non_blocking": "Your question is posted. Keep working with your default ({default}). If an answer arrives while you work it reaches you here; otherwise it stays in the task's thread."
+  }
+}

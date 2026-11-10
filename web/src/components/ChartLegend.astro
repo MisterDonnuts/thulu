@@ -1,0 +1,34 @@
+---
+import {
+  chartKeyClasses,
+  chartLegendClasses,
+  type ChartLegendItem,
+  type ChartLegendPlacement,
+} from "../lib/ui/chart";
+
+interface Props {
+  items: ChartLegendItem[];
+  placement?: ChartLegendPlacement;
+  id?: string;
+  class?: string;
+  [key: string]: unknown;
+}
+const { items, placement, id, class: extra, ...rest } = Astro.props;
+const cls = chartLegendClasses({ placement, cls: extra });
+---
+
+<div class={cls} {id} {...rest}>
+  {
+    items.map((it) => (
+      <span class="chart-legend-item">
+        <i
+          class={chartKeyClasses(it.swatch)}
+          aria-hidden="true"
+          style={it.color ? `background:${it.color}` : undefined}
+        />
+        {it.label}
+        {it.value !== undefined && <span class="chart-legend-value">{it.value}</span>}
+      </span>
+    ))
+  }
+</div>

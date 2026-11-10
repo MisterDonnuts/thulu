@@ -1,0 +1,201 @@
+{
+  "title": "Workshop",
+  "open": "Workshop",
+  "export": "Exportar",
+  "export_hint": "Bajar un JSON con esto y las skills que usa, para importarlo en otro workspace",
+  "export_failed": "No se pudo exportar: {error}",
+  "tabs": {
+    "agents": "Agentes",
+    "skills": "Skills"
+  },
+  "search": {
+    "label": "Buscar en el Workshop",
+    "placeholder": "Buscar por nombre, descripción o etiqueta",
+    "tags": "Filtrar por etiqueta"
+  },
+  "import": {
+    "button": "Importar archivo",
+    "drop": "Soltá el archivo JSON para importarlo",
+    "too_large": "El archivo pesa más de 3 MB.",
+    "not_json": "El archivo no es JSON válido."
+  },
+  "status": {
+    "available": "Disponible",
+    "installed": "Instalado",
+    "update": "Actualización",
+    "changed": "Tenés otro",
+    "reserved": "Nombre reservado"
+  },
+  "list": {
+    "no_match": "Nada coincide con la búsqueda.",
+    "empty_agent": "Esta versión de Thulu no trae agentes en el Workshop.",
+    "empty_skill": "Esta versión de Thulu no trae skills en el Workshop.",
+    "pick": "Elegir {name}",
+    "picked": {
+      "one": "{count} elegido",
+      "other": "{count} elegidos"
+    },
+    "clear": "Limpiar",
+    "install_picked": {
+      "one": "Revisar e instalar {count}",
+      "other": "Revisar e instalar {count}"
+    }
+  },
+  "detail": {
+    "pick": "Elegí un ítem para ver qué hace y qué trae.",
+    "back": "Volver",
+    "none": "ninguno",
+    "skills": "Skills",
+    "stages": "Etapas",
+    "mcp": "MCP",
+    "image": "Imagen",
+    "requires": "Requiere",
+    "used_by": "La usan",
+    "revision": "Revisión",
+    "revision_value": "{rev}",
+    "revision_installed": "{rev} (tenés la {installed})",
+    "tags": "Etiquetas",
+    "files": {
+      "one": "{count} archivo",
+      "other": "{count} archivos"
+    },
+    "binary": "Archivo binario, sin vista previa.",
+    "viewer": "Sólo un admin del workspace puede instalar.",
+    "already": "Ya está instalado tal cual.",
+    "reserved": "Ese nombre es de una skill de Thulu.",
+    "brings": {
+      "one": "Trae {count} skill.",
+      "other": "Trae {count} skills."
+    },
+    "stage_missing": "Ningún tablero tiene esta etapa",
+    "disabled": "Lo eliminaste del workspace. Instalarlo lo vuelve a habilitar.",
+    "none_f": "ninguna"
+  },
+  "buttons": {
+    "install": "Instalar",
+    "update": "Actualizar",
+    "review": "Revisar e instalar"
+  },
+  "plan": {
+    "title": "Revisá antes de instalar",
+    "lead": "Esto es lo que va a cambiar en el workspace. Donde ya tenés algo con el mismo nombre, se conserva lo tuyo salvo que elijas otra cosa.",
+    "lead_import": "Esto es lo que trae el archivo. Donde ya tenés algo con el mismo nombre, se conserva lo tuyo salvo que elijas otra cosa.",
+    "loading": "Armando el plan…",
+    "back": "Volver",
+    "choose": "Qué hacer con {name}",
+    "edited": "Lo editaste después de instalarlo",
+    "used_by": "La usa {agents}",
+    "action": {
+      "install": "Nuevo en el workspace",
+      "same": "Ya lo tenés igual",
+      "update": "Hay una revisión nueva y no lo tocaste",
+      "conflict": "Ya tenés uno distinto con este nombre",
+      "reserved": "El nombre es de una skill de Thulu",
+      "rejected": "Un archivo parece tener un secreto: no se importa",
+      "update_import": "El archivo trae otra versión y no lo tocaste",
+      "disabled": "Lo habías eliminado: instalarlo lo vuelve a habilitar",
+      "copy_same": "Ya la tenés igual, como {target}",
+      "copy_conflict": "Tu copia {target} es distinta"
+    },
+    "resolution": {
+      "install": "Instalar",
+      "keep": "Conservar la tuya",
+      "update": "Actualizar",
+      "replace": "Reemplazar",
+      "copy": "Instalar como copia",
+      "skip": "No instalar"
+    },
+    "badge": {
+      "install": "Se instala",
+      "keep": "Sin cambios",
+      "update": "Se actualiza",
+      "replace": "Se reemplaza",
+      "copy": "Copia",
+      "skip": "Queda afuera",
+      "keep_yours": "Queda la tuya"
+    },
+    "nothing": "Nada para instalar",
+    "applying": "Instalando…",
+    "history_kept": "La configuración actual queda en el historial del agente",
+    "copy_name": "Nombre de la copia",
+    "apply": {
+      "install": {
+        "one": "Instalar {count} ítem",
+        "other": "Instalar {count} ítems"
+      },
+      "update": {
+        "one": "Actualizar {count} ítem",
+        "other": "Actualizar {count} ítems"
+      },
+      "mixed": {
+        "one": "Aplicar {count} cambio",
+        "other": "Aplicar {count} cambios"
+      }
+    }
+  },
+  "notice": {
+    "missing_skill": "{name} usa skills que nadie trae ni están en el workspace: {refs}. Va a correr sin ellas.",
+    "missing_mcp": "{name} usa MCP que esta instalación no tiene: {refs}. Esas herramientas no van a estar en sus corridas.",
+    "unknown_stage": "{name} está configurado para etapas que ningún tablero tiene: {refs}. Agregalas a un tablero o editá el agente.",
+    "image": "{name} corre con su propia imagen ({refs}). Revisá que exista en esta instalación.",
+    "image_saas": "{name} pide su propia imagen ({refs}) y en esta instalación no se pueden usar imágenes propias. Elegí \"No instalar\" para instalar el resto.",
+    "image_import": "{name} nombra una imagen de contenedor ({refs}). Un agente importado no puede traer su propia imagen: entra sin ella y corre con la imagen de su motor.",
+    "tools_skipped": "El archivo trae manuales de {refs} servidores MCP. No se importan: son de la instalación.",
+    "reserved": "{name} usa un nombre reservado para las skills de Thulu y queda afuera. Para importarla, elegí \"Instalar como copia\" y ponele otro nombre.",
+    "kept_skill": "{name} va a usar tu {refs}, no la del Workshop. Para usar la del Workshop, instalala como copia.",
+    "kept_skill_import": "{name} va a usar tu {refs}, no la del archivo. Para usar la del archivo, instalala como copia.",
+    "secret": "{kind} {name} no se importa: {refs} parece tener un secreto. El resto del archivo se instala igual."
+  },
+  "errors": {
+    "generic": "Algo falló. Probá de nuevo."
+  },
+  "empty_agents": "Instalá agentes listos desde el Workshop o creá uno propio.",
+  "empty_skills": "Instalá skills listas desde el Workshop o escribí una propia.",
+  "export_all_agents": "Exportar todos",
+  "export_all_skills": "Exportar todas",
+  "export_all_agents_hint": "Bajar un solo JSON con todos los agentes del workspace y las skills que usan",
+  "export_all_skills_hint": "Bajar un solo JSON con todas las skills del workspace",
+  "updates_count": {
+    "one": "{count} actualización en el Workshop",
+    "other": "{count} actualizaciones en el Workshop"
+  },
+  "update_badge": "Actualización",
+  "update_badge_hint": "El Workshop tiene una revisión nueva y no lo tocaste",
+  "kind": {
+    "agent": "El agente",
+    "skill": "La skill"
+  },
+  "result": {
+    "title": "Listo",
+    "installed": {
+      "one": "{count} instalado",
+      "other": "{count} instalados"
+    },
+    "updated": {
+      "one": "{count} actualizado",
+      "other": "{count} actualizados"
+    },
+    "replaced": {
+      "one": "{count} reemplazado",
+      "other": "{count} reemplazados"
+    },
+    "copied": {
+      "one": "{count} copia",
+      "other": "{count} copias"
+    },
+    "copy_as": "{from} como {to}",
+    "skipped": {
+      "one": "{count} quedó afuera",
+      "other": "{count} quedaron afuera"
+    },
+    "nothing": "No se escribió nada.",
+    "agent_hint": "Instalar un agente no lo pone a trabajar: elegilo en la plantilla de etapas del proyecto o en el campo Agente de la tarea.",
+    "back": "Volver al catálogo"
+  },
+  "tags": {
+    "code": "código",
+    "docs": "documentación",
+    "example": "ejemplo",
+    "release": "lanzamientos"
+  }
+}

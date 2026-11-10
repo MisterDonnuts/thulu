@@ -1,0 +1,19 @@
+{
+  "codex_error": "error de codex",
+  "tool": {
+    "fallback_name": "herramienta",
+    "input": "Entrada",
+    "result": "Resultado",
+    "result_error": "Resultado (error)",
+    "truncated": "… (recortado)"
+  },
+  "event": {
+    "init": "system · init · modelo {model}",
+    "result": "result · turnos {turns} · ${cost} · {reason}"
+  },
+  "session": {
+    "native": "Sesión retomada",
+    "rehydrated": "Sesión reconstruida desde el historial",
+    "fresh": "Sesión nueva"
+  }
+}

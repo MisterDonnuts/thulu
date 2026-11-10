@@ -1,0 +1,89 @@
+{
+  "proposals": {
+    "count": {
+      "one": "{count} mapping proposed",
+      "other": "{count} mappings proposed"
+    },
+    "by": "by {who}",
+    "inert": "Nothing is collected until you approve — proposals are inert by design."
+  },
+  "buttons": {
+    "approve": "Approve",
+    "reject": "Reject",
+    "back_to_waiting": "Back to waiting"
+  },
+  "signals": {
+    "not_applicable": "not applicable",
+    "not_applicable_here": "not applicable here",
+    "na": "n/a",
+    "no_data": "no data yet",
+    "pushed_age": "{age} · reported by the app",
+    "title": "Signals"
+  },
+  "custom": {
+    "title": "Custom metrics",
+    "hint": "The app sends these. Approve one to chart it.",
+    "no_labels": "no labels",
+    "waiting": "{count} waiting",
+    "registered": "{registered}/{capacity} registered",
+    "status_discovered": "discovered",
+    "status_approved": "approved",
+    "status_rejected": "rejected"
+  },
+  "dashboards": {
+    "title": "Dashboards",
+    "proposed": "proposed",
+    "new": "+ new",
+    "new_title": "New dashboard",
+    "review_html": {
+      "one": "<strong>{name}</strong> proposed by {who} — {count} panel, inert until approved.",
+      "other": "<strong>{name}</strong> proposed by {who} — {count} panels, inert until approved."
+    },
+    "review_hint": "Approving publishes it and approves the pending review on the task that raised it.",
+    "no_panels": "This dashboard has no panels.",
+    "approve_first": "Approve a custom metric above to build a dashboard.",
+    "no_metrics": "Dashboards chart custom metrics. A new metric shows up here a minute or two after the app first sends it; once you approve it, you can build a dashboard.",
+    "none_yet": "No dashboards yet. Use “+ new” to chart the approved metrics, or ask an agent to propose one."
+  },
+  "credential": {
+    "set": "credential set",
+    "change_title": "Change or detach the credential",
+    "attach": "attach credential",
+    "attach_title": "Attach a credential to this environment"
+  },
+  "badges": {
+    "signals": {
+      "one": "{count} signal",
+      "other": "{count} signals"
+    },
+    "not_mapped": "not mapped",
+    "production": "production"
+  },
+  "labels": {
+    "account": "acct {account}",
+    "system": "System",
+    "metric_kinds": {
+      "counter": "counter",
+      "gauge": "gauge"
+    }
+  },
+  "actions": {
+    "collect": "Collect now",
+    "collect_aria": "Collect metrics now",
+    "telemetry": "Telemetry",
+    "telemetry_aria": "Telemetry ingest",
+    "edit_aria": "Edit environment",
+    "delete_aria": "Delete environment"
+  },
+  "testing": {
+    "title": "Evidence",
+    "no_url": "No address for tests",
+    "logins": {
+      "one": "{count} test login",
+      "other": "{count} test logins"
+    },
+    "no_logins": "No test logins",
+    "manual": "Runs when someone starts it",
+    "edit": "Edit in Evidence"
+  }
+}

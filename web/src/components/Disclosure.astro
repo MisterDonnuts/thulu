@@ -1,0 +1,33 @@
+---
+// Markup must match disclosureHTML() in lib/ui/disclosure.ts.
+import Icon from "./Icon.astro";
+import { DISCLOSURE_CARET, disclosureClasses, type DisclosureVariant } from "../lib/ui/disclosure";
+
+interface Props {
+  summary?: string;
+  variant?: DisclosureVariant;
+  ruled?: boolean;
+  open?: boolean;
+  bodyId?: string;
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  summary,
+  variant = "help",
+  ruled = false,
+  open = false,
+  bodyId,
+  class: extra,
+  ...rest
+} = Astro.props;
+---
+
+<details class={disclosureClasses({ variant, ruled, cls: extra })} open={open} {...rest}>
+  <summary class="disclosure-summary">
+    <Icon name={DISCLOSURE_CARET} class="disclosure-caret" /><span
+      ><slot name="summary">{summary}</slot></span
+    >
+  </summary>
+  <div class="disclosure-body" id={bodyId}><slot /></div>
+</details>

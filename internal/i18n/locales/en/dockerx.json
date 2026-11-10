@@ -1,0 +1,13 @@
+{
+  "log": {
+    "driver_lookup_failed": "logging driver lookup failed, container logs not rotated: {err}",
+    "invalid_option": "{key}={value:%q} is not valid; using {default}",
+    "close_install_id_dir": "close the install id directory"
+  },
+  "errors": {
+    "install_id_dir": "open the data directory for the install id",
+    "install_id_read": "read the install id",
+    "install_id_generate": "generate the install id",
+    "install_id_save": "save the install id"
+  }
+}

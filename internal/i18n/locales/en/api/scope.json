@@ -1,0 +1,45 @@
+{
+  "errors": {
+    "operator_only": "{what} is shared by every workspace, so only the operator may {verb} it. Set {env} to the workspace that administers this install and use an admin credential from it.",
+    "project_not_found": "project not found: {id}",
+    "chat_not_found": "chat not found: {id}",
+    "task_not_found": "task not found: {id}",
+    "other_workspace": "caller is scoped to a different workspace",
+    "no_workspace": "caller has no workspace",
+    "task_workspace_undetermined": "cannot determine the task's workspace: link a project, create it on a board, or pass ?workspace=",
+    "resource_workspace_undetermined": "cannot determine the {resource}'s workspace: pass ?workspace=",
+    "projects_span_workspaces": "linked projects belong to different workspaces ({first}, {second}): pass ?workspace= to choose",
+    "run_task_scope": "an agent run's key may only change its own task, its parent and sibling/child subtasks, and tasks its task created",
+    "run_flag_decision": "deciding or removing an approval (or a flag) is a person's call: an agent run can ask for one, not approve it",
+    "run_question_decision": "answering or canceling an agent's question is a person's call: an agent run asks, it does not answer",
+    "run_thread_decision": "applying or resolving a thread is a person's call: an agent run answers in threads, it does not close them",
+    "run_conversation": "the task's conversation is the person's side: an agent run answers there, it does not speak for them",
+    "run_cannot_open_chats": "an agent run cannot open chats",
+    "run_own_chat_only": "an agent run's key reaches only its own chat",
+    "run_chat_read_only": "an agent run may read its chat, not write to it: a message there is the person speaking",
+    "run_transcripts_scope": "an agent run's key may only read the transcripts of runs on the tasks it may change",
+    "run_github_confirmation": "these routes carry a delegated chat's merge or deployment review to the person it acts for; an agent run on a task merges and approves with its own GitHub tools",
+    "run_merge": "an agent run cannot merge a task branch or upload a project's code; a person does that from the dashboard",
+    "run_evidence_scope": "an agent run's key may read Evidence but not change it: environments, secrets, cases and batches are a person's to edit. A recording chat saves its take with the recording tools"
+  },
+  "operator_surfaces": {
+    "mcp_registry": "the MCP registry",
+    "host_settings": "host settings",
+    "plan_assignment": "plan assignment",
+    "metrics": "install-wide metrics",
+    "system_skills": "the system skills"
+  },
+  "operator_verbs": {
+    "change": "change",
+    "read": "read"
+  },
+  "resources": {
+    "project": "project",
+    "chat": "chat",
+    "policy": "policy",
+    "installation": "installation"
+  },
+  "log": {
+    "read_workspaces_failed": "read the install's workspaces"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "errors": {
+    "session_not_found": "session not found",
+    "logs_unreadable": "logs file not readable",
+    "no_output_dir": "no output dir for this session",
+    "invalid_path": "invalid path",
+    "file_not_found": "file not found"
+  }
+}

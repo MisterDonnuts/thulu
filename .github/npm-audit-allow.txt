@@ -1,0 +1,54 @@
+# Accepted npm audit advisories — high+ findings that are NOT reachable
+# in our build/runtime. CI / `make audit` fails on any high+ advisory NOT
+# listed here. Each entry MUST include a justification (why it's not
+# reachable for us).
+#
+# Format: one GHSA id per line. Comments (#) and blank lines ignored.
+#
+# An entry npm audit no longer reports is deleted, not commented out: this
+# file is only useful while every line in it describes a live advisory.
+
+# fast-uri 3.0.0–3.1.5 — host confusion / SSRF cluster (skipped IDN
+# canonicalization, malformed IPv6 normalization, repeated percent-decoding,
+# percent-encoded scheme normalization). fast-uri is pulled by exactly one
+# chain: @astrojs/check → @astrojs/language-server → volar-service-yaml →
+# yaml-language-server → ajv → fast-uri (`npm ls fast-uri`).
+# @astrojs/check is a devDependency — the `astro check` type-checker — and
+# `npm ls fast-uri --omit=dev` is empty, so fast-uri is never in the runtime
+# tree and never ships: production serves the static dist from the Go binary,
+# which does no URI parsing with it. Not reachable. Clears when ajv (via the
+# yaml language server) bumps to a fast-uri 4.x that carries the fix.
+GHSA-5jgf-p345-68v8
+GHSA-f65p-4m7j-42xc
+GHSA-fph4-wmhf-6fwf
+GHSA-jqff-g426-hqxp
+
+# svgo 4.0.0–4.0.2 — two holes in `removeScripts`: executable links survive
+# via namespace and content-type confusion, and executable HTML inside a
+# <foreignObject> is only partly sanitized. Both mean an optimized SVG can
+# keep script the pass was supposed to strip, and both only bite on SVG that
+# someone else supplied. svgo arrives as a direct transitive of astro 7's SVG pipeline, and
+# that pipeline never runs here: nothing imports an .svg file — every icon is
+# inline markup in an .astro template, which svgo does not touch. It is also
+# build-time only; the image copies `web/dist` and nothing else, so no part of
+# node_modules ships. Not reachable. Clears when astro picks up svgo 4.0.3+.
+GHSA-w27v-7q3p-w38r
+GHSA-4vpr-x523-8j87
+
+# http-cache-semantics <=4.2.0 — max-stale handling can serve one user's
+# cached response to another. astro 7 depends on it for one file,
+# assets/build/remote.js: the build-time cache of remote images fetched by
+# astro:assets. Nothing in `web/src` imports astro:assets or renders
+# <Image>/<Picture>/getImage, and astro.config.mjs allows no remote image
+# domains, so that cache never runs. It is build-time
+# only besides; the image copies `web/dist` and no node_modules ships. Not
+# reachable. No fixed release exists yet (4.2.0 is the latest); clears when
+# one does and astro picks it up.
+GHSA-ch52-4w7c-c8xp
+
+# braces <=3.0.3 — stack exhaustion on deeply nested brace patterns. Only
+# chain: astro-eslint-parser → fast-glob → micromatch → braces, a lint-time
+# devDependency; `npm ls braces --omit=dev` is empty.
+# The patterns it expands are the repo's own eslint globs. Not reachable. No
+# fixed release exists yet (3.0.3 is the latest); clears with the first one.
+GHSA-vfj7-8cjw-p6xm

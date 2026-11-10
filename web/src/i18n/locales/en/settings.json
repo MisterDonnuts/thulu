@@ -1,0 +1,26 @@
+{
+  "title": "Settings",
+  "subtitle": "Webhooks, audit log, API access, and system health.",
+  "document_title": "{section} — Settings — Thulu",
+  "buttons": {
+    "make_default": "Make default"
+  },
+  "labels": {
+    "role": "Role"
+  },
+  "roles": {
+    "viewer": "viewer",
+    "developer": "developer",
+    "admin": "admin",
+    "owner": "owner"
+  },
+  "edition": {
+    "enterprise": "Enterprise",
+    "community": "Community",
+    "enterprise_ee": "Enterprise (EE)",
+    "community_ce": "Community (CE)"
+  },
+  "denied": {
+    "role": "This section is for the workspace's admins, and your role is {role}. If you need something here, ask an admin."
+  }
+}

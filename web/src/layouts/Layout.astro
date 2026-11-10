@@ -1,0 +1,635 @@
+---
+// Fonts are bundled and served by the daemon: a font CDN would leak viewers' IPs and fails on
+// air-gapped networks.
+import "@fontsource-variable/inter";
+import "@fontsource/jetbrains-mono/400.css";
+import "@fontsource/jetbrains-mono/500.css";
+import { ClientRouter } from "astro:transitions";
+import Avatar from "../components/Avatar.astro";
+import Badge from "../components/Badge.astro";
+import Button from "../components/Button.astro";
+import ChatDrawer from "../components/ChatDrawer.astro";
+import CommandPalette from "../components/CommandPalette.astro";
+import Count from "../components/Count.astro";
+import Dot from "../components/Dot.astro";
+import Icon from "../components/Icon.astro";
+import IconSprite from "../components/IconSprite.astro";
+import Kbd from "../components/Kbd.astro";
+import KbdHelp from "../components/KbdHelp.astro";
+import Menu from "../components/Menu.astro";
+import Segmented from "../components/Segmented.astro";
+import Sidebar from "../components/Sidebar.astro";
+import ToastStack from "../components/ToastStack.astro";
+import WorkspaceCreate from "../components/WorkspaceCreate.astro";
+import { locale, t } from "../i18n";
+import { MOD_KEY } from "../lib/shortcuts";
+
+interface Props {
+  title: string;
+}
+const { title } = Astro.props;
+
+const themeItem = (v: string) => ({
+  role: "menuitemradio",
+  "data-theme-choice": v,
+  "data-keep-open": "",
+});
+const THEME_OPTIONS = [
+  {
+    value: "system",
+    label: t("layout.theme.system"),
+    icon: "monitor",
+    attrs: { title: t("layout.theme.system_hint") },
+    inputAttrs: themeItem("system"),
+  },
+  { value: "light", label: t("layout.theme.light"), icon: "sun", inputAttrs: themeItem("light") },
+  { value: "dark", label: t("layout.theme.dark"), icon: "moon", inputAttrs: themeItem("dark") },
+];
+---
+
+<!doctype html>
+<html lang={locale}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- public/boot/theme.js rewrites this to the stored choice and adds theme-color. -->
+    <meta name="color-scheme" content="light dark" />
+
+    <!-- Must run before first paint and before any module script. Kept as files under public/, not inline, so the CSP needs no 'unsafe-inline'. -->
+    <script is:inline src="/boot/theme.js"></script>
+    <script is:inline src="/boot/fetch-credentials.js"></script>
+    <script is:inline src="/boot/sidebar-state.js"></script>
+
+    <title>{t("layout.page_title", { page: title })}</title>
+    <ClientRouter />
+    <style is:global>
+      /* The shared stylesheet, in four cascade layers: tokens, the reset that
+         consumes them, the primitive classes, then the page frame.
+
+         Layers rather than plain imports, because link order is not ours to
+         choose — Astro splits a big page's CSS into its own chunk and emits
+         it before the layout's, so on settings/ the page's stylesheet
+         already loads first. A layered rule loses to an unlayered one
+         whatever the order, and every page's <style is:global> is
+         unlayered. That is the contract: a page that declares its own `.page` or
+         `.modal` keeps winning.
+
+         Astro's scoped component styles are unlayered too, so a component
+         overrides a primitive without a specificity fight. COMPONENTS.md
+         has the rule for which of the two a class belongs in. */
+      @layer octopus.tokens, octopus.base, octopus.primitives, octopus.page;
+      @import "../styles/tokens.css" layer(octopus.tokens);
+      @import "../styles/base.css" layer(octopus.base);
+      @import "../styles/primitives.css" layer(octopus.primitives);
+      @import "../styles/page.css" layer(octopus.page);
+
+      /* ════════════════════════════════════════════════════════════════════
+       HEADER — top bar: brand, create, status, account
+       ════════════════════════════════════════════════════════════════════ */
+      .header {
+        position: sticky;
+        top: 0;
+        z-index: var(--z-sticky);
+        display: flex;
+        align-items: center;
+        gap: var(--s-3);
+        padding: var(--s-2) var(--s-4);
+        min-height: var(--header-h);
+        background: var(--color-surface-glass);
+        border-bottom: 1px solid var(--line);
+        backdrop-filter: blur(14px) saturate(140%);
+      }
+
+      .header-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--s-3);
+        color: var(--fg);
+        text-decoration: none;
+        font-size: var(--t-md);
+        font-weight: 600;
+        letter-spacing: var(--tracking-tight);
+      }
+      .header-brand-logo {
+        display: block;
+        height: 32px;
+        width: auto;
+      }
+
+      .header-spacer {
+        flex: 1;
+      }
+
+      /* Opens the sidebar on narrow screens, where the rail is an overlay. */
+      .hdr-menu {
+        display: none;
+      }
+      @media (max-width: 900px) {
+        .hdr-menu {
+          display: inline-flex;
+        }
+      }
+
+      /* Opens the command palette (lib/palette-ui.ts); ⌘K does the same. */
+      .hdr-search {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--s-2);
+        min-width: 200px;
+        padding: 4px 6px 4px 10px;
+        border: 1px solid var(--line);
+        border-radius: var(--r-md);
+        background: var(--surface-2);
+        color: var(--fg-3);
+        font: inherit;
+        font-size: var(--t-xs);
+        cursor: pointer;
+      }
+      .hdr-search:hover {
+        color: var(--fg-2);
+        border-color: var(--line-strong);
+      }
+      .hdr-search kbd {
+        margin-left: auto;
+      }
+      @media (max-width: 900px) {
+        .hdr-search {
+          min-width: 0;
+        }
+        .hdr-search kbd {
+          display: none;
+        }
+      }
+
+      .hdr-setup {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--s-2);
+        padding: 4px 6px 4px 10px;
+        border: 1px solid var(--accent-line, var(--line));
+        border-radius: var(--r-pill);
+        color: var(--fg-2);
+        font-size: var(--t-xs);
+        font-weight: 500;
+        text-decoration: none;
+      }
+      .hdr-setup:hover {
+        color: var(--fg);
+        background: var(--surface-2);
+      }
+      /* A phone cannot fit brand + Setup + New + status + avatar in a row;
+         the two buttons keep their icons (and Setup its count). */
+      @media (max-width: 600px) {
+        .header .hdr-label,
+        .header .hdr-caret {
+          display: none;
+        }
+      }
+
+      /* ── Header menus ─────────────────────────────────────────── */
+      .hdr-menu-wrap {
+        position: relative;
+      }
+      .hdr-new .hdr-caret {
+        opacity: 0.7;
+      }
+      /* The account menu holds the theme's three options side by side. */
+      .user-menu {
+        min-width: min(var(--menu-w-rich), calc(100vw - var(--s-8)));
+      }
+      .user-who {
+        display: flex;
+        flex-direction: column;
+        gap: calc(var(--s-1) / 2);
+      }
+      .user-sub {
+        font-size: var(--t-xs);
+        color: var(--fg-3);
+      }
+
+      /* ── Account button ───────────────────────────────────────── */
+      .user-btn {
+        display: inline-flex;
+        padding: 2px;
+        border: 1px solid var(--line);
+        border-radius: 50%;
+        background: transparent;
+        cursor: pointer;
+        transition: border-color var(--dur-fast) var(--ease-out);
+      }
+      .user-btn:hover,
+      .user-btn[aria-expanded="true"] {
+        border-color: var(--line-strong);
+      }
+      .user-email {
+        font-size: var(--t-sm);
+        font-weight: 500;
+        color: var(--fg);
+        max-width: 220px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      /* ── Daemon status ─────────────────────────────────────────
+         Healthy is the normal case, so it is a dot; the label appears only
+         when the daemon is down (a danger Badge) or still being checked. */
+      .header-status {
+        display: inline-flex;
+        align-items: center;
+      }
+      .header-status-line {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--s-2);
+        padding: 0 var(--s-2);
+        color: var(--fg-3);
+        font-size: var(--t-xs);
+      }
+      .header-status[data-state="ok"] #daemon-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+      }
+    </style>
+  </head>
+  <body>
+    <IconSprite />
+
+    <header class="header" role="banner" transition:persist="header">
+      <Button
+        id="hdr-menu"
+        class="hdr-menu"
+        iconOnly
+        icon="menu"
+        label={t("layout.header.open_navigation")}
+        title={t("layout.header.navigation")}
+        aria-controls="sidebar"
+        aria-expanded="false"
+      />
+      <a class="header-brand" href="/" aria-label={t("layout.header.home")}>
+        <svg class="header-brand-logo" viewBox="0 0 1636 512" aria-hidden="true"
+          ><use href="#i-thulu"></use></svg
+        >
+        <Badge id="ee-badge" tone="accent" size="sm" mono hidden>{t("layout.brand.ee")}</Badge>
+      </a>
+
+      <div class="header-spacer"></div>
+
+      <button
+        id="hdr-search"
+        class="hdr-search"
+        type="button"
+        aria-haspopup="dialog"
+        aria-controls="cmdk"
+        title={t("layout.header.search_hint")}
+      >
+        <Icon name="search" size="sm" /><span class="hdr-label">{t("layout.header.search")}</span
+        ><Kbd keys={[MOD_KEY, "K"]} />
+      </button>
+
+      <a href="/onboarding/" id="nav-setup" class="hdr-setup" hidden
+        ><Icon name="list" size="sm" /><span class="hdr-label">{t("layout.header.setup")}</span
+        ><Count pill size="sm" tone="accent" n={0} id="nav-setup-badge" /></a
+      >
+
+      <div class="hdr-menu-wrap">
+        <Button
+          id="new-menu-btn"
+          class="hdr-new"
+          variant="primary"
+          icon="plus"
+          aria-label={t("layout.new.button")}
+          aria-haspopup="menu"
+          aria-expanded="false"
+          aria-controls="new-menu"
+          ><span class="hdr-label">{t("layout.new.button")}</span><Icon
+            name="chevron-down"
+            size="sm"
+            class="hdr-caret"
+          /></Button
+        >
+        <Menu
+          id="new-menu"
+          labelledBy="new-menu-btn"
+          align="start"
+          items={[
+            { icon: "board", title: t("layout.new.task"), attrs: { "data-create": "task" } },
+            { icon: "message", title: t("layout.new.chat"), attrs: { "data-create": "chat" } },
+            { icon: "folder", title: t("layout.new.project"), attrs: { "data-create": "project" } },
+            {
+              icon: "clock",
+              title: t("layout.new.automation"),
+              attrs: { "data-create": "automation" },
+            },
+          ]}
+        />
+      </div>
+
+      <div
+        class="header-status"
+        id="daemon-status"
+        data-state="checking"
+        role="status"
+        aria-live="polite"
+        aria-label={t("layout.daemon.health")}
+        title={t("layout.daemon.title", { state: t("layout.daemon.checking") })}
+      >
+        <span id="daemon-pill" class="header-status-line">
+          <Dot id="daemon-dot" />
+          <span id="daemon-label">{t("layout.daemon.checking")}</span>
+        </span>
+      </div>
+
+      <div class="hdr-menu-wrap">
+        <button
+          id="user-btn"
+          class="user-btn"
+          type="button"
+          aria-haspopup="menu"
+          aria-expanded="false"
+          aria-controls="user-menu"
+          aria-label={t("layout.account.menu")}
+          title={t("layout.account.account")}
+        >
+          <Avatar icon="tt-users" id="user-avatar" />
+        </button>
+        <Menu
+          id="user-menu"
+          labelledBy="user-btn"
+          class="user-menu"
+          items={[
+            { slot: "who" },
+            { sep: true },
+            {
+              id: "user-account",
+              href: "/settings/#account",
+              icon: "settings",
+              title: t("layout.account.account"),
+              hidden: true,
+            },
+            { href: "/settings/", icon: "settings", title: t("layout.account.settings") },
+            { sep: true },
+            { head: t("layout.theme.label"), id: "hdr-theme-label" },
+            { slot: "theme" },
+            { sep: true },
+            { id: "user-kbd", icon: "keyboard", title: t("common.kbd.shortcuts") },
+            { id: "logout-btn", icon: "power", title: t("layout.account.log_out"), hidden: true },
+          ]}
+        >
+          <div slot="who" class="user-who">
+            <span class="user-email" id="user-email">{t("layout.account.local_mode")}</span>
+            <span class="user-sub" id="user-sub">{t("layout.account.no_login")}</span>
+          </div>
+          <Segmented
+            slot="theme"
+            id="theme-control"
+            name="theme"
+            fill
+            labelledBy="hdr-theme-label"
+            role="group"
+            options={THEME_OPTIONS}
+          />
+        </Menu>
+      </div>
+    </header>
+
+    <script>
+      import { openCreate, type CreateKind } from "../lib/create";
+      import { initGlobalKeyboard, openHelp } from "../lib/keyboard";
+      import { applyPlatformKeys } from "../lib/shortcuts";
+      import { openPalette, togglePalette } from "../lib/palette-ui";
+      import { bindThemeControl } from "../lib/theme";
+      import { bindCodeCopy, bindDateInputs, bindMenu, type MenuHandle } from "../lib/ui";
+
+      (function () {
+        const menus: MenuHandle[] = [];
+        const wire = (
+          menuId: string,
+          triggerId: string,
+          onSelect?: (item: HTMLElement) => void,
+        ) => {
+          const menu = document.getElementById(menuId);
+          const trigger = document.getElementById(triggerId);
+          if (menu && trigger) menus.push(bindMenu(menu, trigger, { onSelect }));
+        };
+        const closeAll = () => menus.forEach((m) => m.close(false));
+
+        wire("new-menu", "new-menu-btn", (item) => {
+          if (item.dataset.create) openCreate(item.dataset.create as CreateKind);
+        });
+        wire("user-menu", "user-btn", (item) => {
+          if (item.id === "user-kbd") openHelp();
+        });
+
+        const themeControl = document.getElementById("theme-control");
+        if (themeControl) bindThemeControl(themeControl);
+
+        initGlobalKeyboard({ onPalette: togglePalette });
+        // Caps are rendered at build time as ⌘/⌥; relabel on every page-load because each page
+        // brings its own shortcuts sheet.
+        applyPlatformKeys();
+        document.addEventListener("astro:page-load", () => applyPlatformKeys());
+        document.getElementById("hdr-search")?.addEventListener("click", () => {
+          closeAll();
+          openPalette();
+        });
+        document.addEventListener("astro:before-swap", () => closeAll());
+        bindCodeCopy(document);
+        bindDateInputs(document);
+      })();
+    </script>
+
+    <script>
+      import { daemonFetch } from "../lib/daemon-fetch";
+
+      window.fetch = daemonFetch(window.fetch.bind(window));
+    </script>
+
+    <script>
+      import "../lib/persist-scroll";
+    </script>
+
+    <script>
+      import { isAuthenticated, logout, sessionInfo } from "../lib/auth";
+      import { initialsOf } from "../lib/ui";
+
+      (async () => {
+        if (!isAuthenticated()) return;
+        const emailEl = document.getElementById("user-email") as HTMLElement;
+        const subEl = document.getElementById("user-sub") as HTMLElement;
+        const avatarEl = document.getElementById("user-avatar") as HTMLElement;
+        const logoutBtn = document.getElementById("logout-btn") as HTMLButtonElement;
+        const accountLink = document.getElementById("user-account") as HTMLElement;
+
+        try {
+          const data = await sessionInfo();
+          if (data) {
+            const email = data.user?.email || "";
+            const name = data.user?.name || email;
+            emailEl.textContent = name;
+            subEl.textContent = name === email ? "" : email;
+            subEl.hidden = !subEl.textContent;
+            avatarEl.textContent = initialsOf(name);
+            accountLink.hidden = false;
+            logoutBtn.hidden = false;
+          }
+        } catch {
+          /* not authenticated or daemon offline — the menu keeps "Local mode" */
+        }
+
+        logoutBtn?.addEventListener("click", async () => {
+          window.location.href = await logout();
+        });
+      })();
+    </script>
+
+    <Sidebar />
+    <WorkspaceCreate />
+
+    <slot />
+
+    <KbdHelp id="kbd-help-global" />
+    <CommandPalette />
+
+    <div
+      class="confirm-overlay"
+      id="confirm-overlay"
+      data-open="false"
+      role="presentation"
+      transition:persist="confirm"
+    >
+    </div>
+
+    <script>
+      import { apiBase, sessionInfo } from "../lib/auth";
+      import { api } from "../lib/api";
+      import { roleWithin } from "../lib/api-keys";
+      import { sectionDenial } from "../lib/settings-sections";
+      import { sourceLink } from "../lib/source";
+      import { badgeClasses, dotClasses, setCount } from "../lib/ui";
+      import { t } from "../i18n";
+
+      async function ping(): Promise<void> {
+        const wrap = document.getElementById("daemon-status");
+        const lbl = document.getElementById("daemon-label");
+        const dot = document.getElementById("daemon-dot");
+        if (!wrap || !lbl) return;
+        try {
+          // /health/live, not /health: some ingresses block /health and /health/ready at the edge
+          // (403).
+          const r = await fetch(`${apiBase()}/health/live`);
+          if (r.ok) {
+            wrap.setAttribute("data-state", "ok");
+            lbl.textContent = t("layout.daemon.online");
+          } else {
+            wrap.setAttribute("data-state", "down");
+            lbl.textContent = t("layout.daemon.error", { status: r.status });
+          }
+        } catch {
+          wrap.setAttribute("data-state", "down");
+          lbl.textContent = t("layout.daemon.offline");
+        }
+        const state = wrap.getAttribute("data-state");
+        const ok = state === "ok";
+        if (dot) dot.className = dotClasses(ok ? "ok" : "danger", ok);
+        const pill = document.getElementById("daemon-pill");
+        if (pill) {
+          pill.className =
+            state === "down"
+              ? badgeClasses({ tone: "danger", shape: "pill", edge: "solid" })
+              : "header-status-line";
+        }
+        wrap.title = t("layout.daemon.title", { state: lbl.textContent ?? "" });
+      }
+      ping();
+      setInterval(ping, 10000);
+
+      // /info returns the version only to a signed-in caller, so credentials must go along.
+      async function fetchInfo(): Promise<void> {
+        try {
+          const r = await fetch(`${apiBase()}/info`, { credentials: "include" });
+          if (!r.ok) return;
+          const data = await r.json();
+          if (data.edition === "ee") {
+            const badge = document.getElementById("ee-badge");
+            if (badge) badge.hidden = false;
+          }
+          const version = typeof data.version === "string" ? data.version : "";
+          const source = document.getElementById("sb-source") as HTMLAnchorElement | null;
+          if (source && typeof data.source_url === "string" && data.source_url) {
+            source.href = sourceLink(data.source_url, version);
+          }
+          const link = document.getElementById("sb-version");
+          const text = document.getElementById("sb-version-text");
+          if (version && link && text) {
+            text.textContent = t("layout.version.label", { version });
+            link.title = t("layout.version.running", { version });
+            link.hidden = false;
+            void fetchUpdateDot(link);
+          }
+        } catch {
+          /* non-critical */
+        }
+      }
+      fetchInfo();
+
+      // /updates/status is operator-only; others must not ask or every page logs a 403.
+      async function fetchUpdateDot(link: HTMLElement): Promise<void> {
+        if (sectionDenial("updates", await sessionInfo())) return;
+        try {
+          const r = await fetch(`${apiBase()}/updates/status`, { credentials: "include" });
+          if (!r.ok) return;
+          const st = (await r.json()) as { update_available?: boolean; advisories?: unknown[] };
+          const dot = document.getElementById("sb-version-dot");
+          if (!dot || !st.update_available) return;
+          dot.hidden = false;
+          const advisories = Array.isArray(st.advisories) ? st.advisories.length : 0;
+          const notice =
+            advisories > 0
+              ? t("layout.version.update_fixes_advisories", { count: advisories })
+              : t("layout.version.update_available");
+          link.title = `${link.title} ${notice}`;
+        } catch {
+          /* non-critical */
+        }
+      }
+
+      // The header persists across navigations, so re-read on every page-load: finishing a step
+      // must lower the count without a reload.
+      async function fetchSetup(): Promise<void> {
+        const link = document.getElementById("nav-setup");
+        const badge = document.getElementById("nav-setup-badge");
+        if (!roleWithin("admin", (await sessionInfo())?.role)) return;
+        try {
+          const status = await api.get<{ complete: boolean; steps: { done: boolean }[] }>(
+            "/onboarding",
+          );
+          const pending = status.steps.filter((s) => !s.done).length;
+          if (badge) setCount(badge, pending, { pill: true, size: "sm", tone: "accent" });
+          if (link) link.hidden = status.complete || pending === 0;
+        } catch {
+          /* not an admin, or not logged in yet */
+        }
+      }
+      fetchSetup();
+      let firstSetupLoad = true;
+      document.addEventListener("astro:page-load", () => {
+        if (firstSetupLoad) {
+          firstSetupLoad = false;
+          return;
+        }
+        void fetchSetup();
+      });
+    </script>
+
+    <ChatDrawer />
+
+    <ToastStack />
+  </body>
+</html>

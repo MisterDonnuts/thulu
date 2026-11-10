@@ -1,0 +1,30 @@
+{
+  "errors": {
+    "not_found": "environment not found",
+    "metrics_store_unavailable": "environment metrics store not configured",
+    "collector_unavailable": "the metrics collector is not configured on this instance",
+    "task_store_unavailable": "task store not configured",
+    "mappings_required": "mappings is required",
+    "mapping_not_found": "mapping not found",
+    "unknown_signal": "unknown signal",
+    "flag_needs_task": "flag_id needs the task_id it belongs to",
+    "flag_not_on_task": "flag {flag} not found on task {task}"
+  },
+  "hints": {
+    "no_active_mappings": "no active mappings — approve a proposal first"
+  },
+  "comments": {
+    "mapping_flag": "Observability mapping proposed for {environment} — {mappings} mapping(s) across {services} service(s), review and approve",
+    "flag_approved": "approved with the observability proposal"
+  },
+  "log": {
+    "list_granted_failed": "list granted environments",
+    "list_granted_project_failed": "list granted environments for project {project}",
+    "read_public_url_failed": "read ingest.public_url",
+    "revoke_grants_failed": "revoke credential grants for environment {environment}",
+    "delete_mappings_failed": "delete metric mappings for environment {environment}",
+    "marshal_flag_payload_failed": "marshal mapping flag payload: {err}",
+    "raise_flag_failed": "raise mapping flag for task {task}: {err}",
+    "resolve_flag_failed": "resolve mapping flag {id}"
+  }
+}

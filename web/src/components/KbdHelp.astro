@@ -1,0 +1,38 @@
+---
+// lib/keyboard.ts finds this modal by data-kbd-help; Layout renders #kbd-help-global on every page.
+
+import Kbd from "./Kbd.astro";
+import Modal from "./Modal.astro";
+import { t } from "../i18n";
+import { globalRows, type KbdRow } from "../lib/shortcuts";
+
+interface Props {
+  rows?: KbdRow[];
+  id?: string;
+}
+
+const { rows = [], id = "kbd-help" } = Astro.props;
+const all: KbdRow[] = [...rows, ...globalRows()];
+// Without page rows, drop the leading separator of globalRows() and add the generic Esc line.
+if (rows.length === 0) {
+  all.shift();
+  all.push({ keys: [t("common.kbd.esc")], label: t("common.kbd.close_modal") });
+}
+---
+
+<Modal {id} title={t("common.kbd.shortcuts")} icon="keyboard" closable data-kbd-help>
+  <div class="kbd-grid">
+    {
+      all.map((r) =>
+        "sep" in r ? (
+          <div class="kbd-sep">{r.sep}</div>
+        ) : (
+          <>
+            <Kbd keys={r.keys} align="end" />
+            <div class="kbd-label">{r.label}</div>
+          </>
+        ),
+      )
+    }
+  </div>
+</Modal>

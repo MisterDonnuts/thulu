@@ -1,0 +1,15 @@
+{
+  "errors": {
+    "timing": "daemon lease: deadline {deadline} plus heartbeat {heartbeat} must be shorter than the idle timeout {idle}",
+    "connect": "daemon lease: open a connection",
+    "configure": "daemon lease: set the session idle timeout",
+    "lock": "daemon lease: take the lock"
+  },
+  "log": {
+    "waiting": "another daemon holds this database's lease; waiting ({waited} so far)",
+    "acquired_after_wait": "took the daemon lease after waiting {waited}",
+    "lost": "lost the daemon lease: no confirmation for {since} ({err}); stopping so another daemon can take over",
+    "drop_conn": "daemon lease: drop the lock connection",
+    "close_conn": "daemon lease: close the lock connection"
+  }
+}

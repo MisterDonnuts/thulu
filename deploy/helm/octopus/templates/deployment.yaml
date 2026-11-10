@@ -1,0 +1,295 @@
+{{- if eq .Values.agentRuntime.mode "docker" }}
+{{- if and (not .Values.dockerSocket.enabled) (not (hasKey .Values.extraEnv "DOCKER_HOST")) }}
+{{- fail "agentRuntime.mode=docker needs a Docker endpoint: set dockerSocket.enabled=true (hostPath socket, see the README security note) or extraEnv.DOCKER_HOST. Use agentRuntime.mode=kubernetes to run agents as pods instead." }}
+{{- end }}
+{{- else if ne .Values.agentRuntime.mode "kubernetes" }}
+{{- fail (printf "agentRuntime.mode must be kubernetes or docker, got %q" .Values.agentRuntime.mode) }}
+{{- end }}
+{{- if and .Values.tls.enabled (not .Values.tls.secretName) }}
+{{- fail "tls.enabled=true needs tls.secretName: a kubernetes.io/tls Secret whose certificate names the daemon Service (<release>-octopus.<namespace>.svc)" }}
+{{- end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "octopus.fullname" . }}
+  labels:
+    {{- include "octopus.labels" . | nindent 4 }}
+spec:
+  # Never scale beyond 1: in-memory agent registry and single-writer loops. Recreate keeps two pods
+  # off the RWO volume.
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "octopus.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        checksum/secret-database: {{ include (print $.Template.BasePath "/secret-database.yaml") . | sha256sum }}
+      labels:
+        {{- include "octopus.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "octopus.serviceAccountName" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: octopus
+          image: {{ include "octopus.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: 8585
+            {{- if eq .Values.agentRuntime.mode "kubernetes" }}
+            - name: llm-gw
+              containerPort: {{ .Values.agentRuntime.gatewayPort }}
+            {{- end }}
+          envFrom:
+            - secretRef:
+                name: {{ include "octopus.secretName" . }}
+          env:
+            {{- if .Values.database.existingSecret }}
+            - name: OCTOPUS_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.existingSecret }}
+                  key: {{ .Values.database.existingSecretKey }}
+            {{- else if .Values.database.url }}
+            - name: OCTOPUS_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "octopus.databaseSecretName" . }}
+                  key: OCTOPUS_DATABASE_URL
+            {{- end }}
+            - name: OCTOPUS_DOMAIN
+              value: {{ .Values.config.domain | quote }}
+            - name: OCTOPUS_LOG_FORMAT
+              value: {{ .Values.config.logFormat | quote }}
+            - name: OCTOPUS_ALLOWED_ORIGINS
+              value: {{ .Values.config.allowedOrigins | default (printf "https://%s" .Values.config.domain) | quote }}
+            - name: OCTOPUS_TRUSTED_PROXIES
+              value: {{ .Values.config.trustedProxies | quote }}
+            # X-Forwarded-Proto only counts from trustedProxies; pin origin and SSO callback to
+            # https so login does not depend on that list.
+            {{- if not (hasKey .Values.extraEnv "OCTOPUS_FRONTEND_ORIGIN") }}
+            - name: OCTOPUS_FRONTEND_ORIGIN
+              value: {{ printf "https://%s" .Values.config.domain | quote }}
+            {{- end }}
+            {{- if not (hasKey .Values.extraEnv "OCTOPUS_OIDC_REDIRECT_URI") }}
+            - name: OCTOPUS_OIDC_REDIRECT_URI
+              value: {{ printf "https://%s/auth/oidc/callback" .Values.config.domain | quote }}
+            {{- end }}
+            - name: OCTOPUS_IMAGE
+              value: {{ include "octopus.image" . | quote }}
+            - name: OCTOPUS_UPDATE_SOURCE
+              value: {{ .Values.updates.source | quote }}
+            - name: OCTOPUS_UPDATE_CHANNELS
+              value: {{ .Values.updates.channels | quote }}
+            {{- with .Values.config.sso.allowedDomains }}
+            - name: OCTOPUS_SSO_ALLOWED_DOMAINS
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with .Values.config.sso.allowedGroups }}
+            - name: OCTOPUS_SSO_ALLOWED_GROUPS
+              value: {{ . | quote }}
+            {{- end }}
+            {{- if ne (toString .Values.config.sso.allowPersonalWorkspaces) "" }}
+            - name: OCTOPUS_ALLOW_PERSONAL_WORKSPACES
+              value: {{ .Values.config.sso.allowPersonalWorkspaces | toString | quote }}
+            {{- end }}
+            {{- with .Values.config.sso.defaultWorkspace }}
+            - name: OCTOPUS_SSO_DEFAULT_WORKSPACE
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with .Values.config.sso.defaultRole }}
+            - name: OCTOPUS_SSO_DEFAULT_ROLE
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with .Values.config.auditSink }}
+            - name: OCTOPUS_AUDIT_SINK
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with .Values.config.apiKeyMaxTTL }}
+            - name: OCTOPUS_API_KEY_MAX_TTL
+              value: {{ . | toString | quote }}
+            {{- end }}
+            {{- with .Values.github.url }}
+            - name: OCTOPUS_GITHUB_URL
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with .Values.github.apiUrl }}
+            - name: OCTOPUS_GITHUB_API_URL
+              value: {{ . | quote }}
+            {{- end }}
+            {{- if .Values.tls.enabled }}
+            - name: OCTOPUS_TLS_CERT_FILE
+              value: /etc/octopus-tls/tls.crt
+            - name: OCTOPUS_TLS_KEY_FILE
+              value: /etc/octopus-tls/tls.key
+            {{- end }}
+            {{- if .Values.config.devMode }}
+            - name: OCTOPUS_DEV_MODE
+              value: "1"
+            {{- end }}
+            {{- range $k, $v := .Values.extraEnv }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+            {{- with include "octopus.mcpEnv" . | trim }}{{ . | nindent 12 }}{{- end }}
+            {{- if eq .Values.agentRuntime.mode "kubernetes" }}
+            - name: OCTOPUS_AGENT_RUNTIME
+              value: "kubernetes"
+            - name: OCTOPUS_KUBE_INCLUSTER
+              value: "true"
+            - name: OCTOPUS_RUNTIME_CLASS
+              value: {{ .Values.agentRuntime.runtimeClass | quote }}
+            {{- with .Values.agentRuntime.agentImage }}
+            - name: OCTOPUS_AGENT_IMAGE
+              value: {{ . | quote }}
+            {{- end }}
+            {{- range $engine, $image := .Values.agentRuntime.engineImages }}
+            - name: OCTOPUS_AGENT_{{ $engine | upper | replace "-" "_" }}_IMAGE
+              value: {{ $image | default (include "octopus.siblingImage" (dict "root" $ "suffix" (printf "agent-%s" $engine))) | quote }}
+            {{- end }}
+            {{- if include "octopus.imageBuild.enabled" . }}
+            - name: OCTOPUS_AGENT_IMAGE_BUILD
+              value: "true"
+            - name: OCTOPUS_AGENT_IMAGE_BUILD_NAMESPACE
+              value: {{ include "octopus.imageBuild.namespace" . | quote }}
+            - name: OCTOPUS_AGENT_IMAGE_BUILD_PUSH_REGISTRY
+              value: {{ include "octopus.imageBuild.pushRegistry" . | quote }}
+            - name: OCTOPUS_AGENT_IMAGE_BUILD_PULL_REGISTRY
+              value: {{ include "octopus.imageBuild.pullRegistry" . | quote }}
+            - name: OCTOPUS_AGENT_IMAGE_BUILD_INSECURE
+              value: {{ include "octopus.imageBuild.bundled" . | default "false" | quote }}
+            - name: OCTOPUS_AGENT_IMAGE_BUILD_AUTH_SECRET
+              value: {{ include "octopus.imageBuild.authSecret" . | quote }}
+            - name: OCTOPUS_AGENT_IMAGE_BUILD_BUILDER_IMAGE
+              value: {{ .Values.agentRuntime.imageBuild.builderImage | quote }}
+            {{- end }}
+            - name: OCTOPUS_SANDBOX_IMAGE
+              value: {{ .Values.agentRuntime.sandboxImage | default (include "octopus.siblingImage" (dict "root" . "suffix" "sandbox")) | quote }}
+            - name: OCTOPUS_SANDBOX_NAMESPACE
+              value: {{ .Values.agentRuntime.sandboxNamespace | quote }}
+            {{- $daemonBase := .Values.agentRuntime.daemonBaseURL | default (include "octopus.daemonURL" .) }}
+            - name: OCTOPUS_AGENT_BASE_URL
+              value: {{ $daemonBase | quote }}
+            - name: OCTOPUS_GIT_BASE_URL
+              value: {{ printf "%s/git" $daemonBase | quote }}
+            - name: OCTOPUS_LLM_GATEWAY_ADDR
+              value: ":{{ .Values.agentRuntime.gatewayPort }}"
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: OCTOPUS_SERVICE_ACCOUNT
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.serviceAccountName
+            - name: OCTOPUS_TENANT_SECRETS_CLUSTERROLE
+              value: {{ include "octopus.tenantSecretsRole" . | quote }}
+            - name: OCTOPUS_CONTROL_PLANE_POD_SELECTOR
+              value: {{ include "octopus.selectorLabelsList" . | quote }}
+            {{- end }}
+            {{- if .Values.caBundle.configMap }}
+            - name: OCTOPUS_EXTRA_CA_BUNDLE
+              value: {{ printf "/etc/octopus-ca/%s" .Values.caBundle.key | quote }}
+            - name: SSL_CERT_DIR
+              value: "/etc/ssl/certs:/etc/octopus-ca"
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+              {{- if .Values.tls.enabled }}
+              scheme: HTTPS
+              {{- end }}
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+              {{- if .Values.tls.enabled }}
+              scheme: HTTPS
+              {{- end }}
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            # readOnlyRootFilesystem: git and anything else using /tmp needs this scratch volume.
+            - name: tmp
+              mountPath: /tmp
+            {{- if and (eq .Values.agentRuntime.mode "docker") .Values.dockerSocket.enabled }}
+            - name: docker-socket
+              mountPath: /var/run/docker.sock
+            {{- end }}
+            {{- if .Values.caBundle.configMap }}
+            - name: ca-bundle
+              mountPath: /etc/octopus-ca
+              readOnly: true
+            {{- end }}
+            {{- if .Values.tls.enabled }}
+            - name: tls
+              mountPath: /etc/octopus-tls
+              readOnly: true
+            {{- end }}
+      volumes:
+        - name: data
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim | default (include "octopus.fullname" .) }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - name: tmp
+          emptyDir: {}
+        {{- if and (eq .Values.agentRuntime.mode "docker") .Values.dockerSocket.enabled }}
+        - name: docker-socket
+          hostPath:
+            path: {{ .Values.dockerSocket.hostPath }}
+            type: Socket
+        {{- end }}
+        {{- if .Values.caBundle.configMap }}
+        - name: ca-bundle
+          configMap:
+            name: {{ .Values.caBundle.configMap }}
+            items:
+              - key: {{ .Values.caBundle.key }}
+                path: {{ .Values.caBundle.key }}
+        {{- end }}
+        {{- if .Values.tls.enabled }}
+        - name: tls
+          secret:
+            secretName: {{ .Values.tls.secretName }}
+            items:
+              - key: tls.crt
+                path: tls.crt
+              - key: tls.key
+                path: tls.key
+        {{- end }}
+      {{- with .Values.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

@@ -1,0 +1,90 @@
+name: Sign image
+description: >
+  Vouch for one pushed image, by digest: cosign keyless signature, the SBOM
+  as a signed attestation, and (where GitHub offers it) SLSA build provenance.
+
+# Composite action: the keyless certificate names the calling workflow (job_workflow_ref), which
+# Kyverno and install.sh pin.
+inputs:
+  image:
+    description: ghcr.io/<owner>/<name>, without tag or digest
+    required: true
+  digest:
+    description: sha256 digest of what was pushed
+    required: true
+  sbom:
+    description: Path to the image's SPDX JSON SBOM, attached as a signed attestation
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Check the reference
+      shell: bash
+      env:
+        IMAGE: ${{ inputs.image }}
+        DIGEST: ${{ inputs.digest }}
+        SBOM: ${{ inputs.sbom }}
+      run: |
+        case "$IMAGE" in ghcr.io/*/*) ;; *) echo "::error::image must be ghcr.io/<owner>/<name>, got '$IMAGE'"; exit 1 ;; esac
+        case "$IMAGE" in *@*|*:*) echo "::error::image must carry neither tag nor digest, got '$IMAGE'"; exit 1 ;; esac
+        if ! [[ "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+          echo "::error::digest must be sha256:<64 hex>, got '$DIGEST'"
+          exit 1
+        fi
+        [ -s "$SBOM" ] || { echo "::error::SBOM $SBOM is missing or empty"; exit 1; }
+
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
+
+    # cosign v2 on purpose: classic .sig/.att tags that every Kyverno release verifies; v3's OCI
+    # referrers are missed by older verifiers.
+    - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      with:
+        cosign-release: v2.6.5
+
+    - name: Sign image (cosign keyless)
+      shell: bash
+      env:
+        REF: ${{ inputs.image }}@${{ inputs.digest }}
+      run: cosign sign --yes "$REF"
+
+    - name: Attach SBOM as a signed attestation
+      shell: bash
+      env:
+        REF: ${{ inputs.image }}@${{ inputs.digest }}
+        SBOM: ${{ inputs.sbom }}
+      run: cosign attest --yes --type spdxjson --predicate "$SBOM" "$REF"
+
+    - name: Attest build provenance
+      id: provenance
+      continue-on-error: true
+      uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
+      with:
+        subject-name: ${{ inputs.image }}
+        subject-digest: ${{ inputs.digest }}
+        push-to-registry: true
+
+    - name: Record what this image carries
+      shell: bash
+      env:
+        REF: ${{ inputs.image }}@${{ inputs.digest }}
+        PROVENANCE: ${{ steps.provenance.outcome }}
+      run: |
+        {
+          echo "### \`$REF\`"
+          echo "- cosign signature: yes"
+          echo "- SBOM attestation (spdxjson): yes"
+          if [ "$PROVENANCE" = "success" ]; then
+            echo "- SLSA provenance (GitHub attestation): yes"
+          else
+            echo "- SLSA provenance: **no** (attestation step: $PROVENANCE)"
+          fi
+        } >> "$GITHUB_STEP_SUMMARY"
+        if [ "$PROVENANCE" != "success" ]; then
+          echo "::warning::$REF was published WITHOUT build provenance"
+        fi

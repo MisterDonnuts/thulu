@@ -1,0 +1,189 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Count from "../components/Count.astro";
+import InlineStatus from "../components/InlineStatus.astro";
+import PageHead from "../components/PageHead.astro";
+import Panel from "../components/Panel.astro";
+import Table from "../components/Table.astro";
+import { INBOX_TABLE, inboxColumns } from "../lib/inbox";
+import { t } from "../i18n";
+
+const cols = inboxColumns();
+---
+
+<Layout title={t("inbox.title")}>
+  <main class="page" style="--page-max: 1100px">
+    <PageHead title={t("inbox.title")}>
+      <Fragment slot="sub">
+        {t("inbox.subtitle")}
+      </Fragment>
+      <Fragment slot="actions">
+        <Count n={0} pill id="stat-questions" label={t("inbox.stats.questions")} />
+        <Count n={0} pill id="stat-approvals" label={t("inbox.stats.approvals")} />
+        <Count n={0} pill id="stat-stalled" label={t("inbox.stats.stalled")} />
+      </Fragment>
+    </PageHead>
+
+    <div class="panel-stack">
+      <Panel icon="tt-question" title={t("inbox.panels.questions")} flush>
+        <InlineStatus slot="aside" id="inbox-note" />
+        <Table cols={cols} {...INBOX_TABLE} bodyId="inbox-questions" loading />
+      </Panel>
+
+      <Panel icon="check" title={t("inbox.panels.approvals")} flush>
+        <Table cols={cols} {...INBOX_TABLE} bodyId="inbox-approvals" loading />
+      </Panel>
+      <Panel icon="refresh" title={t("inbox.panels.stalled")} flush id="inbox-stalled-panel" hidden>
+        <Table cols={cols} {...INBOX_TABLE} bodyId="inbox-stalled" />
+      </Panel>
+    </div>
+  </main>
+
+  <style is:global>
+    .inbox-task {
+      color: var(--fg);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .inbox-task:hover {
+      color: var(--accent);
+    }
+    .inbox-kind {
+      margin-right: var(--s-2);
+    }
+    .inbox-what {
+      font-size: var(--t-sm);
+      color: var(--fg-2);
+      margin-top: 2px;
+    }
+    .inbox-when {
+      font-size: var(--t-xs);
+      color: var(--fg-3);
+    }
+    .inbox-acts {
+      margin-top: var(--s-1);
+    }
+  </style>
+
+  <script>
+    import { startPoller } from "../lib/reactive";
+    import { requireAuth } from "../lib/auth";
+    import { api, ApiError } from "../lib/api";
+    import { $, emptyRowHTML, makeToast, setCount, setInlineStatus } from "../lib/ui";
+    import { events, TASKS_TOPIC } from "../lib/events";
+    import { t } from "../i18n";
+    import type { Stage } from "../lib/stages";
+    import {
+      INBOX_COLUMNS,
+      approvalRowsHTML,
+      questionRowsHTML,
+      stalledRowsHTML,
+      type InboxResponse,
+    } from "../lib/inbox";
+    import { onPage } from "../lib/page";
+
+    onPage("/inbox", (signal) => {
+      requireAuth();
+
+      const questionsEl = $("inbox-questions");
+      const approvalsEl = $("inbox-approvals");
+      const stalledEl = $("inbox-stalled");
+      const note = $("inbox-note");
+      let stageLabels = new Map<string, string>();
+      let loaded = false;
+
+      function setBody(el: HTMLElement, html: string) {
+        if (el.dataset.sig === html) return;
+        el.innerHTML = html;
+        el.dataset.sig = html;
+      }
+      const emptyRow = (text: string) => emptyRowHTML(text, { cols: INBOX_COLUMNS });
+
+      function render(resp: InboxResponse) {
+        const qs = resp.questions ?? [];
+        const as = resp.approvals ?? [];
+        const ss = resp.stalled ?? [];
+        setCount($("stat-questions"), qs.length, { pill: true, label: t("inbox.stats.questions") });
+        setCount($("stat-approvals"), as.length, { pill: true, label: t("inbox.stats.approvals") });
+        setCount($("stat-stalled"), ss.length, { pill: true, label: t("inbox.stats.stalled") });
+        document.title = t("inbox.document_title", { count: qs.length + as.length + ss.length });
+        $("inbox-stalled-panel").hidden = ss.length === 0;
+        setBody(stalledEl, stalledRowsHTML(ss, stageLabels));
+        setInlineStatus(note, "neutral", "");
+        setBody(
+          questionsEl,
+          qs.length ? questionRowsHTML(qs, stageLabels) : emptyRow(t("inbox.empty.questions")),
+        );
+        setBody(
+          approvalsEl,
+          as.length ? approvalRowsHTML(as, stageLabels) : emptyRow(t("inbox.empty.approvals")),
+        );
+      }
+
+      function showError(err: unknown) {
+        const msg = err instanceof ApiError ? err.message : t("inbox.errors.load_failed");
+        if (!loaded) {
+          setBody(questionsEl, emptyRow(msg));
+          setBody(approvalsEl, emptyRow(msg));
+          return;
+        }
+        setInlineStatus(note, "danger", t("inbox.errors.refresh_failed", { error: msg }));
+      }
+
+      async function refresh() {
+        try {
+          render(await api.get<InboxResponse>("/inbox"));
+          loaded = true;
+        } catch (err) {
+          showError(err);
+          throw err; // rethrown so the poller backs off
+        }
+      }
+
+      // Every write to a question or approval publishes on the `tasks` topic; the poller only
+      // covers dropped frames.
+      const poller = startPoller({ interval: 30000, fetch: refresh });
+      const offTasks = events.subscribe(TASKS_TOPIC, () => poller.poke(), { replay: false });
+      const offReconnect = events.onReconnect(() => poller.poke());
+      signal.addEventListener("abort", () => {
+        offTasks();
+        offReconnect();
+      });
+
+      const toast = makeToast();
+      approvalsEl.addEventListener(
+        "click",
+        async (e) => {
+          const btn = (e.target as HTMLElement).closest<HTMLButtonElement>("[data-approve]");
+          if (!btn || btn.disabled) return;
+          btn.disabled = true;
+          try {
+            await api.post(`/tasks/${btn.dataset.task}/approvals/${btn.dataset.approve}/decide`, {
+              decision: "approved",
+            });
+            toast(t("inbox.toasts.approved"), "ok");
+          } catch (err) {
+            btn.disabled = false;
+            toast(
+              t("inbox.errors.approve_failed", {
+                error: err instanceof ApiError ? err.message : String(err),
+              }),
+              "err",
+            );
+            return;
+          }
+          poller.poke();
+        },
+        { signal },
+      );
+
+      void api
+        .get<Stage[]>("/stages")
+        .then((stages) => {
+          stageLabels = new Map(stages.map((s) => [s.id, s.label || s.id]));
+          if (loaded) poller.poke();
+        })
+        .catch(() => {});
+    });
+  </script>
+</Layout>

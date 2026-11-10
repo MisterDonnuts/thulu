@@ -1,0 +1,191 @@
+name: thulu-github
+description: |
+  GitHub API behind an MCP. Per-project tokens resolved server-side via Thulu
+  (no token ever reaches the agent). Scoped tool exposure: read | write.
+  Tools cover Pull Requests (view, diff, list, files, comment, review, create)
+  and GitHub Actions: read (workflow_list, workflow_view, run_list, run_view,
+  run_watch, run_jobs, run_logs, run_artifacts, run_pending_deployments), write
+  (run_rerun, run_cancel), and three that no scope grants and an operator has to
+  name tool by tool — run_dispatch, deployment_approve and pr_merge.
+type: mcp
+# The dashboard's per-tool picker reads default_scope; without it a bare `thulu-github` ticks every
+# box,
+# including run_dispatch, deployment_approve and pr_merge, which no scope grants.
+default_scope: write
+# `requires` lists the minimum credential permissions per tool; internal/credentials/catalog.go is
+# the runtime
+# source of truth and a test checks the two agree. A tool that degrades without a permission lists
+# nothing.
+tools:
+  - name: pr_view
+    description: PR metadata (title, body, state, head/base, mergeable, counts).
+    scope: read
+    requires: {github: [github:repo:read]}
+  - name: pr_diff
+    description: Unified diff for a PR. Capped — use pr_files for large PRs.
+    scope: read
+    requires: {github: [github:repo:read]}
+  - name: pr_list
+    description: List PRs with optional state/head/base filters.
+    scope: read
+    requires: {github: [github:repo:read]}
+  - name: pr_files
+    description: Files changed in a PR with per-file patches. Paginable.
+    scope: read
+    requires: {github: [github:repo:read]}
+  - name: pr_comments_list
+    description: The PR's conversation comments, oldest first, paged up to a cap. Optional since.
+    scope: read
+    requires: {github: [github:repo:read]}
+  - name: pr_review_threads
+    description: Inline review comments grouped by thread, resolved/outdated state, unresolved first. Thread ids feed resolve/unresolve, comment ids feed replies.
+    scope: read
+    requires: {github: [github:repo:read]}
+  - name: pr_reviews_list
+    description: Submitted reviews (APPROVED, CHANGES_REQUESTED, COMMENTED, DISMISSED, PENDING) with body and reviewed commit.
+    scope: read
+    requires: {github: [github:repo:read]}
+  - name: pr_reviewers
+    description: Requested reviewers (users and teams) who still owe a review, plus each reviewer's latest verdict.
+    scope: read
+    requires: {github: [github:repo:read]}
+  - name: pr_checks
+    description: CI on the PR head — check runs, commit statuses and a verdict. Asks for checks:read; falls back to Actions runs without it.
+    scope: read
+    requires: {github: [github:repo:read]}
+  - name: labels_list
+    description: The repository's labels, to pick from before labelling.
+    scope: read
+    requires: {github: [github:repo:read]}
+  # commit and branch_status need no `requires` (Thulu runs git, no GitHub token), but must stay
+  # listed:
+  # a tool missing here is absent from the picker and silently dropped from explicit lists.
+  - name: commit
+    description: Ask Thulu to commit the task's worktree. Idempotent.
+    scope: write
+  - name: branch_status
+    description: ahead/behind/needs_rebase of the task branch against origin. Read-only.
+    scope: read
+  - name: branch_push
+    description: Ask Thulu to push the task branch to origin. Required before pr_create when the agent's container lacks SSH keys.
+    scope: write
+    requires: {github: [github:repo:write]}
+  - name: pr_comment
+    description: Post a top-level comment on a PR.
+    scope: write
+    requires: {github: [github:repo:write]}
+  - name: pr_review_submit
+    description: Submit a review (APPROVE | REQUEST_CHANGES | COMMENT) with optional inline comments.
+    scope: write
+    requires: {github: [github:repo:write]}
+  - name: pr_review_comment_reply
+    description: Reply inside an inline review thread, by the id of any comment in it.
+    scope: write
+    requires: {github: [github:repo:write]}
+  - name: pr_review_thread_resolve
+    description: Resolve a review thread (GraphQL node id). Refuses a thread from another repo.
+    scope: write
+    requires: {github: [github:repo:write]}
+  - name: pr_review_thread_unresolve
+    description: Reopen a resolved review thread. Refuses a thread from another repo.
+    scope: write
+    requires: {github: [github:repo:write]}
+  - name: pr_reviewers_request
+    description: Request reviews from users and/or teams.
+    scope: write
+    requires: {github: [github:repo:write]}
+  - name: pr_reviewers_remove
+    description: Withdraw review requests from users and/or teams.
+    scope: write
+    requires: {github: [github:repo:write]}
+  - name: pr_labels_add
+    description: Add existing labels to a PR. Unknown names are refused, never created.
+    scope: write
+    requires: {github: [github:repo:write]}
+  - name: pr_labels_remove
+    description: Remove labels from a PR; one it does not carry is reported, not an error.
+    scope: write
+    requires: {github: [github:repo:write]}
+  - name: pr_labels_set
+    description: Replace a PR's labels with exactly this list of existing labels.
+    scope: write
+    requires: {github: [github:repo:write]}
+  - name: pr_assignees_add
+    description: Assign users to a PR; reports logins GitHub skipped.
+    scope: write
+    requires: {github: [github:repo:write]}
+  - name: pr_assignees_remove
+    description: Unassign users from a PR.
+    scope: write
+    requires: {github: [github:repo:write]}
+  - name: pr_update
+    description: Edit a PR's title, body or base. Cannot close it.
+    scope: write
+    requires: {github: [github:repo:write]}
+  - name: pr_ready_for_review
+    description: Mark a draft PR ready for review, or (draft=true) convert it back to draft.
+    scope: write
+    requires: {github: [github:repo:write]}
+  - name: pr_create
+    description: Open a new PR. Branch must already exist on the remote.
+    scope: write
+    requires: {github: [github:repo:write]}
+  - name: workflow_list
+    description: List workflows defined in the repo.
+    scope: read
+    requires: {github: [github:actions:read]}
+  - name: run_list
+    description: List workflow runs filtered by workflow/branch/status.
+    scope: read
+    requires: {github: [github:actions:read]}
+  - name: run_jobs
+    description: Jobs of a run with per-step breakdown. Source of the job_id run_logs needs; failed_only=true narrows to the broken jobs.
+    scope: read
+    requires: {github: [github:actions:read]}
+  - name: run_logs
+    description: Fetch logs for a run (job_id required for plain text — get it from run_jobs).
+    scope: read
+    requires: {github: [github:actions:read]}
+  - name: run_view
+    description: One run by id — the cheap poll for status and conclusion.
+    scope: read
+    requires: {github: [github:actions:read]}
+  - name: run_watch
+    description: Poll a run until it finishes, stopping early when it needs a deployment review. Carries the failed jobs on failure.
+    scope: read
+    requires: {github: [github:actions:read]}
+  - name: run_pending_deployments
+    description: Environments a run is waiting on, with the reviewers who may release it.
+    scope: read
+    requires: {github: [github:actions:read]}
+  - name: run_artifacts
+    description: Artifacts a run produced (name, size, expiry, download URL).
+    scope: read
+    requires: {github: [github:actions:read]}
+  - name: workflow_view
+    description: One workflow plus its YAML source — where the workflow_dispatch inputs are declared.
+    scope: read
+    requires: {github: [github:actions:read, github:repo:read]}
+  - name: run_rerun
+    description: Re-run a workflow run; failed_only=true re-runs only failed jobs.
+    scope: write
+    requires: {github: [github:actions:write]}
+  - name: run_cancel
+    description: Cancel a queued or in-progress run. Stops the jobs still running; not a rollback.
+    scope: write
+    requires: {github: [github:actions:write]}
+  # No scope grants these three; they must be named in the agent's tool list
+  # (thulu-github@run_view+run_dispatch),
+  # the same rule as octopus-api's cross-board tools.
+  - name: run_dispatch
+    description: Trigger a workflow_dispatch and return the run it created.
+    scope: deploy
+    requires: {github: [github:actions:write]}
+  - name: deployment_approve
+    description: Approve or reject the environments a run is waiting on. Only when the run's token is a required reviewer — granting it to the agent that dispatches collapses the human gate.
+    scope: deploy
+    requires: {github: [github:actions:write]}
+  - name: pr_merge
+    description: Merge a pull request. In a delegated chat it waits for the person the chat acts for to confirm it.
+    scope: deploy
+    requires: {github: [github:repo:write]}

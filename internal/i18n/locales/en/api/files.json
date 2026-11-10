@@ -1,0 +1,7 @@
+{
+  "errors": {
+    "file_not_found": "file not found",
+    "invalid_path": "invalid path",
+    "walk_output_dir": "walk output dir"
+  }
+}

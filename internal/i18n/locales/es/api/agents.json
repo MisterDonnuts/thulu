@@ -1,0 +1,58 @@
+{
+  "errors": {
+    "agent_not_found": "no existe el agente: {name}",
+    "not_in_catalog": "el agente no está en el catálogo",
+    "agent_exists": "ya existe un agente con ese nombre",
+    "invalid_agent_name": "el nombre no es válido: sólo minúsculas, números, guion y guion bajo, hasta 64 caracteres, y no puede empezar con guion",
+    "invalid_type_name": "el nombre del tipo no es válido",
+    "template_not_found": "no existe la plantilla: {name}",
+    "empty_path": "la ruta está vacía",
+    "path_escapes_dir": "la ruta se sale del directorio del agente",
+    "file_not_editable": "este archivo no se puede editar",
+    "file_not_found": "el archivo no existe",
+    "read_body": "leer el cuerpo de la solicitud",
+    "revision_id_not_number": "el id de la revisión tiene que ser un número",
+    "revision_not_found": "no existe la revisión",
+    "no_stored_content": "no hay contenido guardado",
+    "compose_not_found": "no se encontró el compose",
+    "compose_parse": "leer el compose",
+    "compose_no_services": "el compose no tiene servicios",
+    "agent_service_not_found": "no se encontró el servicio del agente",
+    "scaffold": "generar el esqueleto en {path}",
+    "scaffold_rel": "ruta relativa del esqueleto {path}",
+    "mkdir": "crear el directorio {path}",
+    "mkdir_parent": "crear el directorio padre {path}",
+    "read_embedded": "leer el archivo embebido {path}",
+    "parse_template": "leer la plantilla {path}",
+    "render_template": "generar la plantilla {path}",
+    "write_file": "escribir {path}",
+    "relative_path": "ruta relativa de {path}",
+    "read_file": "leer {path}",
+    "walk_dir": "recorrer {path}"
+  },
+  "labels": {
+    "agent_prompts": "Prompts del agente",
+    "auditor_prompts": "Prompts del auditor"
+  },
+  "hints": {
+    "agent_prompts": "Lo que el agente lee al empezar cada corrida. Cada etapa usa su propio prompt si lo tiene; si no, el principal (main.md).",
+    "auditor_prompts": "Lo que lee el auditor cuando revisa una corrida terminada, uno por etapa. Una etapa sin el suyo usa default.md."
+  },
+  "audit": {
+    "content_updated": "contenido del agente actualizado: {agent}/{path}",
+    "content_deleted": "contenido del agente borrado: {agent}/{path}",
+    "content_restored": "contenido del agente restaurado: {agent}/{path}",
+    "agent_created": "agente creado: {agent}",
+    "agent_deleted": "agente deshabilitado: {agent}",
+    "settings_updated": "ajustes del agente actualizados: {agent}",
+    "definition_restored": "definición del agente restaurada: {agent}"
+  },
+  "log": {
+    "resolve_output_dir": "resolver el directorio de salida del agente {id}",
+    "cleanup_partial_dir": "limpiar el directorio a medio crear del agente {path}",
+    "rewrite_type_label": "reescribir la etiqueta thulu.type en {dir}/{file}",
+    "drop_stale_binding": "borrar el perfil de modelo que quedó asignado al nombre del agente {agent}",
+    "discover_failed": "descubrir agentes en {path}",
+    "system_skills_unreadable": "no se pudieron leer las skills del sistema, se sirve la última lista: {err}"
+  }
+}

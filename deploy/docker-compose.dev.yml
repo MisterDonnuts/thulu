@@ -1,0 +1,258 @@
+# Thulu — development stack (everything in containers, nothing on the host).
+#
+# Usage:
+#   thulu init            # pick "Local development"; writes deploy/.env and starts this
+#   docker compose -f deploy/docker-compose.dev.yml up --build
+#
+# What you get:
+#   - Go daemon on :8585 with live reload via `air` (rebuilds on .go changes)
+#   - Astro dev server on :4321 with Vite HMR (rebuilds on .astro/.ts/.css changes)
+#   - Postgres 16 on 127.0.0.1:5433 — the daemon connects to it via OCTOPUS_DATABASE_URL
+#   - Project worktrees and logs persisted in the `octopus-dev-data` volume
+#   - Sandboxes work: /var/run/docker.sock is mounted into the api container
+#   - The MCP servers checked in `thulu init`, built from tools/<name> with
+#     server.js mounted so an edit only needs `docker compose restart <name>`
+#
+# Ports are published on 127.0.0.1 unless OCTOPUS_BIND says otherwise. The
+# stack needs OCTOPUS_JWT_SECRET and OCTOPUS_PG_PASSWORD in deploy/.env;
+# `thulu init` writes both.
+#
+# Open http://localhost:4321 — the dashboard talks to the API on :8585.
+#
+# Tear down (and wipe data):
+#   docker compose -f deploy/docker-compose.dev.yml down -v
+
+# Log rotation for every service. Docker's json-file driver otherwise keeps a
+# container's whole output for as long as the container exists, and the
+# daemon's log alone grows without bound on a busy install.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+# Hardening shared by every MCP server; see docker-compose.yml.
+x-mcp-server: &mcp-server
+  logging: *default-logging
+  restart: unless-stopped
+  user: "1000:1000"
+  read_only: true
+  tmpfs:
+    - /tmp
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  networks:
+    - agents
+
+services:
+  api:
+    logging: *default-logging
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.dev
+    working_dir: /workspace
+    # Everything `thulu init` writes lands here. Compose only passes the
+    # variables named in `environment:` below, so without this file
+    # OCTOPUS_DEV_MODE, OCTOPUS_LICENSE_KEY, OCTOPUS_OPERATOR_WORKSPACE, the
+    # OIDC group mapping and the MCP URLs would not arrive.
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # No committed fallback: a secret every checkout shares signs sessions
+      # anybody can forge. `openssl rand -hex 32` if you are not using init.
+      OCTOPUS_JWT_SECRET: ${OCTOPUS_JWT_SECRET:?set OCTOPUS_JWT_SECRET in deploy/.env (thulu init generates one)}
+      # The dashboard runs on Vite (:4321) and calls the API on :8585, so
+      # both origins, under both loopback spellings, have to be allowed.
+      # deploy/.env wins when `thulu init` wrote a list there.
+      OCTOPUS_ALLOWED_ORIGINS: ${OCTOPUS_ALLOWED_ORIGINS:-http://localhost:4321,http://127.0.0.1:4321,http://localhost:8585,http://127.0.0.1:8585}
+      OCTOPUS_LOG_FORMAT: text
+      OCTOPUS_PUBLIC_HOST: localhost
+      OCTOPUS_DATABASE_URL: postgres://octopus:${OCTOPUS_PG_PASSWORD}@pg:5432/octopus?sslmode=disable
+      DOCKER_HOST: unix:///var/run/docker.sock
+      # Agents join the agents network and reach the daemon (`api`) and the
+      # MCP servers there by service name.
+      OCTOPUS_AGENT_NETWORK: ${OCTOPUS_AGENT_NETWORK:-octopus-dev-agents}
+      OCTOPUS_AGENT_BASE_URL: http://api:8585
+      # Bare repos under /data/sources (the local-project pattern) may be
+      # registered as file:///data/sources/<name>.git. Nothing else on the
+      # volume can: not a project checkout, not a worktree.
+      OCTOPUS_GIT_LOCAL_REMOTE_ROOT: ${OCTOPUS_GIT_LOCAL_REMOTE_ROOT:-/data/sources}
+      # Optional SSO: set these in deploy/.env and uncomment the lines below
+      # OCTOPUS_OIDC_ISSUER: ${OCTOPUS_OIDC_ISSUER:-}
+      # OCTOPUS_OIDC_CLIENT_ID: ${OCTOPUS_OIDC_CLIENT_ID:-}
+      # OCTOPUS_OIDC_CLIENT_SECRET: ${OCTOPUS_OIDC_CLIENT_SECRET:-}
+    volumes:
+      # Repo bind-mount so air sees your edits.
+      - ..:/workspace:cached
+      # Named volumes for Go caches — keeps rebuilds fast across `up`/`down`
+      # and isolates Linux container caches from your Mac host.
+      - go-mod-cache:/go/pkg/mod
+      - go-build-cache:/root/.cache/go-build
+      # Project worktrees, logs, attachments. Postgres lives in the `pg`
+      # service.
+      - octopus-dev-data:/data
+      # Required for sandbox management (same as prod).
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "${OCTOPUS_BIND:-127.0.0.1}:8585:8585"
+    networks:
+      - octopus-dev
+      - agents
+    depends_on:
+      pg:
+        condition: service_healthy
+
+  pg:
+    logging: *default-logging
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: octopus
+      POSTGRES_PASSWORD: ${OCTOPUS_PG_PASSWORD:?set OCTOPUS_PG_PASSWORD in deploy/.env (thulu init generates one)}
+      POSTGRES_DB: octopus
+    volumes:
+      - octopus-dev-pg:/var/lib/postgresql/data
+    ports:
+      # Loopback only, on 5433 to avoid colliding with a host-installed
+      # Postgres.
+      - "127.0.0.1:5433:5432"
+    networks:
+      - octopus-dev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U octopus -d octopus"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    logging: *default-logging
+    image: node:22-alpine
+    working_dir: /web
+    # `npm ci` is a no-op when node_modules is already populated in the named
+    # volume; the first run installs, subsequent runs are instant.
+    command: sh -c "npm ci --prefer-offline --no-audit && npm run dev -- --host 0.0.0.0"
+    environment:
+      # Astro/Vite sometimes misses file events on bind-mounts; polling is the
+      # reliable cross-platform fallback (Mac, WSL, Linux).
+      CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: "500"
+    volumes:
+      - ../web:/web:cached
+      # Isolate node_modules so the host arch (arm64 on Apple Silicon) does
+      # not collide with the Linux container's binaries (esbuild, sharp…).
+      - web-node-modules:/web/node_modules
+    ports:
+      - "${OCTOPUS_BIND:-127.0.0.1}:4321:4321"
+    networks:
+      - octopus-dev
+    depends_on:
+      - api
+
+  # ── MCP servers (one profile each; see COMPOSE_PROFILES) ────────────────────
+  # Built from the checkout. server.js is mounted read-only on top of the
+  # image's copy so an edit is picked up by a restart, not a rebuild — a
+  # development convenience the other stacks deliberately do not have.
+
+  octopus-api:
+    <<: *mcp-server
+    profiles: ["octopus-api"]
+    image: octopus-mcp-octopus-api:dev
+    build:
+      context: ../tools/octopus-api
+    environment:
+      OCTOPUS_API: http://api:8585
+      HOME: /tmp
+    volumes:
+      - ../tools/octopus-api/server.js:/app/server.js:ro
+      - ../tools/octopus-api/i18n.js:/app/i18n.js:ro
+      - ../tools/octopus-api/locales:/app/locales:ro
+
+  thulu-github:
+    <<: *mcp-server
+    profiles: ["thulu-github"]
+    image: octopus-mcp-github:dev
+    build:
+      context: ../tools/thulu-github
+    environment:
+      OCTOPUS_API: http://api:8585
+      HOME: /tmp
+      # GitHub Enterprise Server; empty = api.github.com.
+      GITHUB_API_URL: ${OCTOPUS_GITHUB_API_URL:-}
+    volumes:
+      - ../tools/thulu-github/server.js:/app/server.js:ro
+      - ../tools/thulu-github/i18n.js:/app/i18n.js:ro
+      - ../tools/thulu-github/locales:/app/locales:ro
+
+  thulu-browser:
+    <<: *mcp-server
+    profiles: ["thulu-browser"]
+    image: octopus-mcp-browser:dev
+    build:
+      context: ../tools/thulu-browser
+    shm_size: 1gb
+    # The browser tools read and write scripts and screenshots under
+    # /agents-shared (their documented contract). Here it is scratch, like /tmp:
+    # a screenshot reaches the task by upload through the daemon API.
+    tmpfs:
+      - /tmp
+      - /agents-shared
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      OCTOPUS_API: http://api:8585
+      # The sessions of a run on a runner open localhost on this host, where
+      # its agent serves the app (lib/host-proxy.js). Empty turns it off.
+      HOST_GATEWAY: ${OCTOPUS_BROWSER_HOST_GATEWAY-host.docker.internal}
+      HOME: /tmp
+    volumes:
+      - ../tools/thulu-browser/server.js:/app/server.js:ro
+      - ../tools/thulu-browser/i18n.js:/app/i18n.js:ro
+      - ../tools/thulu-browser/locales:/app/locales:ro
+      - ../tools/thulu-browser/lib:/app/lib:ro
+      - ../tools/thulu-browser/evidence:/app/evidence:ro
+
+  thulu-cloud:
+    <<: *mcp-server
+    profiles: ["thulu-cloud"]
+    image: octopus-mcp-cloud:dev
+    build:
+      context: ../tools/thulu-cloud
+    environment:
+      OCTOPUS_API: http://api:8585
+      HOME: /tmp
+    volumes:
+      - ../tools/thulu-cloud/server.js:/app/server.js:ro
+      - ../tools/thulu-cloud/i18n.js:/app/i18n.js:ro
+      - ../tools/thulu-cloud/locales:/app/locales:ro
+
+  thulu-figma:
+    <<: *mcp-server
+    profiles: ["thulu-figma"]
+    image: octopus-mcp-figma:dev
+    build:
+      context: ../tools/thulu-figma
+    environment:
+      OCTOPUS_API: http://api:8585
+      HOME: /tmp
+    volumes:
+      - ../tools/thulu-figma/server.js:/app/server.js:ro
+      - ../tools/thulu-figma/figma.js:/app/figma.js:ro
+      - ../tools/thulu-figma/i18n.js:/app/i18n.js:ro
+      - ../tools/thulu-figma/locales:/app/locales:ro
+
+volumes:
+  octopus-dev-data:
+  octopus-dev-pg:
+  go-mod-cache:
+  go-build-cache:
+  web-node-modules:
+
+networks:
+  octopus-dev:
+    driver: bridge
+  agents:
+    name: ${OCTOPUS_AGENT_NETWORK:-octopus-dev-agents}
+    driver: bridge

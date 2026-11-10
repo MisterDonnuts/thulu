@@ -1,0 +1,26 @@
+{
+  "title": "Configuración",
+  "subtitle": "Webhooks, registro de auditoría, acceso a la API y salud del sistema.",
+  "document_title": "{section} — Configuración — Thulu",
+  "buttons": {
+    "make_default": "Hacer predeterminado"
+  },
+  "labels": {
+    "role": "Rol"
+  },
+  "roles": {
+    "viewer": "lector",
+    "developer": "desarrollador",
+    "admin": "administrador",
+    "owner": "dueño"
+  },
+  "edition": {
+    "enterprise": "Enterprise",
+    "community": "Community",
+    "enterprise_ee": "Enterprise (EE)",
+    "community_ce": "Community (CE)"
+  },
+  "denied": {
+    "role": "Esta sección es para quien administra el workspace, y tu rol es {role}. Si necesitás algo de acá, pedíselo a un administrador."
+  }
+}

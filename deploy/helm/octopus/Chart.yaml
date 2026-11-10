@@ -1,0 +1,26 @@
+apiVersion: v2
+name: octopus
+description: |
+  Self-hosted task board where AI coding agents work the stages of your
+  process: Go daemon with an embedded dashboard, sandboxed agent execution,
+  sign-in through your OIDC identity
+  provider or GitHub, four fixed roles and an audit log. This chart deploys a
+  single-node install into your own cluster; a license key
+  (secrets.licenseKey) activates the paid plans.
+type: application
+# The release packages the chart with --version VERSION, so this only matters for a chart installed from a clone.
+version: 1.0.0
+# Default image tag when image.tag is empty: must be a tag published in ghcr.io, or installs hit
+# ImagePullBackOff. `make release` refuses a VERSION that differs from it.
+appVersion: "1.0.0"
+home: https://github.com/MisterDonnuts/thulu
+sources:
+  - https://github.com/MisterDonnuts/thulu
+keywords:
+  - ai-agents
+  - kanban
+  - self-hosted
+  - claude
+maintainers:
+  - name: Thulu
+    url: https://github.com/MisterDonnuts/thulu

@@ -1,0 +1,32 @@
+---
+// Markup must match filterBarHTML() in lib/ui/toolbar.ts.
+import {
+  filterBarA11y,
+  filterBarClasses,
+  type FilterBarLook,
+  type FilterBarTag,
+} from "../lib/ui/toolbar";
+
+interface Props {
+  look?: FilterBarLook;
+  as?: FilterBarTag;
+  label?: string;
+  id?: string;
+  class?: string;
+  [key: string]: unknown;
+}
+const { look = "plain", as = "div", label, id, class: extra, ...rest } = Astro.props;
+const Tag = as;
+const own = { id, class: filterBarClasses({ look, cls: extra }), ...filterBarA11y(as, label) };
+---
+
+<Tag {...own} {...rest}>
+  <slot />
+  {
+    Astro.slots.has("end") && (
+      <div class="filter-bar-end">
+        <slot name="end" />
+      </div>
+    )
+  }
+</Tag>

@@ -1,0 +1,10 @@
+{
+  "errors": {
+    "stream_not_found": "stream not found",
+    "invalid_body": "invalid JSON body",
+    "too_many_topics": "too many topics in one request"
+  },
+  "hints": {
+    "waiting_for_logs": "waiting for the run to start producing logs"
+  }
+}

@@ -1,0 +1,9 @@
+name: octopus-observability
+description: How to connect a project's observability in Thulu with octopus-api. Propose where each of the nine fixed signals of an environment comes from (mappings, not_applicable, human approval), propose dashboards of the app's own metrics on the closed chart catalog and verify them with dashboard_data, and what to report when telemetry is missing (OTLP endpoint and ingest token). Use it in tasks like "connect observability" or "I want to see X in Thulu", or when a panel shows gaps.
+type: knowledge
+enforcement: on_demand
+requires: []
+# Bump on every change: the daemon syncs this skill at boot only when version exceeds the stored
+# one.
+version: 3
+mcp: octopus-api

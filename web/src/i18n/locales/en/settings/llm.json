@@ -1,0 +1,116 @@
+{
+  "intro_html": "Each engine has one <strong>default profile</strong>: the key, and optionally the model, that agents on that engine run with. Add more profiles when an agent needs another model, key or endpoint, and pick them per agent on the <a href=\"/agents/\">Agents</a> page. Keys are encrypted at rest; only a masked hint comes back.",
+  "cross_html": "Keys the agents' tools use (GitHub, AWS, Google Cloud) go in <a href=\"/credentials/\">Credentials</a>.",
+  "engine": {
+    "none": "No configurable engines.",
+    "default_badge": "Default",
+    "default_label": "Default",
+    "others_label": "Other profiles",
+    "others_none": "None yet. Add one when an agent needs a different model, key or endpoint.",
+    "set_default_key": "Set default key",
+    "fallback": "Default engine",
+    "fallback_title": "Agents that do not pick an engine run on this one",
+    "new_profile": "New profile"
+  },
+  "modal": {
+    "new_title": "New profile",
+    "create": "Create profile",
+    "engine_line": "Engine: {engine} · provider: {provider}"
+  },
+  "labels": {
+    "name": "Name",
+    "provider": "Provider",
+    "model": "Model",
+    "effort": "Effort",
+    "base_url": "Base URL",
+    "auth_header": "Send the key as",
+    "region": "Region",
+    "project_id": "Project ID",
+    "small_model": "Small model",
+    "aws_key_id": "Access key ID",
+    "aws_secret": "Secret access key",
+    "aws_session": "Session token",
+    "gcp_sa": "Service account key JSON",
+    "clear_key": "Drop the stored credential and use this install's own cloud identity",
+    "org_id": "Org ID",
+    "credential": "Credential",
+    "key": "Key",
+    "bedrock_key": "Bedrock API key (optional)",
+    "default_for_engine": "Default for this engine",
+    "default_for": "Default for {engine}",
+    "default_for_locked": "Default for {engine} (make another profile the default to change it)",
+    "fed_rule": "Federation rule ID",
+    "fed_service_account": "Service account ID",
+    "fed_org": "Organization ID",
+    "fed_workspace": "Workspace ID",
+    "fed_issuer": "the issuer URL",
+    "fed_subject": "the subject prefix",
+    "fed_jwks": "the JWKS"
+  },
+  "placeholders": {
+    "name": "team-anthropic, gpt5-research, …",
+    "base_url": "https://litellm.internal",
+    "region": "us-east-1, us-east5, …",
+    "small_model": "The cloud's id for the fast model, e.g. a Bedrock inference profile",
+    "org_id": "org-…",
+    "cloud_key": "Or an access key pair above",
+    "fed_rule": "fdrl_…",
+    "fed_service_account": "svac_…",
+    "fed_org": "00000000-0000-0000-0000-000000000000",
+    "fed_workspace": "wrkspc_… (only for a rule on several workspaces)"
+  },
+  "effort": {
+    "cli_default": "CLI default",
+    "low": "low",
+    "medium": "medium",
+    "high": "high"
+  },
+  "auth_header": {
+    "x_api_key": "x-api-key header (default)",
+    "bearer": "Authorization: Bearer"
+  },
+  "hints": {
+    "cloud_keep": "Leave the credential fields empty to keep the stored one.",
+    "cloud_identity": "Leave the credential fields empty to use this install's own cloud identity (IRSA, Workload Identity), if the operator allows it.",
+    "federation": "No key: every run gets an identity token this daemon signs, and Anthropic exchanges it for a short-lived access token under your federation rule. Copy the IDs from the workload identity settings of the Claude Console.",
+    "federation_console": "In the Claude Console, register this daemon as an issuer with this URL, and match the subject in the rule. Every run of this workspace has a subject that starts with the prefix below.",
+    "federation_jwks": "If the Console cannot reach this daemon, pick the inline JWKS option and paste this key set. Paste it again after the installation owner rotates the signing key."
+  },
+  "confirm": {
+    "make_default_title": "Make \"{name}\" the default for {engine}?",
+    "make_default_switch": {
+      "one": "{count} agent without a profile of their own switch to this key on their next run.",
+      "other": "{count} agents without a profile of their own switch to this key on their next run."
+    },
+    "make_default_switch_model": {
+      "one": "{count} agent without a profile of their own switch to this key and model on their next run.",
+      "other": "{count} agents without a profile of their own switch to this key and model on their next run."
+    },
+    "make_default_none": "Agents on this engine without a profile of their own will run with it.",
+    "delete_title": "Delete profile \"{name}\"?",
+    "delete_default": "Agents on {engine} without a profile of their own fall back to the host credential.",
+    "delete_default_blocked": "Agents on {engine} without a profile of their own will not start until you add another key.",
+    "delete_other": "The key is deleted with it."
+  },
+  "toasts": {
+    "now_default": "\"{name}\" is now the default for {engine}",
+    "deleted": "Profile deleted",
+    "saved": "Profile \"{name}\" saved",
+    "created": "Profile \"{name}\" created",
+    "key_valid": "The provider accepted the key of \"{name}\"",
+    "key_invalid": "The provider rejected the key of \"{name}\": check it before the next run",
+    "key_unreachable": "Could not reach the provider to check the key of \"{name}\". Try Re-check later"
+  },
+  "errors": {
+    "load_failed": "Could not load engines.",
+    "default_failed": "Failed to change the default",
+    "profile_in_use": "\"{name}\" is used by {agents}. Move those agents to another profile first.",
+    "delete_failed": "Failed to delete the profile",
+    "save_failed": "Failed to save the profile",
+    "check_failed": "Could not check the key",
+    "federation_unavailable": "Could not load the issuer details from the daemon."
+  },
+  "buttons": {
+    "recheck": "Re-check"
+  }
+}

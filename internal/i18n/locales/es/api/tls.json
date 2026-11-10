@@ -1,0 +1,14 @@
+{
+  "errors": {
+    "cert_and_key_together": "{cert} y {key} se definen juntas",
+    "load_key_pair": "cargar el par de claves TLS",
+    "stat_certificate": "certificado TLS",
+    "stat_key": "clave TLS",
+    "no_certificate": "no hay ningún certificado TLS cargado"
+  },
+  "log": {
+    "stat_failed": "TLS: {err}; sigue sirviendo el certificado cargado antes",
+    "reload_failed": "TLS: el par de claves nuevo en disco no carga ({err}); sigue sirviendo el anterior",
+    "reloaded": "TLS: certificado recargado desde {path}"
+  }
+}

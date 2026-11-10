@@ -1,0 +1,44 @@
+---
+import Callout from "./Callout.astro";
+import EmptyRow from "./EmptyRow.astro";
+import Field from "./Field.astro";
+import FormError from "./FormError.astro";
+import Modal from "./Modal.astro";
+import Panel from "./Panel.astro";
+import { t } from "../i18n";
+---
+
+<Panel id="el-panel" icon="user" title={t("settings.engine_login.title")} hidden>
+  <p class="panel-lede">{t("settings.engine_login.lede")}</p>
+  <Callout tone="warn" icon="alert">{t("settings.engine_login.warning")}</Callout>
+  <div id="el-list" class="row-list">
+    <EmptyRow as="div" loading />
+  </div>
+</Panel>
+
+<Modal
+  id="el-modal"
+  title={t("settings.engine_login.modal.title", { engine: "" })}
+  icon="lock"
+  size="sm"
+  lede={t("settings.engine_login.modal.lede")}
+  cancel
+  primary={{
+    label: t("settings.engine_login.modal.submit"),
+    id: "el-submit",
+    type: "submit",
+    form: "el-form",
+  }}
+>
+  <form id="el-form" class="form-stack" novalidate>
+    <p>
+      <a id="el-url" href="#" target="_blank" rel="noopener noreferrer"
+        >{t("settings.engine_login.modal.open")}</a
+      >
+    </p>
+    <Field label={t("settings.engine_login.modal.code")} for="el-code">
+      <input id="el-code" type="text" autocomplete="off" spellcheck="false" autocapitalize="off" />
+    </Field>
+    <FormError id="el-error" />
+  </form>
+</Modal>

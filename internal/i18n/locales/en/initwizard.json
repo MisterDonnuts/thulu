@@ -1,0 +1,578 @@
+{
+  "errors": {
+    "step_skipped": "step skipped",
+    "read_secret": "read secret",
+    "read_input": "read input",
+    "choice_no_options": "choice: no options",
+    "multi_choice_no_options": "multi-choice: no options",
+    "no_database_dsn": "no database DSN",
+    "open_database": "open database",
+    "ping_database": "ping database",
+    "prepare_auth_schema": "prepare auth schema",
+    "create_owner": "create owner {email}",
+    "create_workspace": "create workspace {slug}",
+    "permissions": "permissions {preset:%q}",
+    "mint_key": "mint key",
+    "count_api_keys": "count api keys",
+    "generate_secret": "generate secret",
+    "read_file": "read {path}",
+    "write_file": "write {path}",
+    "parse_file": "parse {path}",
+    "encode_answers": "encode answers",
+    "render_values": "render values",
+    "encode_request": "encode request",
+    "build_request": "build request",
+    "decode_response": "decode response",
+    "response_unreadable": "{method} {path} → {status} (body unreadable: {cause})",
+    "issuer_empty": "issuer is empty",
+    "build_discovery_request": "build discovery request",
+    "reach": "reach {url}",
+    "discovery_status": "{url} returned {status} (expected 200): check the issuer URL has no trailing path",
+    "parse_discovery": "parse discovery document",
+    "issuer_mismatch": "issuer mismatch: you entered {entered:%q}, the document declares {declared:%q}; use the declared one",
+    "never_came_up": "{url} never came up within {timeout}",
+    "wrong_status": "{url} answered {status}, expected {want}, for {timeout}",
+    "waiting_for": "waiting for {url}",
+    "docker_unreachable": "docker daemon unreachable: {output}",
+    "no_kube_context": "no current kubectl context: {output}",
+    "check_runtimeclass": "check runtimeclass {name}: {output}",
+    "postgres_never_ready": "postgres never accepted a connection within {timeout}",
+    "waiting_for_postgres": "waiting for postgres",
+    "bootstrap_workspace": "bootstrap workspace",
+    "database_unreachable": "database not reachable from here",
+    "start_postgres": "start postgres",
+    "start_stack": "{cause}\n\nThe configuration is written. Fix the cause and rerun `thulu init`: it keeps every answer.",
+    "daemon_not_ready": "{cause}\n\nThe stack started but the daemon never answered. Its log says why:\n  {command}\nOnce it is fixed, rerun `thulu init` to finish the setup.",
+    "pull_needs_login": "{cause}\n\nThe registry refused the pull. If you use a private registry, log in first:\n  docker login <registry>",
+    "issuer_required": "an issuer URL is required for OIDC (rerun and pick another identity option)",
+    "issuer_unverified": "the OIDC issuer {issuer:%q} failed discovery ({cause}). Fix the issuer URL, or run `thulu init` in a terminal to use it anyway",
+    "oidc_half_credentials": "OIDC needs both a client ID and a client secret: the daemon refuses to start with one of them missing",
+    "github_oauth_half_credentials": "the GitHub OAuth app needs both a client ID and a client secret",
+    "dsn_required_chart": "a Postgres DSN is required: the chart does not ship a database",
+    "dsn_required": "a Postgres DSN is required",
+    "invalid_proxy": "OCTOPUS_TRUSTED_PROXIES: {entry:%q} is not an IP address or a CIDR",
+    "invalid_github_url": "OCTOPUS_GITHUB_URL: {url:%q} is not an http(s) URL with a host",
+    "invite_admin": "invite {email} to the workspace",
+    "invalid_domain": "OCTOPUS_DOMAIN: {entry:%q} is not a bare host name (no scheme, port or path)",
+    "public_domain_required": "OCTOPUS_DOMAIN: this stack needs the server's public name, as a bare host (thulu.example.com); got {entry:%q}",
+    "invalid_origin": "OCTOPUS_ALLOWED_ORIGINS: {entry:%q} is not an http(s) origin with a host and nothing after it",
+    "adopt_env": "cannot set {name} from deploy/.env",
+    "invalid_base_url": "invalid base URL: {entry}",
+    "aborted": "setup cancelled",
+    "input_ended": "the input ended before the confirmation, so nothing was written. Answer every question, or run `thulu init -non-interactive` to install with the defaults",
+    "unknown_stack": "-stack {file} is not a stack this install runs: use one of {known}",
+    "stack_needs_checkout": "{file} compiles Thulu from a checkout, and there is none here"
+  },
+  "sections": {
+    "mode": {
+      "title": "How do you want to install?",
+      "blurb": "Every answer can be changed later by running `thulu init` again."
+    },
+    "identity": {
+      "title": "How do people log in?",
+      "blurb": "Thulu stores no passwords: people sign in with their company account (SSO) or with GitHub. Without a login, the dashboard only opens from this machine."
+    },
+    "database": {
+      "title": "Postgres",
+      "blurb": "Where Thulu keeps everything. The stack ships one ready to use; pick another only if you already run a managed Postgres.",
+      "blurb_kubernetes": "Where Thulu keeps everything. The chart ships none: it needs a Postgres the cluster can reach."
+    },
+    "network": {
+      "title": "Public address",
+      "blurb": "The address people open Thulu at in their browser. Sign-in returns to that address, so it has to be exact."
+    },
+    "cluster": {
+      "title": "Cluster and isolation",
+      "blurb": "Which namespace the chart lands in, and what sandbox agents get. Kata gives every agent its own kernel; gVisor is lighter and shares one."
+    },
+    "mcp": {
+      "title": "MCP servers for agents",
+      "blurb": "The tools agents call during a run. Each checked server is installed next to the daemon; rerun `thulu init` to change the set."
+    },
+    "license": {
+      "title": "Enterprise license (optional)",
+      "blurb": "Unlocks several SSO providers, custom roles, several workspaces and audit log export. Without one, the install runs the community edition."
+    },
+    "workspace": {
+      "title": "First workspace",
+      "blurb": "Projects, boards and agents live inside a workspace. The setup creates the first one and a key for the CLI and the API."
+    },
+    "post_boot": {
+      "title": "GitHub",
+      "blurb": "Without a token, agents read public repos but cannot create branches or open PRs. It can be added later from the dashboard."
+    },
+    "engines": {
+      "title": "Engines",
+      "blurb": "The CLI each agent runs. Each engine has its own agent image, and Claude Code installs itself on the first run: you pick the ones you will use and give each its credential. Each agent picks its engine in Agents."
+    },
+    "runner": {
+      "title": "Runner on this machine (optional)",
+      "blurb": "Whether agents may also run here, outside the containers."
+    },
+    "review": {
+      "title": "Summary"
+    },
+    "install": {
+      "title": "Installing",
+      "blurb": ""
+    }
+  },
+  "prompts": {
+    "enter_skip": "[Enter=skip]",
+    "default_or_skip": "[{default}, s=skip]",
+    "yes_no_default_yes": "Y/n",
+    "yes_no_default_no": "y/N",
+    "pick_number": "pick a number between 1 and {max}",
+    "checklist": "{label} (numbers toggle, a=all, n=none, Enter confirms)",
+    "checklist_invalid": "type numbers between 1 and {max} (e.g. \"2 4\"), a, n, or Enter",
+    "proceed": "Proceed?",
+    "mode": "Install",
+    "compose_stack": "Compose stack",
+    "daemon_image": "Daemon image",
+    "identity": "Identity",
+    "issuer_url": "Issuer URL",
+    "use_issuer_anyway": "Use this issuer anyway?",
+    "client_id": "Client ID",
+    "client_secret": "Client secret",
+    "oidc_button_label": "Button label on the login page",
+    "sso_domains": "Email domains allowed to sign in (comma-separated, e.g. acme.com)",
+    "groups_claim": "Claim carrying groups (Entra ID app roles use \"roles\")",
+    "group_role_map": "Map IdP groups to roles (group:role,…)",
+    "oauth_client_id": "OAuth app client ID",
+    "oauth_client_secret": "OAuth app client secret",
+    "daemon_dsn": "Postgres DSN the daemon will use",
+    "use_bundled_postgres": "Use the Postgres that ships with the compose stack?",
+    "dsn": "Postgres DSN",
+    "domain": "Domain, without https:// (for example thulu.example.com)",
+    "allowed_origins": "Addresses the dashboard is opened from (comma-separated)",
+    "ingress_proxies": "IP or range of the ingress controller, so Thulu sees each visitor's real IP (Enter = none)",
+    "reverse_proxies": "IP or range of the proxy in front of it, so Thulu sees each visitor's real IP (Enter = no proxy)",
+    "bind": "Address on this machine Thulu listens on (127.0.0.1 = this machine only, 0.0.0.0 = the whole network)",
+    "namespace": "Namespace",
+    "helm_release": "Helm release name",
+    "agent_isolation": "Agent isolation",
+    "agent_image": "Agent image (registry-pullable)",
+    "mcp_servers": "MCP servers",
+    "license_key": "License key",
+    "workspace_name": "Workspace name",
+    "owner_email": "Owner email for this workspace",
+    "github_server": "GitHub URL (change it only for GitHub Enterprise Server)",
+    "git_token": "GitHub token for agents to clone and push with",
+    "admin_email": "Your email at the identity provider, to run this workspace (Enter = later)",
+    "engines": "Engines",
+    "claude_key": "Claude API key or token",
+    "openai_key": "OpenAI API key",
+    "opencode_key": "Provider API key",
+    "opencode_base_url": "API base URL",
+    "opencode_model": "Model",
+    "runner": "Install the runner on this machine?",
+    "install_claude": "Install Claude Code {version} with npm? (the version the agent image runs)",
+    "runner_folder": "Project folder",
+    "runner_service": "Keep it running as a service? It starts on its own whenever you log in.",
+    "yes_no_invalid": "Answer y or n."
+  },
+  "options": {
+    "mode_docker": {
+      "label": "Custom Docker",
+      "detail": "You choose how it is published (on a domain with HTTPS, or on this machine only), how people sign in (SSO or GitHub), the database and the MCP servers. Agents run in containers next to Thulu."
+    },
+    "mode_kubernetes": {
+      "label": "Kubernetes / k3s",
+      "detail": "For several nodes or a SaaS: writes values for the Helm chart. Agents run as pods isolated in microVMs (Kata by default); runners are off there."
+    },
+    "stack_standalone": {
+      "label": "Only on this machine, or behind your own proxy",
+      "detail": "The published image with nothing in front, on port 8585. It listens on 127.0.0.1 unless you give another address; HTTPS is up to your proxy. ({file})"
+    },
+    "identity_oidc": {
+      "label": "OIDC provider (Okta, Microsoft Entra ID, Keycloak, Google, …)",
+      "detail": "Before going on, the setup contacts the provider and checks the URL, so a typo shows up here."
+    },
+    "identity_github": {
+      "label": "GitHub OAuth app",
+      "detail": "People sign in with their GitHub account. The token agents push with is asked for later."
+    },
+    "identity_none": {
+      "label": "No login (local only)",
+      "detail": "Whoever opens the dashboard is its owner, so it is published on 127.0.0.1 only."
+    },
+    "isolation_kata": {
+      "label": "kata-clh: a microVM per agent",
+      "detail": "Own kernel per agent. The recommended default for code the operator did not write."
+    },
+    "isolation_gvisor": {
+      "label": "gvisor: userspace kernel",
+      "detail": "Lighter and faster to start; a shared host kernel behind a syscall filter."
+    },
+    "isolation_default": {
+      "label": "cluster default, no RuntimeClass",
+      "detail": "Agents are ordinary containers. Only sensible when the whole cluster is already single-tenant."
+    },
+    "stack_caddy": {
+      "label": "Server with a domain and HTTPS",
+      "detail": "The published image with Caddy in front, which gets a certificate for your domain on its own. Ports 80 and 443 have to reach this machine. ({file})"
+    },
+    "mode_quick": {
+      "label": "Quick, on this machine",
+      "detail": "Docker with the published image, no login, reachable only at 127.0.0.1:8585. It asks for the engines, the runner and GitHub; everything else takes its default and shows up in the summary."
+    },
+    "runner_no": {
+      "label": "No, agents run in containers",
+      "detail": "The usual setup. You can add the runner later by running `thulu init` again."
+    },
+    "runner_yes": {
+      "label": "Yes, install the runner here",
+      "detail": "Registers this machine with the workspace, gives it the folders you choose and keeps it running."
+    },
+    "review_go": {
+      "label": "Install",
+      "detail": "Writes deploy/.env, pulls the images and starts the stack.",
+      "dry_run": "Dry run: shows the end without writing or running anything."
+    },
+    "review_details": {
+      "label": "Show the deploy/.env changes and the command",
+      "detail": "Prints the file's diff and what will run, then asks again."
+    },
+    "review_cancel": {
+      "label": "Cancel",
+      "detail": "Leaves without writing anything."
+    },
+    "stack_keep": {
+      "label": "Keep the current one: {file}",
+      "detail": "The stack an earlier run set up, which compiles Thulu from this checkout. To work on Thulu itself, `make dev` runs the development stack."
+    }
+  },
+  "mcp": {
+    "octopus_api": "the board for agents: read and update tasks, comments, attachments; acts with the run's own key",
+    "thulu_github": "GitHub: pull requests, commits, branches, Actions runs",
+    "thulu_browser": "headless Chromium (Playwright): navigate, click, screenshots attached to the task",
+    "thulu_cloud": "read-only cloud metrics and logs (GCP, AWS); needs a cloud credential per environment",
+    "thulu_figma": "read-only Figma files, frames, renders and comments; needs a Figma token on /credentials"
+  },
+  "cli": {
+    "banner": "thulu init: first-run configuration\nEnter accepts the default in brackets; `s` skips an optional step.\nNothing is written until you confirm the summary.",
+    "dry_run": "Dry run: nothing was written.",
+    "helm_values_file": "deploy/values-{release}.yaml  (JWT, credential key and OIDC secrets in clear text)",
+    "skipped_list": "Skipped: {steps}",
+    "wrote_file": "wrote {path}",
+    "wrote_env": "wrote deploy/.env (0600)",
+    "wrote_override": "wrote {path}: publishes the dashboard on 127.0.0.1 only",
+    "no_bootstrap_dsn": "no database DSN the wizard can reach",
+    "workspace_created": "created workspace {name} ({id})",
+    "workspace_exists": "workspace {slug} already exists ({id})",
+    "key_exists": "the workspace already has a live key, so no other is created.\n  If you have no copy, it cannot be recovered. Create a new one with\n  `thulu keys mint -workspace {workspace} -permissions full`",
+    "operator_key_once": "Key for the CLI and the API. It is shown only this once, keep it:",
+    "skipping_bootstrap": "skipping workspace and API key: {reason}",
+    "image_present": "using {image}, already on this machine (not pulling)",
+    "pulling": "Pulling {image}",
+    "agent_image_later": "{image} will be pulled by the daemon on that engine's first run",
+    "socket_group_unknown": "could not read the Docker socket's group from a container",
+    "socket_group": "the Docker socket is group {gid}; the daemon's container joins it",
+    "api_unreachable": "API not reachable from here: {err}",
+    "git_credential_rejected": "git credential rejected: {err}",
+    "git_credential_stored": "git credential stored: {identity}, state {state}",
+    "provider_said": "provider said: {message}",
+    "git_provider_unreachable": "GitHub did not answer, so the token was stored unchecked; Credentials → Re-check checks it later",
+    "llm_key_rejected": "{engine} credential rejected: {err}",
+    "llm_key_stored": "{engine} credential stored as its default profile",
+    "no_login_unavailable": "\"No login\" is not offered on a public domain: anyone who reached the address would get in as the owner.",
+    "auth_disabled": "No login. Thulu will answer on 127.0.0.1 only: on any other address, anyone on the network would get in as the owner.",
+    "oidc_intro": "Any OpenID Connect provider works. If yours only speaks SAML, put a broker that speaks OIDC in front of it (Keycloak, Microsoft Entra ID) and use the broker's issuer URL.",
+    "discovery_failed": "! discovery failed: {err}",
+    "discovery_ok": "✓ the provider answers: sign-in at {url}",
+    "legacy_postgres_password": "! this install's Postgres uses a shared default password.\n  Keeping it (the data volume was initialized with it). To rotate:\n    docker compose -f {compose_file} exec pg psql -U octopus -c \"ALTER USER octopus PASSWORD '<new>'\"\n  then put <new> in OCTOPUS_PG_PASSWORD and rerun `thulu init`.",
+    "database_unreachable": "! cannot reach it from here: {err}\n  The config is still written; the workspace and key steps will be skipped.",
+    "database_reachable": "✓ reachable",
+    "added_vite_origin": "Added http://localhost:4321: the dev stack serves the dashboard from Vite there.",
+    "register_redirect_uri": "Register this redirect URI in the IdP: {url}",
+    "register_oauth_callback": "Register this callback URL in the OAuth app: {url}",
+    "dropped_private_proxies": "! This install trusted X-Forwarded-For from \"private\", which includes the\n  agent containers. Dropping it; list your proxy's address if you have one.",
+    "invalid_proxy": "! {entry:%q} is not an IP address or a CIDR.",
+    "private_proxies_warning": "! \"private\" trusts every private address, agents included. Prefer the proxy's own.",
+    "bind_forced": "Published on 127.0.0.1:8585: with no login, that is the only thing keeping the rest of the network out.",
+    "plain_http_warning": "! Nothing terminates TLS here: {bind}:8585 serves plain HTTP, session cookies included.",
+    "runtimeclass_check_failed": "! could not check RuntimeClass {name}: {err}",
+    "runtimeclass_missing": "! RuntimeClass {name:%q} is not installed on this cluster.\n  Agent pods will sit in ContainerCreating until it is; see deploy/k8s-data-plane/.",
+    "runtimeclass_present": "✓ RuntimeClass {name} present",
+    "sandbox_builtin": "thulu-sandbox (per-task sandbox: run commands, preview ports) is built into the daemon, so there is nothing to install. An agent uses it only in the stages where you tick it, under Agents → the agent → MCP tab.",
+    "thulu_cloud_note": "thulu-cloud reads nothing until an environment has a cloud credential: add one on /credentials and attach it to the environment.",
+    "thulu_figma_note": "thulu-figma reads nothing until a Figma credential exists: add a personal access token on /credentials and grant it to the workspace.",
+    "bootstrap_owner_note": "This email only owns the workspace; nobody signs in with it. Use one your identity provider does not have: if it matches a person's, that person is locked out of their own account.",
+    "invalid_github_url": "! {url:%q} is not an http(s) URL with a host.",
+    "github_api": "API at {url}. Sign-in, git and thulu-github use this server.",
+    "admin_invited": "{email} invited to own {name}: their first sign-in hands it over",
+    "admin_email_invalid": "! {email:%q} is not an email address.",
+    "admin_email_is_owner": "! {email} is the placeholder owner: give the email you sign in with.",
+    "pg_port_moved": "Port {busy} is in use, so the bundled Postgres goes on 127.0.0.1:{port} (OCTOPUS_PG_HOST_PORT in deploy/.env).",
+    "image_arch_mismatch": "! Docker here runs {arch} containers and Thulu publishes its images only for {image_arch}: they run under emulation, several times slower, or fail with \"exec format error\" where nothing emulates them.",
+    "invalid_domain": "! {entry:%q} is not a bare host name: leave out the scheme, the port and any path (thulu.example.com).",
+    "public_domain_required": "! Type the server's public name, as a bare host (thulu.example.com): Caddy gets the HTTPS certificate for that name.",
+    "invalid_origin": "! {entry:%q} is not an origin: it takes http:// or https://, a host, and nothing after it (https://thulu.example.com).",
+    "engines_none": "Pick at least one: with no engine no agent runs.",
+    "claude_credential_help": "Claude Code takes an Anthropic API key (sk-ant-api…, from console.anthropic.com). Amazon Bedrock and Google Vertex AI are set up later, in Settings.",
+    "claude_key_shape": "That is not an Anthropic API key: it starts with sk-ant-api.",
+    "codex_credential_help": "Codex takes an OpenAI API key (sk-…, from platform.openai.com).",
+    "openai_key_shape": "An OpenAI API key starts with sk- (sk-ant- is an Anthropic key).",
+    "opencode_credential_help": "OpenCode talks to any OpenAI-compatible API. It needs the key, the API base URL and the model.",
+    "invalid_base_url": "{entry} is not an http(s) URL.",
+    "runner_host_check": "What a run needs on this machine:",
+    "runner_tool_missing": "not installed",
+    "runner_claude_session": "claude login",
+    "runner_claude_no_session": "not logged in: run `claude` once to log in",
+    "runner_install_tools": "Install {tools} before the first run: the runner does not start without them.",
+    "runner_no_npm": "Installing Claude Code takes Node 22 with npm. Install it (brew install node, or nvm) and run:\n  {command}",
+    "runner_claude_only": "The runner runs Claude Code only for now. Agents on Codex or OpenCode keep running in containers.",
+    "runner_folders_intro": "Pick the folders the runner may work in. Each has to be a git checkout and becomes a project whose code never leaves this machine.",
+    "runner_not_a_checkout": "{path} is not a git checkout (it has no .git).",
+    "runner_service_unsupported": "This system has no service manager the runner can use: run `thulu runner run` in a terminal.",
+    "runner_service_not_running": "The service is installed but not running. Look at {file} and the log in ~/.octopus/runner.log.",
+    "runner_failed": "The runner was not set up: {reason}",
+    "aborted": "Cancelled. Nothing was written.",
+    "full_log": "Full log: {path}",
+    "session_key_left": "The key this run used ({id}) was not revoked: {err}. Revoke it in Settings → API keys.",
+    "banner_tui": "thulu init: first-time setup\nNothing is written until you confirm the summary.\nCtrl+C leaves without touching anything.\n",
+    "stack_from_flag": "Stack (from -stack)"
+  },
+  "summary": {
+    "up": "Thulu is up.",
+    "dashboard": "Dashboard",
+    "dashboard_after_dns": "https://{domain}  (once DNS and the certificate resolve)",
+    "rollout": "Rollout",
+    "dev_link_note": "127.0.0.1 only, no logins: this link is the key. `thulu open` opens it again.",
+    "use_key": "Use it with:  export OCTOPUS_API_KEY={prefix}…",
+    "key_expires": "The key expires on {date}. After that, mint another with `thulu keys mint`.",
+    "key_never_expires": "The key does not expire (OCTOPUS_API_KEY_MAX_TTL=0).",
+    "nothing_skipped": "Nothing was skipped.",
+    "skipped_header": "Left for later (the dashboard's onboarding page tracks these):",
+    "effect": "effect: {text}",
+    "finish": "finish: {text}",
+    "runner": "Runner",
+    "next_header": "Next:",
+    "next_agent": "Create an agent in Agents: none comes installed.",
+    "next_project": "Add a project in Projects (a GitHub repo or an uploaded folder).",
+    "next_runner_projects": "Your folders are already in Projects, served by the runner.",
+    "next_task": "Create a task on the board and move it to a column with an agent.",
+    "next_runner_status": "The runner runs as a service: `thulu runner service status`, log in ~/.octopus/runner.log.",
+    "next_runner_run": "Start the runner with `thulu runner run`.",
+    "next_open": "Open the dashboard at the link above."
+  },
+  "deferred": {
+    "sso": {
+      "step": "SSO",
+      "effect": "the dashboard has no login; anyone who reaches the port is owner",
+      "finish": "rerun `thulu init` and pick an identity provider"
+    },
+    "sso_domains": {
+      "step": "SSO domain allowlist",
+      "effect": "anyone the IdP authenticates can sign in; on a multi-tenant IdP that is anyone with an account",
+      "finish": "set OCTOPUS_SSO_ALLOWED_DOMAINS, or rerun `thulu init`"
+    },
+    "group_roles": {
+      "step": "IdP group → role mapping",
+      "effect": "every SSO user lands on the default role; admins are promoted by hand",
+      "finish": "set OCTOPUS_OIDC_GROUP_ROLE_MAP, or rerun `thulu init`"
+    },
+    "tls": {
+      "step": "TLS",
+      "effect": "the dashboard and the API are served over plain HTTP on {bind}:8585",
+      "finish": "put a reverse proxy in front of it, or rerun `thulu init` and pick the server with a domain and HTTPS ({file})"
+    },
+    "mcp": {
+      "step": "MCP servers",
+      "effect": "agents get only the built-in sandbox tools: no board access, no GitHub, no browser",
+      "finish": "rerun `thulu init` and check the servers you need"
+    },
+    "license": {
+      "step": "EE license",
+      "effect": "community edition: audit export and multi-workspace stay off",
+      "finish": "add OCTOPUS_LICENSE_KEY later, no reinstall needed"
+    },
+    "git_credential": {
+      "step": "Git credential",
+      "skipped_effect": "agents can read public repos only; no branches, no PRs",
+      "skipped_finish": "add it on /credentials, or rerun `thulu init`",
+      "rejected_effect": "agents cannot push branches or open PRs",
+      "rejected_finish": "add it on /credentials"
+    },
+    "llm_key": {
+      "step": "LLM key",
+      "skipped_effect": "agent runs fail at dispatch: there is no model to call",
+      "skipped_finish": "add it on /settings, or rerun `thulu init`",
+      "rejected_effect": "agent runs fail at dispatch",
+      "rejected_finish": "add it on /settings"
+    },
+    "git_and_llm": {
+      "step": "Git credential and LLM key",
+      "no_key_effect": "there is no API key to store them with",
+      "no_key_finish": "finish them on the dashboard's onboarding page once a workspace exists",
+      "unreachable_effect": "stored nowhere yet",
+      "unreachable_finish": "add them on /credentials and /settings in the dashboard"
+    },
+    "workspace": {
+      "step": "Workspace and operator key",
+      "effect": "nothing can be created yet: every resource and every API key belongs to a workspace"
+    },
+    "docker_socket": {
+      "step": "Docker socket access",
+      "effect": "the stack refuses to start until it is set: the daemon would be denied every call to the socket",
+      "finish": "put `stat -c %g /var/run/docker.sock` from the Docker host into OCTOPUS_DOCKER_GID in deploy/.env, then rerun `thulu init`"
+    },
+    "admin_email": {
+      "step": "First admin",
+      "effect": "nobody who signs in can reach the first workspace until someone is invited",
+      "finish": "sign in; the waiting screen shows the command that invites you with the operator key"
+    },
+    "runner": {
+      "step": "Runner",
+      "effect": "this machine takes no runs",
+      "finish": "run `thulu init` again and answer yes to the runner"
+    },
+    "runner_login": {
+      "step": "claude login on the runner",
+      "effect": "the runner's runs fail when the engine starts",
+      "finish": "run `claude` once on this machine"
+    },
+    "runner_tools": {
+      "step": "Runner tools",
+      "effect": "{tools} missing: the runner does not start",
+      "finish": "install them, then `thulu runner service install`"
+    },
+    "runner_claude": {
+      "step": "Claude Code on the runner",
+      "effect": "the runner does not start without claude",
+      "finish": "`{command}`, then `thulu runner service install`"
+    },
+    "runner_project": {
+      "step": "Runner project {name}",
+      "effect": "that folder is not in Thulu",
+      "finish": "run `thulu init` again, or map an existing project with `thulu runner add-project <id> {dir}`"
+    },
+    "runner_service": {
+      "step": "Runner service",
+      "effect": "the runner does not run on its own",
+      "finish": "`thulu runner service install`, or `thulu runner run` in a terminal"
+    }
+  },
+  "labels": {
+    "operator_name": "Thulu operator",
+    "operator_key": "operator key (thulu init)",
+    "git_credential_name": "GitHub (thulu init)",
+    "default_workspace": "Default",
+    "session_key": "thulu init (this run only)"
+  },
+  "diff": {
+    "commented_out": "{key} (commented out)",
+    "no_changes": "(no changes)",
+    "empty": "(empty)"
+  },
+  "files": {
+    "dev_override_header": "Written by `thulu init` for a no-login install. Do not publish these\nports on 0.0.0.0: OCTOPUS_DEV_MODE=1 treats every request as owner, so the\nloopback binding here is the entire access control of this stack.",
+    "helm_values_header": "Written by `thulu init`. Holds the JWT secret, the credential key and\nthe OIDC client secret in clear text: keep it out of git, or move them into a\nSecret you manage and point secrets.existingSecret at it instead."
+  },
+  "preflight": {
+    "intro": "This machine:",
+    "docker": "Docker",
+    "docker_up": "answers",
+    "docker_down": "does not answer ({err}). Start Docker Desktop or run `colima start`.",
+    "compose": "Docker Compose",
+    "compose_missing": "the compose v2 plugin is missing: install docker-compose-plugin (Linux) or `brew install docker-compose` (macOS)",
+    "arch": "Architecture",
+    "arch_emulated": "{arch}: the images are published for {image_arch}, so they run emulated, several times slower",
+    "port": "Port {port}",
+    "port_free": "free",
+    "port_busy": "in use: an earlier Thulu stack gets replaced, anything else has to stop first",
+    "pg_port_busy": "in use: the bundled Postgres takes the next free port",
+    "kubectl_none": "no context (only needed for Kubernetes)",
+    "kubectl_context": "context {context}"
+  },
+  "engines": {
+    "claude": {
+      "label": "Claude Code (Anthropic)",
+      "detail": "Anthropic API key; the only one a runner runs"
+    },
+    "codex": {
+      "label": "Codex (OpenAI)",
+      "detail": "OpenAI API key"
+    },
+    "opencode": {
+      "label": "OpenCode (OpenAI-compatible APIs)",
+      "detail": "DeepSeek, OpenRouter, Groq, your own Ollama…"
+    }
+  },
+  "runner": {
+    "box_title": "What the runner does",
+    "box_body": "The runner is this same program running on your machine and taking agent runs from this Thulu.\n\n• Agents work here, with your git, your tools, your local MCP servers and your `claude` login.\n• The code of the runner's projects is not copied to the server: the daemon gets what the agent reports (comments, the files it publishes, the run's log).\n• It fits when a repo cannot leave this machine, or when the agent needs something only here: a local database, a simulator, a VPN.\n• For now it runs Claude Code only. This setup registers it with the Thulu it installs; against a remote one, use `thulu runner register`.\n\nWithout it, agents run in Docker containers, which is the usual setup."
+  },
+  "review": {
+    "install": "Install",
+    "install_quick": "quick, on this machine (Docker, published image)",
+    "install_docker": "Docker · {file}",
+    "install_kubernetes": "Kubernetes · release {release} in {namespace}",
+    "image": "Image",
+    "access": "Access",
+    "access_none": "no login, only from this machine (127.0.0.1)",
+    "access_oidc": "SSO with {issuer}",
+    "access_github": "GitHub login",
+    "address": "Address",
+    "database": "Database",
+    "database_bundled": "the stack's own Postgres",
+    "database_external": "external Postgres",
+    "mcp": "MCP servers",
+    "none": "none",
+    "engines": "Engines",
+    "with_credential": "with credential",
+    "no_credential": "no credential",
+    "runner": "Runner",
+    "runner_no": "no, agents run in containers",
+    "runner_yes": "yes, on this machine",
+    "runner_install_claude": "installs Claude Code {version}",
+    "runner_folders": "folders: {count}",
+    "runner_service": "as a service",
+    "runner_manual": "by hand with `thulu runner run`",
+    "workspace": "Workspace",
+    "workspace_value": "{name} · owner {email}",
+    "github": "GitHub",
+    "github_token": "token given",
+    "github_skipped": "no token (add it later in /credentials)"
+  },
+  "tasks": {
+    "postgres": "Starting Postgres",
+    "compose_up": "Starting the containers (docker compose up)",
+    "wait_daemon": "Waiting for Thulu to answer",
+    "helm": "Installing the Helm chart",
+    "install_claude": "Installing Claude Code {version}",
+    "register_runner": "Registering this machine as a runner",
+    "runner_kept": "Runner {name} already registered",
+    "runner_project": "Adding project {name}",
+    "runner_project_kept": "{name} is already a runner project ({id})",
+    "runner_service": "Installing the runner service"
+  },
+  "tui": {
+    "enter_default": "Enter keeps the suggested value.",
+    "enter_default_or_skip": "Enter keeps the suggested value; `{skip}` skips it.",
+    "enter_skip": "An empty answer skips it.",
+    "secret_hint": "Hidden while you type. An empty answer leaves it for later.",
+    "multi_hint": "↑↓ to move, space to tick, Enter to go on.",
+    "yes": "Yes",
+    "no": "No",
+    "skipped": "skipped",
+    "step": "Step {n}",
+    "step_of": "Step {n} of {total}",
+    "enter_ends_list": "Enter on an empty line ends the list.",
+    "list_done": "done"
+  },
+  "diagram": {
+    "browser": "browser",
+    "browser_or_proxy": "browser or your proxy",
+    "internet": "internet",
+    "domain_or_local": "your domain or 127.0.0.1",
+    "agents_docker": "agents in containers",
+    "agents_pods": "a pod per agent (microVM)",
+    "runner_server": "board and tasks",
+    "runner_machine": "This machine",
+    "runner_local": "runner ▸ claude\nyour repo and git",
+    "runner_run": "run",
+    "runner_result": "result",
+    "runner_code_stays": "the code never leaves this machine"
+  }
+}

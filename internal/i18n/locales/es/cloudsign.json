@@ -1,0 +1,28 @@
+{
+  "errors": {
+    "no_aws_identity": "este daemon no tiene identidad de AWS (no hay claves en su entorno, ni token de web identity, ni credenciales de contenedor, ni rol de instancia)",
+    "instance_metadata": "metadata de la instancia",
+    "read_env_file": "no se pudo leer {env}",
+    "sts_assume_role": "sts AssumeRoleWithWebIdentity",
+    "decode_assume_role": "no se pudo decodificar AssumeRoleWithWebIdentity",
+    "container_credentials": "credenciales del contenedor",
+    "instance_no_role": "la instancia no tiene rol",
+    "decode_credentials": "no se pudieron decodificar las credenciales",
+    "no_keys_returned": "el endpoint de credenciales no devolvió claves",
+    "http_status": "HTTP {status}",
+    "endpoint_not_https": "{env} tiene que ser una URL https:// absoluta y sin credenciales",
+    "aws_creds_incomplete": "las credenciales de AWS están incompletas",
+    "sa_key_not_json": "la clave de la service account no es JSON válido",
+    "sa_key_incomplete": "la clave de la service account no tiene client_email o private_key",
+    "sign_assertion": "no se pudo firmar la aserción",
+    "private_key_not_pem": "private_key no está codificada en PEM",
+    "private_key_not_rsa": "private_key no es una clave RSA",
+    "parse_private_key": "no se pudo leer private_key",
+    "no_google_identity": "este daemon no tiene identidad de Google (servidor de metadata)",
+    "read_token_response": "no se pudo leer la respuesta del token",
+    "google_token_error": "endpoint de tokens de Google: {error}: {description}",
+    "google_token_status": "endpoint de tokens de Google: HTTP {status}",
+    "decode_token_response": "no se pudo decodificar la respuesta del token",
+    "google_no_access_token": "Google no devolvió un access token"
+  }
+}

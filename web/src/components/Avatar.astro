@@ -1,0 +1,52 @@
+---
+import Icon from "./Icon.astro";
+import {
+  avatarA11y,
+  avatarClasses,
+  avatarMark,
+  avatarStatusClasses,
+  type AvatarKind,
+  type AvatarShape,
+  type AvatarSize,
+  type AvatarStatus,
+} from "../lib/ui/avatar";
+
+interface Props {
+  name?: string;
+  kind?: AvatarKind;
+  size?: AvatarSize;
+  shape?: AvatarShape;
+  pending?: boolean;
+  icon?: string;
+  letters?: boolean;
+  status?: AvatarStatus;
+  pulse?: boolean;
+  label?: string;
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  name,
+  kind = "person",
+  size = "sm",
+  shape = "round",
+  pending = false,
+  icon,
+  letters = false,
+  status,
+  pulse = false,
+  label,
+  class: extra,
+  ...rest
+} = Astro.props;
+const mark = avatarMark({ name, kind, pending, icon, letters });
+---
+
+<span
+  class={avatarClasses({ kind, size, shape, pending, cls: extra })}
+  {...avatarA11y(label)}
+  {...rest}
+>
+  {"icon" in mark ? <Icon name={mark.icon} size="sm" /> : mark.text}
+  {status && <span class={avatarStatusClasses(pulse)} data-tone={status} />}
+</span>

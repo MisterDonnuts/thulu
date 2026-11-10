@@ -1,0 +1,6 @@
+{"type":"octopus.session","mode":"native"}
+{"type":"thread.started","thread_id":"019f1c22-7d4e-7a10-9c35-5be0d81f2a96"}
+{"type":"turn.started"}
+{"type":"error","message":"Reconnecting... 1/5"}
+{"type":"error","message":"unexpected status 401 Unauthorized: Incorrect API key provided"}
+{"type":"turn.failed","error":{"message":"unexpected status 401 Unauthorized: Incorrect API key provided"}}

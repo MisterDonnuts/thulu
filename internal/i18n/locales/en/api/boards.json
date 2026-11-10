@@ -1,0 +1,35 @@
+{
+  "audit": {
+    "board_created": "board created: {board} ({stages} stage(s))",
+    "board_deleted": "board deleted: {board} ({count} task(s) moved to {dest})",
+    "board_updated": "board updated: {board}",
+    "default_board_changed": "default board is now: {board}",
+    "task_types_changed": "task types changed on board {board} ({types} type(s), {count} task(s) moved)"
+  },
+  "errors": {
+    "board_holds_tasks": "board {board:%q} still holds {count} task(s) — pass ?move_to=<board> to relocate them",
+    "board_lacks_type": "board {board:%q} does not offer task type {type:%q}",
+    "board_left_in_place": "{cause} — the board was left in place so no task is stranded on it",
+    "board_still_receiving": "board {board:%q} keeps receiving tasks while being deleted ({count} still on it) — retry once it is idle",
+    "delete_after_move_failed": "{cause} ({count} task(s) already moved to {dest})",
+    "destination_type_skips_stage": "task {task} sits in {stage:%q}, which type {type:%q} skips — pick another destination type",
+    "invalid_destination_board": "move_to {dest:%q} is not a valid destination board",
+    "invalid_destination_type": "move_to {dest:%q} is not one of the types this board will offer",
+    "move_task_failed": "move task {task} off board {board}",
+    "retype_failed": "re-type task {task} on board {board}",
+    "skip_strands_tasks": "{count} task(s) of type {type:%q} sit in {stage:%q}, which this edit would skip — pass ?move_to_stage=<stage> to relocate them",
+    "stage_missing_on_board": "stage {stage:%q} does not exist on board {board:%q}",
+    "type_holds_tasks": "task type {type:%q} still holds {count} task(s) — pass ?move_to=<type> to re-type them (empty for untyped)",
+    "type_list_unchanged": "{cause} — the type list was left unchanged",
+    "types_save_after_move_failed": "{cause} ({count} task(s) already moved)",
+    "unknown_board": "unknown board {board:%q}"
+  },
+  "log": {
+    "count_by_type": "count tasks by type for board {board}",
+    "seed_default_board": "seed the default board of workspace {workspace}"
+  },
+  "timeline": {
+    "moved_board_deleted": "{from} → {to} (board {board} deleted)",
+    "moved_type_change": "{from} → {to} (task type {reason})"
+  }
+}

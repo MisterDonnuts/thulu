@@ -1,0 +1,24 @@
+{
+  "errors": {
+    "licensee_required": "falta -licensee",
+    "invalid_date": "la fecha {date:%q} no es válida",
+    "signing_key_missing": "falta OCTOPUS_LICENSE_SIGNING_KEY (la clave privada de `license keygen`)"
+  },
+  "cli": {
+    "error": "error: {err}",
+    "keypair_title": "Par de claves del proveedor (ed25519):",
+    "keypair_public": "PÚBLICA (va en ee/licensing/licensing.go): {key}",
+    "keypair_private": "PRIVADA (guardala offline, OCTOPUS_LICENSE_SIGNING_KEY): {key}",
+    "flag_licensee": "nombre del licenciatario (obligatorio)",
+    "flag_features": "lista de features separadas por coma, o * para todas",
+    "flag_expires": "fecha de vencimiento AAAA-MM-DD (vacía = nunca)",
+    "flag_edition": "edición de la licencia",
+    "flag_seats": "personas que cubre la licencia; 0 lo omite",
+    "licensee": "Cliente    : {licensee}",
+    "features": "Features   : {features}",
+    "seats": "Personas   : {count}",
+    "edition": "Edición    : {edition}",
+    "expires": "Vence      : {date}",
+    "expires_never": "Vence      : nunca"
+  }
+}

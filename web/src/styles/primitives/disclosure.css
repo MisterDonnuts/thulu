@@ -1,0 +1,131 @@
+.disclosure {
+  min-width: 0;
+}
+.disclosure-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: var(--control-h);
+  color: var(--fg-2);
+  font-weight: 500;
+  list-style: none;
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.disclosure-summary::-webkit-details-marker {
+  display: none;
+}
+.disclosure-summary:hover {
+  color: var(--fg);
+}
+.disclosure-caret {
+  flex: none;
+  color: var(--fg-3);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.disclosure[open] > .disclosure-summary .disclosure-caret {
+  transform: rotate(90deg);
+}
+.disclosure-body {
+  margin-top: var(--s-2);
+}
+.disclosure-body > p {
+  margin: 0;
+}
+
+.disclosure-help {
+  color: var(--fg-3);
+  font-size: var(--t-xs);
+}
+.disclosure-help .disclosure-body {
+  max-width: var(--measure-prose);
+  line-height: var(--lh-loose);
+}
+
+.disclosure-code > .disclosure-summary {
+  min-height: 0;
+  color: var(--fg-3);
+  font-size: var(--t-xs);
+  font-weight: 400;
+}
+.disclosure-code > .disclosure-summary:hover {
+  color: var(--fg-2);
+}
+.disclosure-code .disclosure-body {
+  margin-top: var(--s-1);
+}
+
+.disclosure-fields > .disclosure-summary {
+  font-size: var(--t-sm);
+}
+.disclosure-fields .disclosure-body {
+  margin-top: var(--s-3);
+}
+
+.disclosure-row > .disclosure-summary {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+  min-height: 0;
+  padding: var(--s-3) var(--s-4);
+  color: inherit;
+  font-size: var(--t-sm);
+  font-weight: 400;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.disclosure-row > .disclosure-summary:hover {
+  background: var(--surface-2);
+  color: inherit;
+}
+.disclosure-row > .disclosure-summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: 0;
+}
+.disclosure-row > .disclosure-summary > .disclosure-caret {
+  margin-top: 2px;
+}
+.disclosure-row > .disclosure-summary > span {
+  flex: 1;
+  min-width: 0;
+}
+.disclosure-row .disclosure-title {
+  min-width: 0;
+  color: var(--fg);
+  line-height: var(--lh-snug);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+.disclosure-row[open] .disclosure-title {
+  display: block;
+  -webkit-line-clamp: none;
+  line-clamp: none;
+  overflow: visible;
+  font-weight: 500;
+}
+.disclosure-row > .disclosure-body {
+  margin-top: 0;
+}
+
+.disclosure-ruled {
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--line);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .disclosure-summary,
+  .disclosure-row > .disclosure-summary,
+  .disclosure-caret {
+    transition: none;
+  }
+}
+
+@media (pointer: coarse) {
+  .disclosure-summary,
+  .disclosure-code > .disclosure-summary {
+    min-height: var(--tap-min);
+  }
+}

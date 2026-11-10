@@ -1,0 +1,11 @@
+{
+  "errors": {
+    "run_minutes_range": "agent.max_run_minutes tiene que ser un número entero de minutos entre {min} y {max}"
+  },
+  "audit": {
+    "set": "Ajuste del workspace {setting} en {value} minutos; las corridas ahora tienen {effective}",
+    "cleared": "Ajuste del workspace {setting} borrado; las corridas ahora tienen el valor de la instalación, {effective}",
+    "minutes": "{n} minutos",
+    "no_limit": "sin límite"
+  }
+}

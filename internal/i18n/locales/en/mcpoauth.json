@@ -1,0 +1,36 @@
+{
+  "errors": {
+    "state": "this connection link is unknown, used, expired or was opened in another browser; start the connection again",
+    "reconnect_required": "the OAuth connection needs someone to reconnect it in Credentials",
+    "wrong_resource": "the OAuth connection was made for another MCP server; reconnect it from this server",
+    "not_oauth": "the credential is not an OAuth connection",
+    "create_tables": "could not create the MCP OAuth tables",
+    "workspace_required": "a workspace is required to connect",
+    "bad_url": "{url} is not a usable http(s) URL",
+    "unreachable": "could not reach {url}",
+    "resource_mismatch": "the server publishes metadata for {resource}, which does not cover {url}",
+    "no_authorization_server": "the resource metadata at {url} names no authorization server",
+    "not_oauth_server": "{url} did not ask for OAuth (no 401 and no protected resource metadata)",
+    "metadata_missing": "the server pointed at {url} for its OAuth metadata, but nothing is there",
+    "insecure_endpoint": "{url} is not https; OAuth codes and tokens only go to https endpoints (or loopback)",
+    "issuer_mismatch": "the authorization server metadata names issuer {issuer}, not {url}",
+    "server_metadata_missing": "found no OAuth authorization server metadata for {issuer}",
+    "endpoints_missing": "the metadata of {issuer} lacks the authorization or token endpoint",
+    "no_pkce": "{issuer} does not support PKCE with S256",
+    "metadata_status": "{url} answered {status}",
+    "metadata_decode": "could not read the JSON at {url}",
+    "client_required": "{issuer} has no dynamic client registration: create an OAuth app there and fill in its client ID and secret",
+    "registration_refused": "the authorization server refused to register Thulu as a client ({status}): {detail}",
+    "token_refused": "the authorization server refused the token request ({status} {code}): {detail}",
+    "denied": "the authorization server did not grant access ({code}): {detail}",
+    "save_flow": "could not save the connection flow",
+    "read_flow": "could not read the connection flow",
+    "refresh_failed": "could not refresh the OAuth connection",
+    "save_tokens": "could not save the refreshed tokens",
+    "bad_expires_in": "the token endpoint sent an expires_in that is not a number: {value}"
+  },
+  "log": {
+    "prune_failed": "prune expired MCP OAuth flows",
+    "mark_failed_failed": "mark OAuth connection {id} as needing a reconnect"
+  }
+}

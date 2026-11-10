@@ -1,0 +1,3476 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Button from "../components/Button.astro";
+import CatalogLayout from "../components/CatalogLayout.astro";
+import Check from "../components/Check.astro";
+import Count from "../components/Count.astro";
+import Drawer from "../components/Drawer.astro";
+import EmptyRow from "../components/EmptyRow.astro";
+import EmptyState from "../components/EmptyState.astro";
+import Field from "../components/Field.astro";
+import Kbd from "../components/Kbd.astro";
+import KbdHelp from "../components/KbdHelp.astro";
+import Modal from "../components/Modal.astro";
+import PageHead from "../components/PageHead.astro";
+import SearchInput from "../components/SearchInput.astro";
+import Workshop from "../components/Workshop.astro";
+import { t } from "../i18n";
+import { MOD_KEY } from "../lib/shortcuts";
+
+const SPLIT = "\u0000";
+const [pressBefore, pressAfter] = t("agents.empty.create_hint", { key: SPLIT }).split(SPLIT);
+---
+
+<Layout title={t("agents.title")}>
+  <main class="catalog-page">
+    <PageHead title={t("agents.title")} subtitle={t("agents.subtitle")}>
+      <Fragment slot="actions">
+        <Button
+          id="export-all-btn"
+          icon="download"
+          title={t("workshop.export_all_agents_hint")}
+          hidden>{t("workshop.export_all_agents")}</Button
+        >
+        <!-- The count's look is UPDATES_COUNT in lib/workshop.ts, which repaints it. -->
+        <Button id="workshop-btn" icon="box"
+          >{t("workshop.open")}<Count
+            id="workshop-updates"
+            n={0}
+            pill
+            tone="accent"
+            hideZero
+          /></Button
+        >
+        <Button id="new-btn" variant="primary" icon="plus" kbd="N"
+          >{t("agents.buttons.new_agent")}</Button
+        >
+        <Button
+          href="/tasks/"
+          iconOnly
+          icon="board"
+          size="lg"
+          label={t("agents.buttons.open_board")}
+        />
+        <Button
+          id="kbd-help-btn"
+          iconOnly
+          icon="keyboard"
+          size="lg"
+          label={t("common.kbd.shortcuts")}
+          title={t("common.kbd.shortcuts_hint")}
+        />
+      </Fragment>
+    </PageHead>
+
+    <CatalogLayout label={t("agents.title")} listId="agent-list" mainId="editor">
+      <SearchInput slot="toolbar" id="search" placeholder={t("agents.sidebar.search")} />
+      <EmptyRow slot="list" as="div" loading />
+      <span slot="foot" class="foot-hint"
+        ><Kbd keys={["↑", "↓"]} /> {t("agents.sidebar.navigate")}</span
+      >
+      <EmptyState icon="bot" title={t("agents.empty.select")}
+        >{pressBefore}<Kbd keys="N" />{pressAfter}</EmptyState
+      >
+    </CatalogLayout>
+
+    <Modal
+      id="modal"
+      title={t("agents.modal.title")}
+      icon="bot"
+      size="md"
+      cancel
+      primary={{ label: t("common.buttons.create"), id: "m-create" }}
+    >
+      <div class="form-stack">
+        <Field
+          label={t("agents.modal.name")}
+          hint={t("agents.modal.name_hint")}
+          for="m-name"
+          errorId="m-name-msg"
+        >
+          <input
+            id="m-name"
+            placeholder={t("agents.modal.name_placeholder")}
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </Field>
+        <div>
+          <Check id="m-clone" label={t("agents.modal.clone")} hint={t("agents.modal.clone_hint")} />
+          <div class="check-nested m-tpl-wrap" id="m-tpl-wrap" hidden>
+            <select id="m-tpl" aria-labelledby="m-clone-label"></select>
+          </div>
+        </div>
+        <Field
+          label={t("agents.labels.description")}
+          hint={t("agents.modal.description_hint")}
+          for="m-desc"
+        >
+          <input id="m-desc" placeholder={t("agents.modal.description_placeholder")} />
+        </Field>
+        <Field
+          id="m-stages-wrap"
+          label={t("agents.modal.stages")}
+          hint={t("agents.modal.stages_hint")}
+        >
+          <div id="m-stages" class="m-stages"></div>
+        </Field>
+        <Field label={t("agents.modal.default_skills")}>
+          <span slot="hint" id="m-skills-hint">{t("agents.modal.default_skills_hint")}</span>
+          <div id="m-skills"></div>
+        </Field>
+      </div>
+    </Modal>
+
+    <Drawer id="mcp-drawer" title="" sub="" footNote={t("agents.mcp.drawer_untick_hint")}>
+      <Check slot="head" id="mcp-drawer-all" card label={t("agents.mcp.drawer_all")}>
+        <span slot="trailing" id="mcp-drawer-count"></span>
+      </Check>
+      <div id="mcp-drawer-list" class="mcp-drawer-list"></div>
+      <Button
+        slot="foot"
+        id="mcp-drawer-done"
+        variant="primary"
+        kbd={t("common.kbd.esc")}
+        data-modal-close>{t("agents.buttons.done")}</Button
+      >
+    </Drawer>
+
+    <KbdHelp
+      rows={[
+        { keys: ["N"], label: t("agents.kbd.new_agent") },
+        { keys: ["/"], label: t("common.kbd.focus_search") },
+        { keys: ["↑", "↓"], label: t("agents.kbd.navigate") },
+        { keys: [MOD_KEY, "S"], label: t("agents.kbd.save") },
+        { keys: [t("common.kbd.esc")], label: t("agents.kbd.close") },
+      ]}
+    />
+
+    <Workshop />
+  </main>
+
+  <style is:global>
+    /* The keys and the word of the list's foot, side by side. */
+    .foot-hint {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--s-1);
+    }
+
+    /* The strip under the editor's head that holds what the agent still
+       needs before it runs (an inline step list). */
+    .ed-check {
+      padding: var(--s-2) var(--s-5);
+      border-bottom: 1px solid var(--line);
+    }
+    .ed-check:empty {
+      display: none;
+    }
+    /* The strip of tabs stays put; only the pane under it scrolls. */
+    #ed-tabs {
+      flex-shrink: 0;
+    }
+    .ed-pane-container {
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .ed-pane {
+      height: 100%;
+      overflow: auto;
+    }
+    /* On a phone the page scrolls, not the pane (catalog.css lets the page
+       grow): with the page a fixed viewport tall, the title, the buttons,
+       the agent list, the editor head and the checklist left the active tab
+       a strip of 75 px. */
+    @media (max-width: 760px) {
+      .ed-pane-container,
+      .ed-pane {
+        height: auto;
+        overflow: visible;
+      }
+    }
+
+    /* Settings form */
+    .settings {
+      padding: var(--s-5) var(--s-6);
+      max-width: 720px;
+    }
+    @media (max-width: 760px) {
+      .settings {
+        padding: var(--s-4);
+      }
+    }
+    /* The settings tab is a column of fields (.field), each a label over its
+       control. The sections are long, so they sit further apart than the
+       fields of a dialog. */
+    .settings-form {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-6);
+    }
+    /* Model & credentials */
+    .llm-box {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-3);
+    }
+    /* The choice sits at the start of the box, as wide as its options. */
+    .llm-seg {
+      align-self: flex-start;
+    }
+    /* The profile select takes the row; its help lines follow under it. */
+    .llm-body {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-2);
+    }
+    .llm-custom {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: var(--s-3);
+    }
+    .llm-eff-label {
+      color: var(--fg-3);
+    }
+    /* The template list the Clone box opens, under its label. */
+    .m-tpl-wrap {
+      margin-top: var(--s-2);
+    }
+    .m-stages {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-2);
+    }
+    .m-stages-sub {
+      font-size: var(--t-xs);
+      color: var(--fg-2);
+    }
+    /* Columns and modes stack as one control under the row's label. */
+    .stages-groups {
+      display: flex;
+      flex-direction: column;
+    }
+    .stages-sub {
+      font-size: var(--t-xs);
+      color: var(--fg-3);
+      margin: var(--s-3) 0 var(--s-1);
+    }
+    .stages-sub:first-of-type {
+      margin-top: 0;
+    }
+
+    .stages-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-1);
+    }
+    .stage-row {
+      display: grid;
+      grid-template-columns: 1fr 80px;
+      gap: var(--s-3);
+      align-items: center;
+    }
+    .stage-row .stage-turns {
+      width: 80px;
+    }
+    /* The agent's engine has no turn cap (codex): nothing to set. Hidden
+       rather than removed so the saved values survive switching back. */
+    .stages-list.no-turn-budget .stage-turns {
+      display: none;
+    }
+    .aud-grid {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-2);
+    }
+    /* Turns and model share a line; skills takes the next one whole, with
+       its help under the field. Three columns left the skills field a sliver
+       with its help broken word by word. */
+    .aud-overrides {
+      display: grid;
+      grid-template-columns: 110px minmax(160px, 1fr);
+      gap: var(--s-3);
+      align-items: end;
+    }
+    .aud-overrides .aud-engine-note:empty {
+      display: none;
+    }
+    .aud-overrides .aud-engine-field,
+    .aud-overrides .aud-engine-note,
+    .aud-overrides .aud-skills-field {
+      grid-column: 1 / -1;
+    }
+    /* On a phone the turns and the model stack too. */
+    @media (max-width: 480px) {
+      .aud-overrides {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+    /* Large reads (Token optimizer): the mode, then the engine and model of
+       the cheaper model on one line (lib/token-optimizer.ts). */
+    .topt-box {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-3);
+    }
+    .topt-worker {
+      display: grid;
+      grid-template-columns: minmax(160px, 1fr) minmax(140px, 1fr);
+      gap: var(--s-3);
+      align-items: start;
+    }
+    @media (max-width: 480px) {
+      .topt-worker {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+    /* The per-stage blocks of the Skills and MCP tabs, and the servers in
+       an MCP block: small panels (panelHTML size sm) one under another. */
+    .settings > .panel-sm,
+    .mcp-servers > .panel-sm + .panel-sm {
+      margin-top: var(--s-2);
+    }
+    .sys-skills-title {
+      font-size: var(--t-xs);
+      color: var(--fg-3);
+      margin-bottom: var(--s-2);
+      font-family: var(--font-mono);
+      font-weight: 500;
+    }
+    .sys-skills {
+      margin-top: var(--s-3);
+      padding-top: var(--s-3);
+      border-top: 1px dashed var(--line);
+    }
+    /* Room between the intro and the cards it explains. */
+    .sys-skills > .check-group {
+      margin-top: var(--s-3);
+    }
+    /* Clean up sits after the sentence that asks for it. */
+    .hint-action {
+      margin-left: var(--s-2);
+    }
+    .sys-run-warn {
+      margin: var(--s-2) 0 0;
+    }
+
+    .mcp-server-name {
+      font-size: var(--t-sm);
+      font-weight: 600;
+      color: var(--fg);
+      font-family: var(--font-mono);
+    }
+    .mcp-server-desc {
+      font-size: var(--t-xs);
+      color: var(--fg-4);
+    }
+    /* The count sits after the button's label, behind a rule. */
+    .mcp-tools-count {
+      padding-left: var(--s-2);
+      border-left: 1px solid var(--line);
+    }
+    /* A bare grant on a server the catalog has no descriptor for: the server
+       applies a default nobody wrote down, so no box is ticked and this says
+       why. */
+    .mcp-default-unknown {
+      cursor: help;
+    }
+    .mcp-tools-none {
+      font-size: var(--t-xs);
+      color: var(--fg-4);
+      font-style: italic;
+      cursor: help;
+    }
+
+    /* ── Per-tool permissions drawer ───────────────────────────────────────
+       The Drawer component draws the shell; these lay out what it holds. */
+    .mcp-drawer-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-1);
+    }
+    .mcp-drawer-tool-name {
+      font-family: var(--font-mono);
+      font-size: var(--t-sm);
+    }
+    .mcp-drawer-group {
+      margin-top: var(--s-3);
+    }
+    .mcp-drawer-group:first-child {
+      margin-top: 0;
+    }
+    .mcp-drawer-group-hint {
+      margin-bottom: var(--s-1);
+    }
+
+    .pane-header {
+      padding: var(--s-5) var(--s-6) var(--s-3);
+      border-bottom: 1px solid var(--line);
+    }
+    .pane-header .sec-head {
+      margin-bottom: var(--s-1);
+    }
+    .pane-header .panel-lede {
+      margin-bottom: 0;
+    }
+
+    /* Prompts tab */
+    .prompts-pane {
+      padding: var(--s-5) var(--s-6);
+      overflow-y: auto;
+    }
+    /* The agent's prompts, then the auditor's: apart, each under its head. */
+    .pp-set + .pp-set {
+      margin-top: var(--s-8);
+    }
+    .pp-set > .sec-head {
+      margin-bottom: var(--s-1);
+    }
+    .prompts-pane .pp-intro {
+      color: var(--fg-3);
+      font-size: var(--t-sm);
+      line-height: var(--lh-loose);
+      margin-bottom: var(--s-5);
+    }
+    .prompts-pane .pp-section {
+      margin-top: var(--s-5);
+      font-size: var(--t-xs);
+      color: var(--fg-3);
+      margin-bottom: var(--s-3);
+      font-weight: 500;
+    }
+    /* A quiet line of text: what the Modes heading means, and the intro of
+       the system skills. */
+    .hint {
+      color: var(--fg-3);
+      font-size: var(--t-xs);
+    }
+  </style>
+
+  <script>
+    import { api } from "../lib/api";
+    import { requireAuth, sessionInfo } from "../lib/auth";
+    import {
+      $,
+      attrsHTML,
+      badgeHTML,
+      bindDrawer,
+      bindItemList,
+      bindTabs,
+      buttonHTML,
+      calloutHTML,
+      catalogItemHTML,
+      checkGroupHTML,
+      checkHTML,
+      confirmDialog,
+      countHTML,
+      emptyRowHTML,
+      emptyStateHTML,
+      entityHeadHTML,
+      esc,
+      fieldHTML,
+      fileRowHTML,
+      groupHeadHTML,
+      kbdHTML,
+      makeToast,
+      mdEditorHTML,
+      panelHTML,
+      saveFootHTML,
+      sectionHeadHTML,
+      segmentedHTML,
+      stepListHTML,
+      setCount,
+      setFieldError,
+      setFieldWarning,
+      setSaveState,
+      tabPanelAttrs,
+      tabsHTML,
+      type ButtonOptions,
+      type CalloutTone,
+      type StepAction,
+      type StepItem,
+      type TabItem,
+      type TabsHandle,
+    } from "../lib/ui";
+    import { MOD_KEY } from "../lib/shortcuts";
+    import { roleWithin } from "../lib/api-keys";
+    import { mountWorkshop } from "../lib/workshop-modal";
+    import {
+      exportAllFilename,
+      exportItem,
+      exportItems,
+      paintUpdates,
+      updateBadgeHTML,
+      workshopUpdates,
+    } from "../lib/workshop";
+    import { matchesQuery } from "../lib/filter";
+    import { bindModal, escapeCloses } from "../lib/modal";
+    import { initKeyboard } from "../lib/keyboard";
+    import { wireMdEditor } from "../lib/mdeditor";
+    import type { BoardsResponse, Stage } from "../lib/stages";
+    import {
+      boardProjects,
+      columnToOffer,
+      saveColumnAgent,
+      validStagesWith,
+      type TemplateProject,
+    } from "../lib/column-agent";
+    import {
+      parseMCPEntry,
+      formatMCPEntry,
+      grantedTools,
+      entryForSave,
+      bareGrantKnown,
+      bareGrantSummary,
+      isBareEntry,
+      serverTickSelection,
+      allToolsToggle,
+      allToolsState,
+      toolGroups,
+      stageGrant,
+      type ToolDef,
+      type MCPEntry,
+    } from "../lib/mcp-entry";
+    import { serverDescription, toolDescription } from "../lib/mcp-tool-text";
+    import {
+      CHECK_STEP,
+      MODE_STAGES,
+      agentChecklist,
+      agentNameProblem,
+      copyStageConfig,
+      effectiveNoteTone,
+      formSkillsMode,
+      hostWithoutKey,
+      keepOrder,
+      runsWithCredential,
+      savedStagesLine,
+      suggestAgentName,
+      type CheckItem,
+      type NameProblem,
+    } from "../lib/agent-editor";
+    import {
+      keyRejected,
+      keyTrouble,
+      profileModelText,
+      type LLMProfile,
+    } from "../lib/llm-profiles";
+    import {
+      RUN_SKILL,
+      harvestSystemSkillsOff,
+      systemSkillRows,
+      type ShownToggle,
+      type SystemSkillInfo,
+      type SystemSkillRow,
+    } from "../lib/system-skills";
+    import { renderHistory } from "../lib/revisions";
+    import {
+      canEnforce,
+      engineOptionsHTML,
+      engineWarning,
+      firstAvailableEngine,
+      modeNote,
+      modeOptionsHTML,
+      normalizeAgentOptimizer,
+      optimizerPayload,
+      optimizerProblem,
+      parseWorkers,
+      type AgentTokenOptimizer,
+      type OptimizerLevel,
+      type OptimizerWorker,
+    } from "../lib/token-optimizer";
+    import { agentLink, deepLinkAgent, parseAgentLink } from "../lib/agent-link";
+    import { renderDefHistory } from "../lib/agent-def-history";
+    import { t } from "../i18n";
+    import { onPage, replaceURL } from "../lib/page";
+
+    onPage("/agents", (signal) => {
+      requireAuth();
+
+      function when(on: boolean, name: string): string {
+        return on ? name : "";
+      }
+
+      const AUDITOR_SKILLS_SAMPLE = "security-review,…";
+
+      const SAVE_KEY = `${MOD_KEY}S`;
+
+      interface AgentType {
+        name: string;
+        type: string;
+        engine?: string;
+        supported_engines?: string[];
+        description?: string;
+        valid_stages?: string[];
+      }
+      interface SkillDef {
+        name: string;
+        description?: string;
+        type?: string;
+        system?: boolean;
+      }
+      interface AgentSettings {
+        name: string;
+        description: string;
+        valid_stages: string[];
+        model: string;
+        effort: string;
+        engine?: string;
+        skills_mode?: string;
+        works_without_repo: boolean;
+        turns_by_stage: Record<string, string>;
+        skills_by_stage: Record<string, string[]>;
+        mcp_by_stage: Record<string, string[]>;
+        auditor_stages: string[];
+        auditor_turns_by_stage: Record<string, string>;
+        auditor_model_by_stage: Record<string, string>;
+        auditor_engine_by_stage: Record<string, string>;
+        auditor_skills_by_stage: Record<string, string[]>;
+        system_skills_off: Record<string, string[]>;
+        // system_skills_by_stage from the server is ignored: it goes stale as soon as an MCP toggle
+        // changes.
+        // The skills pane derives it live from mcp_by_stage.
+        system_skills?: SystemSkillInfo[];
+        system_skills_by_stage?: Record<string, SystemSkillRow[]>;
+        unknown_stages?: string[];
+        token_optimizer?: AgentTokenOptimizer;
+      }
+
+      type TabId = "settings" | "skills" | "mcp" | "prompts";
+
+      // Message keys spelled out for the i18n guard: a key built at runtime would read as unused.
+      const NAME_PROBLEM_KEYS: Record<Exclude<NameProblem, "">, string> = {
+        required: "agents.modal.name_errors.required",
+        invalid: "agents.modal.name_errors.invalid",
+        reserved: "agents.modal.name_errors.reserved",
+        taken: "agents.modal.name_errors.taken",
+      };
+      const GRANT_KEYS: Record<string, string> = {
+        read: "agents.mcp.grant_bare.read",
+        write: "agents.mcp.grant_bare.write",
+        admin: "agents.mcp.grant_bare.admin",
+        all: "agents.mcp.grant_bare.all",
+        unknown: "agents.mcp.grant_bare.unknown",
+      };
+      const STAGE_GRANT_KEYS: Record<string, string> = {
+        read: "agents.mcp.grant_stage.read",
+        write: "agents.mcp.grant_stage.write",
+        admin: "agents.mcp.grant_stage.admin",
+        other: "agents.mcp.grant_stage.other",
+      };
+      const GROUP_KEYS: Record<string, string> = {
+        read: "agents.mcp.group.read",
+        write: "agents.mcp.group.write",
+        admin: "agents.mcp.group.admin",
+        deploy: "agents.mcp.group.deploy",
+        board: "agents.mcp.group.board",
+        "": "agents.mcp.group.other",
+      };
+      const OPTIMIZER_PROBLEM_KEYS: Record<"engine" | "model", string> = {
+        engine: "agents.optimizer.engine_required",
+        model: "agents.optimizer.model_required",
+      };
+      const GROUP_HINT_KEYS: Record<string, string> = {
+        deploy: "agents.mcp.group_hint.deploy",
+        board: "agents.mcp.group_hint.board",
+        other: "agents.mcp.group_hint.other",
+      };
+
+      const DEPLOY_SERVER = "thulu-github";
+      const DEPLOY_TOOLS = ["run_dispatch", "run_watch", "run_logs"];
+
+      interface PromptEntry {
+        stage: string;
+        label: string;
+        path: string;
+        exists: boolean;
+        fallback?: string;
+        orphan?: boolean;
+      }
+      interface PromptSet {
+        kind: "agent" | "auditor";
+        title: string;
+        description: string;
+        dir: string;
+        fallback_name: string;
+        fallback_path: string;
+        fallback_exists: boolean;
+        stages: PromptEntry[];
+      }
+      interface PromptsResponse {
+        sets: PromptSet[];
+        other: string[];
+      }
+
+      let agents: AgentType[] = [];
+      let stages: Stage[] = [];
+      let skills: SkillDef[] = [];
+      let tools: ToolDef[] = [];
+      let activeAgent: string | null = null;
+      let activeTab: TabId = "settings";
+      let edTabs: TabsHandle | null = null;
+      let settings: AgentSettings | null = null;
+      let originalSettingsJSON = "";
+      interface EngineLite {
+        name: string;
+        label: string;
+        is_default?: boolean;
+        models?: string[];
+        effort?: boolean;
+        has_key?: boolean;
+        key_hint?: string;
+        default_profile_name?: string;
+        default_model?: string;
+        fallback_model?: string;
+        turn_budget?: boolean;
+        host_fallback?: boolean;
+      }
+      let engines: EngineLite[] = [];
+      let llmProfiles: LLMProfileLite[] = [];
+      let bindingOriginal = "";
+      let bindingTarget = "";
+      let llmMode: "profile" | "custom" = "profile";
+      let optimizerWorkers: OptimizerWorker[] | null = null;
+
+      function modelsForEngine(name: string): string[] {
+        return engines.find((x) => x.name === name)?.models ?? [];
+      }
+      function fallbackEngine(): string {
+        return engines.find((e) => e.is_default)?.name ?? "claude-code";
+      }
+      function engineOf(name: string): EngineLite | undefined {
+        return engines.find((e) => e.name === name);
+      }
+      // Mirrors the server's profile-binding rule: the engines the agent's image declares, else
+      // only the one it runs on.
+      function agentCanBind(engName: string): boolean {
+        const a = agents.find((x) => x.name === activeAgent);
+        const declared = a?.supported_engines ?? [];
+        if (declared.length) return declared.includes(engName);
+        return engName === (a?.engine || fallbackEngine());
+      }
+      let searchQuery = "";
+
+      const toast = makeToast();
+
+      // An unknown role reads as allowed and the daemon decides, which a no-login install needs.
+      // Settings, skills, MCP and prompts are admin writes; a developer may only bind a model
+      // profile.
+      let canAdmin = true;
+      let canDevelop = true;
+      void sessionInfo().then((me) => {
+        canAdmin = roleWithin("admin", me?.role);
+        canDevelop = roleWithin("developer", me?.role);
+        const nb = $("new-btn") as HTMLButtonElement;
+        nb.disabled = !canAdmin;
+        nb.title = canAdmin ? "" : t("agents.role.new_needs_admin");
+        if (activeAgent && settings) {
+          applyRole();
+          if (activeTab === "prompts") void renderPromptsPane();
+        }
+      });
+      const workshop = mountWorkshop(signal, {
+        canWrite: () => canAdmin,
+        toast,
+        onApplied: () => void bootstrap(),
+      });
+      $("workshop-btn").addEventListener("click", () => workshop.open("agent"), { signal });
+      $("export-all-btn").addEventListener(
+        "click",
+        () => {
+          const items = agents.map((a) => ({ kind: "agent" as const, name: a.name }));
+          exportItems(items, exportAllFilename("agent")).catch((e: unknown) =>
+            toast(t("workshop.export_failed", { error: (e as Error)?.message ?? "" }), "err", 4500),
+          );
+        },
+        { signal },
+      );
+
+      let updates = new Set<string>();
+      async function loadUpdates() {
+        updates = await workshopUpdates("agent");
+        paintUpdates($("workshop-btn"), $("workshop-updates"), updates.size);
+        renderSidebar();
+      }
+      $("agent-list").addEventListener(
+        "click",
+        (e) => {
+          if ((e.target as HTMLElement).closest("[data-open-workshop]")) workshop.open("agent");
+        },
+        { signal },
+      );
+
+      function catalogWriteFailed(e: unknown, fallback: string): void {
+        toast((e as Error)?.message ?? fallback, "err", 4500);
+      }
+
+      async function bootstrap() {
+        const [ag, st, sk, tl] = await Promise.allSettled([
+          api.get<AgentType[]>("/types"),
+          api.get<Stage[]>("/stages?include_virtual=1"),
+          api.get<SkillDef[]>("/skills"),
+          api.get<ToolDef[]>("/tools"),
+        ]);
+        agents = ag.status === "fulfilled" ? ag.value || [] : [];
+        stages = st.status === "fulfilled" ? st.value || [] : [];
+        skills = sk.status === "fulfilled" ? (sk.value || []).filter((x) => !x.system) : [];
+        tools = tl.status === "fulfilled" ? tl.value || [] : [];
+        if (ag.status === "rejected") {
+          $("agent-list").innerHTML = emptyRowHTML(
+            t("agents.sidebar.load_failed", {
+              error: String((ag.reason as Error)?.message ?? ag.reason),
+            }),
+            { as: "div", tone: "danger" },
+          );
+          return;
+        }
+        $("export-all-btn").hidden = agents.length === 0;
+        renderSidebar();
+        openDeepLink();
+        void loadUpdates();
+      }
+
+      // Only on the first load: a Workshop apply re-runs bootstrap and must not jump back.
+      let deepLinkDone = false;
+      function openDeepLink() {
+        if (deepLinkDone) return;
+        deepLinkDone = true;
+        const link = parseAgentLink(location.search, location.hash);
+        if (link.tab) activeTab = link.tab;
+        const target = deepLinkAgent(
+          link,
+          visibleAgents().map((a) => a.name),
+        );
+        if (target) void selectAgent(target);
+      }
+
+      async function followAgentLink() {
+        const link = parseAgentLink(location.search, location.hash);
+        const target = deepLinkAgent(
+          link,
+          visibleAgents().map((a) => a.name),
+        );
+        if (!target) return;
+        if (target !== activeAgent) await selectAgent(target, link.tab);
+        else if (link.tab && !document.getElementById(`pane-${link.tab}`)) {
+          activeTab = link.tab;
+          await loadSettings();
+          await renderEditor();
+        } else if (link.tab) await switchTab(link.tab);
+      }
+      window.addEventListener("hashchange", () => void followAgentLink(), { signal });
+      // The router handles a link here with another ?agent= as an in-page move: it pushes the entry
+      // and fires popstate,
+      // and with the same tab in the hash no hashchange follows.
+      window.addEventListener("popstate", () => void followAgentLink(), { signal });
+
+      function visibleAgents(): AgentType[] {
+        return agents.filter((a) =>
+          matchesQuery(searchQuery, [a.name, a.description, ...(a.valid_stages ?? [])]),
+        );
+      }
+
+      function renderSidebar() {
+        const list = visibleAgents();
+        if (agents.length === 0) {
+          $("agent-list").innerHTML = emptyStateHTML({
+            size: "sm",
+            title: t("agents.sidebar.none"),
+            body: t("workshop.empty_agents"),
+            action: {
+              label: t("workshop.open"),
+              size: "sm",
+              attrs: { "data-open-workshop": true },
+            },
+          });
+          return;
+        }
+        if (list.length === 0) {
+          $("agent-list").innerHTML = emptyRowHTML(
+            t("agents.sidebar.no_matches", { query: searchQuery }),
+            { as: "div" },
+          );
+          return;
+        }
+        const host = $("agent-list");
+        const focused = host.contains(document.activeElement)
+          ? (document.activeElement as HTMLElement).dataset.name
+          : undefined;
+        host.innerHTML = list
+          .map((a) => {
+            const stages = a.valid_stages || [];
+            const tags =
+              stages
+                .slice(0, 6)
+                .map((s) => badgeHTML(stageLabelOf(s), "neutral", { size: "sm" }))
+                .join("") +
+              (stages.length > 6
+                ? badgeHTML(`+${stages.length - 6}`, "neutral", { size: "sm" })
+                : "");
+            return catalogItemHTML({
+              name: a.name,
+              description: a.description,
+              badgesHTML: updates.has(a.name) ? updateBadgeHTML() : undefined,
+              tagsHTML: tags || undefined,
+              current: a.name === activeAgent,
+              attrs: { "data-name": a.name },
+            });
+          })
+          .join("");
+        if (focused)
+          host.querySelector<HTMLElement>(`[data-name="${CSS.escape(focused)}"]`)?.focus();
+      }
+      bindItemList($("agent-list"), { onPick: (item) => void selectAgent(item.dataset.name!) });
+
+      async function selectAgent(name: string, tab?: TabId) {
+        if (await confirmDirty({ revert: false })) return renderSidebar();
+        if (tab) activeTab = tab;
+        activeAgent = name;
+        syncURL();
+        renderSidebar();
+        await loadSettings();
+        await renderEditor();
+      }
+
+      async function pruneOrphanStages() {
+        if (!activeAgent || !settings?.unknown_stages?.length) return;
+        const stages = settings.unknown_stages.join(", ");
+        const ok = await confirmDialog({
+          title: t("agents.confirm.prune_title"),
+          message: t("agents.confirm.prune_message", { stages }),
+          confirmLabel: t("agents.buttons.clean_up"),
+          danger: true,
+        });
+        if (!ok) return;
+        try {
+          const res = await api.post<{ stages: string[]; files: string[] }>(
+            `/types/${activeAgent}/settings/prune-stages`,
+            {},
+          );
+          await loadSettings();
+          renderEditor();
+          const cleaned = res.stages.join(", ") || t("agents.toasts.cleaned_nothing");
+          toast(
+            res.files.length
+              ? t("agents.toasts.cleaned_up_files", { stages: cleaned, count: res.files.length })
+              : t("agents.toasts.cleaned_up", { stages: cleaned }),
+            "ok",
+          );
+        } catch (e) {
+          catalogWriteFailed(e, t("agents.errors.cleanup_failed"));
+        }
+      }
+
+      async function loadSettings() {
+        if (!activeAgent) return;
+        const agent = activeAgent;
+        const [st, eng, prof, bind, workers] = await Promise.all([
+          api.get<AgentSettings>(`/types/${agent}/settings`),
+          api.get<{ engines: EngineLite[] }>("/engines").catch(() => null),
+          api.get<{ profiles: LLMProfileLite[] | null }>("/llm-profiles").catch(() => null),
+          api
+            .get<AgentBindingResp>(`/agents/${agent}/llm-binding`)
+            .catch((): AgentBindingResp => ({ bound: false })),
+          api.get<unknown>("/token-optimizer/workers").catch((): null => null),
+        ]);
+        settings = st;
+        optimizerWorkers = workers === null ? null : parseWorkers(workers);
+        if (eng) engines = eng.engines ?? [];
+        if (prof) llmProfiles = prof.profiles ?? [];
+        bindingOriginal = bind?.bound ? (bind.binding?.profile_id ?? "") : "";
+        bindingTarget = bindingOriginal;
+        if (settings) {
+          settings.engine = settings.engine ?? "";
+          settings.model = settings.model ?? "";
+          settings.effort = settings.effort ?? "";
+          settings.skills_mode = formSkillsMode(settings.skills_mode);
+          settings.system_skills_off = settings.system_skills_off ?? {};
+          settings.token_optimizer = normalizeAgentOptimizer(settings.token_optimizer);
+          llmMode = !bindingOriginal && (settings.model || settings.effort) ? "custom" : "profile";
+        }
+        originalSettingsJSON = JSON.stringify(settings);
+      }
+
+      function optimizerEngines(): OptimizerWorker[] {
+        return optimizerWorkers ?? engines.map((e) => ({ engine: e.name, available: true }));
+      }
+
+      function engineLabel(name: string): string {
+        return engineOf(name)?.label ?? name;
+      }
+
+      function optimizerModelsHTML(engine: string): string {
+        return modelsForEngine(engine)
+          .map((m) => `<option value="${esc(m)}"></option>`)
+          .join("");
+      }
+
+      function optimizerFieldHTML(): string {
+        const to = settings!.token_optimizer ?? normalizeAgentOptimizer(null);
+        const agentEngine = settings!.engine || fallbackEngine();
+        const list = optimizerEngines();
+        const someMissing = list.some((w) => !w.available);
+        const note = modeNote(to.level, agentEngine);
+        return fieldHTML({
+          label: t("agents.optimizer.title"),
+          helpHTML: t("agents.optimizer.hint_html"),
+          control: `<div class="topt-box">
+            ${fieldHTML({
+              label: t("agents.optimizer.mode"),
+              for: "topt-level",
+              // Write the help line even when empty: paintOptimizer() fills or hides it as the
+              // agent's engine changes.
+              helpId: "topt-level-help",
+              help: note.tone === "help" ? note.text || " " : " ",
+              warnId: "topt-level-warn",
+              control: `<select id="topt-level">${modeOptionsHTML(to.level, agentEngine)}</select>`,
+            })}
+            <div class="topt-worker" id="topt-worker" ${when(to.level === "off", "hidden")}>
+              ${fieldHTML({
+                label: t("agents.optimizer.engine"),
+                for: "topt-engine",
+                helpHTML: someMissing ? t("agents.optimizer.engines_missing_html") : undefined,
+                warnId: "topt-engine-warn",
+                errorId: "topt-engine-error",
+                control: `<select id="topt-engine">${engineOptionsHTML(list, to.engine, engineLabel)}</select>`,
+              })}
+              ${fieldHTML({
+                label: t("agents.optimizer.model"),
+                for: "topt-model",
+                errorId: "topt-model-error",
+                control: `<input id="topt-model" type="text" list="topt-models" autocomplete="off"
+                  spellcheck="false" value="${esc(to.model)}" />
+                  <datalist id="topt-models">${optimizerModelsHTML(to.engine)}</datalist>`,
+              })}
+            </div>
+          </div>`,
+        });
+      }
+
+      function paintOptimizer() {
+        const level = document.getElementById("topt-level") as HTMLSelectElement | null;
+        if (!level || !settings?.token_optimizer) return;
+        const to = settings.token_optimizer;
+        const agentEngine = settings.engine || fallbackEngine();
+        const enforce = level.querySelector<HTMLOptionElement>('option[value="enforce"]');
+        if (enforce) enforce.disabled = to.level !== "enforce" && !canEnforce(agentEngine);
+        const note = modeNote(to.level, agentEngine);
+        const help = document.getElementById("topt-level-help");
+        if (help) {
+          help.textContent = note.tone === "help" ? note.text : "";
+          help.hidden = !help.textContent;
+        }
+        setFieldWarning(level, note.tone === "warn" ? note.text : "");
+        $("topt-worker").hidden = to.level === "off";
+        const engine = $("topt-engine") as HTMLSelectElement;
+        setFieldWarning(engine, engineWarning(optimizerEngines(), to.engine));
+        if (to.engine) setFieldError(engine, "");
+        if (to.model) setFieldError($("topt-model"), "");
+      }
+
+      function harvestOptimizer(): AgentTokenOptimizer | null {
+        const level = document.getElementById("topt-level") as HTMLSelectElement | null;
+        if (!level) return null;
+        return normalizeAgentOptimizer({
+          level: level.value as OptimizerLevel,
+          engine: ($("topt-engine") as HTMLSelectElement).value,
+          model: ($("topt-model") as HTMLInputElement).value,
+        });
+      }
+
+      function bindOptimizerHandlers() {
+        const level = document.getElementById("topt-level") as HTMLSelectElement | null;
+        const engine = document.getElementById("topt-engine") as HTMLSelectElement | null;
+        if (!level || !engine) return;
+        level.addEventListener("change", () => {
+          if (!canAdmin || level.value === "off" || engine.value) return;
+          const first = firstAvailableEngine(optimizerEngines());
+          if (!first) return;
+          engine.value = first;
+          $("topt-models").innerHTML = optimizerModelsHTML(first);
+          updateSettings();
+        });
+        engine.addEventListener("change", () => {
+          if (!canAdmin) return;
+          ($("topt-model") as HTMLInputElement).value = "";
+          $("topt-models").innerHTML = optimizerModelsHTML(engine.value);
+          updateSettings();
+        });
+      }
+
+      async function showDefHistory(name: string) {
+        if (await confirmDirty()) return;
+        const saved = JSON.parse(originalSettingsJSON || "{}") as Partial<AgentSettings>;
+        await renderDefHistory({
+          host: $("editor"),
+          agent: name,
+          current: {
+            name,
+            description: saved.description,
+            valid_stages: saved.valid_stages,
+            engine: saved.engine,
+            model: saved.model,
+            effort: saved.effort,
+            skills_by_stage: saved.skills_by_stage,
+            mcp_by_stage: saved.mcp_by_stage,
+            auditor: { stages: saved.auditor_stages },
+          },
+          readOnly: !canAdmin,
+          stageName: (id) => stages.find((s) => s.id === id)?.label || id,
+          onBack: async () => {
+            await loadSettings();
+            await renderEditor();
+          },
+          onRestored: async () => {
+            await bootstrap();
+            await loadSettings();
+            await renderEditor();
+          },
+          toast,
+        });
+      }
+
+      function emptyEditorHTML(): string {
+        return emptyStateHTML({
+          icon: "bot",
+          title: t("agents.empty.select"),
+          bodyHTML: t("agents.empty.create_hint", { key: kbdHTML("N") }),
+        });
+      }
+
+      async function renderEditor() {
+        if (!activeAgent || !settings) {
+          $("editor").innerHTML = emptyEditorHTML();
+          return;
+        }
+        const a = agents.find((x) => x.name === activeAgent)!;
+        $("editor").innerHTML = `
+          ${entityHeadHTML({
+            title: a.name,
+            meta: metaLine(),
+            metaId: "ed-meta",
+            actions: [
+              {
+                label: t("agents.history.button"),
+                icon: "clock",
+                id: "ed-history",
+                title: t("agents.history.button_title"),
+              },
+              {
+                label: t("workshop.export"),
+                icon: "download",
+                id: "ed-export",
+                title: t("workshop.export_hint"),
+              },
+              {
+                label: t("agents.buttons.delete_agent"),
+                variant: "danger",
+                icon: "trash",
+                id: "ed-delete",
+              },
+            ],
+          })}
+          ${calloutHTML({ tone: "warn", band: true, icon: "lock", id: "ed-role-note", body: roleNoteText(), attrs: { hidden: canAdmin } })}
+          <div class="ed-check" id="ed-check"></div>
+          ${tabsHTML({ id: "ed-tabs", label: t("agents.tabs.aria"), idPrefix: "ed-", items: edTabItems(), active: activeTab })}
+          <div class="ed-pane-container">
+            ${edTabItems()
+              .map(
+                (it) =>
+                  `<div class="ed-pane"${attrsHTML(tabPanelAttrs(it, it.id === activeTab))}></div>`,
+              )
+              .join("")}
+          </div>
+          ${saveFootHTML({
+            id: "ed-save-bar",
+            stateId: "set-status",
+            actions: [
+              { label: t("agents.buttons.revert"), id: "set-revert", disabled: true },
+              {
+                label: t("agents.buttons.save_settings"),
+                variant: "primary",
+                kbd: SAVE_KEY,
+                id: "set-save",
+                disabled: true,
+              },
+            ],
+            attrs: { hidden: activeTab === "prompts" },
+          })}`;
+
+        edTabs = bindTabs($("ed-tabs"), {
+          beforeChange: (tab) => mayLeaveTab(tab as TabId),
+          onChange: (tab, how) => {
+            if (how.user) void showTab(tab as TabId);
+          },
+        });
+        $("ed-delete").addEventListener("click", deleteAgent);
+        $("ed-history").addEventListener("click", () => void showDefHistory(a.name));
+        $("ed-export").addEventListener("click", () => {
+          exportItem("agent", a.name).catch((e: unknown) =>
+            toast(t("workshop.export_failed", { error: (e as Error)?.message ?? "" }), "err", 4500),
+          );
+        });
+        $("set-revert").addEventListener("click", async () => {
+          await revertSettings();
+          toast(t("agents.toasts.reverted"), "info", 1800);
+        });
+        $("set-save").addEventListener("click", saveSettings);
+
+        renderSettingsPane();
+        renderSkillsPane();
+        renderMCPPane();
+        applyRole();
+        await renderPromptsPane();
+        void renderChecklist();
+      }
+
+      function stageLabelOf(id: string): string {
+        if (id === "mention") return t("agents.settings.mention");
+        if (id === "chat") return t("agents.settings.chat");
+        return stages.find((s) => s.id === id)?.label || id;
+      }
+
+      function metaLine(): string {
+        const saved = (JSON.parse(originalSettingsJSON || "{}") as Partial<AgentSettings>)
+          .valid_stages;
+        return savedStagesLine(saved, stageLabelOf) ?? t("agents.checklist.stages_any");
+      }
+
+      function stageTitleHTML(id: string): string {
+        return MODE_STAGES.includes(id)
+          ? t("agents.labels.mode_html", { mode: esc(stageLabelOf(id)) })
+          : t("agents.labels.stage_html", { stage: esc(stageLabelOf(id)), id: esc(id) });
+      }
+
+      async function revertSettings() {
+        await loadSettings();
+        renderSettingsPane();
+        renderSkillsPane();
+        renderMCPPane();
+        markDirty();
+      }
+
+      function edTabItems(): TabItem[] {
+        return [
+          { id: "settings", label: t("agents.tabs.settings"), icon: "settings" },
+          { id: "skills", label: t("agents.tabs.skills"), icon: "skills" },
+          { id: "mcp", label: t("agents.tabs.mcp"), icon: "server" },
+          { id: "prompts", label: t("agents.tabs.prompts"), icon: "file" },
+        ].map((it) => ({ ...it, panelId: `pane-${it.id}` }));
+      }
+
+      async function mayLeaveTab(tab: TabId): Promise<boolean> {
+        const crossesPrompts = tab !== activeTab && (tab === "prompts" || activeTab === "prompts");
+        return !(crossesPrompts && (await confirmDirty()));
+      }
+
+      async function switchTab(tab: TabId) {
+        if (!(await mayLeaveTab(tab))) return;
+        await showTab(tab);
+      }
+
+      // Keep the address in step with the agent and tab shown: a link into the page that matches a
+      // stale address does nothing.
+      // replaceURL keeps the hash bridge in step.
+      function syncURL() {
+        if (!activeAgent) return;
+        const want = agentLink(activeAgent, activeTab);
+        if (location.pathname + location.search + location.hash !== want) replaceURL(want);
+      }
+
+      async function showTab(tab: TabId) {
+        activeTab = tab;
+        syncURL();
+        edTabs?.select(tab);
+        const sb = $("ed-save-bar");
+        if (sb) sb.hidden = tab === "prompts";
+        if (tab === "prompts") await renderPromptsPane();
+      }
+
+      function roleNoteText(): string {
+        return canDevelop ? t("agents.role.developer") : t("agents.role.viewer");
+      }
+      function applyRole() {
+        const note = document.getElementById("ed-role-note");
+        if (note) {
+          note.hidden = canAdmin;
+          const text = note.querySelector<HTMLElement>(".callout-text");
+          if (text) text.textContent = roleNoteText();
+        }
+        if (canAdmin) return;
+        const del = document.getElementById("ed-delete");
+        if (del) del.hidden = true;
+        for (const id of ["pane-settings", "pane-skills", "pane-mcp"]) {
+          document
+            .getElementById(id)
+            ?.querySelectorAll<
+              HTMLInputElement | HTMLSelectElement | HTMLButtonElement | HTMLTextAreaElement
+            >("input, select, button, textarea")
+            .forEach((el) => {
+              if (el.hasAttribute("data-mcp-tools-btn")) return;
+              if (canDevelop && (el.id === "llm-profile" || el.dataset.llmMode === "profile"))
+                return;
+              el.disabled = true;
+            });
+        }
+      }
+
+      interface AgentUsage {
+        tasks: number;
+        projects: { id: string; name: string; stages: string[] }[];
+      }
+
+      const CHECK_KEYS: Record<CheckItem["id"], { ok: string; todo: string }> = {
+        stages: { ok: "agents.checklist.stages_ok", todo: "agents.checklist.stages_todo" },
+        prompt: { ok: "agents.checklist.prompt_ok", todo: "agents.checklist.prompt_todo" },
+        credential: {
+          ok: "agents.checklist.credential_ok",
+          todo: "agents.checklist.credential_todo",
+        },
+        assigned: { ok: "agents.checklist.assigned_ok", todo: "agents.checklist.assigned_todo" },
+      };
+
+      function assignedList(u: AgentUsage): string {
+        const parts: string[] = [];
+        if (u.tasks) parts.push(t("agents.checklist.assigned_tasks", { count: u.tasks }));
+        if (u.projects.length)
+          parts.push(t("agents.checklist.assigned_projects", { count: u.projects.length }));
+        return parts.length === 2
+          ? t("agents.checklist.assigned_and", { a: parts[0], b: parts[1] })
+          : (parts[0] ?? "");
+      }
+
+      function checklistHTML(steps: StepItem[]): string {
+        return stepListHTML(steps, {
+          inline: true,
+          attrs: { "aria-label": t("agents.checklist.title") },
+        });
+      }
+
+      async function renderChecklist() {
+        const agent = activeAgent;
+        const host = document.getElementById("ed-check");
+        if (!agent || !host) return;
+        const [usage, prompts, eff] = await Promise.all([
+          api.get<AgentUsage>(`/types/${agent}/usage`).catch(() => null),
+          api.get<PromptsResponse>(`/types/${agent}/prompts`).catch(() => null),
+          api.get<EffectiveLLMResp>(`/agents/${agent}/effective-llm`).catch(() => null),
+        ]);
+        if (agent !== activeAgent || !document.body.contains(host)) return;
+        const saved = JSON.parse(originalSettingsJSON || "{}") as Partial<AgentSettings>;
+        const own = prompts?.sets.find((x) => x.kind === "agent");
+        const items = agentChecklist({
+          validStages: saved.valid_stages ?? [],
+          knownStages: stages.map((x) => x.id),
+          prompts: own
+            ? {
+                fallback: own.fallback_exists,
+                own: own.stages.filter((e) => e.exists).map((e) => e.stage),
+              }
+            : null,
+          hasCredential: eff ? runsWithCredential(eff) : null,
+          keyRejected: keyRejected(llmProfiles.find((p) => p.id === eff?.profile_id)),
+          assigned: usage ? usage.tasks + usage.projects.length : null,
+        });
+        const assigned = items.find((x) => x.id === "assigned");
+        const assignedText = (it: CheckItem | undefined): string => {
+          if (!it || it.state !== "ok" || !usage) return t(CHECK_KEYS.assigned.ok);
+          if (!it.viaModes)
+            return t("agents.checklist.assigned_count", { list: assignedList(usage) });
+          const modes = it.modes ?? [];
+          if (modes.length === 1)
+            return modes[0] === "chat"
+              ? t("agents.checklist.assigned_chat")
+              : t("agents.checklist.assigned_mention");
+          return t("agents.checklist.assigned_modes");
+        };
+        if (items.every((x) => x.state === "ok")) {
+          host.innerHTML = checklistHTML([
+            {
+              title: t("agents.checklist.ready", { assigned: assignedText(assigned) }),
+              state: "done",
+            },
+          ]);
+          return;
+        }
+        host.innerHTML = checklistHTML(
+          items.map((it): StepItem => {
+            let text = t(it.state === "ok" ? CHECK_KEYS[it.id].ok : CHECK_KEYS[it.id].todo);
+            let action: StepAction | undefined;
+            if (it.state === "unknown") text = t("agents.checklist.unknown", { what: text });
+            if (it.id === "credential" && it.rejected)
+              text = t("agents.checklist.credential_rejected");
+            if (it.id === "prompt" && it.missing?.length)
+              text = t("agents.checklist.prompt_missing", {
+                stages: it.missing.map(stageLabelOf).join(", "),
+              });
+            if (it.id === "stages" && it.anyColumn) text = t("agents.checklist.stages_any");
+            if (it.id === "assigned" && it.state === "ok") text = assignedText(it);
+            if (
+              it.state === "todo" &&
+              (canAdmin || it.id === "credential" || it.id === "assigned")
+            ) {
+              if (it.id === "stages")
+                action = {
+                  label: t("agents.checklist.stages_go"),
+                  attrs: { "data-check-tab": "settings" },
+                };
+              if (it.id === "prompt")
+                action = {
+                  label: t("agents.checklist.prompt_go"),
+                  attrs: { "data-check-tab": "prompts" },
+                };
+              if (it.id === "credential")
+                action = { label: t("agents.checklist.credential_go"), href: "/settings/#llm" };
+              if (it.id === "assigned")
+                action = { label: t("agents.checklist.assigned_go"), href: "/projects/" };
+            }
+            return { title: text, state: CHECK_STEP[it.state], action };
+          }),
+        );
+        bindTabLinks(host);
+      }
+
+      function stageRowHTML(id: string, label: string, hint?: string, virtual = false): string {
+        const on = !!settings!.valid_stages?.includes(id);
+        const turns = (settings!.turns_by_stage || {})[id] || "";
+        return `<div class="stage-row ${when(virtual, "virtual")}" data-stage="${esc(id)}">
+          ${checkHTML({ card: true, label, hint, checked: on, inputAttrs: { "data-st": id } })}
+          <input type="number" min="1" max="50" placeholder="${esc(t("agents.settings.turns_placeholder"))}"
+            value="${esc(turns)}"
+            data-stage-turns="${esc(id)}"
+            aria-label="${esc(t("agents.settings.turns_label", { stage: label }))}"
+            class="stage-turns" ${when(!on, "disabled")} />
+        </div>`;
+      }
+
+      function renderSettingsPane() {
+        if (!settings) return;
+        const stagesGrid = stages
+          .filter((s) => !s.virtual)
+          .map((s) => stageRowHTML(s.id, s.label))
+          .join("");
+
+        const mentionRow = stageRowHTML(
+          "mention",
+          t("agents.settings.mention"),
+          t("agents.settings.mention_hint"),
+          true,
+        );
+
+        // Backend gate for chat: AgentType.SupportsChat() in internal/types.
+        const chatRow = stageRowHTML(
+          "chat",
+          t("agents.settings.chat"),
+          t("agents.settings.chat_hint"),
+          true,
+        );
+
+        const auditorStageSet = new Set(settings.auditor_stages || []);
+        const auditorRowsHTML =
+          (settings.valid_stages || [])
+            .filter((s) => !stages.find((st) => st.id === s)?.virtual)
+            .map((stageId) => {
+              const on = auditorStageSet.has(stageId);
+              const stageLabel = stages.find((s) => s.id === stageId)?.label || stageId;
+              const turns = (settings!.auditor_turns_by_stage || {})[stageId] || "";
+              const model = (settings!.auditor_model_by_stage || {})[stageId] || "";
+              const skillsCSV = ((settings!.auditor_skills_by_stage || {})[stageId] || []).join(
+                ",",
+              );
+              const auditorEngine = (settings!.auditor_engine_by_stage || {})[stageId] || "";
+              const modelOpts = auditorModelOptions(model, auditorEngine);
+              const idOf = (part: string) => `aud-${part}-${stageId}`;
+              return panelHTML({
+                tag: "div",
+                size: "sm",
+                pick: true,
+                as: "div",
+                titleHTML: checkHTML({
+                  label: stageLabel,
+                  checked: on,
+                  trailingHTML: `<code class="code-inline">${esc(stageId)}</code>`,
+                  inputAttrs: { "data-aud-on": stageId },
+                }),
+                bodyAttrs: { hidden: !on, "data-aud-body": true },
+                attrs: { "data-aud-stage": stageId },
+                bodyHTML: `<div class="aud-overrides">
+              ${fieldHTML({
+                label: t("agents.labels.engine"),
+                for: idOf("engine"),
+                cls: "aud-engine-field",
+                control: `<select id="${esc(idOf("engine"))}" data-aud-engine="${esc(stageId)}" class="aud-engine">${auditorEngineOptions(auditorEngine)}</select>`,
+              })}
+              <p class="hint aud-engine-note" data-aud-engine-note="${esc(stageId)}">${esc(auditorEngineNote(auditorEngine))}</p>
+              ${fieldHTML({
+                label: t("agents.labels.turns"),
+                for: idOf("turns"),
+                control: `<input type="number" min="1" max="20" placeholder="5" id="${esc(idOf("turns"))}"
+                  value="${esc(turns)}" data-aud-turns="${esc(stageId)}" class="aud-turns" />`,
+              })}
+              ${fieldHTML({
+                label: t("agents.labels.model"),
+                for: idOf("model"),
+                control: `<select id="${esc(idOf("model"))}" data-aud-model="${esc(stageId)}" class="aud-model">${modelOpts}</select>`,
+              })}
+              ${fieldHTML({
+                label: t("agents.labels.skills"),
+                for: idOf("skills"),
+                help: t("agents.auditor.skills_hint"),
+                cls: "aud-skills-field",
+                control: `<input type="text" placeholder="${AUDITOR_SKILLS_SAMPLE}" id="${esc(idOf("skills"))}"
+                  aria-describedby="${esc(idOf("skills"))}-help"
+                  value="${esc(skillsCSV)}" data-aud-skills="${esc(stageId)}" class="aud-skills" />`,
+              })}
+            </div>`,
+              });
+            })
+            .join("") ||
+          emptyStateHTML({ size: "inline", dashed: true, title: t("agents.auditor.pick_stage") });
+
+        // "auto" stores no label on purpose: pinning it would freeze the agent's behavior when its
+        // engine changes.
+        const skillsMode = settings!.skills_mode ?? "";
+        const skillsModeOptsHTML = [
+          { v: "", label: t("agents.settings.skills_mode_auto") },
+          { v: "native", label: t("agents.settings.skills_mode_native") },
+          { v: "inline", label: t("agents.settings.skills_mode_inline") },
+        ]
+          .map(
+            (o) =>
+              `<option value="${esc(o.v)}"${when((skillsMode || "") === o.v, " selected")}>${esc(o.label)}</option>`,
+          )
+          .join("");
+        const orphaned = settings.unknown_stages?.length
+          ? `<div class="text-warn text-warn-hint">${t("agents.settings.orphaned", { stages: settings.unknown_stages.map((u) => esc(u)).join(", ") })}
+               ${buttonHTML({ label: t("agents.buttons.clean_up"), variant: "ghost", size: "sm", id: "btn-prune-stages", cls: "hint-action" })}</div>`
+          : "";
+        $("pane-settings").innerHTML = `
+          <div class="settings settings-form">
+            ${fieldHTML({
+              label: t("agents.labels.description"),
+              for: "set-desc",
+              control: `<input id="set-desc" type="text" value="${esc(settings.description || "")}" />`,
+            })}
+            ${fieldHTML({
+              label: t("agents.settings.model_credentials"),
+              hintHTML: t("agents.settings.model_credentials_hint_html"),
+              control: `<div class="llm-box" id="llm-box"></div>`,
+            })}
+            ${fieldHTML({
+              label: t("agents.settings.skills_delivery"),
+              for: "set-skills-mode",
+              hintHTML: t("agents.settings.skills_delivery_hint_html"),
+              control: `<select id="set-skills-mode">${skillsModeOptsHTML}</select>`,
+            })}
+            ${fieldHTML({
+              label: t("agents.settings.repo_requirement"),
+              hint: t("agents.settings.repo_requirement_hint"),
+              control: checkHTML({
+                id: "set-no-repo",
+                label: t("agents.settings.works_without_repo"),
+                hint: t("agents.settings.works_without_repo_hint"),
+                checked: settings.works_without_repo,
+              }),
+            })}
+            ${fieldHTML({
+              label: t("agents.settings.valid_stages"),
+              hintHTML: `<span id="valid-stages-hint">${esc(t("agents.settings.valid_stages_hint"))}</span>`,
+              control: `<div class="stages-groups">
+                <div class="stages-sub" id="set-stages-columns">${esc(t("agents.settings.columns"))}</div>
+                <div class="stages-list" role="group" aria-labelledby="set-stages-columns">${stagesGrid}</div>
+                <div class="stages-sub" id="set-stages-modes">${esc(t("agents.settings.modes"))} <span class="hint">${esc(t("agents.settings.modes_hint"))}</span></div>
+                <div class="stages-list" role="group" aria-labelledby="set-stages-modes">${mentionRow}${chatRow}</div>
+                ${orphaned}
+              </div>`,
+            })}
+            ${fieldHTML({
+              label: t("agents.settings.auditor"),
+              hint: t("agents.settings.auditor_hint"),
+              control: `<div class="aud-grid">${auditorRowsHTML}</div>`,
+            })}
+            ${optimizerFieldHTML()}
+          </div>`;
+
+        renderLLMBox();
+        bindSettingsHandlers();
+        bindOptimizerHandlers();
+        syncTurnBudget();
+        applyRole();
+        paintOptimizer();
+      }
+
+      // A saved model from another engine stays listed so a save does not drop it.
+      function auditorModelOptions(model: string, auditorEngine: string): string {
+        const audModels = [
+          "",
+          ...modelsForEngine(auditorEngine || settings?.engine || fallbackEngine()),
+        ];
+        if (model && !audModels.includes(model)) audModels.push(model);
+        return audModels
+          .map(
+            (m) =>
+              `<option value="${esc(m)}" ${when(model === m, "selected")}>${m === "" ? t("agents.auditor.model_default") : esc(m)}</option>`,
+          )
+          .join("");
+      }
+
+      function auditorEngineOptions(selected: string): string {
+        const agentEngine = engineOf(settings?.engine || fallbackEngine());
+        const same = t("agents.auditor.engine_same", {
+          engine: agentEngine?.label ?? settings?.engine ?? "",
+        });
+        return [
+          `<option value="" ${when(selected === "", "selected")}>${esc(same)}</option>`,
+          ...engines.map(
+            (e) =>
+              `<option value="${esc(e.name)}" ${when(selected === e.name, "selected")}>${esc(e.label)}</option>`,
+          ),
+        ].join("");
+      }
+
+      // Only for an engine other than the agent's: the agent's own key status is already on screen.
+      function auditorEngineNote(auditorEngine: string): string {
+        if (!auditorEngine || auditorEngine === (settings?.engine || fallbackEngine())) return "";
+        const e = engineOf(auditorEngine);
+        const engine = e?.label ?? auditorEngine;
+        const notes: string[] = [];
+        if (e && !e.default_profile_name && !e.has_key && !e.host_fallback)
+          notes.push(t("agents.auditor.engine_no_key", { engine }));
+        if (e?.turn_budget === false) notes.push(t("agents.auditor.engine_no_turns", { engine }));
+        return notes.join(" ");
+      }
+
+      function refreshAuditorRow(stageId: string) {
+        const pane = $("pane-settings");
+        const engineSel = pane.querySelector<HTMLSelectElement>(
+          `select[data-aud-engine="${CSS.escape(stageId)}"]`,
+        );
+        const modelSel = pane.querySelector<HTMLSelectElement>(
+          `select[data-aud-model="${CSS.escape(stageId)}"]`,
+        );
+        const note = pane.querySelector<HTMLElement>(
+          `[data-aud-engine-note="${CSS.escape(stageId)}"]`,
+        );
+        const auditorEngine = engineSel?.value ?? "";
+        if (engineSel) engineSel.innerHTML = auditorEngineOptions(auditorEngine);
+        if (modelSel) modelSel.innerHTML = auditorModelOptions(modelSel.value, auditorEngine);
+        if (note) note.textContent = auditorEngineNote(auditorEngine);
+      }
+
+      function refreshAuditorModels() {
+        document
+          .querySelectorAll<HTMLSelectElement>("#pane-settings select[data-aud-engine]")
+          .forEach((sel) => refreshAuditorRow(sel.dataset.audEngine!));
+      }
+
+      function syncTurnBudget() {
+        const lists = document.querySelectorAll<HTMLElement>("#pane-settings .stages-list");
+        const hint = document.getElementById("valid-stages-hint");
+        if (!lists.length || !hint || !settings) return;
+        const e = engineOf(settings.engine || fallbackEngine());
+        const off = e?.turn_budget === false;
+        lists.forEach((list) => list.classList.toggle("no-turn-budget", off));
+        hint.textContent = off
+          ? t("agents.settings.valid_stages_hint_no_turns", { engine: e?.label ?? "" })
+          : t("agents.settings.valid_stages_hint");
+      }
+
+      type LLMProfileLite = LLMProfile;
+      interface AgentBindingResp {
+        bound: boolean;
+        binding?: {
+          agent_name: string;
+          profile_id: string;
+          updated_at?: string;
+          updated_by?: string;
+        };
+      }
+      interface EffectiveLLMResp {
+        source: "binding" | "workspace_default" | "legacy" | "host";
+        profile_id?: string;
+        profile_name?: string;
+        engine: string;
+        model?: string;
+        effort?: string;
+        base_url?: string;
+        org_id?: string;
+        provider?: string;
+        has_credential: boolean;
+        host_fallback?: boolean;
+        warnings?: string[];
+      }
+
+      function keyLine(engName: string): string {
+        const e = engineOf(engName);
+        const label = esc(e?.label ?? engName);
+        if (e?.default_profile_name)
+          return `${t("agents.llm.key_line_html", { engine: label, profile: esc(e.default_profile_name) })}${e.key_hint ? ` <code class="code-inline">${esc(e.key_hint)}</code>` : ""}`;
+        return e?.host_fallback
+          ? t("agents.llm.no_default_key_html", { engine: label })
+          : t("agents.llm.no_default_key_blocked_html", { engine: label });
+      }
+
+      function effortText(effort: string): string {
+        const words: Record<string, string> = {
+          low: t("agents.llm.effort_low"),
+          medium: t("agents.llm.effort_medium"),
+          high: t("agents.llm.effort_high"),
+        };
+        return words[effort] ?? effort;
+      }
+
+      function defaultProfileOf(engName: string): LLMProfileLite | undefined {
+        return llmProfiles.find((p) => p.is_default && p.engine === engName);
+      }
+
+      function keyTroubleBit(p: LLMProfileLite | undefined): string {
+        const trouble = keyTrouble(p);
+        if (!trouble) return "";
+        return trouble.tone === "danger"
+          ? t("agents.llm.key_refused_short")
+          : t("agents.llm.key_unanswered_short");
+      }
+
+      function profileOptionsHTML(selected: string): string {
+        const defaults = engines
+          .map((e) => {
+            const bits = [profileModelText(defaultProfileOf(e.name)?.model, e.fallback_model)];
+            const keyless = !e.default_profile_name;
+            const blocked = keyless && !e.host_fallback;
+            if (keyless)
+              bits.push(blocked ? t("agents.llm.no_key_blocked") : t("agents.llm.no_key_set"));
+            const trouble = keyTroubleBit(defaultProfileOf(e.name));
+            if (trouble) bits.push(trouble);
+            const v = `default:${e.name}`;
+            return `<option value="${esc(v)}" ${when(v === selected, "selected")} ${when(blocked && v !== selected, "disabled")}>${t("agents.llm.default_for", { engine: esc(e.label), details: esc(bits.join(" · ")) })}</option>`;
+          })
+          .join("");
+        const named = llmProfiles
+          .filter((p) => !p.is_default || p.id === selected)
+          .map((p) => {
+            const bits = [
+              engineOf(p.engine)?.label ?? p.engine,
+              profileModelText(p.model, engineOf(p.engine)?.fallback_model),
+            ];
+            if (p.effort) bits.push(t("agents.llm.effort_value", { effort: effortText(p.effort) }));
+            const trouble = keyTroubleBit(p);
+            if (trouble) bits.push(trouble);
+            const ok = p.id === selected || agentCanBind(p.engine);
+            if (!ok) bits.push(t("agents.llm.cannot_run"));
+            return `<option value="${esc(p.id)}" ${when(p.id === selected, "selected")} ${when(!ok, "disabled")}>${esc(p.name)} · ${esc(bits.join(" · "))}</option>`;
+          })
+          .join("");
+        return `<optgroup label="${t("agents.llm.group_defaults")}">${defaults}</optgroup>${
+          named ? `<optgroup label="${t("agents.llm.group_profiles")}">${named}</optgroup>` : ""
+        }`;
+      }
+
+      function renderLLMBox() {
+        const box = document.getElementById("llm-box");
+        if (!box || !settings) return;
+        const engName = settings.engine || fallbackEngine();
+        let body: string;
+        if (llmMode === "profile") {
+          const selected = bindingTarget || `default:${engName}`;
+          const p = llmProfiles.find((x) => x.id === bindingTarget);
+          const help = p
+            ? t("agents.llm.from_profile_html", { profile: esc(p.name) })
+            : t("agents.llm.follows_default", { engine: esc(engineOf(engName)?.label ?? engName) });
+          body = `
+            <select id="llm-profile" aria-label="${esc(t("agents.llm.mode_profile"))}" aria-describedby="llm-profile-help">${profileOptionsHTML(selected)}</select>
+            <p class="field-help" id="llm-profile-help">${help}${p ? "" : `<br>${keyLine(engName)}`}</p>
+            ${llmProfiles.some((x) => !x.is_default) ? "" : `<p class="field-help">${t("agents.llm.no_named_profiles_html")}</p>`}`;
+        } else {
+          const e = engineOf(engName);
+          const models = modelsForEngine(engName);
+          const engineOpts = engines
+            .map(
+              (x) =>
+                `<option value="${esc(x.name)}" ${when(x.name === engName, "selected")}>${esc(x.label)}</option>`,
+            )
+            .join("");
+          const effortOpts = [
+            ["", t("agents.llm.cli_default")],
+            ["low", t("agents.llm.effort_low")],
+            ["medium", t("agents.llm.effort_medium")],
+            ["high", t("agents.llm.effort_high")],
+          ]
+            .map(
+              ([v, l]) =>
+                `<option value="${v}" ${when(settings!.effort === v, "selected")}>${l}</option>`,
+            )
+            .join("");
+          const defModel = e?.default_model
+            ? t("agents.llm.default_model", { model: e.default_model })
+            : t("agents.llm.cli_default");
+          body = `
+            <div class="llm-custom">
+              ${fieldHTML({
+                label: t("agents.labels.engine"),
+                for: "llm-engine",
+                control: `<select id="llm-engine">${engineOpts}</select>`,
+              })}
+              ${fieldHTML({
+                label: t("agents.labels.model"),
+                for: "llm-model",
+                control: `<input id="llm-model" type="text" list="llm-models" autocomplete="off"
+                  placeholder="${esc(defModel)}" value="${esc(settings.model || "")}" />
+                  <datalist id="llm-models">${models.map((m) => `<option value="${esc(m)}"></option>`).join("")}</datalist>`,
+              })}
+              ${
+                e?.effort === false
+                  ? ""
+                  : fieldHTML({
+                      label: t("agents.labels.effort"),
+                      for: "llm-effort",
+                      control: `<select id="llm-effort">${effortOpts}</select>`,
+                    })
+              }
+            </div>
+            <p class="field-help">${t("agents.llm.empty_fields")} ${keyLine(engName)}</p>`;
+        }
+        box.innerHTML = `
+          ${segmentedHTML(
+            "llm-mode",
+            (["profile", "custom"] as const).map((mode) => ({
+              value: mode,
+              label:
+                mode === "profile" ? t("agents.llm.mode_profile") : t("agents.llm.mode_custom"),
+              inputAttrs: { "data-llm-mode": mode },
+            })),
+            llmMode,
+            { label: t("agents.llm.mode_label"), cls: "llm-seg" },
+          )}
+          <div class="llm-body">${body}</div>
+          <div id="llm-effective"></div>`;
+
+        box.querySelectorAll<HTMLInputElement>("input[data-llm-mode]").forEach((r) =>
+          r.addEventListener("change", () => {
+            switchLLMMode(r.dataset.llmMode as "profile" | "custom");
+            box.querySelector<HTMLInputElement>("input[data-llm-mode]:checked")?.focus();
+          }),
+        );
+        document.getElementById("llm-profile")?.addEventListener("change", (ev) => {
+          applyProfileChoice((ev.target as HTMLSelectElement).value);
+          renderLLMBox();
+          markDirty();
+        });
+        document.getElementById("llm-engine")?.addEventListener("change", (ev) => {
+          if (!settings) return;
+          setAgentEngine((ev.target as HTMLSelectElement).value);
+          settings.model = "";
+          if (engineOf(settings.engine || fallbackEngine())?.effort === false) settings.effort = "";
+          renderLLMBox();
+          markDirty();
+        });
+        document.getElementById("llm-model")?.addEventListener("input", (ev) => {
+          if (!settings) return;
+          settings.model = (ev.target as HTMLInputElement).value.trim();
+          markDirty();
+        });
+        document.getElementById("llm-effort")?.addEventListener("change", (ev) => {
+          if (!settings) return;
+          settings.effort = (ev.target as HTMLSelectElement).value;
+          markDirty();
+        });
+        void renderEffectiveLLM();
+        applyRole();
+      }
+
+      // Store "" rather than the fallback engine's name when the agent had no engine, so picking
+      // the default does not pin it.
+      function setAgentEngine(name: string) {
+        if (!settings) return;
+        const original = (JSON.parse(originalSettingsJSON || "{}") as AgentSettings).engine ?? "";
+        settings.engine = name === fallbackEngine() && original === "" ? "" : name;
+        syncTurnBudget();
+        refreshAuditorModels();
+        paintOptimizer();
+      }
+
+      function applyProfileChoice(v: string) {
+        if (!settings) return;
+        // A developer may change only the binding: engine, model and effort are admin settings,
+        // and touching them made the save fail halfway (binding saved, settings refused).
+        if (!canAdmin) {
+          bindingTarget = v.startsWith("default:") ? "" : v;
+          return;
+        }
+        if (v.startsWith("default:")) {
+          bindingTarget = "";
+          setAgentEngine(v.slice("default:".length));
+        } else {
+          bindingTarget = v;
+          const p = llmProfiles.find((x) => x.id === v);
+          if (p) setAgentEngine(p.engine);
+        }
+        settings.model = "";
+        settings.effort = "";
+      }
+
+      function switchLLMMode(mode: "profile" | "custom") {
+        if (!settings || mode === llmMode) return;
+        llmMode = mode;
+        if (mode === "profile") {
+          applyProfileChoice(bindingTarget || `default:${settings.engine || fallbackEngine()}`);
+        } else {
+          const p = llmProfiles.find((x) => x.id === bindingTarget);
+          if (p) {
+            setAgentEngine(p.engine);
+            settings.model = p.model ?? "";
+            settings.effort = p.effort ?? "";
+          }
+          bindingTarget = "";
+        }
+        renderLLMBox();
+        markDirty();
+      }
+
+      const EFFECTIVE_ICON: Record<CalloutTone, string | undefined> = {
+        info: undefined,
+        accent: undefined,
+        ok: undefined,
+        warn: "warn",
+        danger: "alert",
+        special: undefined,
+      };
+
+      async function renderEffectiveLLM() {
+        const el = document.getElementById("llm-effective");
+        if (!el || !activeAgent) return;
+        const eff = await api
+          .get<EffectiveLLMResp>(`/agents/${activeAgent}/effective-llm`)
+          .catch(() => null);
+        if (!eff || !document.body.contains(el)) return;
+        const engLabel = engineOf(eff.engine)?.label ?? eff.engine;
+        const source: Record<string, string> = {
+          binding: t("agents.llm.source_binding_html", { profile: esc(eff.profile_name ?? "") }),
+          workspace_default: t("agents.llm.source_default_html", {
+            engine: esc(engLabel),
+            profile: esc(eff.profile_name ?? ""),
+          }),
+          legacy: t("agents.llm.source_legacy"),
+          host: t("agents.llm.source_host"),
+        };
+        const parts = [
+          esc(engLabel),
+          esc(profileModelText(eff.model, engineOf(eff.engine)?.fallback_model)),
+        ];
+        if (eff.effort)
+          parts.push(t("agents.llm.effort_value", { effort: esc(effortText(eff.effort)) }));
+        if (eff.base_url) parts.push(esc(eff.base_url));
+        const warnings = (eff.warnings || []).map((w) => `<div>${esc(w)}</div>`).join("");
+        const trouble = keyTrouble(llmProfiles.find((p) => p.id === eff.profile_id));
+        const keyWarn = trouble
+          ? `<div>${esc(trouble.text)} <a href="/settings/#llm">${esc(t("agents.llm.key_fix"))}</a></div>`
+          : "";
+        const hasCredential = runsWithCredential(eff);
+        const noKey = hostWithoutKey(eff);
+        const runsWith = noKey
+          ? t("agents.llm.effective_no_key_html", { parts: parts.join(" · ") })
+          : t("agents.llm.effective_html", {
+              parts: parts.join(" · "),
+              source: source[eff.source] ?? esc(eff.source),
+            });
+        const tone = effectiveNoteTone({
+          keyTone: trouble?.tone,
+          hasCredential,
+          warnings: eff.warnings?.length ?? 0,
+        });
+        el.innerHTML = calloutHTML({
+          tone,
+          icon: EFFECTIVE_ICON[tone],
+          cls: "llm-eff",
+          attrs: { role: "status" },
+          bodyHTML: `<div>${runsWith}${hasCredential || noKey ? "" : ` ${esc(t("agents.llm.no_credential"))}`}</div>${keyWarn}${warnings}`,
+        });
+      }
+
+      function bindSettingsHandlers() {
+        const all = $("pane-settings").querySelectorAll<HTMLElement>("input,select,button");
+        all.forEach((el) => el.addEventListener("change", updateSettings));
+        document.getElementById("btn-prune-stages")?.addEventListener("click", pruneOrphanStages);
+        $("pane-settings")
+          .querySelectorAll<HTMLInputElement>('input[type="text"], input[type="number"]')
+          .forEach((el) => {
+            el.addEventListener("input", updateSettings);
+          });
+        $("pane-settings")
+          .querySelectorAll<HTMLInputElement>("input[data-st]")
+          .forEach((el) => {
+            el.addEventListener("change", () => {
+              const row = el.closest<HTMLElement>(".stage-row");
+              const turnsInput = row?.querySelector<HTMLInputElement>("input[data-stage-turns]");
+              if (turnsInput) turnsInput.disabled = !el.checked;
+              renderSettingsPane();
+              renderSkillsPane();
+              renderMCPPane();
+            });
+          });
+        $("pane-settings")
+          .querySelectorAll<HTMLSelectElement>("select[data-aud-engine]")
+          .forEach((sel) =>
+            sel.addEventListener("change", () => {
+              // A model of the engine it had would fail on the new one.
+              const st = sel.dataset.audEngine!;
+              const model = $("pane-settings").querySelector<HTMLSelectElement>(
+                `select[data-aud-model="${CSS.escape(st)}"]`,
+              );
+              if (model) model.value = "";
+              refreshAuditorRow(st);
+            }),
+          );
+        $("pane-settings")
+          .querySelectorAll<HTMLInputElement>("input[data-aud-on]")
+          .forEach((el) => {
+            el.addEventListener("change", () => {
+              const overrides = el
+                .closest<HTMLElement>("[data-aud-stage]")
+                ?.querySelector<HTMLElement>("[data-aud-body]");
+              if (overrides) overrides.hidden = !el.checked;
+            });
+          });
+      }
+
+      function noStageHTML(): string {
+        return emptyStateHTML({
+          size: "inline",
+          dashed: true,
+          title: t("agents.skills.pick_stage"),
+          action: canAdmin
+            ? {
+                label: t("agents.checklist.stages_go"),
+                size: "sm",
+                attrs: { "data-check-tab": "settings" },
+              }
+            : undefined,
+        });
+      }
+
+      function noSkillsHTML(): string {
+        return emptyStateHTML({ size: "inline", title: t("agents.skills.none") });
+      }
+
+      function bindTabLinks(host: ParentNode) {
+        host
+          .querySelectorAll<HTMLElement>("[data-check-tab]")
+          .forEach((b) =>
+            b.addEventListener("click", () => void switchTab(b.dataset.checkTab as TabId)),
+          );
+      }
+
+      function paneHeadHTML(title: string, introHTML: string): string {
+        return `<div class="pane-header">${sectionHeadHTML({ title })}<p class="panel-lede">${introHTML}</p></div>`;
+      }
+
+      function renderSkillsPane() {
+        if (!settings) return;
+        const stagesHTML =
+          (settings.valid_stages || [])
+            .map((stageId) => {
+              const cur = (settings!.skills_by_stage || {})[stageId] || [];
+              const grid = skills.length
+                ? checkGroupHTML({
+                    layout: "grid",
+                    wide: true,
+                    label: t("agents.skills.stage_group", { stage: stageLabelOf(stageId) }),
+                    items: skills.map((sk) => ({
+                      card: true,
+                      label: sk.name,
+                      hint: sk.description || undefined,
+                      checked: cur.includes(sk.name),
+                      inputAttrs: { "data-skill-stage": stageId, "data-skill": sk.name },
+                    })),
+                  })
+                : noSkillsHTML();
+              const sysRows = systemSkillRows(
+                settings!.system_skills ?? [],
+                (settings!.mcp_by_stage || {})[stageId] || [],
+                (settings!.system_skills_off || {})[stageId] || [],
+              );
+              return panelHTML({
+                tag: "div",
+                size: "sm",
+                as: "h4",
+                titleHTML: stageTitleHTML(stageId),
+                actionsHTML: copyButtonHTML("skills", stageId),
+                bodyHTML: grid + renderSystemSkills(stageId, sysRows),
+              });
+            })
+            .join("") || noStageHTML();
+
+        $("pane-skills").innerHTML = `
+          <div class="settings">
+            ${paneHeadHTML(t("agents.skills.title"), t("agents.skills.intro_html"))}
+            ${stagesHTML}
+          </div>`;
+        bindTabLinks($("pane-skills"));
+
+        $("pane-skills")
+          .querySelectorAll<HTMLInputElement>("input[data-skill]")
+          .forEach((el) => {
+            el.addEventListener("change", updateSettings);
+          });
+        bindCopyButtons($("pane-skills"));
+        $("pane-skills")
+          .querySelectorAll<HTMLInputElement>("input[data-sys-skill]")
+          .forEach((el) => {
+            el.addEventListener("change", () => {
+              if (el.dataset.sysSkill === RUN_SKILL) {
+                const warn = $("pane-skills").querySelector<HTMLElement>(
+                  `[data-sys-warn="${el.dataset.sysStage}"]`,
+                );
+                if (warn) warn.hidden = el.checked;
+              }
+              updateSettings();
+            });
+          });
+        applyRole();
+      }
+
+      function copyButtonHTML(kind: "skills" | "mcp", stageId: string): string {
+        if ((settings?.valid_stages ?? []).length < 2) return "";
+        return buttonHTML({
+          label: t("agents.buttons.copy_to_stages"),
+          size: "sm",
+          icon: "copy",
+          title: t("agents.buttons.copy_to_stages_title"),
+          attrs: { [`data-copy-${kind}`]: stageId },
+        });
+      }
+
+      function bindCopyButtons(pane: HTMLElement) {
+        pane.querySelectorAll<HTMLElement>("[data-copy-skills], [data-copy-mcp]").forEach((b) =>
+          b.addEventListener("click", () => {
+            if (!settings) return;
+            updateSettings();
+            const from = b.dataset.copySkills ?? b.dataset.copyMcp!;
+            const others = settings.valid_stages.filter((st) => st !== from);
+            if (b.dataset.copySkills !== undefined) {
+              settings.skills_by_stage = copyStageConfig(settings.skills_by_stage, from, others);
+            } else {
+              settings.mcp_by_stage = copyStageConfig(settings.mcp_by_stage, from, others);
+              renderMCPPane();
+            }
+            renderSkillsPane();
+            updateSettings();
+            toast(
+              t("agents.toasts.copied", { stage: stageLabelOf(from), count: others.length }),
+              "ok",
+              2200,
+            );
+          }),
+        );
+      }
+
+      // A skill whose MCP the stage does not wire is drawn unticked; its saved state rides in
+      // data-sys-saved, which updateSettings reads instead.
+      function renderSystemSkills(stageId: string, rows: SystemSkillRow[]): string {
+        if (rows.length === 0) return "";
+        const runOff = rows.some((r) => r.name === RUN_SKILL && !r.enabled);
+        const items = rows.map((r) => {
+          let why = t("agents.skills.system_every_run");
+          if (r.mcp) why = t("agents.skills.system_included_by", { mcp: r.mcp });
+          return {
+            card: true,
+            label: r.name,
+            hint: r.wired ? why : undefined,
+            disabled: !r.wired,
+            reason: r.wired ? undefined : t("agents.skills.system_needs", { mcp: r.mcp }),
+            checked: r.enabled && r.wired,
+            attrs: r.description ? { title: r.description } : undefined,
+            inputAttrs: {
+              "data-sys-stage": stageId,
+              "data-sys-skill": r.name,
+              "data-sys-saved": r.wired ? undefined : r.enabled ? "1" : "0",
+            },
+          };
+        });
+        const titleId = `sys-skills-title-${stageId}`;
+        return `<div class="sys-skills">
+            <div class="sys-skills-title" id="${esc(titleId)}">${t("agents.skills.system_title")}</div>
+            <p class="hint">${t("agents.skills.system_intro")}</p>
+            ${checkGroupHTML({ layout: "grid", wide: true, labelledBy: titleId, items })}
+            <p class="text-warn text-warn-hint sys-run-warn" data-sys-warn="${esc(stageId)}" ${when(!runOff, "hidden")}>${t("agents.skills.system_run_off_warning")}</p>
+          </div>`;
+      }
+
+      function renderMCPPane() {
+        if (!settings) return;
+        const toolsList = tools || [];
+
+        if (toolsList.length === 0) {
+          $("pane-mcp").innerHTML = `
+            <div class="settings">
+              ${paneHeadHTML(t("agents.mcp.title"), t("agents.mcp.no_tools_html"))}
+            </div>`;
+          return;
+        }
+
+        const stagesHTML =
+          (settings.valid_stages || [])
+            .map((stageId) => {
+              const curEntries = (settings!.mcp_by_stage || {})[stageId] || [];
+
+              const serverMap = new Map<string, MCPEntry>();
+              for (const entry of curEntries) {
+                const parsed = parseMCPEntry(entry);
+                serverMap.set(parsed.server, parsed);
+              }
+
+              const serverBlocks = toolsList
+                .map((srv) => {
+                  const entry = serverMap.get(srv.name);
+                  const isActive = !!entry;
+                  const granted = grantedTools(srv, entry);
+                  const serverTools = srv.tools || [];
+
+                  // The hidden per-tool checkboxes are the only source of truth for the save; the
+                  // drawer is a view onto them.
+                  const toolChecks = serverTools
+                    .map((tool) =>
+                      checkHTML({
+                        label: tool.name,
+                        checked: isActive && granted.has(tool.name),
+                        inputAttrs: {
+                          "data-mcp-stage": stageId,
+                          "data-mcp-server": srv.name,
+                          "data-mcp-tool": tool.name,
+                        },
+                      }),
+                    )
+                    .join("");
+
+                  const nSel = serverTools.filter(
+                    (tool) => isActive && granted.has(tool.name),
+                  ).length;
+                  const bareUnknown =
+                    isActive &&
+                    serverTools.length > 0 &&
+                    isBareEntry(entry) &&
+                    !bareGrantKnown(srv);
+                  const countText = bareUnknown
+                    ? `?/${serverTools.length}`
+                    : `${nSel}/${serverTools.length}`;
+                  const unknownHint = bareUnknown
+                    ? `<span class="text-warn text-warn-hint mcp-default-unknown" data-mcp-unknown-hint title="${esc(t("agents.mcp.default_unknown_title"))}">${t("agents.mcp.default_unknown")}</span>`
+                    : "";
+
+                  const toolsBtn =
+                    serverTools.length > 0
+                      ? buttonHTML({
+                          label: t("agents.mcp.tools"),
+                          size: "sm",
+                          icon: "list",
+                          title: t("agents.mcp.tools_title", { server: srv.name }),
+                          trailingHTML: countHTML(countText, {
+                            cls: "mcp-tools-count",
+                            attrs: { "data-mcp-count": true },
+                          }),
+                          attrs: {
+                            "data-mcp-tools-btn": true,
+                            "data-mcp-stage": stageId,
+                            "data-mcp-server": srv.name,
+                          },
+                        })
+                      : `<span class="mcp-tools-none" title="${esc(t("agents.mcp.tools_unknown_title"))}">${t("agents.mcp.all_tools")}</span>`;
+
+                  return panelHTML({
+                    tag: "div",
+                    size: "sm",
+                    pick: true,
+                    as: "div",
+                    cls: "mcp-server-block",
+                    attrs: {
+                      "data-mcp-block-stage": stageId,
+                      "data-mcp-block-server": srv.name,
+                      "data-mcp-entry": entry ? formatMCPEntry(entry) : "",
+                      "data-mcp-bare-unknown": bareUnknown,
+                    },
+                    titleHTML: checkHTML({
+                      labelHTML: `<span class="mcp-server-name">${esc(srv.name)}</span>${srv.description ? ` <span class="mcp-server-desc">${esc(serverDescription(srv.name, srv.description))}</span>` : ""}`,
+                      hintHTML:
+                        serverTools.length > 0
+                          ? `<span data-mcp-grant>${esc(grantLine(srv, entry))}</span>`
+                          : undefined,
+                      checked: isActive,
+                      inputAttrs: {
+                        "data-mcp-server-toggle": true,
+                        "data-mcp-stage": stageId,
+                        "data-mcp-server": srv.name,
+                      },
+                    }),
+                    asideHTML: unknownHint,
+                    actionsHTML: toolsBtn,
+                    bodyAttrs: { hidden: true, "data-mcp-block-body": true },
+                    bodyHTML:
+                      `<p class="text-warn text-warn-hint" data-mcp-deploy-note hidden>${esc(t("agents.mcp.deploy_note"))}</p>` +
+                      (serverTools.length > 0
+                        ? `<div class="mcp-tools-grid" hidden>${toolChecks}</div>`
+                        : ""),
+                  });
+                })
+                .join("");
+
+              return panelHTML({
+                tag: "div",
+                size: "sm",
+                as: "h4",
+                titleHTML: stageTitleHTML(stageId),
+                actionsHTML: deployButtonHTML(stageId) + copyButtonHTML("mcp", stageId),
+                bodyHTML: serverBlocks,
+                bodyCls: "mcp-servers",
+              });
+            })
+            .join("") || noStageHTML();
+
+        $("pane-mcp").innerHTML = `
+          <div class="settings">
+            ${paneHeadHTML(t("agents.mcp.title"), t("agents.mcp.intro_html"))}
+            ${stagesHTML}
+          </div>`;
+        bindTabLinks($("pane-mcp"));
+
+        $("pane-mcp")
+          .querySelectorAll<HTMLInputElement>("input[data-mcp-server-toggle]")
+          .forEach((toggle) => {
+            toggle.addEventListener("change", () => {
+              const stageId = toggle.dataset.mcpStage!;
+              const serverName = toggle.dataset.mcpServer!;
+              const block = $("pane-mcp").querySelector<HTMLElement>(
+                `[data-mcp-block-stage="${stageId}"][data-mcp-block-server="${serverName}"]`,
+              );
+              if (!block) return;
+              clearBareUnknown(block);
+              const def = (tools || []).find((x) => x.name === serverName);
+              const pick = new Set(toggle.checked ? serverTickSelection(def) : []);
+              const toolChecks = block.querySelectorAll<HTMLInputElement>("input[data-mcp-tool]");
+              toolChecks.forEach((c) => {
+                c.checked = pick.has(c.dataset.mcpTool!);
+              });
+              refreshMCPToolCount(block);
+              updateSettings();
+              renderSkillsPane();
+            });
+          });
+
+        $("pane-mcp")
+          .querySelectorAll<HTMLInputElement>("input[data-mcp-tool]")
+          .forEach((el) => {
+            el.addEventListener("change", () => {
+              const stageId = el.dataset.mcpStage!;
+              const serverName = el.dataset.mcpServer!;
+              const block = $("pane-mcp").querySelector<HTMLElement>(
+                `[data-mcp-block-stage="${stageId}"][data-mcp-block-server="${serverName}"]`,
+              );
+              if (block) {
+                clearBareUnknown(block);
+                const allTools = block.querySelectorAll<HTMLInputElement>("input[data-mcp-tool]");
+                const anyChecked = Array.from(allTools).some((c) => c.checked);
+                const headerToggle = block.querySelector<HTMLInputElement>(
+                  "input[data-mcp-server-toggle]",
+                );
+                if (headerToggle) headerToggle.checked = anyChecked;
+                refreshMCPToolCount(block);
+              }
+              updateSettings();
+              renderSkillsPane();
+            });
+          });
+
+        $("pane-mcp")
+          .querySelectorAll<HTMLElement>("[data-mcp-tools-btn]")
+          .forEach((btn) => {
+            btn.addEventListener("click", () =>
+              openMCPDrawer(btn.dataset.mcpStage!, btn.dataset.mcpServer!),
+            );
+          });
+
+        $("pane-mcp")
+          .querySelectorAll<HTMLElement>(".mcp-server-block")
+          .forEach((b) => refreshMCPToolCount(b));
+        $("pane-mcp")
+          .querySelectorAll<HTMLElement>("[data-deploy-template]")
+          .forEach((b) =>
+            b.addEventListener("click", () => applyDeployTemplate(b.dataset.deployTemplate!)),
+          );
+        bindCopyButtons($("pane-mcp"));
+        applyRole();
+      }
+
+      function grantLine(def: ToolDef, entry?: MCPEntry | null): string {
+        const g = stageGrant(entry);
+        if (g?.kind === "scope") {
+          const scope = t(STAGE_GRANT_KEYS[g.scope] ?? STAGE_GRANT_KEYS.other, {
+            scope: g.scope,
+          });
+          return g.extras.length
+            ? `${scope} ${t("agents.mcp.grant_stage.extras", { tools: g.extras.join(", ") })}`
+            : scope;
+        }
+        if (g?.kind === "list") return t("agents.mcp.grant_stage.list", { count: g.tools.length });
+        const bare = t(GRANT_KEYS[bareGrantSummary(def)] ?? GRANT_KEYS.unknown, {
+          scope: def.default_scope ?? "",
+        });
+        const byName = toolGroups(def)
+          .filter((g) => g.byName)
+          .reduce((n, g) => n + g.tools.length, 0);
+        return byName ? `${bare} ${t("agents.mcp.grant_by_name", { count: byName })}` : bare;
+      }
+
+      function deployServer(): ToolDef | undefined {
+        const def = (tools || []).find((x) => x.name === DEPLOY_SERVER);
+        return def?.tools?.some((x) => x.name === DEPLOY_TOOLS[0]) ? def : undefined;
+      }
+
+      function deployButtonHTML(stageId: string): string {
+        if (!deployServer() || MODE_STAGES.includes(stageId)) return "";
+        return buttonHTML({
+          label: t("agents.buttons.deploy_template"),
+          size: "sm",
+          icon: "play",
+          title: t("agents.mcp.deploy_template_title"),
+          attrs: { "data-deploy-template": stageId },
+        });
+      }
+
+      function applyDeployTemplate(stageId: string) {
+        const def = deployServer();
+        if (!settings || !def) return;
+        updateSettings();
+        const names = new Set((def.tools ?? []).map((x) => x.name));
+        const entry = formatMCPEntry({
+          server: DEPLOY_SERVER,
+          scope: "read",
+          tools: DEPLOY_TOOLS.filter((n) => names.has(n)),
+        });
+        const cur = (settings.mcp_by_stage[stageId] ?? []).filter(
+          (e) => parseMCPEntry(e).server !== DEPLOY_SERVER,
+        );
+        settings.mcp_by_stage = { ...settings.mcp_by_stage, [stageId]: [...cur, entry] };
+        renderMCPPane();
+        renderSkillsPane();
+        updateSettings();
+        toast(t("agents.toasts.deploy_template", { stage: stageLabelOf(stageId) }), "ok", 2500);
+      }
+
+      let mcpDrawerCtx: { stage: string; server: string } | null = null;
+
+      function mcpServerBlock(stage: string, server: string): HTMLElement | null {
+        return $("pane-mcp").querySelector<HTMLElement>(
+          `[data-mcp-block-stage="${stage}"][data-mcp-block-server="${server}"]`,
+        );
+      }
+
+      function mcpToolInputs(block: HTMLElement): HTMLInputElement[] {
+        return Array.from(block.querySelectorAll<HTMLInputElement>("input[data-mcp-tool]"));
+      }
+
+      function refreshMCPToolCount(block: HTMLElement) {
+        const inputs = mcpToolInputs(block);
+        refreshMCPGrant(block, inputs);
+        const count = block.querySelector<HTMLElement>("[data-mcp-count]");
+        if (!count) return;
+        const n = block.hasAttribute("data-mcp-bare-unknown")
+          ? "?"
+          : inputs.filter((i) => i.checked).length;
+        setCount(count, `${n}/${inputs.length}`, { cls: "mcp-tools-count" });
+      }
+
+      function refreshMCPGrant(block: HTMLElement, inputs: HTMLInputElement[]) {
+        const server = block.dataset.mcpBlockServer!;
+        const def = (tools || []).find((x) => x.name === server);
+        const line = block.querySelector<HTMLElement>("[data-mcp-grant]");
+        const loaded = block.dataset.mcpEntry ? parseMCPEntry(block.dataset.mcpEntry) : undefined;
+        const selected = inputs.filter((i) => i.checked).map((i) => i.dataset.mcpTool!);
+        const entry = def ? entryForSave(def, server, loaded, selected) : null;
+        if (line && def) line.textContent = grantLine(def, entry);
+        const note = block.querySelector<HTMLElement>("[data-mcp-deploy-note]");
+        if (!note) return;
+        note.hidden = !(server === DEPLOY_SERVER && selected.includes(DEPLOY_TOOLS[0]));
+        const body = block.querySelector<HTMLElement>("[data-mcp-block-body]");
+        if (body) body.hidden = note.hidden;
+      }
+
+      function clearBareUnknown(block: HTMLElement) {
+        if (!block.hasAttribute("data-mcp-bare-unknown")) return;
+        block.removeAttribute("data-mcp-bare-unknown");
+        block.querySelector("[data-mcp-unknown-hint]")?.remove();
+      }
+
+      function openMCPDrawer(stage: string, server: string) {
+        const block = mcpServerBlock(stage, server);
+        if (!block) return;
+        const inputs = mcpToolInputs(block);
+        if (inputs.length === 0) return;
+
+        mcpDrawerCtx = { stage, server };
+        const def = (tools || []).find((t) => t.name === server);
+        const inputByName = new Map(inputs.map((i) => [i.dataset.mcpTool!, i]));
+
+        $("mcp-drawer-title").textContent = server;
+        $("mcp-drawer-sub").textContent = t("agents.mcp.drawer_sub", {
+          stage: stageLabelOf(stage),
+          count: inputs.length,
+        });
+
+        const groups = toolGroups(def);
+        $("mcp-drawer-list").innerHTML = groups
+          .map((g) => {
+            const label = GROUP_KEYS[g.scope] ? t(GROUP_KEYS[g.scope]) : g.scope;
+            const head = g.byName
+              ? groupHeadHTML({
+                  title: t("agents.mcp.group_by_name", { group: label }),
+                  cls: "mcp-drawer-group",
+                }) +
+                `<div class="text-warn text-warn-hint mcp-drawer-group-hint">${esc(t(GROUP_HINT_KEYS[g.scope] ?? GROUP_HINT_KEYS.other))}</div>`
+              : groupHeadHTML({ title: label, cls: "mcp-drawer-group" });
+            const rows = g.tools.flatMap((tool) => {
+              const input = inputByName.get(tool.name);
+              if (!input) return [];
+              const desc = toolDescription(server, tool.name, tool.description || "");
+              return [
+                {
+                  card: true,
+                  labelHTML: `<span class="mcp-drawer-tool-name">${esc(tool.name)}</span>`,
+                  hint: desc || undefined,
+                  checked: input.checked,
+                  disabled: !canAdmin,
+                  inputAttrs: { "data-mcp-proxy": tool.name },
+                },
+              ];
+            });
+            return rows.length ? head + checkGroupHTML({ label, items: rows }) : head;
+          })
+          .join("");
+        const hasByName = groups.some((g) => g.byName);
+        $("mcp-drawer-all-label").textContent = hasByName
+          ? t("agents.mcp.drawer_all_scoped")
+          : t("agents.mcp.drawer_all");
+
+        $("mcp-drawer-list")
+          .querySelectorAll<HTMLInputElement>("input[data-mcp-proxy]")
+          .forEach((proxy) => {
+            proxy.addEventListener("change", () => {
+              setMCPTool(proxy.dataset.mcpProxy!, proxy.checked);
+              syncMCPDrawerMaster();
+            });
+          });
+
+        const master = $("mcp-drawer-all") as HTMLInputElement;
+        master.disabled = !canAdmin;
+        master.onchange = () => {
+          const proxies = Array.from(
+            $("mcp-drawer-list").querySelectorAll<HTMLInputElement>("input[data-mcp-proxy]"),
+          );
+          const selected = proxies.filter((p) => p.checked).map((p) => p.dataset.mcpProxy!);
+          const next = new Set(allToolsToggle(def, selected));
+          proxies.forEach((proxy) => {
+            const on = next.has(proxy.dataset.mcpProxy!);
+            proxy.checked = on;
+            setMCPTool(proxy.dataset.mcpProxy!, on);
+          });
+          syncMCPDrawerMaster();
+        };
+
+        syncMCPDrawerMaster();
+        mcpDrawer.open();
+      }
+
+      // Dispatch change rather than only setting .checked: that runs the server toggle sync and
+      // dirty tracking.
+      function setMCPTool(toolName: string, checked: boolean) {
+        if (!mcpDrawerCtx) return;
+        const block = mcpServerBlock(mcpDrawerCtx.stage, mcpDrawerCtx.server);
+        if (!block) return;
+        const input = block.querySelector<HTMLInputElement>(
+          `input[data-mcp-tool="${CSS.escape(toolName)}"]`,
+        );
+        if (!input || input.checked === checked) return;
+        input.checked = checked;
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+        refreshMCPToolCount(block);
+      }
+
+      function syncMCPDrawerMaster() {
+        const proxies = Array.from(
+          $("mcp-drawer-list").querySelectorAll<HTMLInputElement>("input[data-mcp-proxy]"),
+        );
+        const selected = proxies.filter((p) => p.checked).map((p) => p.dataset.mcpProxy!);
+        const on = selected.length;
+        const def = (tools || []).find((x) => x.name === mcpDrawerCtx?.server);
+        const state = allToolsState(def, selected);
+        const master = $("mcp-drawer-all") as HTMLInputElement;
+        master.checked = state === "all";
+        master.indeterminate = state === "some";
+        $("mcp-drawer-count").textContent = t("agents.mcp.drawer_count", {
+          selected: on,
+          total: proxies.length,
+        });
+      }
+
+      const mcpDrawer = bindDrawer($("mcp-drawer"), {
+        onClose: () => {
+          mcpDrawerCtx = null;
+        },
+      });
+
+      function updateSettings() {
+        if (!settings) return;
+        // A developer's form is read-only; harvesting it would invent a settings change the server
+        // then refuses.
+        if (!canAdmin) {
+          markDirty();
+          return;
+        }
+        settings.description = ($("set-desc") as HTMLInputElement).value;
+        // Keep stages that have no checkbox here, so an edit does not wipe them.
+        const checkedStages = Array.from(
+          $("pane-settings").querySelectorAll<HTMLInputElement>("input[data-st]:checked"),
+        ).map((c) => c.dataset.st!);
+        const checkedDOMIds = new Set(
+          Array.from($("pane-settings").querySelectorAll<HTMLInputElement>("input[data-st]")).map(
+            (c) => c.dataset.st!,
+          ),
+        );
+        const preserved = (settings.valid_stages || []).filter((s) => !checkedDOMIds.has(s));
+        settings.valid_stages = keepOrder(settings.valid_stages || [], [
+          ...checkedStages,
+          ...preserved,
+        ]);
+
+        const turnsByStage: Record<string, string> = {};
+        const activeSet = new Set(settings.valid_stages);
+        $("pane-settings")
+          .querySelectorAll<HTMLInputElement>("input[data-stage-turns]")
+          .forEach((el) => {
+            const stageId = el.dataset.stageTurns!;
+            if (!activeSet.has(stageId)) return;
+            const v = el.value.trim();
+            if (v) turnsByStage[stageId] = v;
+          });
+        settings.turns_by_stage = turnsByStage;
+
+        const skillsByStage: Record<string, string[]> = {};
+        $("pane-skills")
+          .querySelectorAll<HTMLInputElement>("input[data-skill]:checked")
+          .forEach((c) => {
+            const st = c.dataset.skillStage!;
+            if (!skillsByStage[st]) skillsByStage[st] = [];
+            skillsByStage[st].push(c.dataset.skill!);
+          });
+        settings.skills_by_stage = skillsByStage;
+
+        const shownSys: ShownToggle[] = Array.from(
+          $("pane-skills").querySelectorAll<HTMLInputElement>("input[data-sys-skill]"),
+        ).map((c) => ({
+          stage: c.dataset.sysStage!,
+          name: c.dataset.sysSkill!,
+          on: c.dataset.sysSaved === undefined ? c.checked : c.dataset.sysSaved === "1",
+        }));
+        settings.system_skills_off = harvestSystemSkillsOff(
+          settings.system_skills_off || {},
+          shownSys,
+          settings.valid_stages,
+        );
+
+        // Iterate the server toggles, not the tool checkboxes: a server /tools returns without a
+        // tool list has no checkboxes and would be dropped.
+        // No tool boxes or all ticked -> bare name; some -> "server@t1,t2"; none ticked -> dropped.
+        const mcpByStage: Record<string, string[]> = {};
+
+        // Carry over entries for servers the picker does not render (thulu-sandbox is served per
+        // task and never appears in /tools).
+        // Dropping them strips the agent's commit/push tools on save.
+        const renderedServers = new Set(
+          Array.from(
+            $("pane-mcp").querySelectorAll<HTMLInputElement>("input[data-mcp-server-toggle]"),
+          ).map((t) => t.dataset.mcpServer!),
+        );
+        for (const [st, entries] of Object.entries(settings.mcp_by_stage || {})) {
+          if (!activeSet.has(st)) continue;
+          const preserved = entries.filter((e) => !renderedServers.has(parseMCPEntry(e).server));
+          if (preserved.length > 0) mcpByStage[st] = preserved;
+        }
+
+        $("pane-mcp")
+          .querySelectorAll<HTMLInputElement>("input[data-mcp-server-toggle]:checked")
+          .forEach((toggle) => {
+            const st = toggle.dataset.mcpStage!;
+            const srv = toggle.dataset.mcpServer!;
+            const block = $("pane-mcp").querySelector<HTMLElement>(
+              `[data-mcp-block-stage="${st}"][data-mcp-block-server="${srv}"]`,
+            );
+            const toolInputs = block
+              ? Array.from(block.querySelectorAll<HTMLInputElement>("input[data-mcp-tool]"))
+              : [];
+            // Keep the loaded scope keyword unless the selection narrows to a subset; dropping it
+            // downgraded read-default servers (octopus-api).
+            const loaded = block?.dataset.mcpEntry
+              ? parseMCPEntry(block.dataset.mcpEntry)
+              : undefined;
+            const scope = loaded?.scope ?? null;
+            if (!mcpByStage[st]) mcpByStage[st] = [];
+            if (toolInputs.length === 0) {
+              mcpByStage[st].push(formatMCPEntry({ server: srv, scope, tools: null }));
+              return;
+            }
+            const selected = toolInputs.filter((c) => c.checked).map((c) => c.dataset.mcpTool!);
+            const def = (tools || []).find((t) => t.name === srv);
+            const saved = entryForSave(def, srv, loaded, selected);
+            if (saved) mcpByStage[st].push(formatMCPEntry(saved));
+          });
+        settings.mcp_by_stage = mcpByStage;
+
+        const auditorStages: string[] = [];
+        const auditorTurns: Record<string, string> = {};
+        const auditorModel: Record<string, string> = {};
+        const auditorEngine: Record<string, string> = {};
+        const auditorSkills: Record<string, string[]> = {};
+        const validSet = new Set(settings.valid_stages);
+        $("pane-settings")
+          .querySelectorAll<HTMLInputElement>("input[data-aud-on]:checked")
+          .forEach((c) => {
+            const st = c.dataset.audOn!;
+            if (validSet.has(st)) auditorStages.push(st);
+          });
+        const auditSet = new Set(auditorStages);
+        $("pane-settings")
+          .querySelectorAll<HTMLInputElement>("input[data-aud-turns]")
+          .forEach((el) => {
+            const st = el.dataset.audTurns!;
+            const v = el.value.trim();
+            if (auditSet.has(st) && v) auditorTurns[st] = v;
+          });
+        $("pane-settings")
+          .querySelectorAll<HTMLSelectElement>("select[data-aud-model]")
+          .forEach((el) => {
+            const st = el.dataset.audModel!;
+            const v = el.value.trim();
+            if (auditSet.has(st) && v) auditorModel[st] = v;
+          });
+        $("pane-settings")
+          .querySelectorAll<HTMLSelectElement>("select[data-aud-engine]")
+          .forEach((el) => {
+            const st = el.dataset.audEngine!;
+            if (auditSet.has(st) && el.value) auditorEngine[st] = el.value;
+          });
+        $("pane-settings")
+          .querySelectorAll<HTMLInputElement>("input[data-aud-skills]")
+          .forEach((el) => {
+            const st = el.dataset.audSkills!;
+            if (!auditSet.has(st)) return;
+            const parts = el.value
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean);
+            if (parts.length) auditorSkills[st] = parts;
+          });
+        settings.auditor_stages = auditorStages;
+        settings.auditor_turns_by_stage = auditorTurns;
+        settings.auditor_model_by_stage = auditorModel;
+        settings.auditor_engine_by_stage = auditorEngine;
+        settings.auditor_skills_by_stage = auditorSkills;
+
+        settings.skills_mode = ($("set-skills-mode") as HTMLSelectElement).value;
+        settings.works_without_repo = ($("set-no-repo") as HTMLInputElement).checked;
+
+        const optimizer = harvestOptimizer();
+        if (optimizer) {
+          settings.token_optimizer = optimizer;
+          paintOptimizer();
+        }
+
+        markDirty();
+      }
+
+      function markDirty() {
+        const dirty =
+          JSON.stringify(settings) !== originalSettingsJSON || bindingTarget !== bindingOriginal;
+        const btn = $("set-save") as HTMLButtonElement | null;
+        const revert = document.getElementById("set-revert") as HTMLButtonElement | null;
+        const status = $("set-status") as HTMLElement | null;
+        if (btn) btn.disabled = !dirty;
+        if (revert) revert.disabled = !dirty;
+        if (status) setSaveState(status, dirty);
+      }
+
+      async function saveSettings() {
+        if (!settings || !activeAgent) return;
+        const btn = $("set-save") as HTMLButtonElement;
+        const label = btn.innerHTML;
+        btn.disabled = true;
+        btn.textContent = t("common.status.saving");
+        const agent = activeAgent;
+        const putBinding = (id: string) =>
+          id
+            ? api.put(`/agents/${agent}/llm-binding`, { profile_id: id })
+            : api.del(`/agents/${agent}/llm-binding`);
+        const bindingChanged = bindingTarget !== bindingOriginal;
+        const settingsChanged = JSON.stringify(settings) !== originalSettingsJSON;
+        const problem =
+          settingsChanged && settings.token_optimizer
+            ? optimizerProblem(settings.token_optimizer)
+            : "";
+        if (problem) {
+          const field = problem === "engine" ? $("topt-engine") : $("topt-model");
+          setFieldError(field, t(OPTIMIZER_PROBLEM_KEYS[problem]), { focus: true });
+          btn.innerHTML = label;
+          markDirty();
+          return;
+        }
+        try {
+          try {
+            // Binding first: the server refuses a profile on an engine the agent does not support,
+            // and then nothing should be saved.
+            if (bindingChanged) await putBinding(bindingTarget);
+            if (settingsChanged) {
+              try {
+                await api.put(`/types/${agent}/settings`, {
+                  ...settings,
+                  token_optimizer: settings.token_optimizer
+                    ? optimizerPayload(settings.token_optimizer)
+                    : undefined,
+                });
+              } catch (e) {
+                if (bindingChanged) await putBinding(bindingOriginal).catch(() => undefined);
+                throw e;
+              }
+            }
+          } catch (e: any) {
+            toast(
+              t("agents.errors.save_failed", { error: e?.message ?? t("agents.errors.unknown") }),
+              "err",
+              4500,
+            );
+            return;
+          }
+          agents = await api.get("/types");
+          await loadSettings();
+          renderSidebar();
+          renderSettingsPane();
+          renderSkillsPane();
+          renderMCPPane();
+          const meta = document.getElementById("ed-meta");
+          if (meta) meta.textContent = metaLine();
+          markDirty();
+          void renderChecklist();
+          toast(t("agents.toasts.settings_saved"), "ok", 1800);
+        } finally {
+          const newBtn = $("set-save") as HTMLButtonElement | null;
+          if (newBtn) newBtn.innerHTML = label;
+        }
+      }
+
+      let promptsState: PromptsResponse | null = null;
+      let promptsOriginal = "";
+
+      function editAction(path: string): ButtonOptions {
+        return canAdmin
+          ? { label: t("common.buttons.edit"), icon: "edit", attrs: { "data-pp-edit": path } }
+          : { label: t("agents.prompts.view"), icon: "eye", attrs: { "data-pp-edit": path } };
+      }
+      function deleteActions(path: string, label: string): ButtonOptions[] {
+        if (!canAdmin) return [];
+        return [
+          {
+            label: t("common.buttons.delete"),
+            variant: "danger",
+            icon: "trash",
+            attrs: { "data-pp-del": path, "data-pp-del-label": label },
+          },
+        ];
+      }
+      function createAction(label: string, path: string, seed: string): ButtonOptions {
+        return { label, icon: "plus", attrs: { "data-pp-create": path, "data-pp-seed": seed } };
+      }
+
+      async function renderPromptsPane() {
+        if (!activeAgent) return;
+        promptsState = await api.get(`/types/${activeAgent}/prompts`);
+        drawPromptsList();
+      }
+
+      function promptStageLabel(e: PromptEntry): string {
+        if (e.stage === "mention") return t("agents.settings.mention");
+        if (e.stage === "chat") return t("agents.settings.chat");
+        return e.label;
+      }
+
+      function orphanRow(e: PromptEntry): string {
+        return fileRowHTML({
+          label: promptStageLabel(e),
+          status: t("agents.prompts.status_orphan", { path: e.path }),
+          tone: "warn",
+          actions: [editAction(e.path), ...deleteActions(e.path, e.path)],
+          attrs: { "data-stage": e.stage },
+        });
+      }
+
+      function renderSet(set: PromptSet): string {
+        const rows = set.stages
+          .filter((e) => !e.orphan)
+          .map((e) => {
+            const label = promptStageLabel(e);
+            let actions: ButtonOptions[] = [];
+            if (e.exists)
+              actions = [
+                editAction(e.path),
+                ...deleteActions(e.path, `${label} → ${set.fallback_path}`),
+              ];
+            else if (canAdmin)
+              actions = [
+                createAction(
+                  t("agents.buttons.create_override"),
+                  e.path,
+                  set.fallback_exists ? set.fallback_path : "",
+                ),
+              ];
+            return fileRowHTML({
+              label,
+              ...(e.exists
+                ? { status: e.path, tone: "ok" as const }
+                : { status: t("agents.prompts.status_fallback"), statusMono: false }),
+              actions,
+              attrs: { "data-stage": e.stage },
+            });
+          })
+          .join("");
+        const orphans = set.stages.filter((e) => e.orphan);
+        const orphanHTML = orphans.length
+          ? `<div class="pp-section">${t("agents.prompts.orphans")}</div>
+            <p class="pp-intro">${t("agents.prompts.orphans_hint")}</p>
+            ${orphans.map(orphanRow).join("")}`
+          : "";
+
+        let fbActions: ButtonOptions[] = [];
+        if (set.fallback_exists) fbActions = [editAction(set.fallback_path)];
+        else if (canAdmin)
+          fbActions = [
+            createAction(
+              t("agents.buttons.create_file", { name: set.fallback_name }),
+              set.fallback_path,
+              "",
+            ),
+          ];
+
+        return `
+          <div class="pp-set" data-set="${esc(set.kind)}">
+            ${sectionHeadHTML({ title: set.title })}
+            <p class="pp-intro">${esc(set.description)}</p>
+            <div class="pp-section">${t("agents.prompts.fallback")}</div>
+            ${fileRowHTML({
+              label: set.fallback_name,
+              variant: "dashed",
+              ...(set.fallback_exists
+                ? { status: set.fallback_path, tone: "ok" as const }
+                : { status: t("agents.prompts.status_missing"), statusMono: false }),
+              actions: fbActions,
+            })}
+            ${rows ? `<div class="pp-section">${t("agents.prompts.overrides")}</div>${rows}` : ""}
+            ${orphanHTML}
+          </div>`;
+      }
+
+      function drawPromptsList() {
+        if (!promptsState) return;
+        const setsHTML = promptsState.sets.map(renderSet).join("");
+
+        const otherHTML =
+          promptsState.other.length === 0
+            ? ""
+            : `
+          <div class="pp-set">
+            ${sectionHeadHTML({ title: t("agents.prompts.other_title") })}
+            <p class="pp-intro">${t("agents.prompts.other_intro_html")}</p>
+            ${promptsState.other
+              .map((p) =>
+                fileRowHTML({
+                  label: p.split("/").pop()!,
+                  status: p,
+                  actions: [editAction(p), ...deleteActions(p, p)],
+                }),
+              )
+              .join("")}
+          </div>`;
+
+        $("pane-prompts").innerHTML = `
+          <div class="prompts-pane">
+            <p class="pp-intro">${t("agents.prompts.intro")}</p>
+            ${setsHTML}
+            ${otherHTML}
+          </div>`;
+
+        $("pane-prompts")
+          .querySelectorAll<HTMLElement>("[data-pp-edit]")
+          .forEach((b) =>
+            b.addEventListener("click", () => openPromptEditor(b.dataset.ppEdit!, false, "")),
+          );
+        $("pane-prompts")
+          .querySelectorAll<HTMLElement>("[data-pp-create]")
+          .forEach((b) =>
+            b.addEventListener("click", () =>
+              openPromptEditor(b.dataset.ppCreate!, true, b.dataset.ppSeed || ""),
+            ),
+          );
+        $("pane-prompts")
+          .querySelectorAll<HTMLElement>("[data-pp-del]")
+          .forEach((b) =>
+            b.addEventListener("click", () =>
+              deletePromptFile(b.dataset.ppDel!, b.dataset.ppDelLabel || b.dataset.ppDel!),
+            ),
+          );
+      }
+
+      async function openPromptEditor(path: string, isCreate: boolean, seedFromPath: string) {
+        let initial = "";
+        if (!isCreate) {
+          initial = await api.getText(`/types/${activeAgent}/files/${path}`).catch(() => "");
+        } else if (seedFromPath) {
+          initial = await api
+            .getText(`/types/${activeAgent}/files/${seedFromPath}`)
+            .catch(() => "");
+        }
+        promptsOriginal = isCreate ? "" : initial;
+        renderPromptEditor(path, initial, isCreate);
+      }
+
+      function renderPromptEditor(path: string, initial: string, isCreate: boolean) {
+        $("pane-prompts").innerHTML = mdEditorHTML({
+          path,
+          pathId: "pp-path",
+          note: isCreate ? t("agents.prompts.new_suffix") : undefined,
+          textId: "pp-text",
+          value: initial,
+          readOnly: !canAdmin,
+          back: { label: t("agents.prompts.back"), id: "pp-back" },
+          stateId: "pp-state",
+          buttons: isCreate
+            ? []
+            : [{ label: t("agents.prompts.history"), icon: "clock", id: "pp-history" }],
+          save: { id: "pp-save", kbd: SAVE_KEY, disabled: !isCreate, hidden: !canAdmin },
+        });
+        wirePromptHistory(path);
+        if (!canAdmin) {
+          $("pp-back").addEventListener("click", () => void renderPromptsPane());
+          return;
+        }
+        wireMdEditor({
+          ta: $("pp-text") as HTMLTextAreaElement,
+          saveBtn: $("pp-save") as HTMLButtonElement,
+          stateEl: $("pp-state"),
+          backBtn: $("pp-back"),
+          isCreate,
+          getOriginal: () => promptsOriginal,
+          setOriginal: (v) => {
+            promptsOriginal = v;
+          },
+          save: (text) => api.putText(`/types/${activeAgent}/files/${path}`, text),
+          onSaveError: (e) =>
+            toast(
+              t("agents.errors.save_failed", {
+                error: (e as Error)?.message ?? t("agents.errors.unknown"),
+              }),
+              "err",
+              6000,
+            ),
+          onSaved: async (text) => {
+            toast(t("agents.toasts.saved", { path }), "ok", 1800);
+            promptsState = await api.get(`/types/${activeAgent}/prompts`);
+            if (isCreate) renderPromptEditor(path, text, false);
+            void renderChecklist();
+          },
+          discardMessage: t("agents.confirm.discard_prompt_edits"),
+          onBack: () => renderPromptsPane(),
+        });
+      }
+
+      function wirePromptHistory(path: string) {
+        document.getElementById("pp-history")?.addEventListener("click", () => {
+          void (async () => {
+            if (await confirmDirty()) return;
+            const reopen = () => openPromptEditor(path, false, "");
+            await renderHistory({
+              host: $("pane-prompts"),
+              base: `/types/${activeAgent}`,
+              path,
+              onBack: reopen,
+              onRestored: reopen,
+              toast,
+            });
+          })();
+        });
+      }
+
+      async function deletePromptFile(path: string, label: string) {
+        const ok = await confirmDialog({
+          title: t("agents.confirm.delete_file_title", { path }),
+          message: label !== path ? `(${label})` : t("agents.confirm.delete_file_message"),
+          confirmLabel: t("common.buttons.delete"),
+          danger: true,
+        });
+        if (!ok) return;
+        try {
+          await api.del(`/types/${activeAgent}/files/${path}`);
+        } catch (e) {
+          catalogWriteFailed(e, t("agents.errors.delete_file_failed"));
+          return;
+        }
+        toast(t("agents.toasts.deleted", { name: path }), "ok", 1800);
+        await renderPromptsPane();
+        void renderChecklist();
+      }
+
+      async function confirmDirty({ revert = true } = {}): Promise<boolean> {
+        const ppTa = document.getElementById("pp-text") as HTMLTextAreaElement | null;
+        if (ppTa && ppTa.value !== promptsOriginal) {
+          const ok = await confirmDialog({
+            title: t("agents.confirm.discard_prompt_title"),
+            message: t("agents.confirm.discard_prompt_message"),
+            confirmLabel: t("common.buttons.discard"),
+            danger: true,
+          });
+          if (!ok) return true;
+          promptsOriginal = ppTa.value;
+          if (revert) await renderPromptsPane();
+          return false;
+        }
+        const saveBtn = document.getElementById("set-save") as HTMLButtonElement | null;
+        if (saveBtn && !saveBtn.disabled) {
+          const ok = await confirmDialog({
+            title: t("agents.confirm.discard_settings_title"),
+            message: t("agents.confirm.discard_settings_message"),
+            confirmLabel: t("common.buttons.discard"),
+            danger: true,
+          });
+          if (!ok) return true;
+          if (revert) await revertSettings();
+          return false;
+        }
+        return false;
+      }
+
+      async function deleteAgent() {
+        if (!activeAgent) return;
+        const usage = await api
+          .get<AgentUsage>(`/types/${activeAgent}/usage`)
+          .catch((): AgentUsage | null => null);
+        const used = usage ? usage.tasks + usage.projects.length : 0;
+        const ok = await confirmDialog({
+          title: t("agents.confirm.delete_agent_title", { name: activeAgent }),
+          message: used
+            ? `${t("agents.confirm.delete_agent_message")} ${t("agents.confirm.delete_agent_used", { count: used })}`
+            : t("agents.confirm.delete_agent_message"),
+          confirmLabel: t("common.buttons.delete"),
+          danger: true,
+        });
+        if (!ok) return;
+        try {
+          await api.del(`/types/${activeAgent}`);
+        } catch (e) {
+          catalogWriteFailed(e, t("agents.errors.delete_agent_failed"));
+          return;
+        }
+        const removed = activeAgent;
+        activeAgent = null;
+        settings = null;
+        agents = await api.get("/types");
+        renderSidebar();
+        $("editor").innerHTML = emptyEditorHTML();
+        toast(t("agents.toasts.deleted", { name: removed }), "ok");
+      }
+
+      const newAgent = bindModal($("modal"));
+
+      function modalStagesHTML(): string {
+        const group = (titleId: string, title: string, list: { id: string; label: string }[]) =>
+          `<div class="m-stages-sub" id="${titleId}">${esc(title)}</div>` +
+          checkGroupHTML({
+            layout: "grid",
+            labelledBy: titleId,
+            items: list.map((x) => ({
+              card: true,
+              label: x.label,
+              inputAttrs: { "data-m-stage": x.id },
+            })),
+          });
+        const columns = stages.filter((x) => !x.virtual).map((x) => ({ id: x.id, label: x.label }));
+        const modes = MODE_STAGES.map((id) => ({ id, label: stageLabelOf(id) }));
+        return (
+          group("m-stages-columns", t("agents.settings.columns"), columns) +
+          group("m-stages-modes", t("agents.settings.modes"), modes)
+        );
+      }
+
+      function pickedModal(root: HTMLElement, attr: string): string[] {
+        return Array.from(root.querySelectorAll<HTMLInputElement>("input:checked")).map(
+          (c) => c.getAttribute(attr) ?? "",
+        );
+      }
+
+      function refreshModalSkills() {
+        const cloneOn = ($("m-clone") as HTMLInputElement).checked;
+        const anyStage = pickedModal($("m-stages"), "data-m-stage").length > 0;
+        const open = cloneOn || anyStage;
+        $("m-stages-wrap").hidden = cloneOn;
+        $("m-skills")
+          .querySelectorAll<HTMLInputElement>("input")
+          .forEach((c) => {
+            c.disabled = !open;
+          });
+        let hint = t("agents.modal.default_skills_needs_stage");
+        if (cloneOn) hint = t("agents.modal.default_skills_hint_clone");
+        else if (anyStage) hint = t("agents.modal.default_skills_hint");
+        $("m-skills-hint").textContent = hint;
+      }
+
+      function checkNewName(onSubmit = false): boolean {
+        const input = $("m-name") as HTMLInputElement;
+        const name = input.value.trim();
+        const problem = agentNameProblem(
+          name,
+          agents.map((a) => a.name),
+        );
+        const show = problem !== "" && (problem !== "required" || onSubmit);
+        ($("m-create") as HTMLButtonElement).disabled = problem !== "" && problem !== "required";
+        setFieldError(input, show ? t(NAME_PROBLEM_KEYS[problem as Exclude<NameProblem, "">]) : "");
+        document.getElementById("m-name-suggest")?.remove();
+        if (!show) return problem === "";
+        const suggestion = suggestAgentName(name);
+        const usable =
+          suggestion &&
+          agentNameProblem(
+            suggestion,
+            agents.map((a) => a.name),
+          ) === "";
+        if (!usable) return false;
+        $("m-name-msg").insertAdjacentHTML(
+          "afterend",
+          `<div id="m-name-suggest">${buttonHTML({
+            label: t("agents.modal.name_suggest", { name: suggestion }),
+            size: "sm",
+            attrs: { "data-use-name": suggestion },
+          })}</div>`,
+        );
+        $("m-name-suggest")
+          .querySelector<HTMLElement>("[data-use-name]")
+          ?.addEventListener("click", (e) => {
+            input.value = (e.currentTarget as HTMLElement).dataset.useName!;
+            checkNewName();
+            input.focus();
+          });
+        return false;
+      }
+
+      function openNew() {
+        if (!canAdmin) return;
+        ($("m-name") as HTMLInputElement).value = "";
+        ($("m-desc") as HTMLInputElement).value = "";
+        const tplSel = $("m-tpl") as HTMLSelectElement;
+        const cloneToggle = $("m-clone") as HTMLInputElement;
+        const createBtn = $("m-create") as HTMLButtonElement;
+        createBtn.disabled = false;
+        createBtn.title = "";
+        tplSel.innerHTML = agents
+          .map((a) => `<option value="${esc(a.name)}">${esc(a.name)}</option>`)
+          .join("");
+        const noAgents = agents.length === 0;
+        cloneToggle.checked = false;
+        cloneToggle.disabled = noAgents;
+        $("m-tpl-wrap").hidden = true;
+        cloneToggle.onchange = () => {
+          $("m-tpl-wrap").hidden = !cloneToggle.checked;
+          refreshModalSkills();
+        };
+        $("m-stages").innerHTML = modalStagesHTML();
+        $("m-skills").innerHTML = skills.length
+          ? checkGroupHTML({
+              layout: "list",
+              label: t("agents.modal.default_skills"),
+              items: skills.map((s) => ({ label: s.name, inputAttrs: { "data-skill": s.name } })),
+            })
+          : noSkillsHTML();
+        $("modal")
+          .querySelectorAll<HTMLInputElement>("#m-skills input, #m-stages input")
+          .forEach((cb) => cb.addEventListener("change", refreshModalSkills));
+        refreshModalSkills();
+        checkNewName();
+        newAgent.open($("m-name"));
+      }
+      const closeNewModal = newAgent.close;
+      $("new-btn").addEventListener("click", openNew);
+      $("m-name").addEventListener("input", () => checkNewName(), { signal });
+      $("m-create").addEventListener("click", async () => {
+        const name = ($("m-name") as HTMLInputElement).value.trim();
+        const cloneOn = ($("m-clone") as HTMLInputElement).checked;
+        const template = cloneOn ? ($("m-tpl") as HTMLSelectElement).value : "";
+        const description = ($("m-desc") as HTMLInputElement).value.trim();
+        if (!checkNewName(true)) {
+          ($("m-name") as HTMLInputElement).focus();
+          return;
+        }
+        const pickedStages = pickedModal($("m-stages"), "data-m-stage");
+        const pickedSkills = pickedModal($("m-skills"), "data-skill");
+        const createBtn = $("m-create") as HTMLButtonElement;
+        createBtn.disabled = true;
+        createBtn.textContent = t("agents.status.creating");
+        try {
+          // Send description, stages and skills with the create so the agent's history starts
+          // empty.
+          try {
+            await api.post(`/types`, {
+              name,
+              template,
+              description,
+              ...(cloneOn ? {} : { valid_stages: pickedStages }),
+              skills: pickedSkills,
+            });
+          } catch (e: any) {
+            toast(
+              t("agents.errors.create_failed", { error: e?.message ?? t("agents.errors.unknown") }),
+              "err",
+              4500,
+            );
+            return;
+          }
+
+          closeNewModal();
+          agents = await api.get("/types");
+          renderSidebar();
+          await selectAgent(name);
+          toast(t("agents.toasts.created", { name }), "ok");
+          void offerColumn(name);
+        } finally {
+          createBtn.disabled = false;
+          createBtn.textContent = t("common.buttons.create");
+        }
+      });
+
+      async function offerColumn(name: string) {
+        let boardID = "";
+        let cols: Stage[] = [];
+        let projects: TemplateProject[] = [];
+        try {
+          const boards = await api.get<BoardsResponse>("/boards");
+          boardID = boards.default;
+          [cols, projects] = await Promise.all([
+            api.get<Stage[]>(`/boards/${encodeURIComponent(boardID)}/stages`),
+            api.get<TemplateProject[]>("/projects"),
+          ]);
+        } catch {
+          return;
+        }
+        const mine = boardProjects(projects, boardID, boardID);
+        const col = columnToOffer(cols, mine);
+        if (!col || mine.length === 0) return;
+        toast(
+          t("agents.toasts.use_in_column_offer", { name, column: col.label }),
+          "info",
+          10000,
+          null,
+          {
+            label: t("agents.buttons.use_in_column", { column: col.label }),
+            run: () => void useInColumn(name, col, mine),
+          },
+        );
+      }
+
+      async function useInColumn(name: string, col: Stage, projects: TemplateProject[]) {
+        try {
+          const cur = await api.get<AgentSettings>(`/types/${name}/settings`);
+          const valid = validStagesWith(cur.valid_stages, col.id);
+          if (valid.length !== (cur.valid_stages ?? []).length) {
+            await api.put(`/types/${name}/settings`, { ...cur, valid_stages: valid });
+          }
+          const { result } = await saveColumnAgent(projects, col.id, name);
+          if (result.failed.length) {
+            const f = result.failed[0];
+            toast(
+              t("lib.column_agent.save_failed", { project: f.project, error: f.error }),
+              "err",
+              6000,
+            );
+            return;
+          }
+          toast(
+            t("lib.column_agent.saved", { column: col.label, agent: name, count: projects.length }),
+            "ok",
+          );
+          agents = await api.get("/types");
+          renderSidebar();
+          await selectAgent(name);
+        } catch (e) {
+          toast(
+            t("agents.errors.use_in_column_failed", {
+              column: col.label,
+              error: e instanceof Error ? e.message : t("agents.errors.unknown"),
+            }),
+            "err",
+            4500,
+          );
+        }
+      }
+
+      const searchInput = $("search") as HTMLInputElement;
+      let debounce: number | null = null;
+      searchInput.addEventListener("input", () => {
+        if (debounce !== null) window.clearTimeout(debounce);
+        debounce = window.setTimeout(() => {
+          searchQuery = searchInput.value.trim();
+          renderSidebar();
+        }, 80);
+      });
+
+      initKeyboard({
+        rawKey: (e) => {
+          if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== "s") return false;
+          e.preventDefault();
+          const id = activeTab === "prompts" ? "pp-save" : "set-save";
+          const btn = document.getElementById(id) as HTMLButtonElement | null;
+          // The prompt editor's own handler may have clicked already; a save in flight leaves the
+          // button disabled, so this is a no-op.
+          if (btn && !btn.disabled) btn.click();
+          return true;
+        },
+        onEscape: [
+          escapeCloses(mcpDrawer),
+          escapeCloses(workshop),
+          // Before the search entry, which would clear the box under the dialog.
+          escapeCloses(newAgent),
+          () => {
+            if (!searchInput.value) return false;
+            searchInput.value = "";
+            searchQuery = "";
+            renderSidebar();
+            searchInput.blur();
+            return true;
+          },
+        ],
+        onKey: (e) => {
+          if (workshop.isOpen() || mcpDrawer.isOpen()) return false;
+          if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return false;
+          e.preventDefault();
+          const list = visibleAgents();
+          if (list.length === 0) return true;
+          let idx = activeAgent ? list.findIndex((a) => a.name === activeAgent) : -1;
+          idx = e.key === "ArrowDown" ? Math.min(list.length - 1, idx + 1) : Math.max(0, idx - 1);
+          if (idx < 0) idx = 0;
+          void selectAgent(list[idx].name);
+          return true;
+        },
+        onSearch: () => {
+          if (workshop.isOpen()) return;
+          searchInput.focus();
+          searchInput.select();
+        },
+        onNew: () => {
+          if (!canAdmin || $("modal").classList.contains("open") || workshop.isOpen()) return;
+          openNew();
+        },
+      });
+
+      bootstrap();
+    });
+  </script>
+</Layout>

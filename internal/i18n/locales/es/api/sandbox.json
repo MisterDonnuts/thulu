@@ -1,0 +1,22 @@
+{
+  "errors": {
+    "task_id_not_found": "no existe la tarea {task}",
+    "task_not_found": "no existe la tarea",
+    "task_store_unavailable": "el almacén de tareas no está configurado",
+    "run_without_task": "esta corrida no está atada a una tarea",
+    "key_other_task": "la API key pertenece a otra tarea",
+    "run_key_refused": "la key de una corrida de agente no puede usar este endpoint",
+    "task_id_required": "falta el id de la tarea",
+    "manager_unavailable": "el administrador de sandboxes no está configurado",
+    "not_queued": "la tarea no está en la cola de sandboxes"
+  },
+  "timeline": {
+    "preview_url": "La app del puerto {port} se abre en {url}"
+  },
+  "comments": {
+    "removed_from_queue": "{who} sacó la tarea de la cola de sandboxes."
+  },
+  "log": {
+    "note_removed_from_queue": "anotar en la tarea {task} que salió de la cola de sandboxes"
+  }
+}

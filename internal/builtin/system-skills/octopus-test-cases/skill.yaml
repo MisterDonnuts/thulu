@@ -1,0 +1,9 @@
+name: octopus-test-cases
+description: "How to write and maintain the test cases of a Thulu task with the task_test_case_* tools of octopus-api. One behavior per case, concrete steps, expected result with real values, priority and stable keys; importing a ## Test Cases section from the body; recording runs by hand with their evidence; when to mark blocked or skipped; and where QA reads them in Thulu. Use it when planning a task, testing it or reporting what was covered."
+type: knowledge
+enforcement: on_demand
+requires: []
+# Bump on every change: the daemon syncs this skill at boot only when version exceeds the stored
+# one.
+version: 6
+mcp: octopus-api

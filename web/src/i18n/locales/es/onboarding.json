@@ -1,0 +1,24 @@
+{
+  "title": "Configuración inicial",
+  "stats": {
+    "of_done": "de {total} listos"
+  },
+  "panels": {
+    "checklist": "Checklist"
+  },
+  "hints": {
+    "live_state": "Se lee del estado real, no de lo que registró el asistente",
+    "live_state_saas": "Se lee del estado real del workspace"
+  },
+  "steps": {
+    "finish": "Completar",
+    "until_then": "Mientras tanto: {effect}"
+  },
+  "errors": {
+    "load_failed": "No se pudo leer el checklist: {error}"
+  },
+  "subtitle": "Lo que todavía le falta a esta instalación. Cada ítem fue opcional durante {cmd}; acá vuelven los que salteaste.",
+  "devmode_title": "La autenticación está desactivada en esta instalación.",
+  "devmode_body": "Cada request se trata como owner, así que el daemon sólo es seguro mientras su puerto quede en {host}. Volvé a correr {cmd} y elegí un proveedor de identidad antes de exponerlo a cualquier otra persona.",
+  "subtitle_saas": "Lo que le falta a este workspace para que un agente trabaje."
+}

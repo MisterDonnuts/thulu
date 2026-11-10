@@ -1,0 +1,30 @@
+{
+  "empty": {
+    "stage": "Nada en {stage}",
+    "filtered": "Sin resultados"
+  },
+  "buttons": {
+    "new_task": "Nueva tarea"
+  },
+  "labels": {
+    "untyped": "Sin tipo"
+  },
+  "stats": {
+    "open": "abiertas",
+    "in_progress": "en curso",
+    "to_review": "para revisar"
+  },
+  "columns": {
+    "fold": "Plegar {column}",
+    "fold_hint": "Plegá la columna en una franja",
+    "unfold": {
+      "one": "Mostrar {column}, {count} tarea",
+      "other": "Mostrar {column}, {count} tareas"
+    }
+  },
+  "filters": {
+    "type_all": "Tipo: todos",
+    "type_one": "Tipo: {type}",
+    "type_many": "Tipo: {count}"
+  }
+}

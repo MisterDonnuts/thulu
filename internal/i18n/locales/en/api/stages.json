@@ -1,0 +1,30 @@
+{
+  "audit": {
+    "pruned_agent_config": "pruned orphan stage config: {stages}",
+    "pruned_project_files": "pruned orphan stage files: {files}",
+    "stage_created": "stage created: {stage} (board {board})",
+    "stage_deleted": "stage deleted: {stage} from board {board} ({count} task(s) moved to {dest})",
+    "stage_updated": "stage updated: {stage} (board {board})",
+    "stages_reordered": "stages reordered on board {board}"
+  },
+  "errors": {
+    "cannot_delete_initial": "cannot delete the initial stage — set another stage as initial first",
+    "invalid_destination_stage": "move_to {dest:%q} is not a valid destination stage",
+    "order_duplicate": "duplicate stage id {stage:%q} in order",
+    "order_incomplete": "order must list all {want} stages, got {got}",
+    "order_unknown": "unknown stage id {stage:%q} in order",
+    "registry_read_only": "stage registry is read-only in this deployment",
+    "stage_exists_or_missing_id": "stage {stage:%q} already exists or id missing",
+    "stage_holds_tasks": "stage {stage:%q} still holds {count} task(s) — pass ?move_to=<stage> to relocate them",
+    "stage_not_on_board": "stage {stage:%q} is not on board {board:%q}"
+  },
+  "log": {
+    "drop_priority_failed": "stage-delete: drop priority {stage}: {err}",
+    "move_task_failed": "stage-delete: move task {task}: {err}",
+    "read_priorities_failed": "stage-delete: read priorities: {err}",
+    "add_priority_failed": "stage-create: add sandbox priorities: {err}"
+  },
+  "timeline": {
+    "moved_stage_deleted": "{from} → {to} (stage {from} deleted)"
+  }
+}

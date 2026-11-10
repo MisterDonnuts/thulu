@@ -1,0 +1,26 @@
+{
+  "state": {
+    "done": "Hecha",
+    "running": "Corriendo",
+    "question": "Espera una respuesta",
+    "failed": "Falló",
+    "blocked": "Bloqueada",
+    "todo": "Sin empezar",
+    "active": "Empezada"
+  },
+  "waits_unknown": "Espera a otra tarea",
+  "waits_for": "Espera a {title}",
+  "waits_for_more": {
+    "one": "Espera a {title} y {count} más",
+    "other": "Espera a {title} y {count} más"
+  },
+  "ready": "Puede empezar",
+  "after": "Después de {title}",
+  "after_more": {
+    "one": "Después de {title} y {count} más",
+    "other": "Después de {title} y {count} más"
+  },
+  "start_in": "Empezar en {stage}",
+  "row_name": "{title}, {state}, {stage}",
+  "row_name_short": "{title}, {stage}"
+}

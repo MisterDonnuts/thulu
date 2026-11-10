@@ -1,0 +1,33 @@
+{
+  "title": "Pendientes",
+  "subtitle": "Lo que agentes y etapas esperan que decida una persona. Abrí la tarea para contestar, o aprobá desde acá.",
+  "document_title": "Pendientes ({count}) — Thulu",
+  "stats": {
+    "questions": "preguntas",
+    "approvals": "aprobaciones",
+    "stalled": "etapas paradas"
+  },
+  "panels": {
+    "questions": "Preguntas de agentes",
+    "approvals": "Aprobaciones pendientes",
+    "stalled": "Etapas paradas"
+  },
+  "columns": {
+    "task": "Tarea",
+    "what": "Qué",
+    "stage": "Etapa",
+    "waiting": "Espera"
+  },
+  "empty": {
+    "questions": "Ningún agente está esperando una respuesta.",
+    "approvals": "No hay aprobaciones pendientes."
+  },
+  "errors": {
+    "load_failed": "No se pudo cargar la bandeja",
+    "refresh_failed": "Falló la actualización, se ve la última lista: {error}",
+    "approve_failed": "No se pudo aprobar: {error}"
+  },
+  "toasts": {
+    "approved": "Aprobada"
+  }
+}

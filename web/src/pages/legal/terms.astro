@@ -1,0 +1,58 @@
+---
+import LegalLayout from "../../layouts/LegalLayout.astro";
+import { SLOT, t, tParts } from "../../i18n";
+
+const accounts = tParts("legal.terms.accounts.body", { idp: SLOT });
+const contact = tParts("legal.terms.contact.body", { contact: SLOT });
+---
+
+<LegalLayout title={t("legal.terms.title")} page="terms">
+  <p class="legal-meta">{t("legal.version")}</p>
+  <p>{t("legal.terms.intro")}</p>
+
+  <h2>{t("legal.terms.beta.title")}</h2>
+  <p>{t("legal.terms.beta.body")}</p>
+
+  <h2>{t("legal.terms.accounts.title")}</h2>
+  <p>
+    {accounts.map((p, i) => (i % 2 ? <span data-legal="idp">{t("legal.idp_fallback")}</span> : p))}
+  </p>
+
+  <h2>{t("legal.terms.byok.title")}</h2>
+  <p>{t("legal.terms.byok.body")}</p>
+
+  <h2>{t("legal.terms.use.title")}</h2>
+  <ul>
+    <li>{t("legal.terms.use.no_law")}</li>
+    <li>{t("legal.terms.use.no_reach")}</li>
+    <li>{t("legal.terms.use.no_systems")}</li>
+  </ul>
+  <p>{t("legal.terms.use.suspend")}</p>
+
+  <h2>{t("legal.terms.content.title")}</h2>
+  <p>{t("legal.terms.content.body")}</p>
+
+  <h2>{t("legal.terms.ending.title")}</h2>
+  <p>{t("legal.terms.ending.body")}</p>
+
+  <h2>{t("legal.terms.warranty.title")}</h2>
+  <p>{t("legal.terms.warranty.body")}</p>
+
+  <h2>{t("legal.terms.changes.title")}</h2>
+  <p>{t("legal.terms.changes.body")}</p>
+
+  <h2>{t("legal.terms.contact.title")}</h2>
+  <p>
+    {
+      contact.map((p, i) =>
+        i % 2 ? (
+          <a class="legal-unset" data-legal="contact">
+            {t("legal.not_configured")}
+          </a>
+        ) : (
+          p
+        ),
+      )
+    }
+  </p>
+</LegalLayout>

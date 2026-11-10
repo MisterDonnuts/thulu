@@ -1,0 +1,23 @@
+{
+  "errors": {
+    "unknown_run_token": "llmgateway: token de corrida desconocido o vencido",
+    "route_forbidden": "llmgateway: la corrida no puede usar esta ruta",
+    "nil_resolver": "llmgateway: resolve no puede ser nil",
+    "upstream_unavailable": "el upstream no está disponible",
+    "unknown_route": "ruta desconocida del gateway de LLM: se esperaba /anthropic/… u /openai/…",
+    "missing_run_token": "falta el token de la corrida",
+    "resolve_failed": "el gateway de LLM no pudo resolver la corrida",
+    "no_usable_credential": "la corrida no tiene una credencial de LLM que se pueda usar",
+    "body_too_large": "el cuerpo de la solicitud es demasiado grande",
+    "private_upstream": "llmgateway: el upstream resuelve a una dirección interna",
+    "read_body": "llmgateway: leer el cuerpo de la solicitud",
+    "body_too_large_to_sign": "llmgateway: el cuerpo de la solicitud es demasiado grande para firmarlo",
+    "sign_request": "llmgateway: firmar la solicitud al upstream",
+    "dial": "llmgateway: conectar con {address:%q}"
+  },
+  "log": {
+    "upstream_failed": "upstream {host}: {err}",
+    "resolve_failed": "resolver: {err}",
+    "call": "ws={workspace} run={run} agent={agent} profile={profile} {method} {host}{path} → {status} en {elapsed}"
+  }
+}

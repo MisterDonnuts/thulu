@@ -1,0 +1,113 @@
+{
+  "tools": {
+    "environments_list": {
+      "description": "Deployed environments of a project (dev/staging/prod) with provider, region, selectors and whether a credential is configured. Start here to get an environment_id.",
+      "params": {
+        "project_id": "Thulu project id"
+      }
+    },
+    "discover_resources": {
+      "description": "Inventory an environment's cloud resources. AWS: load balancers, ECS services, Lambdas, RDS, log groups. GCP: Cloud Run services, HTTPS load balancers, GKE clusters, Cloud SQL, Cloud Functions, log names. Each resource carries `suggested` metric sources per signal — copy them verbatim, including `unit` and `scale`. Does NOT decide which resource is this project's — correlate with the repo's deploy config yourself."
+    },
+    "metrics_query": {
+      "description": "Time series for explicit metric sources. The source shape depends on the environment's provider — AWS: {namespace, metric_name, dimensions, stat}; GCP: {metric_type, filter, aligner, reducer}. Use discover_resources to get well-formed ones rather than writing them by hand.",
+      "params": {
+        "sources": "AWS: [{namespace, metric_name, dimensions, stat}]. GCP: [{metric_type, filter, aligner, reducer}].",
+        "from": "RFC3339; default 1h ago",
+        "to": "RFC3339; default now",
+        "period_seconds": "Resolution; default 300"
+      }
+    },
+    "error_groups": {
+      "description": "Exceptions grouped by message with counts and first/last seen — CloudWatch Logs Insights on AWS, Error Reporting (falling back to Cloud Logging) on GCP. The highest-value signal here: a group with a recent first_seen and a rising count is a regression pointing at specific code.",
+      "params": {
+        "log_groups": "Defaults to the environment's log_group selectors",
+        "limit": "Max groups; default 20"
+      }
+    },
+    "logs_search": {
+      "description": "Search logs. On AWS `query` is a CloudWatch Logs Insights query; on GCP it is a Cloud Logging filter (e.g. `severity >= \"ERROR\" AND resource.labels.service_name=\"api\"`) — different languages, so check the environment's provider first. Output is capped: narrow the window rather than raising the cap.",
+      "params": {
+        "query": "AWS: Logs Insights query. GCP: Cloud Logging filter. Default: recent messages, newest first."
+      }
+    },
+    "deploys": {
+      "description": "Deployment markers in a window, so a metric change can be attributed to a release. Without these, correlation is guesswork. Implemented on GCP (Cloud Run revision creation times); on AWS it reports itself as unavailable rather than returning a misleading empty list."
+    }
+  },
+  "errors": {
+    "no_credential": "no Thulu credential was forwarded with this call — the agent's key rides on the MCP handshake (X-API-Key); this server holds none of its own",
+    "octopus_unreachable": "cannot reach Thulu at {url}: {err}",
+    "octopus_http": "Thulu GET {path} → HTTP {status}: {body}",
+    "credential_refused": "{tool} refused for environment {environment}: {detail}",
+    "environment_id_required": "environment_id is required",
+    "project_id_required": "project_id is required",
+    "environment_not_linked": "environment {environment} belongs to project {project}, which is not linked to task {task}",
+    "no_credential_granted": "no credential is granted to environment {environment}. Grant one on the Credentials page (\"Reachable from\" → this environment).",
+    "credential_provider_mismatch": "credential \"{credential}\" is a {credential_provider} key but environment {environment} is {provider}. Grant a {provider} credential to it instead.",
+    "aws_keys_incomplete": "aws_keys credential is missing access_key_id or secret_access_key",
+    "aws_role_unsupported": "aws_role credentials are not supported yet — use aws_keys",
+    "credential_kind_not_aws": "environment {environment} has credential kind '{kind}', expected aws_keys",
+    "aws_only": "this tool only supports provider 'aws'; environment is '{provider}'",
+    "provider_unsupported": "{tool} supports providers {providers}; environment {environment} is '{provider}'. Nothing will be collected for it until that provider is implemented.",
+    "credential_kind_not_gcp": "environment {environment} has credential kind '{kind}', expected gcp_sa for a GCP environment",
+    "service_account_json_invalid": "service_account_json is not valid JSON: {err}",
+    "gcp_sa_without_json": "gcp_sa credential is missing service_account_json",
+    "service_account_incomplete": "service account JSON is missing client_email or private_key",
+    "gcp_project_unknown": "cannot tell which GCP project to query — the key file has no project_id; set the environment's `account` field to the project id",
+    "gcp_auth_failed": "GCP authentication failed: {err}",
+    "host_unreachable": "cannot reach {host}: {err}",
+    "google_http": "{path} → HTTP {status}{detail}: {msg}",
+    "range_not_rfc3339": "from/to must be RFC3339 timestamps",
+    "range_inverted": "`to` must be after `from`",
+    "range_too_wide": "range of {hours}h exceeds the {max}h cap",
+    "gcp_metric_type_missing": "a GCP metric source needs `metric_type`",
+    "divide_by_empty": "divide_by {metric} returned no usable value for any bucket",
+    "no_log_groups": "no log groups — pass log_groups, or set a `log_group` selector on the environment",
+    "insights_query_ended": "Logs Insights query {status}",
+    "sources_empty": "sources must be a non-empty array",
+    "unknown_tool": "unknown tool '{name}'",
+    "tool_not_allowed": "tool '{name}' is not in the allowed tool list for this session",
+    "tool_scope_required": "tool '{name}' requires scope '{required}', this session has '{scope}'",
+    "tool_without_handler": "tool '{name}' has no handler (server bug)",
+    "tool_failed": "{tool} error{status}: {err}",
+    "session_not_found": "session not found",
+    "collect_body_invalid": "environment_id and mappings[] are required",
+    "handshake_no_key": "an MCP session needs the run's key on the handshake (X-API-Key or Authorization: Bearer)",
+    "message_key_mismatch": "this message does not carry the key its session was opened with",
+    "list_only_session": "this session was opened without a credential: it can list tools, not call them",
+    "collect_target_missing": "collect needs the environment and its credential in the body: the daemon resolves them and sends them (this server holds no key to ask for them)"
+  },
+  "text": {
+    "truncated": "[…{label} truncated: {bytes} more bytes omitted by thulu-cloud]",
+    "query_still_running": "query still {status} after {ms}ms",
+    "gap_probe_failed": "could not enumerate {kind}: {error} — this is NOT evidence the resource is absent. Do not mark any signal not_applicable on account of it; report the access gap instead.",
+    "gap_aws_no_serving": "no load balancer or Lambda found — latency and error rate have no obvious source",
+    "gap_lambda_without_gateway": "Lambdas but no API Gateway visible: error_rate from AWS/Lambda Errors misses handled 5xx and every 4xx rejected at the edge, so a total auth outage would show a green dashboard",
+    "gap_no_log_groups": "no log groups visible — error_groups and logs_search will not work",
+    "gap_gcp_no_serving": "no Cloud Run service, HTTPS load balancer or Cloud Function found — latency, error_rate and throughput have no obvious source",
+    "gap_no_gke": "no GKE cluster — `restarts` has no source on this environment (Cloud Run does not expose it)",
+    "gap_gcp_cost": "cost_daily is not readable from an API on GCP: billing detail lives in a BigQuery export the account owner must enable. Leave that signal unmapped.",
+    "error_reporting_empty": "Error Reporting returned no groups for this window; grouped ERROR-severity log entries instead",
+    "gke_narrow_filter": "narrow `filter` with resource.labels.namespace_name and container_name before proposing a mapping",
+    "deploys_truncated": {
+      "one": "{count} more Cloud Run service was not scanned (fan-out cap)",
+      "other": "{count} more Cloud Run services were not scanned (fan-out cap)"
+    },
+    "deploys_none": "no Cloud Run revision was created in this window; GKE and Cloud Functions deploys are not read yet",
+    "deploys_aws_unavailable": "deploy markers are not wired for AWS yet. Thulu knows when each PR merged — use that as the approximation until CodeDeploy events are connected.",
+    "collect_provider_unsupported": "provider {provider} not supported yet",
+    "collect_no_usable_source": {
+      "one": "the {count} active mapping has no source shaped for provider '{provider}'",
+      "other": "none of the {count} active mapping(s) has a source shaped for provider '{provider}'"
+    }
+  },
+  "log": {
+    "listening": "thulu-cloud MCP server listening on :{port}",
+    "octopus_api": "  OCTOPUS_API:  {url}",
+    "sse_endpoint": "  SSE endpoint: GET  /sse?task=<id>&scope=read|write[&tools=a,b][&catalog=1]",
+    "collector": "  Collector:    POST /collect",
+    "health": "  Health check: GET  /health",
+    "shutting_down": "\n{signal} received, shutting down"
+  }
+}

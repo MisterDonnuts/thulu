@@ -1,0 +1,111 @@
+{{- /*
+Paths the public edge must not serve. Agents and MCP servers reach them on the
+in-cluster Service, never through the ingress, so routing them from outside
+only widens what an attacker can probe: the LLM gateway, the agent-only
+/internal API, the git smart-HTTP endpoint, the sandbox MCP transport, the run
+bundle an agent pod fetches at start and, unless their expose flag is set,
+/metrics, /openapi.json, GitHub's public callbacks and the telemetry intake.
+
+A second Ingress claims those paths with a higher priority and refuses them.
+With Traefik (k3s ships it) the chart renders an ipAllowList Middleware that
+allows only 127.0.0.1/32, so every real client gets a 403. Other controllers
+need ingress.blockedPaths.annotations that deny on their own, e.g. for
+ingress-nginx nginx.ingress.kubernetes.io/whitelist-source-range: 127.0.0.1/32.
+
+Prefixes end in "/": Traefik turns a Prefix into a raw PathPrefix, so "/git"
+would also swallow "/github/...". The single-segment endpoints are Exact.
+*/ -}}
+{{- $block := .Values.ingress.blockedPaths | default dict -}}
+{{- if and .Values.ingress.enabled $block.enabled -}}
+{{- $traefik := dig "traefik" "middleware" true $block -}}
+{{- if and (not $traefik) (empty $block.annotations) -}}
+{{- fail "ingress.blockedPaths: with traefik.middleware=false set annotations that make your controller refuse these paths; without them the blocking Ingress would route straight to the daemon" -}}
+{{- end -}}
+{{- $paths := list
+  (dict "path" "/llm-gateway" "pathType" "Exact")
+  (dict "path" "/llm-gateway/" "pathType" "Prefix")
+  (dict "path" "/internal/" "pathType" "Prefix")
+  (dict "path" "/git/" "pathType" "Prefix")
+  (dict "path" "/sandbox/sse" "pathType" "Exact")
+  (dict "path" "/sandbox/messages" "pathType" "Exact")
+  (dict "path" "/run/bundle" "pathType" "Exact") -}}
+{{- if not $block.exposeMetrics -}}
+{{- $paths = append $paths (dict "path" "/metrics" "pathType" "Exact") -}}
+{{- end -}}
+{{- if not $block.exposeOpenAPI -}}
+{{- $paths = append $paths (dict "path" "/openapi.json" "pathType" "Exact") -}}
+{{- end -}}
+{{- if not $block.exposeGithub -}}
+{{- /* Only the endpoints GitHub and the browser hit from outside. /github/app
+     and /github/installations are the dashboard's own API and stay routed. */ -}}
+{{- range list "/github/webhook" "/github/setup" "/github/oauth/callback" -}}
+{{- $paths = append $paths (dict "path" . "pathType" "Exact") -}}
+{{- end -}}
+{{- end -}}
+{{- if not $block.exposeIngest -}}
+{{- $paths = append $paths (dict "path" "/ingest/" "pathType" "Prefix") -}}
+{{- end -}}
+{{- range $block.extra -}}
+{{- $paths = append $paths (dict "path" .path "pathType" (.pathType | default "Prefix")) -}}
+{{- end -}}
+{{- /* The main Ingress's controller annotations (TLS router, cert resolver), so
+     these paths are claimed on the same entrypoints. cert-manager's are left
+     out: two Ingresses asking for one Certificate fight over it. */ -}}
+{{- $annotations := dict -}}
+{{- range $k, $v := (.Values.ingress.annotations | default dict) -}}
+{{- if not (hasPrefix "cert-manager.io/" $k) -}}
+{{- $_ := set $annotations $k $v -}}
+{{- end -}}
+{{- end -}}
+{{- if $traefik -}}
+{{- $_ := set $annotations "traefik.ingress.kubernetes.io/router.middlewares" (printf "%s-%s-deny@kubernetescrd" .Release.Namespace (include "octopus.fullname" .)) -}}
+{{- $_ := set $annotations "traefik.ingress.kubernetes.io/router.priority" "10000" -}}
+{{- end -}}
+{{- range $k, $v := ($block.annotations | default dict) -}}
+{{- $_ := set $annotations $k $v -}}
+{{- end -}}
+{{- if $traefik }}
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ include "octopus.fullname" . }}-deny
+  labels:
+    {{- include "octopus.labels" . | nindent 4 }}
+spec:
+  ipAllowList:
+    sourceRange:
+      - 127.0.0.1/32
+---
+{{- end }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "octopus.fullname" . }}-blocked
+  labels:
+    {{- include "octopus.labels" . | nindent 4 }}
+  annotations:
+    {{- toYaml $annotations | nindent 4 }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- with .Values.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- range .Values.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range $paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: {{ include "octopus.fullname" $ }}
+                port:
+                  number: {{ $.Values.service.port }}
+          {{- end }}
+    {{- end }}
+{{- end }}

@@ -1,0 +1,28 @@
+{
+  "open": "Abrir",
+  "move": "Mover a…",
+  "move_to": "Mover a",
+  "priority": "Prioridad",
+  "priority_none": "Ninguna",
+  "add_subtask": "Agregar subtarea",
+  "copy_link": "Copiar enlace",
+  "clone": "Clonar",
+  "fork": "Bifurcar",
+  "more_turns": "Más turnos",
+  "archive": "Archivar",
+  "unarchive": "Devolver al tablero",
+  "archive_with_subtasks": {
+    "one": "También archiva su subtarea",
+    "other": "También archiva sus {count} subtareas"
+  },
+  "delete_with_subtasks": {
+    "one": "También elimina su subtarea",
+    "other": "También elimina sus {count} subtareas"
+  },
+  "delete_admin_only": "Sólo un administrador puede eliminar tareas",
+  "delete": "Eliminar",
+  "back": "Volver al menú",
+  "kbd_enter": "Enter",
+  "kbd_delete": "Supr",
+  "read_only": "Tu rol sólo puede leer este workspace"
+}

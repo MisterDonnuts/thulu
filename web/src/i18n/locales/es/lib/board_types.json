@@ -1,0 +1,12 @@
+{
+  "templates": {
+    "feature": "Funcionalidad",
+    "bugfix": "Corrección",
+    "chore": "Mantenimiento",
+    "spike": "Investigación"
+  },
+  "errors": {
+    "id_label_required": "Hacen falta un id y una etiqueta",
+    "duplicate": "Este tablero ya ofrece {id}"
+  }
+}

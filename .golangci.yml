@@ -1,0 +1,289 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+  build-tags: []
+  go: "1.24"
+
+linters:
+  default: none
+  enable:
+    - errcheck        # no ignored errors
+    - govet           # go vet checks
+    - staticcheck     # comprehensive static analysis (SA + S + QF)
+    - ineffassign     # assignments that have no effect
+    - unused          # unused code
+    - copyloopvar     # loop variables copied (go1.22+ behavior enforcement)
+
+    - gosec           # OWASP-style security checks
+    - noctx           # http.NewRequest without context.Context
+
+    - bodyclose       # http response body never closed
+    - rowserrcheck    # sql.Rows.Err() never checked
+    - sqlclosecheck   # sql.Rows/Statement never closed
+
+    - errorlint       # errors not wrapped with %w
+    - wrapcheck       # errors from external packages not wrapped
+
+    - revive          # drop-in golint replacement with more rules
+    - gocritic        # large set of opinionated checks
+    - exhaustive      # missing cases in switch on enum types
+    - gocyclo         # cyclomatic complexity
+    - gocognit        # cognitive complexity
+    - maintidx        # maintainability index
+    - funlen          # max function length
+    - nestif          # deeply nested if statements
+    - prealloc        # slice pre-allocation hints
+    - durationcheck   # time.Duration arithmetic errors
+    - contextcheck    # context not propagated through call chain
+    - unparam         # function parameters always receive the same value
+
+    - misspell        # common spelling mistakes in comments/strings
+    - godot           # comments should end with a period
+    - whitespace      # unnecessary blank lines
+    - lll             # maximum line length
+
+    # nolint hygiene: a //nolint is only acceptable when nothing can be done.
+    - nolintlint      # //nolint must be specific + explained + actually used
+
+  settings:
+    errcheck:
+      check-type-assertions: true
+      check-blank: true
+      # Functions whose returned error is genuinely non-actionable. Listing
+      # them here means call sites don't need an inline //nolint:errcheck.
+      # For best-effort work that benefits from a trace, prefer logx.Warn;
+      # for ignored DDL, use internal/migrate. Keep this list short and only
+      # for cases where there is truly nothing a caller could do.
+      exclude-functions:
+        - (net/http.ResponseWriter).Write
+        - (*encoding/json.Encoder).Encode
+        # errcheck matches the concrete receiver type, so interface- and concrete-typed handles are
+        # listed separately.
+        - (io.Closer).Close            # interface-typed (resp.Body, readers)
+        - (*database/sql.Rows).Close
+        - (*database/sql.DB).Close
+        - (*database/sql.Stmt).Close
+        - (*os.File).Close
+        - (*os.Root).Close            # traversal-safe root handle (internal/safepath)
+        - (*github.com/docker/docker/client.Client).Close
+        - (*database/sql.Tx).Rollback
+        - (database/sql.Result).RowsAffected
+        - fmt.Fprintf
+        - fmt.Fprintln
+        - fmt.Fprint
+        - (*text/tabwriter.Writer).Flush
+
+    # nolintlint enforces the project policy: every suppression must name the
+    # specific linter, carry an explanation, and actually suppress something.
+    nolintlint:
+      require-explanation: true   # every //nolint needs a "// why" comment
+      require-specific: true      # //nolint:errcheck, never a bare //nolint
+      allow-unused: false         # flag directives that no longer suppress anything
+
+    govet:
+      enable-all: true
+      disable:
+        - fieldalignment  # struct field alignment: informational, not a bug
+
+    staticcheck:
+      checks:
+        - "all"
+        - "-ST1000"  # package comment (not required for internal packages)
+        - "-ST1020"  # exported methods comments (not required)
+        - "-ST1021"  # exported types comments (not required)
+        - "-ST1022"  # exported vars comments (not required)
+
+    gosec:
+      excludes:
+        - G104  # errors unhandled — covered by errcheck
+        - G306  # file permissions — checked in review
+      # Run at the most sensitive thresholds so low-confidence taint findings
+      # (log injection, open redirect, XSS) and low-severity issues surface in
+      # CI. False positives are suppressed per-site with an explained
+      # //nolint:gosec, never by raising the threshold back to medium.
+      confidence: low
+      severity: low
+
+    revive:
+      rules:
+        - name: exported
+        - name: error-return
+        - name: error-strings
+        - name: error-naming
+        - name: if-return
+        - name: var-naming
+        - name: range
+        - name: receiver-naming
+        - name: indent-error-flow
+        - name: superfluous-else
+        - name: unexported-return
+        - name: blank-imports
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: dot-imports
+        - name: empty-block
+        - name: empty-lines
+        - name: time-equal
+        - name: useless-break
+        - name: unused-parameter
+        - name: redefines-builtin-id
+        - name: early-return
+        - name: package-comments
+          disabled: true  # too noisy for internal packages
+
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - style
+        - performance
+      disabled-checks:
+        - whyNoLint
+        - hugeParam         # context-dependent
+        - unnamedResult     # sometimes fine for simple helpers
+        - commentFormatting # too pedantic
+
+    exhaustive:
+      default-signifies-exhaustive: true
+
+    # Thresholds gate new complexity.
+    gocyclo:
+      min-complexity: 20
+
+    gocognit:
+      min-complexity: 20
+
+    maintidx:
+      under: 15
+
+    funlen:
+      lines: 120
+      statements: 60
+
+    nestif:
+      min-complexity: 9
+
+    lll:
+      line-length: 150
+      tab-width: 4
+
+    misspell:
+      locale: US
+      # GitHub's REST API conclusions and the MCP spec (notifications/canceled) spell it this way.
+      ignore-rules:
+        - cancelled
+
+    wrapcheck:
+      ignore-sigs:
+        - .Errorf(
+        - errors.New(
+        - errors.Unwrap(
+        - errors.Join(
+        - .Wrap(
+        - .Wrapf(
+        - .WrapKind(
+      ignore-package-globs:
+        - bufio
+        - bytes
+        - context
+        - crypto/rand
+        - database/sql
+        - encoding/json
+        - fmt
+        - io
+        - net/http
+        - os
+        - path/filepath
+        - archive/tar
+        - text/tabwriter
+        - gopkg.in/yaml.v3
+        - github.com/docker/**
+        - github.com/MisterDonnuts/thulu/internal/**
+        - github.com/MisterDonnuts/thulu/ee/**
+      ignore-interface-regexps:
+        - ^database/sql\.
+        - ^net/http\.ResponseWriter$
+        - \bResult$
+        - ^io\.Reader$
+        - ^bufio\.
+        - ^context\.Context$
+
+  exclusions:
+    paths:
+      - web/node_modules/
+    rules:
+      # Test-only fixture packages that are not _test.go files; gosec reads testgit's exec of git as
+      # command injection.
+      - path: "internal/(testgit|testdocker)/"
+        linters:
+          - gosec
+      - path: "_test\\.go"
+        linters:
+          - funlen
+          - gocognit
+          - gocyclo
+          - nestif
+          - wrapcheck
+          - gocritic
+          - maintidx
+          - errcheck       # test helpers routinely ignore errors
+          - bodyclose      # test http.ResponseRecorder bodies don't need closing
+          - contextcheck   # tests often use context.Background() legitimately
+          - noctx          # test HTTP requests don't need propagated context
+          - gosec          # security checks on test fixtures are false positives
+          - lll            # long test assertion messages are normal
+          - revive         # doc/naming rules don't apply to test helpers
+          - unparam        # test helper params may be always-same by design
+          - prealloc       # micro-optimisation irrelevant in test code
+          - govet          # shadow variables acceptable in test scope
+          - godot          # test comment punctuation not required
+          - misspell       # test strings may use non-standard spellings
+          - staticcheck    # test-specific SA checks are noise
+
+      - path: "web/embed\\.go"
+        linters:
+          - errcheck
+          - wrapcheck
+          - revive
+          - gocritic
+
+      # The CSRF cookie is HttpOnly:false on purpose: the SPA echoes it in X-CSRF-Token
+      # (double-submit, CSRFMiddleware).
+      # File-scoped so any new cookie elsewhere is still gated.
+      - path: "internal/auth/cookies\\.go"
+        text: "G124"
+        linters:
+          - gosec
+
+      - path: "cmd/"
+        linters:
+          - wrapcheck
+          - funlen
+
+      - text: "should pass the context parameter"
+        linters:
+          - contextcheck
+
+      # ee/ is not under internal/ only because it carries its own license; nothing outside this
+      # module imports it either.
+      - path: "(internal|ee)/"
+        text: "exported.*should have comment"
+        linters:
+          - revive
+      - path: "(internal|ee)/"
+        text: "comment on exported"
+        linters:
+          - revive
+
+formatters:
+  enable:
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/MisterDonnuts/thulu
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

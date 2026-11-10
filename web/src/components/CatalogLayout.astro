@@ -1,0 +1,34 @@
+---
+import { catalogLayoutClasses, type CatalogSide } from "../lib/ui/catalog";
+
+interface Props {
+  side?: CatalogSide;
+  label?: string;
+  listId?: string;
+  mainId?: string;
+  class?: string;
+  [key: string]: unknown;
+}
+const { side = "md", label, listId, mainId, class: extra, ...rest } = Astro.props;
+---
+
+<div class={catalogLayoutClasses(side, extra)} {...rest}>
+  <aside class="catalog-side" aria-label={label}>
+    {
+      Astro.slots.has("toolbar") && (
+        <div class="catalog-side-toolbar">
+          <slot name="toolbar" />
+        </div>
+      )
+    }
+    <div id={listId} class="catalog-side-list"><slot name="list" /></div>
+    {
+      Astro.slots.has("foot") && (
+        <div class="catalog-side-foot">
+          <slot name="foot" />
+        </div>
+      )
+    }
+  </aside>
+  <section id={mainId} class="catalog-main"><slot /></section>
+</div>

@@ -1,0 +1,50 @@
+{
+  "ago": {
+    "just_now": "just now",
+    "under": "<{span}"
+  },
+  "labels": {
+    "drag_to_move": "Drag to move",
+    "actions_key": "Actions (.)",
+    "actions_for": "Actions for {title}",
+    "show_subtasks": {
+      "one": "Show {count} subtask",
+      "other": "Show {count} subtasks"
+    },
+    "hide_subtasks": "Hide subtasks"
+  },
+  "priority": {
+    "urgent": "Urgent priority",
+    "high": "High priority"
+  },
+  "part_of": "Part of {title}",
+  "more_tags": "+{count}",
+  "blocked_by": "Blocked by {title}",
+  "blocked_by_count": {
+    "one": "Blocked by {count} task",
+    "other": "Blocked by {count} tasks"
+  },
+  "blocks": "Blocks {count}",
+  "pr": "PR #{number}",
+  "pr_plain": "Pull request",
+  "kids": {
+    "question": {
+      "one": "{count} subtask question",
+      "other": "{count} subtask questions"
+    },
+    "question_title": {
+      "one": "{count} subtask needs an answer",
+      "other": "{count} subtasks need an answer"
+    },
+    "failed": {
+      "one": "{count} subtask failed",
+      "other": "{count} subtasks failed"
+    },
+    "blocked": {
+      "one": "{count} subtask blocked",
+      "other": "{count} subtasks blocked"
+    }
+  },
+  "asked": "Asked a question",
+  "asked_title": "The agent asked a question and keeps working. Open the task to answer it."
+}

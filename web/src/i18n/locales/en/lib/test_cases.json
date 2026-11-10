@@ -1,0 +1,41 @@
+{
+  "status": {
+    "pending": "Pending",
+    "pass": "Pass",
+    "fail": "Fail",
+    "blocked": "Blocked",
+    "skipped": "Skipped"
+  },
+  "priority": {
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High",
+    "critical": "Critical"
+  },
+  "progress": {
+    "pending": {
+      "one": "{count} pending",
+      "other": "{count} pending"
+    },
+    "pass": {
+      "one": "{count} pass",
+      "other": "{count} pass"
+    },
+    "fail": {
+      "one": "{count} fail",
+      "other": "{count} fail"
+    },
+    "blocked": {
+      "one": "{count} blocked",
+      "other": "{count} blocked"
+    },
+    "skipped": {
+      "one": "{count} skipped",
+      "other": "{count} skipped"
+    },
+    "empty": "no test cases"
+  },
+  "labels": {
+    "ago": "{when} ago"
+  }
+}

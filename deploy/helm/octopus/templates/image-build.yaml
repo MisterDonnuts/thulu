@@ -1,0 +1,416 @@
+{{- /*
+Agent image build (agentRuntime.imageBuild, ee/kuberuntime/imagebuild.go).
+
+The daemon runs a rootless BuildKit Job here that builds FROM the published
+agent image and installs Claude Code at build time. BuildKit needs seccomp and
+AppArmor unconfined, so this namespace is PSA privileged; the admission policy
+(admission-policy.yaml) holds every Job the daemon writes here to one shape.
+
+Bundled registry: `registry` holds the built image on a PVC. Port 5000 takes
+pushes, behind htpasswd; port 5001 serves the same storage read-only and
+without auth, because registry:2's pull-through mode can only log in to an
+upstream that hands out tokens. `registry-mirror` runs on every node's host
+network, on 127.0.0.1:<hostPort> only, as a pull-through cache of 5001.
+containerd pulls localhost:<hostPort>/... over plain HTTP with no node
+configuration, and nothing off the node reaches that port.
+*/ -}}
+{{- if include "octopus.imageBuild.enabled" . -}}
+{{- $ib := .Values.agentRuntime.imageBuild -}}
+{{- $ns := include "octopus.imageBuild.namespace" . -}}
+{{- $bundled := include "octopus.imageBuild.bundled" . -}}
+{{- $authSecret := include "octopus.imageBuild.authSecret" . -}}
+{{- if and (not $bundled) (not $ib.pushSecret) -}}
+{{- fail "agentRuntime.imageBuild.registry needs agentRuntime.imageBuild.pushSecret (a dockerconfigjson Secret in the builder namespace)" -}}
+{{- end -}}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ $ns }}
+  labels:
+    {{- include "octopus.labels" . | nindent 4 }}
+    thulu.dev/plane: builder
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/warn: privileged
+---
+# The daemon starts and watches build Jobs and reads the registry credentials;
+# nothing else in this namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "octopus.fullname" . }}-image-build
+  namespace: {{ $ns }}
+  labels:
+    {{- include "octopus.labels" . | nindent 4 }}
+rules:
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "create", "delete"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["list"]
+  {{- if $authSecret }}
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: [{{ $authSecret | quote }}]
+    verbs: ["get"]
+  {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "octopus.fullname" . }}-image-build
+  namespace: {{ $ns }}
+  labels:
+    {{- include "octopus.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "octopus.fullname" . }}-image-build
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "octopus.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- if $bundled }}
+{{- $user := "thulu" -}}
+{{- $old := lookup "v1" "Secret" $ns "registry-htpasswd" -}}
+{{- $pass := randAlphaNum 40 -}}
+{{- $htpasswd := "" -}}
+{{- if and $old $old.data -}}
+{{- $pass = index $old.data "password" | b64dec -}}
+{{- /* The htpasswd was made for the stored user, so it stays. */ -}}
+{{- with index $old.data "username" }}{{ $user = b64dec . }}{{ end -}}
+{{- $htpasswd = index $old.data "htpasswd" | b64dec -}}
+{{- else -}}
+{{- $htpasswd = htpasswd $user $pass -}}
+{{- end -}}
+{{- $host := include "octopus.imageBuild.pushRegistry" . -}}
+{{- $pullHost := printf "registry.%s.svc.cluster.local:5001" $ns }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: registry-htpasswd
+  namespace: {{ $ns }}
+  labels:
+    {{- include "octopus.labels" . | nindent 4 }}
+type: Opaque
+data:
+  username: {{ $user | b64enc }}
+  password: {{ $pass | b64enc }}
+  htpasswd: {{ $htpasswd | b64enc }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ $authSecret }}
+  namespace: {{ $ns }}
+  labels:
+    {{- include "octopus.labels" . | nindent 4 }}
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: {{ dict "auths" (dict $host (dict "username" $user "password" $pass "auth" (printf "%s:%s" $user $pass | b64enc))) | toJson | b64enc }}
+---
+# A file, not REGISTRY_STORAGE_MAINTENANCE_READONLY: registry:2 ignores a map given through the
+# environment and would take pushes on this unauthenticated port.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: registry-read-only
+  namespace: {{ $ns }}
+  labels:
+    {{- include "octopus.labels" . | nindent 4 }}
+data:
+  config.yml: |
+    version: 0.1
+    log:
+      fields:
+        service: registry-read-only
+    storage:
+      filesystem:
+        rootdirectory: /var/lib/registry
+      maintenance:
+        readonly:
+          enabled: true
+        uploadpurging:
+          enabled: false
+    http:
+      addr: :5001
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: registry
+  namespace: {{ $ns }}
+  labels:
+    {{- include "octopus.labels" . | nindent 4 }}
+spec:
+  accessModes: [ReadWriteOnce]
+  {{- with $ib.localRegistry.storage.storageClass }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ $ib.localRegistry.storage.size }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: registry
+  namespace: {{ $ns }}
+  labels:
+    {{- include "octopus.labels" . | nindent 4 }}
+spec:
+  selector:
+    app.kubernetes.io/name: agent-image-registry
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - name: push
+      port: 5000
+      targetPort: 5000
+    - name: pull
+      port: 5001
+      targetPort: 5001
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: registry
+  namespace: {{ $ns }}
+  labels:
+    {{- include "octopus.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agent-image-registry
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: agent-image-registry
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: registry
+          image: {{ $ib.localRegistry.image | quote }}
+          env:
+            - name: REGISTRY_AUTH
+              value: htpasswd
+            - name: REGISTRY_AUTH_HTPASSWD_REALM
+              value: thulu-agent-images
+            - name: REGISTRY_AUTH_HTPASSWD_PATH
+              value: /auth/htpasswd
+            # Lets an operator delete old images and run garbage-collect in this
+            # container.
+            - name: REGISTRY_STORAGE_DELETE_ENABLED
+              value: "true"
+          ports:
+            - name: push
+              containerPort: 5000
+          readinessProbe:
+            tcpSocket:
+              port: 5000
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            {{- toYaml $ib.localRegistry.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/registry
+            - name: auth
+              mountPath: /auth
+              readOnly: true
+        - name: registry-read-only
+          image: {{ $ib.localRegistry.image | quote }}
+          ports:
+            - name: pull
+              containerPort: 5001
+          readinessProbe:
+            tcpSocket:
+              port: 5001
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            {{- toYaml $ib.localRegistry.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/registry
+              readOnly: true
+            - name: read-only-config
+              mountPath: /etc/docker/registry
+              readOnly: true
+      volumes:
+        - name: read-only-config
+          configMap:
+            name: registry-read-only
+        - name: data
+          persistentVolumeClaim:
+            claimName: registry
+        - name: auth
+          secret:
+            secretName: registry-htpasswd
+            items:
+              - key: htpasswd
+                path: htpasswd
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: registry-mirror
+  namespace: {{ $ns }}
+  labels:
+    {{- include "octopus.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agent-image-registry-mirror
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: agent-image-registry-mirror
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      # 127.0.0.1 of the node, where containerd looks for localhost:<hostPort>.
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      tolerations:
+        - operator: Exists
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      # The proxy dials the registry once at start and exits if it is not up yet: on a fresh
+      # install that is a crash loop with growing back-off.
+      initContainers:
+        - name: wait-for-registry
+          image: {{ $ib.localRegistry.image | quote }}
+          command: ["sh", "-c", {{ printf "until nc -z -w 2 %s; do sleep 2; done" (replace ":" " " $pullHost) | quote }}]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            {{- toYaml $ib.localRegistry.resources | nindent 12 }}
+      containers:
+        - name: mirror
+          image: {{ $ib.localRegistry.image | quote }}
+          env:
+            - name: REGISTRY_HTTP_ADDR
+              value: {{ printf "127.0.0.1:%d" (int $ib.localRegistry.hostPort) | quote }}
+            - name: REGISTRY_PROXY_REMOTEURL
+              value: {{ printf "http://%s" $pullHost | quote }}
+          readinessProbe:
+            tcpSocket:
+              host: 127.0.0.1
+              port: {{ int $ib.localRegistry.hostPort }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            {{- toYaml $ib.localRegistry.resources | nindent 12 }}
+          volumeMounts:
+            - name: cache
+              mountPath: /var/lib/registry
+      volumes:
+        - name: cache
+          emptyDir: {}
+{{- end }}
+{{- if $ib.networkPolicy.enabled }}
+{{- $np := $ib.networkPolicy -}}
+{{- $except := $np.privateCIDRs | default list -}}
+{{- if $np.excludeNodeAddresses -}}
+{{- range $node := dig "items" list (lookup "v1" "Node" "" "") -}}
+{{- range $a := dig "status" "addresses" list $node -}}
+{{- if and (has $a.type (list "InternalIP" "ExternalIP")) (regexMatch "^[0-9]+[.][0-9]+[.][0-9]+[.][0-9]+$" $a.address) -}}
+{{- $except = append $except (printf "%s/32" $a.address) -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- $except = $except | uniq }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: agent-image-build
+  namespace: {{ $ns }}
+  labels:
+    {{- include "octopus.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: agent-image-build
+  policyTypes:
+    - Ingress
+    - Egress
+  egress:
+    - to:
+        {{- if $np.dnsNamespace }}
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ $np.dnsNamespace }}
+        {{- else }}
+        []
+        {{- end }}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    {{- if $bundled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: agent-image-registry
+      ports:
+        - protocol: TCP
+          port: 5000
+    {{- end }}
+    {{- if $np.publicPorts }}
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            {{- with $except }}
+            except:
+              {{- toYaml . | nindent 14 }}
+            {{- end }}
+      ports:
+        {{- range $np.publicPorts }}
+        - protocol: TCP
+          port: {{ . }}
+        {{- end }}
+    {{- end }}
+    {{- with $np.extraEgress }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+{{- end }}
+{{- end -}}

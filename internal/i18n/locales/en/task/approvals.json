@@ -1,0 +1,51 @@
+{
+  "comments": {
+    "awaiting": "Waiting for approval to leave **{stage}**: {approvals}. The task moves on by itself once they are approved or waived.",
+    "changes_deferred": "**{by}** requested changes on **{approval}** while the agent is working. They reach it when this run ends.",
+    "kicked_back": "**{by}** requested changes on **{approval}**: back to **{stage}**.\n\n{note}",
+    "resume_failed": "Changes were requested on **{approval}**, but the stage's agent could not be resumed: {err}\n\n{note}",
+    "settled_advancing": "Every approval is in: moving on to **{stage}**."
+  },
+  "errors": {
+    "bad_decision": "{decision:%q} is not a decision: use approved, changes_requested or waived",
+    "delete": "delete approval {id}",
+    "fork_insert": "fork insert approval",
+    "import": "import approval {id}",
+    "import_ids": "an imported approval needs its id and its task's id",
+    "insert": "add an approval to task {task}",
+    "key_invalid": "approval key {key:%q} must match [a-z0-9_]{1,32}",
+    "label_required": "an approval needs a label",
+    "label_too_long": "the approval's label is too long (max {max} characters)",
+    "list": "list approvals",
+    "not_found": "approval not found",
+    "note_too_long": "the note is too long (max {max} characters)",
+    "reason_too_long": "the reason is too long (max {max} characters)",
+    "reset": "send approvals back to pending",
+    "scan": "read an approval",
+    "task_required": "an approval needs a task",
+    "update": "update approval {id}"
+  },
+  "events": {
+    "approved": "{label} approved",
+    "changes_requested": "{label}: changes requested",
+    "deleted": "{label} removed",
+    "requested": "{label} requested",
+    "reset_answered": "{label} back to pending after the requested changes",
+    "reset_changed": "{label} back to pending: the code changed after it was approved",
+    "reset_reentered": "{label} back to pending: the task is back in its stage",
+    "waived": "{label} waived"
+  },
+  "log": {
+    "claim": "move task {task} out of awaiting_approval",
+    "decorate_counts": "count pending approvals",
+    "ensure": "open the stage's approvals for task {task}",
+    "gate": "read the approvals that gate task {task}",
+    "kick_back_failed": "send task {task} back after changes were requested: {err}",
+    "mirror_flag": "mirror approval {approval} into task_flags",
+    "record_event": "record an approval event for task {task}",
+    "reopen": "reopen the approvals that asked task {task} for changes",
+    "reset": "reset the approvals of task {task} after its run",
+    "sync_flags": "take in the flags the previous release wrote ({step})"
+  },
+  "resume_message": "{by} asked for changes before approving \"{approval}\":\n\n{note}\n\nMake the changes in this stage. The approval goes back to pending when you finish, for them to review again."
+}

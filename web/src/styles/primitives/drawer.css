@@ -1,0 +1,307 @@
+.drawer {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-width: 100vw;
+  overflow: hidden;
+  background: var(--surface-1);
+  color: var(--fg);
+}
+.drawer:focus,
+.drawer:focus-visible {
+  outline: none;
+}
+
+.drawer-right {
+  border-left: 1px solid var(--line);
+  box-shadow: var(--shadow-drawer-end);
+  --drawer-from: translateX(var(--s-7));
+}
+.drawer-left {
+  border-right: 1px solid var(--line);
+  box-shadow: var(--shadow-drawer-start);
+  --drawer-from: translateX(calc(-1 * var(--s-7)));
+}
+.drawer-bottom {
+  width: 100%;
+  max-height: 85vh;
+  background: var(--surface-3);
+  border-top: 1px solid var(--line-strong);
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  box-shadow: var(--shadow-modal);
+  padding-bottom: env(safe-area-inset-bottom);
+  --drawer-from: translateY(var(--s-5));
+}
+
+.drawer-sm {
+  width: var(--drawer-w-sm);
+}
+.drawer-md {
+  width: var(--drawer-w-md);
+}
+.drawer-lg {
+  width: var(--drawer-w-lg);
+}
+
+.overlay-drawer.open {
+  align-items: stretch;
+  justify-content: flex-end;
+}
+.overlay-drawer-left.open {
+  justify-content: flex-start;
+}
+.overlay-drawer-bottom.open {
+  align-items: flex-end;
+  justify-content: center;
+}
+.overlay-drawer > .drawer {
+  animation: octopus-drawer-in var(--dur-normal) var(--ease-spring);
+}
+.overlay-drawer > .drawer-right,
+.overlay-drawer > .drawer-left {
+  border-color: var(--line-strong);
+}
+
+/* visibility flips only after the slide-out, so a closed drawer leaves the focus order. */
+.drawer-docked {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  z-index: var(--z-drawer);
+  visibility: hidden;
+  box-shadow: none;
+  transition:
+    transform var(--dur-normal) var(--ease-spring),
+    left var(--dur-normal) var(--ease-out),
+    visibility 0s linear var(--dur-normal);
+}
+.drawer-docked.drawer-right {
+  right: 0;
+  transform: translateX(100%);
+}
+/* Offset by --sb-cur too, or a left drawer placed beside the sidebar slides out over it. */
+.drawer-docked.drawer-left {
+  left: 0;
+  transform: translateX(calc(-100% - var(--sb-cur, 0px)));
+}
+.drawer-docked.drawer-bottom {
+  top: auto;
+  left: 0;
+  right: 0;
+  transform: translateY(100%);
+}
+.drawer-docked.open {
+  transform: none;
+  visibility: visible;
+  transition:
+    transform var(--dur-normal) var(--ease-spring),
+    left var(--dur-normal) var(--ease-out),
+    visibility 0s;
+}
+.drawer-docked.drawer-right.open {
+  box-shadow: var(--shadow-drawer-end);
+}
+.drawer-docked.drawer-left.open {
+  box-shadow: var(--shadow-drawer-start);
+}
+.drawer-docked.drawer-bottom.open {
+  box-shadow: var(--shadow-modal);
+}
+
+.drawer-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  flex-shrink: 0;
+  padding: var(--s-4) var(--s-5);
+  border-bottom: 1px solid var(--line);
+}
+.drawer-head-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+  min-width: 0;
+}
+.drawer-lead {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-shrink: 0;
+}
+.drawer-heading {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+.drawer-lead + .drawer-heading {
+  justify-content: center;
+  min-height: var(--control-h-lg);
+}
+.drawer-eyebrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+  min-width: 0;
+  font-size: var(--t-sm);
+  color: var(--fg-2);
+}
+.drawer-title {
+  margin: 0;
+  font-size: var(--t-lg);
+  font-weight: 600;
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--lh-tight);
+  color: var(--fg);
+  overflow-wrap: anywhere;
+}
+.drawer-lg .drawer-title {
+  font-size: var(--t-xl);
+}
+.drawer-sm .drawer-title {
+  font-size: var(--t-md);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.drawer-sub {
+  margin: 0;
+  font-size: var(--t-xs);
+  color: var(--fg-3);
+}
+.drawer-actions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  flex-shrink: 0;
+}
+.drawer-head-row > .icon-btn {
+  flex-shrink: 0;
+}
+
+.drawer-head:has(+ .drawer-bar) {
+  border-bottom: 0;
+}
+.drawer-bar {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  min-width: 0;
+}
+.drawer-bar > .tabs {
+  padding-inline: var(--s-5);
+}
+
+.drawer-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--s-5);
+}
+.drawer-body-flush {
+  padding: 0;
+}
+.drawer-body-frame {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+.drawer-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--s-2) var(--s-3);
+  flex-shrink: 0;
+  padding: var(--s-4) var(--s-5);
+  border-top: 1px solid var(--line);
+}
+.drawer-foot-note {
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--t-xs);
+  color: var(--fg-3);
+}
+
+.drawer-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: var(--drawer-grip);
+  z-index: 1;
+  cursor: col-resize;
+  touch-action: none;
+}
+.drawer-right > .drawer-resizer {
+  left: 0;
+}
+.drawer-left > .drawer-resizer {
+  right: 0;
+}
+.drawer-resizer::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: var(--drawer-grip-mark-w);
+  height: var(--drawer-grip-mark-h);
+  transform: translateY(-50%);
+  border-radius: var(--drawer-grip-mark-w);
+  background: var(--line-strong);
+  opacity: 0.6;
+  transition:
+    opacity var(--dur-fast) var(--ease-out),
+    height var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out);
+}
+.drawer-right > .drawer-resizer::after {
+  left: var(--s-1);
+}
+.drawer-left > .drawer-resizer::after {
+  right: var(--s-1);
+}
+.drawer:hover > .drawer-resizer::after {
+  opacity: 0.9;
+}
+.drawer-resizer:hover::after,
+.drawer-resizer:focus-visible::after,
+.drawer[data-resizing] > .drawer-resizer::after {
+  height: 100%;
+  border-radius: 0;
+  background: var(--accent);
+  opacity: 1;
+}
+.drawer-resizer:focus-visible {
+  outline: none;
+}
+.drawer[data-resizing] {
+  transition: none;
+}
+html:has(.drawer[data-resizing]),
+html:has(.drawer[data-resizing]) * {
+  cursor: col-resize;
+  user-select: none;
+}
+@media (max-width: 640px) {
+  .drawer-resizer {
+    display: none;
+  }
+}
+
+@keyframes octopus-drawer-in {
+  from {
+    transform: var(--drawer-from);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}

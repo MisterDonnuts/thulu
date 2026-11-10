@@ -1,0 +1,25 @@
+{
+  "summary": {
+    "task_created": "Created the task \"{title}\"",
+    "task_created_agent": "Created the task \"{title}\" and woke {agent}",
+    "task_commented": "The task \"{title}\" already existed, so it commented on it",
+    "task_duplicate": "The task \"{title}\" already existed, so it left it alone",
+    "mentioned": "Woke {agent} on \"{title}\"",
+    "commented": "Commented on \"{title}\"; its stage has no agent to wake",
+    "commented_no_mention": "Commented on \"{title}\"; {agent} does not answer mentions",
+    "metric": "Metric value: {value}",
+    "metric_empty": "The metric has no data in the window",
+    "tasks_found": {
+      "one": "Found {count} task",
+      "other": "Found {count} tasks"
+    },
+    "script": "The script exited with code {code}",
+    "http": "The server answered HTTP {code}"
+  },
+  "sample": {
+    "pr_title": "Fix the login redirect",
+    "task_title": "Review the dependencies",
+    "comment": "This breaks when the session expires.",
+    "review_body": "Needs a test for the expired session."
+  }
+}

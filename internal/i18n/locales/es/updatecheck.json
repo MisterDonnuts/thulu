@@ -1,0 +1,14 @@
+{
+  "errors": {
+    "release_key": "clave de release",
+    "list_releases": "no se pudieron listar las releases de {source}"
+  },
+  "rejections": {
+    "channel_not_allowed": "firmada para el canal {channel:%q}, que {env} no permite"
+  },
+  "log": {
+    "interval_not_duration": "{env}={value:%q} no es una duración (por ejemplo 12h); se usa {fallback}",
+    "interval_below_minimum": "{env}={value} está por debajo del mínimo de {minimum}; se usa {minimum}",
+    "check_failed": "chequeo: {err}"
+  }
+}

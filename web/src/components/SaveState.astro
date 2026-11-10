@@ -1,0 +1,17 @@
+---
+import Dot from "./Dot.astro";
+import { saveStateAttrs, saveStateText } from "../lib/ui/catalog";
+
+interface Props {
+  dirty?: boolean;
+  quiet?: boolean;
+  id?: string;
+}
+const { dirty = false, quiet = false, id } = Astro.props;
+---
+
+<span id={id} {...saveStateAttrs(dirty, quiet)}
+  ><Dot tone={dirty ? "warn" : "neutral"} /><span class="save-state-text"
+    >{saveStateText(dirty)}</span
+  ></span
+>

@@ -1,0 +1,110 @@
+# Render with render.sh, not plain envsubst. The daemon's namespace must carry
+# thulu.dev/plane=control (CONTROL_PLANE_LABEL).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tenant-${TENANT_ID}
+  labels:
+    thulu.dev/tenant: "${TENANT_ID}"
+    thulu.dev/plane: data
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: tenant-${TENANT_ID}
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+# If the cluster's pod or service CIDR is outside INTERNAL_CIDRS, add it, or tenant pods reach every
+# in-cluster Service on 443.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-and-public-https
+  namespace: tenant-${TENANT_ID}
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except: [${INTERNAL_CIDRS}]
+      ports:
+        - protocol: TCP
+          port: 443
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-control-plane
+  namespace: tenant-${TENANT_ID}
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              thulu.dev/plane: ${CONTROL_PLANE_LABEL}
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ${DAEMON_NAME}
+      ports:
+        - protocol: TCP
+          port: ${EXEC_PORT}
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              thulu.dev/plane: ${CONTROL_PLANE_LABEL}
+      ports:
+        - protocol: TCP
+          port: ${DAEMON_PORT}
+        - protocol: TCP
+          port: ${GATEWAY_PORT}
+        - protocol: TCP
+          port: ${MCP_PORT}
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: agent-quota
+  namespace: tenant-${TENANT_ID}
+spec:
+  hard:
+    pods: "${CONCURRENCY_LIMIT}"
+    limits.memory: "${CONCURRENCY_LIMIT}0Gi" # rough: limit × ~10Gi headroom; tune per pool
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: agent-limits
+  namespace: tenant-${TENANT_ID}
+spec:
+  limits:
+    - type: Container
+      default:
+        cpu: "2"
+        memory: 6Gi
+      defaultRequest:
+        cpu: 250m
+        memory: 512Mi
+      max:
+        cpu: "4"
+        memory: 8Gi

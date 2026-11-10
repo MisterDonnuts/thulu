@@ -1,0 +1,33 @@
+---
+import {
+  skeletonClasses,
+  skeletonLineCount,
+  skeletonTag,
+  type SkeletonShape,
+  type SkeletonTag,
+} from "../lib/ui/skeleton";
+
+interface Props {
+  shape?: SkeletonShape;
+  lines?: number;
+  tag?: SkeletonTag;
+  class?: string;
+  [key: string]: unknown;
+}
+const { shape = "line", lines, tag = "span", class: extra, ...rest } = Astro.props;
+const Tag = skeletonTag(tag);
+const n = skeletonLineCount(shape, lines);
+const bars = Array.from({ length: n }, (_, i) => i);
+---
+
+{
+  n === 1 ? (
+    <Tag class={skeletonClasses(shape, extra)} aria-hidden="true" {...rest} />
+  ) : (
+    <Tag class={["skeleton-lines", extra].filter(Boolean).join(" ")} aria-hidden="true" {...rest}>
+      {bars.map(() => (
+        <span class={skeletonClasses("line")} />
+      ))}
+    </Tag>
+  )
+}

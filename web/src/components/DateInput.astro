@@ -1,0 +1,46 @@
+---
+// A native datetime-local shows the browser's locale, not the UI's; the ISO value lives in the
+// hidden input.
+// Markup must match dateInputHTML() in lib/ui/datetime.ts.
+import Button from "./Button.astro";
+import {
+  dateErrorId,
+  dateTextAttrs,
+  datePickLabel,
+  nativeDateType,
+  type DateMode,
+} from "../lib/ui/datetime";
+
+interface Props {
+  id: string;
+  mode?: DateMode;
+  value?: string;
+  name?: string;
+  class?: string;
+  [key: string]: unknown;
+}
+const { id, mode = "datetime", value, name, class: extra, ...rest } = Astro.props;
+---
+
+<span class={["date-input", extra].filter(Boolean).join(" ")} data-date-input={mode}>
+  <input {...dateTextAttrs({ id, mode, value })} {...rest} />
+  <input class="date-input-value" type="hidden" name={name} value={value ?? ""} />
+  <input
+    class="date-input-native"
+    type={nativeDateType(mode)}
+    tabindex="-1"
+    aria-hidden="true"
+    value={value === "" ? undefined : value}
+  />
+  <Button
+    iconOnly
+    icon={mode === "time" ? "clock" : "calendar"}
+    label={datePickLabel(mode)}
+    size="sm"
+    variant="ghost"
+    class="date-input-pick"
+    data-date-pick=""
+    aria-controls={id}
+  />
+</span>
+<p class="field-error date-input-error" id={dateErrorId(id)} hidden></p>

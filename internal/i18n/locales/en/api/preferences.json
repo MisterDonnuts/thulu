@@ -1,0 +1,10 @@
+{
+  "errors": {
+    "invalid_value": "{field} must be one of: {allowed}",
+    "too_large": "a preference takes at most 4 KB",
+    "unknown_key": "there is no preference called {key}"
+  },
+  "labels": {
+    "saving": "saving your preferences"
+  }
+}

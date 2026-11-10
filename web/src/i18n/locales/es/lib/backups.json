@@ -1,0 +1,26 @@
+{
+  "none_html": "Todavía no reportó ningún backup. Corré <code>deploy/backup.sh</code> en el host (desde cron, una vez por día): cada corrida deja su resultado en el directorio de datos y este panel lo lee.",
+  "stale": "tiene más de un día",
+  "facts": {
+    "last": "Último backup",
+    "archive": "Archivo",
+    "size": "Tamaño",
+    "kept": "Guardados",
+    "offsite": "Copia fuera del host"
+  },
+  "kept": {
+    "one": "{count} snapshot de {keep} (OCTOPUS_BACKUP_KEEP)",
+    "other": "{count} snapshots de {keep} (OCTOPUS_BACKUP_KEEP)"
+  },
+  "offsite": {
+    "ok": "copiado a {remote}",
+    "failed": "falló la copia a {remote}",
+    "unfinished": "no terminó de copiar a {remote}",
+    "none": "ninguna: OCTOPUS_BACKUP_REMOTE no está definida, así que los archivos están sólo en esta máquina"
+  },
+  "restore": {
+    "command_name": "el comando de restauración",
+    "lede": "Para restaurarlo, corré esto en el host que lo hizo. Se reemplazan los datos y la base del daemon.",
+    "needs_database_url": "Exportá antes OCTOPUS_DATABASE_URL en la terminal: el archivo de estado no la guarda porque tiene la contraseña."
+  }
+}

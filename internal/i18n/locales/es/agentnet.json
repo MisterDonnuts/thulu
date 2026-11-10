@@ -1,0 +1,8 @@
+{
+  "errors": {
+    "inspect_network": "agentnet: no se pudo inspeccionar la red {name}",
+    "create_network": "agentnet: no se pudo crear la red {name} (bridge {bridge:%q}): {cause}. Poné otro nombre en {network_env}, {bridge_env}=auto para que Docker nombre la interfaz, o {network_env}=bridge para volver al bridge por defecto",
+    "list_peer": "agentnet: no se pudo listar el peer {peer}",
+    "connect_peer": "agentnet: no se pudo conectar el peer {peer} a {network}"
+  }
+}

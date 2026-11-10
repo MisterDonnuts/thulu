@@ -1,0 +1,92 @@
+Thulu {{ .Chart.AppVersion }} deployed as "{{ .Release.Name }}".
+
+1. Dashboard:
+{{- if .Values.ingress.enabled }}
+   https://{{ (index .Values.ingress.hosts 0).host }}
+{{- else }}
+   kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "octopus.fullname" . }} 8585:{{ .Values.service.port }}
+   then open http://localhost:8585
+{{- end }}
+
+2. First run: the first person to sign in through your identity provider becomes the workspace owner.
+
+{{- if not .Values.secrets.existingSecret }}
+{{- if not .Values.secrets.jwtSecret }}
+
+   WARNING: no JWT secret set — the daemon will refuse to start. Set
+   secrets.jwtSecret (openssl rand -hex 32) or secrets.existingSecret.
+{{- end }}
+{{- end }}
+
+{{- if eq .Values.agentRuntime.mode "kubernetes" }}
+{{- if and (not .Values.secrets.licenseKey) (not .Values.secrets.existingSecret) }}
+
+   WARNING: agentRuntime.mode=kubernetes needs an Enterprise license with the
+   kubernetes feature, and secrets.licenseKey is empty: the daemon will refuse
+   to start. Set it, or agentRuntime.mode=docker for the Community Edition.
+{{- end }}
+
+3. Agents run as pods in tenant-<workspace> namespaces. Label this namespace
+   so the tenant NetworkPolicies (deploy/k8s-data-plane) let agent pods reach
+   the daemon:
+     kubectl label namespace {{ .Release.Namespace }} thulu.dev/plane=control
+{{- if .Values.agentRuntime.admissionPolicy.enabled }}
+   The admission policy "{{ include "octopus.fullname" . }}-daemon-scope" fences
+   the daemon's ServiceAccount to those namespaces (Kubernetes >= 1.30).
+{{- else }}
+
+   WARNING: agentRuntime.admissionPolicy is disabled. The daemon's ClusterRole
+   can create pods in ANY namespace, which is equivalent to reading every
+   Secret in the cluster. Treat its credentials as cluster-admin.
+{{- end }}
+{{- end }}
+
+{{- if and (eq .Values.agentRuntime.mode "docker") .Values.dockerSocket.enabled }}
+
+3. SECURITY: this release hostPath-mounts the node's Docker socket so the daemon
+   can launch agent containers. That grants root on the node. Pin the pod to a
+   dedicated node (nodeSelector/taints) and keep it off shared nodes. For
+   stronger isolation set dockerSocket.enabled=false and point DOCKER_HOST
+   (via extraEnv) at an isolated Docker/sysbox endpoint.
+{{- end }}
+
+{{- if not .Values.secrets.existingSecret }}
+{{- if not .Values.secrets.secretboxKey }}
+
+   NOTE: secrets.secretboxKey is empty, so stored credentials (Git tokens,
+   LLM keys) are encrypted with a key derived from the JWT secret. Set one
+   (openssl rand -hex 32) and keep it; the daemon re-encrypts on the next start.
+{{- end }}
+{{- end }}
+
+{{- if eq (lower (toString .Values.config.trustedProxies)) "private" }}
+
+   WARNING: config.trustedProxies=private trusts X-Forwarded-For from every
+   pod in the cluster, agent pods included, so any of them can forge the
+   client address in the audit log and dodge per-IP rate limits. List the
+   ingress controller's pod IPs or CIDR instead.
+{{- else if not .Values.config.trustedProxies }}
+
+   NOTE: config.trustedProxies is empty, so X-Forwarded-For is ignored and
+   the audit log and rate limits see the ingress controller's address. Set it
+   to the controller's pod CIDR (e.g. 10.42.0.0/24) to see real client IPs.
+{{- end }}
+
+{{- if and .Values.tls.enabled (not .Values.caBundle.configMap) }}
+
+   WARNING: tls.enabled without caBundle.configMap. Agents and MCP servers
+   dial the daemon over https and will reject its certificate unless a public
+   CA issued it. Put the issuing CA in a ConfigMap and set caBundle.configMap.
+{{- end }}
+{{- if .Values.tls.enabled }}
+
+   The daemon serves HTTPS on {{ .Values.service.port }}. Tell the ingress to
+   speak HTTPS to the backend, e.g. for ingress-nginx:
+     ingress.annotations."nginx\.ingress\.kubernetes\.io/backend-protocol"=HTTPS
+{{- end }}
+
+{{- if .Values.config.devMode }}
+
+   WARNING: OCTOPUS_DEV_MODE is ON — all auth checks are disabled. Never use
+   this outside local development.
+{{- end }}

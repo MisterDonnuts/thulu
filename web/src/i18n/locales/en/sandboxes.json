@@ -1,0 +1,82 @@
+{
+  "title": "Sandboxes",
+  "stats": {
+    "active_of": "of {max} active",
+    "queued": "queued"
+  },
+  "panels": {
+    "active": "Active sandboxes",
+    "queue": "Queue",
+    "settings": "Settings"
+  },
+  "columns": {
+    "task": "Task",
+    "container": "Container",
+    "status": "Status",
+    "idle": "Idle",
+    "ports": "Ports",
+    "stage": "Stage",
+    "priority": "Priority",
+    "waiting": "Waiting",
+    "position": "Position",
+    "actions": "Actions"
+  },
+  "labels": {
+    "max": "Max concurrent sandboxes",
+    "idle_evict": "Idle eviction (minutes)",
+    "acquire_block": "Wait for a free slot (seconds)",
+    "priority_by_stage": "Priority by stage"
+  },
+  "hints": {
+    "queue_order": "Higher priority first · FIFO within class",
+    "priority": "Higher number wins. When a slot frees, the queued task with the highest priority gets it.",
+    "install_wide": "Sandbox limits and stage priorities apply to every workspace on this install.",
+    "max_default": "Default: {n}",
+    "idle_default": "Default: {n}. 0 never evicts.",
+    "block_default": "Default: {n}. 0 queues the task at once.",
+    "no_agent": "No agent has thulu-sandbox ticked on any stage, so no task will open a sandbox.",
+    "no_agent_link": "Tick it in Agents → MCP tab"
+  },
+  "buttons": {
+    "save": "Save settings",
+    "kill": "Kill",
+    "kill_sandbox": "Kill sandbox",
+    "dequeue": "Take out of the line",
+    "dequeue_label": "Take {task} out of the line"
+  },
+  "confirm": {
+    "kill_title": "Kill the sandbox?"
+  },
+  "toasts": {
+    "killed": "Sandbox killed",
+    "kill_failed": "Kill failed: {error}",
+    "dequeued": "Out of the line. The next task takes its place.",
+    "dequeue_failed": "Could not take it out of the line: {error}"
+  },
+  "status": {
+    "saved": "Saved",
+    "error": "Error: {error}",
+    "fix_fields": "Fix the marked fields; nothing was saved"
+  },
+  "empty": {
+    "no_sandboxes": "No active sandboxes",
+    "queue": "Queue is empty"
+  },
+  "subtitle": "Per-task runtime containers · spawned on first {cmd}, reaped on idle.",
+  "owners": {
+    "prewarm": "Prewarm of {project}",
+    "evidence": "Evidence batch"
+  },
+  "stages": {
+    "prewarm": "Prewarm"
+  },
+  "errors": {
+    "required": "Fill in this field",
+    "number": "It must be a number",
+    "integer": "It must be a whole number",
+    "min1": "It must be 1 or more",
+    "min0": "It cannot be negative",
+    "whole_min0": "Must be a whole number, 0 or more",
+    "refused": "The daemon did not accept this value"
+  }
+}

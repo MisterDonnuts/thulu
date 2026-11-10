@@ -1,0 +1,13 @@
+---
+// Markup must match formErrorHTML() in lib/ui/form.ts.
+import { formErrorClasses } from "../lib/ui/form";
+
+interface Props {
+  id?: string;
+  text?: string;
+  class?: string;
+}
+const { id, text, class: extra } = Astro.props;
+---
+
+<p id={id} class={formErrorClasses(extra)} role="alert" hidden={!text}>{text}</p>

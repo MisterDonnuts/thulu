@@ -1,0 +1,12 @@
+{
+  "errors": {
+    "action_decided": "chat: la acción ya se decidió",
+    "init_schema": "chat: no se pudo inicializar el esquema",
+    "marshal_metadata": "chat: no se pudo serializar la metadata del mensaje",
+    "not_found": "chat: no existe",
+    "workspace_required": "chat: falta workspace_id"
+  },
+  "log": {
+    "bump_updated_at_failed": "chat: no se pudo actualizar updated_at de {chat}: {err}"
+  }
+}

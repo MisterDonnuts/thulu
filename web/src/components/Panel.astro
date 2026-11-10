@@ -1,0 +1,98 @@
+---
+import Icon from "./Icon.astro";
+import {
+  panelBodyClasses,
+  panelClasses,
+  panelHeading,
+  panelTag,
+  type PanelHeading,
+  type PanelPad,
+  type PanelSize,
+  type PanelTag,
+  type PanelTone,
+} from "../lib/ui/panel";
+
+interface Props {
+  icon?: string;
+  title?: string;
+  titleId?: string;
+  as?: PanelHeading;
+  size?: PanelSize;
+  tone?: PanelTone;
+  pick?: boolean;
+  flush?: boolean;
+  pad?: PanelPad;
+  tag?: PanelTag;
+  class?: string;
+  bodyClass?: string;
+  bodyAttrs?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+const {
+  icon,
+  title,
+  titleId,
+  as = "h2",
+  size = "md",
+  tone = "neutral",
+  pick = false,
+  flush = false,
+  pad = "sm",
+  tag = "section",
+  class: extra,
+  bodyClass,
+  bodyAttrs = {},
+  ...rest
+}: Props = Astro.props;
+const Tag = panelTag(tag);
+const Heading = panelHeading(as);
+const cls = panelClasses({ size, tone, pick, cls: extra });
+const bodyCls = panelBodyClasses({ flush, pad, size, cls: bodyClass });
+const hasTitle = Boolean(title) || Astro.slots.has("title");
+const hasStatus = Astro.slots.has("status");
+const hasAside = Astro.slots.has("aside");
+const hasActions = Astro.slots.has("actions");
+const hasHead = hasTitle || hasStatus || hasAside || hasActions || Astro.slots.has("head");
+const hasFoot = Astro.slots.has("foot");
+---
+
+<Tag class={cls} {...rest}>
+  {
+    hasHead && (
+      <div class="panel-head">
+        {icon && <Icon name={icon} />}
+        {hasTitle && (
+          <Heading class="panel-title" id={titleId}>
+            <slot name="title">{title}</slot>
+          </Heading>
+        )}
+        {hasStatus && (
+          <div class="panel-head-status">
+            <slot name="status" />
+          </div>
+        )}
+        <slot name="head" />
+        {hasAside && (
+          <div class="panel-head-aside">
+            <slot name="aside" />
+          </div>
+        )}
+        {hasActions && (
+          <div class="panel-head-actions">
+            <slot name="actions" />
+          </div>
+        )}
+      </div>
+    )
+  }
+  <div class={bodyCls} {...bodyAttrs}>
+    <slot />
+  </div>
+  {
+    hasFoot && (
+      <div class="panel-foot">
+        <slot name="foot" />
+      </div>
+    )
+  }
+</Tag>

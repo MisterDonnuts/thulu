@@ -1,0 +1,1598 @@
+---
+import { t } from "../i18n";
+import { drawerBackButton, drawerClasses } from "../lib/ui/drawer";
+import Badge from "./Badge.astro";
+import Button from "./Button.astro";
+import Composer from "./Composer.astro";
+import DrawerHead from "./DrawerHead.astro";
+import Field from "./Field.astro";
+import FormError from "./FormError.astro";
+import Menu from "./Menu.astro";
+
+const back = drawerBackButton(t("common.buttons.back"));
+const backToChats = drawerBackButton(t("chat.buttons.back_to_chats"));
+---
+
+<aside
+  id="chat-drawer"
+  class={drawerClasses({ side: "left", size: "sm", modal: false, cls: "chat-drawer" })}
+  role="complementary"
+  aria-label={t("chat.aria.drawer")}
+  aria-hidden="true"
+  data-view="conversation"
+  transition:persist="chat-drawer"
+>
+  <section class="chat-view" data-for="new">
+    <DrawerHead title={t("chat.new.title")} titleId="chat-new-heading">
+      <Button
+        slot="lead"
+        iconOnly
+        icon={back.icon}
+        size={back.size}
+        label={back.label}
+        class="chat-back"
+      />
+    </DrawerHead>
+    <form id="chat-new-form" class="chat-new-form form-stack">
+      <Field label={t("chat.new.agent")} for="chat-new-agent">
+        <select id="chat-new-agent" required></select>
+      </Field>
+      <p id="chat-new-hint" class="chat-new-hint" hidden></p>
+      <Field label={t("chat.new.linked_task")} for="chat-new-task">
+        <select id="chat-new-task">
+          <option value="">{t("chat.new.no_task")}</option>
+        </select>
+      </Field>
+      <Field label={t("chat.new.title_label")} for="chat-new-title">
+        <input
+          id="chat-new-title"
+          type="text"
+          placeholder={t("chat.new.title_placeholder")}
+          autocomplete="off"
+        />
+      </Field>
+      <Button type="submit" variant="primary" class="chat-create-btn">{t("chat.new.create")}</Button
+      >
+      <FormError id="chat-new-error" />
+    </form>
+  </section>
+
+  <section class="chat-view" data-for="conversation">
+    <DrawerHead
+      title={t("chat.conversation.default_title")}
+      titleId="chat-conv-title"
+      titleAttrs={{ title: t("chat.conversation.rename_hint") }}
+      subId="chat-conv-sub"
+    >
+      <Fragment slot="lead">
+        <Button
+          iconOnly
+          icon={backToChats.icon}
+          size={backToChats.size}
+          label={backToChats.label}
+          title={t("common.buttons.back")}
+          class="chat-back"
+        />
+        <span class="chat-presence" id="chat-presence" data-state="idle"></span>
+      </Fragment>
+      <Fragment slot="sub">
+        <Badge tone="warn" shape="pill" id="chat-delegated" class="chat-delegated" hidden
+          >{t("chat.delegate.pill")}</Badge
+        >
+        <span id="chat-subtitle"></span>
+      </Fragment>
+      <Fragment slot="actions">
+        <Button
+          iconOnly
+          icon="more"
+          size="lg"
+          id="chat-menu-btn"
+          label={t("chat.menu.aria")}
+          title={t("chat.menu.title")}
+          aria-haspopup="menu"
+          aria-expanded="false"
+          aria-controls="chat-menu"
+        />
+        <Menu
+          id="chat-menu"
+          labelledBy="chat-menu-btn"
+          density="rich"
+          class="chat-menu"
+          items={[
+            {
+              id: "chat-delegate-item",
+              icon: "zap",
+              title: t("chat.menu.delegate"),
+              sub: t("chat.delegate.sub_off"),
+              subId: "chat-delegate-sub",
+              role: "menuitemcheckbox",
+              checked: false,
+            },
+            { sep: true },
+            {
+              id: "chat-reset-btn",
+              icon: "refresh",
+              title: t("chat.menu.reset"),
+              sub: t("chat.menu.reset_sub"),
+            },
+            {
+              id: "chat-archive-btn",
+              icon: "box",
+              title: t("chat.menu.archive"),
+              titleId: "chat-archive-label",
+            },
+            { id: "chat-delete-btn", icon: "trash", title: t("chat.menu.delete"), danger: true },
+          ]}
+        />
+      </Fragment>
+    </DrawerHead>
+
+    <div id="chat-list" class="chat-list" role="log" aria-live="polite" aria-relevant="additions">
+    </div>
+
+    <p id="chat-composer-note" class="chat-composer-note" hidden></p>
+
+    <Composer
+      variant="chat"
+      id="chat-form"
+      ids={{ input: "chat-input", submit: "chat-send" }}
+      label={t("chat.composer.label")}
+      placeholder={t("chat.composer.placeholder")}
+      submitLabel={t("chat.composer.send")}
+      class="chat-form"
+      aria-label={t("chat.composer.aria")}
+    />
+  </section>
+</aside>
+
+<style is:global>
+  /* ════════════════════════════════════════════════════════════════════
+   AGENT CHATS DRAWER
+   ════════════════════════════════════════════════════════════════════ */
+  /* How much this panel adds to the page offset the sidebar computes. Driven
+     by `data-chat` on <html> (set by openDrawer/closeDrawer) rather than
+     `:root:has(…)`, to match the mechanism the rail already uses — one place
+     to look when the layout is off, and no :has() support question. */
+  @media (min-width: 1100px) {
+    html[data-chat="open"] {
+      --drawer-push: 400px;
+    }
+  }
+  /* The top bar spans the whole viewport, above both the rail and this panel:
+     the brand sits over the rail, and opening a chat does not squeeze the
+     bar. The negative margin cancels exactly what the
+     body pads by. On narrow screens the body is not padded (Sidebar.astro). */
+  .header {
+    margin-left: calc(-1 * (var(--sb-cur) + var(--drawer-push)));
+    transition: margin-left var(--dur-normal) var(--ease-out);
+  }
+
+  /* The box is a docked left Drawer; this only places it: under the top
+     bar, beside the rail (it follows the rail as it folds), and over the
+     page on a narrow screen. */
+  .chat-drawer {
+    top: var(--header-h);
+    left: var(--sb-cur);
+    max-width: calc(100vw - var(--sb-cur));
+  }
+  @media (max-width: 900px) {
+    .chat-drawer {
+      left: 0;
+      max-width: 100vw;
+    }
+  }
+
+  /* view switching */
+  .chat-view {
+    display: none;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .chat-drawer[data-view="new"] .chat-view[data-for="new"],
+  .chat-drawer[data-view="conversation"] .chat-view[data-for="conversation"] {
+    display: flex;
+  }
+
+  .chat-presence {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--ok);
+    box-shadow: var(--glow-success);
+    animation: octopus-pulse-soft 2.4s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+  .chat-presence[data-state="idle"] {
+    background: var(--fg-4);
+    box-shadow: none;
+    animation: none;
+  }
+  #chat-conv-title {
+    cursor: pointer;
+  }
+  .chat-menu {
+    width: 280px;
+    max-width: calc(100vw - var(--s-8));
+  }
+  .chat-delegated {
+    margin-right: var(--s-2);
+  }
+
+  /* ── a deletion the delegated agent asked for, waiting on the person ── */
+  .chat-action {
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-2);
+    padding: var(--s-3) var(--s-4);
+    border-radius: var(--r-md);
+    background: var(--warn-soft);
+    border: 1px solid var(--warn-line);
+    font-size: var(--t-sm);
+    color: var(--fg);
+  }
+  .chat-action-head {
+    font-size: var(--t-xs);
+    color: var(--fg-3);
+  }
+  .chat-action-summary {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+  .chat-action-buttons {
+    display: flex;
+    gap: var(--s-2);
+  }
+  .chat-action-state {
+    font-size: var(--t-xs);
+    color: var(--fg-3);
+  }
+  .chat-action[data-status="failed"] {
+    background: var(--danger-soft);
+    border-color: var(--danger-line);
+  }
+  .chat-action[data-status="confirmed"],
+  .chat-action[data-status="canceled"] {
+    background: var(--surface-2);
+    border-color: var(--line);
+  }
+
+  /* ── chat list rows (rendered into the sidebar's slot) ── */
+  .chat-rows {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 2px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  /* Each chat is a dense list row (lib/ui/list-row.ts); the preview keeps
+     to one line and the time sits over the unread dot. */
+  .chat-row-preview {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .chat-row-side {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--s-1);
+  }
+  .chat-row-time {
+    font-size: var(--t-xs);
+  }
+
+  /* ── new-chat form ── */
+  .chat-new-form {
+    padding: var(--s-5);
+  }
+  /* What the picked agent still lacks, with where to fix it. */
+  .chat-new-hint {
+    margin: calc(-1 * var(--s-2)) 0 0;
+    padding: var(--s-3);
+    border: 1px solid var(--warn-line);
+    border-radius: var(--r-md);
+    background: var(--warn-soft);
+    color: var(--fg);
+    font-size: var(--t-sm);
+    line-height: var(--lh-snug);
+  }
+  .chat-new-hint span {
+    display: block;
+  }
+  .chat-new-hint span + span {
+    margin-top: var(--s-2);
+  }
+  .chat-new-hint a,
+  .chat-composer-note a,
+  .chat-list .msg-meta a,
+  #chat-conv-sub a {
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px solid var(--accent-line);
+  }
+  .chat-sub-ctx {
+    white-space: nowrap;
+  }
+
+  /* ── conversation ── */
+  .chat-list {
+    flex: 1;
+    /* A flex item is as tall as its content unless told otherwise, so without
+       this the list pushes the composer down instead of scrolling. */
+    min-height: 0;
+    overflow-y: auto;
+    padding: var(--s-5) var(--s-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-3);
+  }
+  /* Messages keep their height instead of shrinking to fit the list — a long
+     one has to make the list scroll, not squeeze into it. */
+  .chat-list > * {
+    flex: 0 0 auto;
+  }
+  /* The bubbles are .msg (styles/primitives/conversation.css): the list only
+     stacks them. The tools a reply used fold under it in a help disclosure. */
+  .chat-tools {
+    margin-top: var(--s-1);
+  }
+  .chat-tools-list {
+    margin: 0;
+    padding-left: var(--s-5);
+  }
+  .chat-tools-list li {
+    margin: var(--s-1) 0;
+    overflow-wrap: anywhere;
+  }
+  .chat-composer-note {
+    margin: 0;
+    padding: var(--s-2) var(--s-4);
+    border-top: 1px solid var(--line);
+    background: var(--surface-2);
+    color: var(--fg-3);
+    font-size: var(--t-xs);
+    line-height: var(--lh-snug);
+  }
+  .chat-composer-note button {
+    margin-left: var(--s-2);
+  }
+  .chat-rows-toggle {
+    margin: var(--s-1) var(--s-3) var(--s-2);
+    padding: 0;
+    align-self: flex-start;
+    background: none;
+    border: none;
+    color: var(--fg-3);
+    font: inherit;
+    font-size: var(--t-xs);
+    cursor: pointer;
+  }
+  .chat-rows-toggle:hover {
+    color: var(--fg);
+  }
+
+  .chat-spinner {
+    align-self: flex-start;
+    display: inline-flex;
+    gap: var(--s-1);
+    padding: var(--s-3) var(--s-4);
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    border-bottom-left-radius: 2px;
+  }
+  .chat-spinner span {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--fg-3);
+    animation: chat-bounce 1.1s infinite ease-in-out;
+  }
+  .chat-spinner span:nth-child(2) {
+    animation-delay: 0.15s;
+  }
+  .chat-spinner span:nth-child(3) {
+    animation-delay: 0.3s;
+  }
+  @keyframes chat-bounce {
+    0%,
+    80%,
+    100% {
+      opacity: 0.3;
+      transform: translateY(0);
+    }
+    40% {
+      opacity: 1;
+      transform: translateY(-3px);
+    }
+  }
+
+  /* The composer is a chat Composer; the drawer only sets it off from the list. */
+  .chat-form {
+    padding: var(--s-3) var(--s-4) var(--s-4);
+    border-top: 1px solid var(--line);
+  }
+</style>
+
+<script>
+  import { apiBase, authDisabled, csrfHeaders, sessionInfo } from "../lib/auth";
+  import { viewerFor, type Viewer } from "../lib/activity";
+  import { events, CHAT_TOPIC, type Frame } from "../lib/events";
+  import { chatMd } from "../lib/chat-markdown";
+  import {
+    actionStateText,
+    agentGaps,
+    agentOptionLabel,
+    canActOnBoards,
+    ChatDrafts,
+    isMentionBrief,
+    chatTimeline,
+    PREVIEW_CHARS,
+    previewText,
+    replyTools,
+    type ChatAction,
+    type ChatAgent,
+  } from "../lib/chat-drawer";
+  import { agentLink } from "../lib/agent-link";
+  import {
+    avatarHTML,
+    buttonClasses,
+    composerSubmits,
+    confirmDialog,
+    disclosureHTML,
+    dotHTML,
+    emptyStateHTML,
+    esc,
+    growComposer,
+    messageEl,
+    type MessageOptions,
+    bindMenu,
+    listRowHTML,
+    makeToast,
+    menuItemHTML,
+    setCount,
+    setFormError,
+  } from "../lib/ui";
+  import { taskAnchor } from "../lib/test-cases";
+  import { locale, t } from "../i18n";
+
+  const API = apiBase();
+  const toast = makeToast(4000);
+  const CHAT_INPUT_LINES = 6;
+
+  type Chat = {
+    id: string;
+    workspace_id?: string;
+    agent_type: string;
+    task_id?: string;
+    task_title?: string;
+    task_board_id?: string;
+    thread_id?: string;
+    archived?: boolean;
+    title: string;
+    created_by?: string;
+    delegated_by?: string;
+    delegated_until?: string;
+    status: "idle" | "running";
+    updated_at: string;
+    last_message_preview?: string;
+    last_message_at?: string;
+  };
+  type Action = ChatAction;
+  type Msg = {
+    id: string;
+    role: string;
+    text: string;
+    created_at: string;
+    duration_ms?: number;
+    input_tokens?: number;
+    metadata?: Record<string, string>;
+  };
+
+  (function () {
+    // chat-rows and #sb-chat-badge are rendered by Sidebar.astro; the layout mounts it before this
+    // script runs.
+    const unreadBadge = document.getElementById("sb-chat-badge") as HTMLElement;
+    const drawer = document.getElementById("chat-drawer") as HTMLElement;
+    const rowsEl = document.getElementById("chat-rows") as HTMLElement;
+    const list = document.getElementById("chat-list") as HTMLElement;
+    const form = document.getElementById("chat-form") as HTMLFormElement;
+    const input = document.getElementById("chat-input") as HTMLTextAreaElement;
+    const sendBtn = document.getElementById("chat-send") as HTMLButtonElement;
+    const convTitle = document.getElementById("chat-conv-title") as HTMLElement;
+    const subtitle = document.getElementById("chat-subtitle") as HTMLElement;
+    const presence = document.getElementById("chat-presence") as HTMLElement;
+    const delegatedPill = document.getElementById("chat-delegated") as HTMLElement;
+    const menuBtn = document.getElementById("chat-menu-btn") as HTMLButtonElement;
+    const menu = document.getElementById("chat-menu") as HTMLElement;
+    const newForm = document.getElementById("chat-new-form") as HTMLFormElement;
+    const newAgent = document.getElementById("chat-new-agent") as HTMLSelectElement;
+    const newTask = document.getElementById("chat-new-task") as HTMLSelectElement;
+    const newTitle = document.getElementById("chat-new-title") as HTMLInputElement;
+    const newError = document.getElementById("chat-new-error") as HTMLElement;
+    const newHint = document.getElementById("chat-new-hint") as HTMLElement;
+    const composerNote = document.getElementById("chat-composer-note") as HTMLElement;
+    const archiveLabel = document.getElementById("chat-archive-label") as HTMLElement;
+    if (!drawer || !rowsEl || !list || !form || !input) return;
+
+    const OPEN_KEY = "octopus.chat.open";
+    const LAST_KEY = "octopus.chat.lastChat";
+
+    const state = {
+      chats: [] as Chat[],
+      activeChatId: null as string | null,
+      unread: new Map<string, number>(),
+      offs: [] as Array<() => void>,
+      pollTimer: 0,
+      busy: false,
+      lastInputTokens: 0,
+      ghostId: null as string | null,
+      pinned: true,
+      showArchived: false,
+      decidedHere: new Set<string>(),
+      viewer: null as Viewer | null,
+      newAgents: [] as ChatAgent[],
+      drafts: new ChatDrafts(),
+    };
+
+    const jsonHeaders = () => ({ "Content-Type": "application/json", ...csrfHeaders() });
+
+    function shortTime(iso: string): string {
+      if (!iso) return "";
+      const d = new Date(iso);
+      const now = new Date();
+      if (d.toDateString() === now.toDateString())
+        return d.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
+      return d.toLocaleDateString(locale, { day: "2-digit", month: "2-digit" });
+    }
+
+    function setView(view: "new" | "conversation") {
+      drawer.setAttribute("data-view", view);
+      if (view === "conversation") setTimeout(() => input.focus(), 150);
+    }
+
+    function activeChat(): Chat | undefined {
+      return state.chats.find((c) => c.id === state.activeChatId);
+    }
+
+    function updateUnreadBadge() {
+      if (!unreadBadge) return;
+      let total = 0;
+      state.unread.forEach((n) => (total += n));
+      setCount(unreadBadge, total, {
+        pill: true,
+        size: "sm",
+        tone: "accent",
+        max: 9,
+        hideZero: true,
+        cls: "sb-count",
+      });
+    }
+
+    function scrollToBottom() {
+      list.scrollTop = list.scrollHeight;
+      state.pinned = true;
+    }
+
+    function msgMarkdown(text: string): string {
+      // Attachment links are stored root-relative; behind a tunnel the daemon is not this page's
+      // origin.
+      return chatMd(text, { mediaBase: API });
+    }
+
+    function msgEl(o: MessageOptions): HTMLElement {
+      const el = messageEl(o);
+      el.querySelectorAll("img, video").forEach((m) =>
+        m.addEventListener(m.tagName === "IMG" ? "load" : "loadedmetadata", () => {
+          if (state.pinned) scrollToBottom();
+        }),
+      );
+      return el;
+    }
+
+    function rowPreview(c: Chat): string {
+      const last = c.last_message_preview ? previewText(c.last_message_preview) : "";
+      if (last) return last;
+      return c.task_id
+        ? t("chat.subtitle.agent_task", { agent: c.agent_type, task: c.task_title || c.task_id })
+        : "@" + c.agent_type;
+    }
+
+    rowsEl.addEventListener("click", (e) => {
+      const row = (e.target as HTMLElement).closest<HTMLElement>(".chat-row[data-id]");
+      if (row) void openChat(row.dataset.id!);
+    });
+
+    function renderRows() {
+      rowsEl.innerHTML = "";
+      const live = state.chats.filter((c) => !c.archived);
+      if (live.length === 0)
+        rowsEl.insertAdjacentHTML(
+          "beforeend",
+          emptyStateHTML({ size: "sm", body: t("chat.empty.no_chats") }),
+        );
+      const shown = state.showArchived ? [...live, ...state.chats.filter((c) => c.archived)] : live;
+      rowsEl.insertAdjacentHTML(
+        "beforeend",
+        shown
+          .map((c) => {
+            const running = c.status === "running";
+            const unread = (state.unread.get(c.id) || 0) > 0;
+            return listRowHTML({
+              as: "button",
+              size: "sm",
+              current: c.id === state.activeChatId,
+              dim: c.archived,
+              cls: "chat-row",
+              attrs: { "data-id": c.id },
+              leadHTML: avatarHTML({
+                kind: "agent",
+                name: c.agent_type || "?",
+                shape: "square",
+                letters: true,
+                status: running ? "ok" : undefined,
+                pulse: running,
+              }),
+              title: c.title || c.agent_type,
+              metaHTML: `<span class="chat-row-preview">${esc(rowPreview(c))}</span>`,
+              asideHTML:
+                `<span class="chat-row-side"><span class="chat-row-time">${esc(shortTime(c.last_message_at || c.updated_at))}</span>` +
+                (unread ? dotHTML("accent", { label: t("chat.aria.unread") }) : "") +
+                `</span>`,
+            });
+          })
+          .join(""),
+      );
+      const toggle = document.createElement("button");
+      toggle.type = "button";
+      toggle.className = "chat-rows-toggle";
+      toggle.textContent = state.showArchived ? t("chat.archived.hide") : t("chat.archived.show");
+      toggle.setAttribute("aria-pressed", state.showArchived ? "true" : "false");
+      toggle.addEventListener("click", () => {
+        state.showArchived = !state.showArchived;
+        void loadChats();
+      });
+      rowsEl.appendChild(toggle);
+    }
+
+    async function loadChats() {
+      try {
+        const r = await fetch(
+          API + "/chats" + (state.showArchived ? "?include_archived=true" : ""),
+        );
+        if (!r.ok) return;
+        state.chats = (await r.json()) as Chat[];
+        renderRows();
+        if (state.activeChatId) renderConvHeader();
+      } catch {}
+    }
+
+    function taskLink(c: Chat, label: string): HTMLAnchorElement {
+      const a = document.createElement("a");
+      a.href = taskAnchor(c.task_id as string, c.task_board_id || "");
+      a.textContent = label;
+      return a;
+    }
+
+    function updateCtxBadge() {
+      const c = activeChat();
+      subtitle.replaceChildren();
+      if (!c) return;
+      subtitle.append("@" + c.agent_type);
+      if (c.task_id) {
+        subtitle.append(" · ");
+        const a = taskLink(c, c.task_title || c.task_id);
+        a.title = t("chat.subtitle.open_task");
+        subtitle.append(a);
+      }
+      if (state.lastInputTokens > 0) {
+        const k = state.lastInputTokens / 1000;
+        const tokens = k >= 1 ? k.toFixed(1) + "k" : String(state.lastInputTokens);
+        const ctx = document.createElement("span");
+        ctx.className = "chat-sub-ctx";
+        ctx.textContent = t("chat.subtitle.context", { tokens });
+        subtitle.append(" · ", ctx);
+      }
+    }
+
+    function renderComposerState() {
+      const c = activeChat();
+      composerNote.replaceChildren();
+      composerNote.hidden = true;
+      input.disabled = false;
+      sendBtn.disabled = state.busy;
+      if (!c) return;
+      if (c.archived) {
+        input.disabled = true;
+        sendBtn.disabled = true;
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = buttonClasses({ size: "sm" });
+        b.textContent = t("chat.menu.unarchive");
+        b.addEventListener("click", () => void setArchived(c, false));
+        composerNote.append(t("chat.composer.archived_note"), b);
+        composerNote.hidden = false;
+        return;
+      }
+      if (c.thread_id) {
+        composerNote.append(t("chat.composer.thread_note"));
+        if (c.task_id) composerNote.append(" ", taskLink(c, t("chat.composer.open_task")));
+        composerNote.hidden = false;
+      }
+    }
+
+    function delegated(c: Chat | undefined): boolean {
+      return !!c?.delegated_by && !!c.delegated_until && Date.parse(c.delegated_until) > Date.now();
+    }
+
+    function renderConvHeader() {
+      const c = activeChat();
+      if (!c) return;
+      convTitle.textContent = c.title || c.agent_type;
+      presence.setAttribute("data-state", c.status === "running" ? "online" : "idle");
+      const on = delegated(c);
+      delegatedPill.hidden = !on;
+      if (on) {
+        const until = new Date(c.delegated_until as string).toLocaleTimeString(locale, {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        delegatedPill.textContent = t("chat.delegate.pill_until", { time: until });
+      }
+      // Task/thread chats take turns from other people's comments, so they never act for anyone
+      // (the daemon refuses it too).
+      const linked = !!(c.task_id || c.thread_id);
+      const tpl = document.createElement("template");
+      tpl.innerHTML = menuItemHTML({
+        id: "chat-delegate-item",
+        icon: "zap",
+        title: t("chat.menu.delegate"),
+        sub: linked
+          ? t("chat.delegate.sub_linked")
+          : on
+            ? t("chat.delegate.sub_on", { person: c.delegated_by ?? "" })
+            : t("chat.delegate.sub_off"),
+        subId: "chat-delegate-sub",
+        role: "menuitemcheckbox",
+        checked: on,
+        disabled: linked,
+      });
+      document.getElementById("chat-delegate-item")?.replaceWith(tpl.content);
+      archiveLabel.textContent = c.archived ? t("chat.menu.unarchive") : t("chat.menu.archive");
+      updateCtxBadge();
+      renderComposerState();
+    }
+
+    // The persisted message replacing the optimistic copy arrives after the "replying" dots are up;
+    // insert it above them.
+    function addRow(el: HTMLElement) {
+      const pending = document.getElementById("chat-pending");
+      if (pending && pending.parentElement === list) list.insertBefore(el, pending);
+      else list.appendChild(el);
+    }
+
+    function toolsFoldHTML(m: Msg): string {
+      const { calls, omitted } = replyTools(m);
+      if (!calls.length) return "";
+      const items = calls.map(
+        (call) =>
+          `<li><code class="code-inline">${esc(call.name)}</code>${call.hint ? " " + esc(call.hint) : ""}</li>`,
+      );
+      if (omitted) items.push(`<li>${esc(t("chat.tools.omitted", { count: omitted }))}</li>`);
+      return disclosureHTML({
+        summary: t("chat.tools.summary", { count: calls.length + omitted }),
+        bodyHTML: `<ul class="chat-tools-list">${items.join("")}</ul>`,
+        cls: "chat-tools",
+      });
+    }
+
+    function msgMeta(m: Msg): string {
+      let meta = shortTime(m.created_at);
+      if (m.role === "assistant" && m.duration_ms) {
+        meta +=
+          " · " +
+          (m.duration_ms < 1000 ? m.duration_ms + "ms" : (m.duration_ms / 1000).toFixed(1) + "s");
+      }
+      return meta;
+    }
+
+    function appendMsg(m: Msg) {
+      if (m.id && list.querySelector(`[data-id="${m.id}"]`)) return;
+      list.querySelector(".chat-intro")?.remove();
+      const attrs = { "data-id": m.id };
+      const bodyHTML = msgMarkdown(m.text);
+      if (isMentionBrief(m)) {
+        addRow(msgEl({ role: "user", fold: t("chat.brief.summary"), bodyHTML, attrs }));
+        scrollToBottom();
+        return;
+      }
+      const isUser = m.role === "user";
+      const brief =
+        isUser && m.metadata?.brief === "evidence_recording"
+          ? {
+              lead: t("chat.brief.evidence_recording", {
+                key: m.metadata.case ?? "",
+                env: m.metadata.env ?? "",
+              }),
+              fold: t("chat.brief.show_instructions"),
+            }
+          : {};
+      addRow(
+        msgEl({
+          role: isUser ? "user" : "agent",
+          tone: !isUser && m.metadata?.error === "true" ? "error" : "default",
+          author: isUser ? undefined : activeChat()?.agent_type,
+          bodyHTML,
+          afterHTML: isUser ? "" : toolsFoldHTML(m),
+          meta: msgMeta(m),
+          attrs,
+          ...brief,
+        }),
+      );
+      scrollToBottom();
+      if (m.role === "assistant" && m.input_tokens) {
+        state.lastInputTokens = m.input_tokens;
+        updateCtxBadge();
+      }
+    }
+
+    function showSpinner() {
+      if (document.getElementById("chat-pending")) return;
+      const s = document.createElement("div");
+      s.className = "chat-spinner";
+      s.id = "chat-pending";
+      s.setAttribute("aria-label", t("chat.conversation.replying"));
+      s.innerHTML = "<span></span><span></span><span></span>";
+      list.appendChild(s);
+      scrollToBottom();
+    }
+    function hideSpinner() {
+      document.getElementById("chat-pending")?.remove();
+    }
+
+    function transientNotice(text: string) {
+      const el = messageEl({ role: "agent", tone: "error", text });
+      addRow(el);
+      scrollToBottom();
+      setTimeout(() => el.remove(), 5000);
+    }
+
+    function pinnedNote(
+      text: string,
+      link?: { href: string; label: string },
+      kind: "error" | "info" = "error",
+    ) {
+      const el = messageEl({
+        role: "system",
+        tone: kind === "error" ? "error" : "default",
+        text,
+        metaHTML: link ? `<a href="${esc(link.href)}">${esc(link.label)}</a>` : undefined,
+      });
+      addRow(el);
+      scrollToBottom();
+    }
+
+    function renderIntro(c: Chat) {
+      const who = c.task_id
+        ? t("chat.intro.task", { agent: c.agent_type, task: c.task_title || c.task_id })
+        : t("chat.intro.loose", { agent: c.agent_type });
+      list.insertAdjacentHTML(
+        "beforeend",
+        emptyStateHTML({
+          size: "sm",
+          title: who,
+          // Only the chats the daemon opens to answer mentions are shared; see chat.Personal.
+          body:
+            c.created_by === "system"
+              ? t("chat.intro.shared", { agent: c.agent_type })
+              : t("chat.intro.personal"),
+          cls: "chat-intro",
+        }),
+      );
+    }
+
+    const viewerReady = Promise.all([sessionInfo(), authDisabled()])
+      .then(([s, devSession]) => {
+        state.viewer = viewerFor(s?.user, devSession);
+      })
+      .catch(() => {});
+
+    async function loadMessages(chatID: string) {
+      try {
+        const r = await fetch(API + `/chats/${chatID}/messages?limit=200`);
+        if (!r.ok) return;
+        const msgs = (await r.json()) as Msg[];
+        const [actions] = await Promise.all([loadActions(chatID), viewerReady]);
+        if (chatID !== state.activeChatId) return;
+        list.innerHTML = "";
+        state.lastInputTokens = 0;
+        for (const item of chatTimeline(msgs, actions)) {
+          if ("msg" in item) appendMsg(item.msg);
+          else renderAction(item.action);
+        }
+        const c = activeChat();
+        if (c && msgs.length === 0 && actions.length === 0) renderIntro(c);
+        if (c && c.status === "running") showSpinner();
+        updateCtxBadge();
+      } catch {}
+    }
+
+    async function loadActions(chatID: string): Promise<Action[]> {
+      try {
+        const r = await fetch(API + `/chats/${chatID}/actions`);
+        return r.ok ? ((await r.json()) as Action[]) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function renderAction(a: Action) {
+      let card = list.querySelector<HTMLElement>(`[data-action-id="${a.id}"]`);
+      if (!card) {
+        card = document.createElement("div");
+        card.className = "chat-action";
+        card.dataset.actionId = a.id;
+        addRow(card);
+        scrollToBottom();
+      }
+      card.dataset.status = a.status;
+      card.innerHTML = "";
+      const head = document.createElement("span");
+      head.className = "chat-action-head";
+      head.textContent = t("chat.actions.asks_confirmation", { agent: a.agent });
+      const summary = document.createElement("span");
+      summary.className = "chat-action-summary";
+      summary.textContent = a.summary;
+      card.append(head, summary);
+      if (a.status !== "pending") {
+        const st = document.createElement("span");
+        st.className = "chat-action-state";
+        st.textContent = actionStateText(a, state.decidedHere.has(a.id), state.viewer);
+        card.appendChild(st);
+        return;
+      }
+      const buttons = document.createElement("div");
+      buttons.className = "chat-action-buttons";
+      const ok = document.createElement("button");
+      ok.type = "button";
+      ok.className = buttonClasses({ size: "sm", variant: "danger" });
+      ok.textContent = t("chat.actions.confirm");
+      const no = document.createElement("button");
+      no.type = "button";
+      no.className = buttonClasses({ size: "sm" });
+      no.textContent = t("common.buttons.cancel");
+      ok.addEventListener("click", () => decideAction(a, "confirm", [ok, no]));
+      no.addEventListener("click", () => decideAction(a, "cancel", [ok, no]));
+      buttons.append(ok, no);
+      card.appendChild(buttons);
+    }
+
+    async function decideAction(
+      a: Action,
+      verb: "confirm" | "cancel",
+      buttons: HTMLButtonElement[],
+    ) {
+      buttons.forEach((b) => (b.disabled = true));
+      // Mark before the request: the action_decided event can arrive before the response.
+      state.decidedHere.add(a.id);
+      try {
+        const r = await fetch(API + `/chats/${a.chat_id}/actions/${a.id}/${verb}`, {
+          method: "POST",
+          headers: jsonHeaders(),
+        });
+        const body = await r.json().catch(() => ({}) as any);
+        if (!r.ok) {
+          state.decidedHere.delete(a.id);
+          buttons.forEach((b) => (b.disabled = false));
+          transientNotice(body.error || t("chat.errors.http_daemon", { status: r.status }));
+          return;
+        }
+        renderAction(body as Action);
+      } catch {
+        state.decidedHere.delete(a.id);
+        buttons.forEach((b) => (b.disabled = false));
+        transientNotice(t("chat.errors.offline_decide"));
+      }
+    }
+
+    function leaveChat() {
+      if (state.activeChatId) state.drafts.stash(state.activeChatId, input.value);
+      input.value = "";
+      growComposer(input, CHAT_INPUT_LINES);
+    }
+
+    async function openChat(id: string) {
+      if (state.activeChatId !== id) {
+        leaveChat();
+        input.value = state.drafts.take(id);
+        growComposer(input, CHAT_INPUT_LINES);
+      }
+      state.activeChatId = id;
+      state.unread.delete(id);
+      updateUnreadBadge();
+      localStorage.setItem(LAST_KEY, id);
+      openDrawer();
+      setView("conversation");
+      renderConvHeader();
+      renderRows();
+      list.innerHTML = "";
+      await loadMessages(id);
+    }
+
+    function backToList() {
+      state.activeChatId = null;
+      localStorage.removeItem(LAST_KEY);
+      closeDrawer();
+      loadChats();
+    }
+
+    function handleEvent(type: string, ev: any) {
+      if (!ev) return;
+      const chatID: string = ev.chat_id;
+      switch (type) {
+        case "message_added": {
+          const m: Msg = ev.message;
+          if (chatID === state.activeChatId) {
+            if (state.ghostId && m.role === "user") {
+              document.querySelector(`[data-id="${state.ghostId}"]`)?.remove();
+              state.ghostId = null;
+            }
+            appendMsg(m);
+            if (m.role !== "user") hideSpinner();
+          } else if (m.role !== "user") {
+            state.unread.set(chatID, (state.unread.get(chatID) || 0) + 1);
+            updateUnreadBadge();
+          }
+          const c = state.chats.find((x) => x.id === chatID);
+          if (c) {
+            c.last_message_preview = (m.text || "").slice(0, PREVIEW_CHARS);
+            c.last_message_at = m.created_at;
+            renderRows();
+          }
+          break;
+        }
+        case "turn_started":
+          markRunning(chatID, true);
+          if (chatID === state.activeChatId) showSpinner();
+          break;
+        case "turn_finished":
+        case "turn_failed":
+          markRunning(chatID, false);
+          if (chatID === state.activeChatId) hideSpinner();
+          break;
+        case "chat_created":
+        case "chat_updated":
+          loadChats();
+          break;
+        case "action_pending":
+        case "action_decided":
+          if (chatID === state.activeChatId && ev.action) renderAction(ev.action as Action);
+          break;
+        case "chat_deleted":
+          state.chats = state.chats.filter((c) => c.id !== chatID);
+          if (state.activeChatId === chatID) backToList();
+          else renderRows();
+          break;
+      }
+    }
+
+    function markRunning(chatID: string, running: boolean) {
+      const c = state.chats.find((x) => x.id === chatID);
+      if (c) c.status = running ? "running" : "idle";
+      renderRows();
+      if (chatID === state.activeChatId) renderConvHeader();
+    }
+
+    // Nothing is replayed across a reconnect gap, so resync over REST on every reconnect.
+    function connectSSE() {
+      if (state.offs.length) return;
+      state.offs.push(
+        events.subscribe(CHAT_TOPIC, (f: Frame) => handleEvent(f.type, f.data), { replay: false }),
+        events.onReconnect(() => {
+          stopPolling();
+          loadChats();
+          if (state.activeChatId) loadMessages(state.activeChatId);
+        }),
+        events.onStatus((s) => (s === "live" ? stopPolling() : startPolling())),
+      );
+    }
+    window.addEventListener("pagehide", () => {
+      for (const off of state.offs) off();
+      state.offs = [];
+      stopPolling();
+    });
+    function startPolling() {
+      if (state.pollTimer) return;
+      state.pollTimer = window.setInterval(() => {
+        loadChats();
+        if (state.activeChatId) loadMessages(state.activeChatId);
+      }, 5000);
+    }
+    function stopPolling() {
+      if (state.pollTimer) {
+        clearInterval(state.pollTimer);
+        state.pollTimer = 0;
+      }
+    }
+
+    async function fetchChatAgents(workspace?: string): Promise<ChatAgent[]> {
+      const q = workspace ? `?workspace=${encodeURIComponent(workspace)}` : "";
+      const r = await fetch(API + "/chats/agents" + q);
+      if (!r.ok) return [];
+      return (await r.json()) as ChatAgent[];
+    }
+
+    async function chatAgent(c: Chat): Promise<ChatAgent | undefined> {
+      try {
+        return (await fetchChatAgents(c.workspace_id)).find((a) => a.type === c.agent_type);
+      } catch {
+        return undefined;
+      }
+    }
+
+    function hintLine(text: string, href: string, label: string) {
+      const line = document.createElement("span");
+      const a = document.createElement("a");
+      a.href = href;
+      a.textContent = label;
+      line.append(text + " ", a);
+      newHint.append(line);
+    }
+
+    function renderAgentHint() {
+      newHint.replaceChildren();
+      const agents = state.newAgents;
+      if (!agents.length) {
+        hintLine(t("chat.new.hint_no_agents"), "/agents/", t("chat.new.hint_no_agents_link"));
+      } else {
+        const a = agents.find((x) => x.type === newAgent.value);
+        const gaps = a ? agentGaps(a) : [];
+        if (a && gaps.includes("prompt")) {
+          hintLine(
+            t("chat.new.hint_no_prompt", { agent: a.name }),
+            agentLink(a.name, "prompts"),
+            t("chat.new.hint_no_prompt_link"),
+          );
+        }
+        if (a && gaps.includes("llm")) {
+          hintLine(
+            t("chat.new.hint_no_llm", { agent: a.name }),
+            "/settings/#llm",
+            t("chat.new.hint_no_llm_link"),
+          );
+        }
+      }
+      newHint.hidden = !newHint.childElementCount;
+    }
+
+    async function populateNewChatForm() {
+      setFormError(newError, "");
+      const createBtn = newForm.querySelector(".chat-create-btn") as HTMLButtonElement;
+      try {
+        state.newAgents = await fetchChatAgents();
+        newAgent.innerHTML = "";
+        for (const at of state.newAgents) {
+          const opt = document.createElement("option");
+          opt.value = at.type;
+          opt.textContent = agentOptionLabel(at);
+          if (at.description) opt.title = at.description;
+          newAgent.appendChild(opt);
+        }
+        const none = !state.newAgents.length;
+        if (none) {
+          const opt = document.createElement("option");
+          opt.value = "";
+          opt.textContent = t("chat.new.no_agents");
+          newAgent.appendChild(opt);
+        }
+        newAgent.disabled = none;
+        createBtn.disabled = none;
+        renderAgentHint();
+      } catch {}
+      try {
+        const terminal = new Set<string>();
+        try {
+          const sr = await fetch(API + "/stages");
+          if (sr.ok) {
+            for (const st of (await sr.json()) as Array<{ id: string; terminal: boolean }>) {
+              if (st.terminal) terminal.add(st.id);
+            }
+          }
+        } catch {}
+        const r = await fetch(API + "/tasks");
+        if (r.ok) {
+          const tasks = (await r.json()) as Array<{ id: string; title: string; stage: string }>;
+          newTask.innerHTML = `<option value="">${t("chat.new.no_task")}</option>`;
+          for (const task of tasks.filter((x) => !terminal.has(x.stage))) {
+            const opt = document.createElement("option");
+            opt.value = task.id;
+            opt.textContent = task.title || task.id;
+            newTask.appendChild(opt);
+          }
+        }
+      } catch {}
+    }
+
+    newAgent?.addEventListener("change", renderAgentHint);
+
+    newForm?.addEventListener("submit", async (e: Event) => {
+      e.preventDefault();
+      setFormError(newError, "");
+      const agentType = newAgent.value;
+      if (!agentType) return;
+      const btn = newForm.querySelector(".chat-create-btn") as HTMLButtonElement;
+      btn.disabled = true;
+      try {
+        const r = await fetch(API + "/chats", {
+          method: "POST",
+          headers: jsonHeaders(),
+          body: JSON.stringify({
+            agent_type: agentType,
+            task_id: newTask.value || undefined,
+            title: newTitle.value.trim() || undefined,
+          }),
+        });
+        if (!r.ok) {
+          const body = await r.json().catch(() => ({}) as any);
+          setFormError(newError, body.error || t("chat.errors.http_status", { status: r.status }));
+          return;
+        }
+        const c = (await r.json()) as Chat & { reused?: boolean };
+        newTitle.value = "";
+        await loadChats();
+        await openChat(c.id);
+        if (c.reused) {
+          pinnedNote(
+            t("chat.new.reused", { agent: c.agent_type, task: c.task_title || c.task_id || "" }),
+            undefined,
+            "info",
+          );
+        }
+      } catch {
+        setFormError(newError, t("chat.errors.offline_create"));
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    convTitle?.addEventListener("click", async () => {
+      const c = activeChat();
+      if (!c) return;
+      const next = prompt(t("chat.conversation.rename_prompt"), c.title || "");
+      if (next === null || !next.trim() || next.trim() === c.title) return;
+      try {
+        await fetch(API + `/chats/${c.id}`, {
+          method: "PATCH",
+          headers: jsonHeaders(),
+          body: JSON.stringify({ title: next.trim() }),
+        });
+        c.title = next.trim();
+        renderConvHeader();
+      } catch {}
+    });
+
+    const chatMenu = bindMenu(menu, menuBtn, {
+      onSelect: (item) => {
+        if (item.id === "chat-delegate-item") void toggleDelegation();
+        else if (item.id === "chat-reset-btn") void resetChat();
+        else if (item.id === "chat-archive-btn") void archiveChat();
+        else if (item.id === "chat-delete-btn") void deleteChat();
+      },
+    });
+
+    async function setDelegation(c: Chat, enabled: boolean): Promise<void> {
+      try {
+        const r = await fetch(API + `/chats/${c.id}/delegation`, {
+          method: "POST",
+          headers: jsonHeaders(),
+          body: JSON.stringify({ enabled }),
+        });
+        const body = await r.json().catch(() => ({}) as any);
+        if (!r.ok) {
+          transientNotice(body.error || t("chat.errors.http_daemon", { status: r.status }));
+          return;
+        }
+        Object.assign(c, {
+          delegated_by: body.delegated_by,
+          delegated_until: body.delegated_until,
+        });
+        renderConvHeader();
+        if (!enabled) {
+          list.querySelectorAll('.chat-action[data-status="pending"]').forEach((el) => el.remove());
+        }
+      } catch {
+        transientNotice(t("chat.errors.offline_delegation"));
+      }
+    }
+
+    async function toggleDelegation(): Promise<void> {
+      const c = activeChat();
+      if (!c) return;
+      if (delegated(c)) {
+        await setDelegation(c, false);
+        return;
+      }
+      let hours = 8;
+      try {
+        const q = c.workspace_id ? `?workspace=${encodeURIComponent(c.workspace_id)}` : "";
+        const r = await fetch(API + "/chat-delegation" + q);
+        if (r.ok) {
+          const p = (await r.json()) as { enabled: boolean; ttl_hours: number };
+          if (!p.enabled) {
+            transientNotice(t("chat.delegate.disabled_by_owner"));
+            return;
+          }
+          hours = p.ttl_hours || hours;
+        }
+      } catch {}
+      const agent = await chatAgent(c);
+      const blind = !!agent && !canActOnBoards(agent.mcp);
+      const ok = await confirmDialog({
+        title: t("chat.delegate.confirm_title", { agent: c.agent_type }),
+        message: t("chat.delegate.confirm_message", { count: hours }),
+        confirmLabel: t("chat.delegate.confirm_ok"),
+        ...(blind && agent
+          ? {
+              warning: t("chat.delegate.no_write", { agent: agent.name }),
+              warningLink: {
+                href: agentLink(agent.name, "mcp"),
+                label: t("chat.delegate.no_write_link"),
+              },
+            }
+          : {}),
+      });
+      if (ok) await setDelegation(c, true);
+    }
+
+    async function resetChat(): Promise<void> {
+      const c = activeChat();
+      if (!c) return;
+      const ok = await confirmDialog({
+        title: t("chat.confirm.reset_title"),
+        message: t("chat.confirm.reset_message"),
+        confirmLabel: t("chat.confirm.reset_ok"),
+        danger: true,
+      });
+      if (!ok) return;
+      try {
+        const r = await fetch(API + `/chats/${c.id}/reset`, {
+          method: "POST",
+          headers: jsonHeaders(),
+        });
+        if (r.status === 409) {
+          transientNotice(t("chat.errors.busy_reset"));
+          return;
+        }
+        list.innerHTML = "";
+        state.lastInputTokens = 0;
+        updateCtxBadge();
+      } catch {}
+    }
+
+    async function setArchived(c: Chat, archived: boolean): Promise<void> {
+      try {
+        const r = await fetch(API + `/chats/${c.id}`, {
+          method: "PATCH",
+          headers: jsonHeaders(),
+          body: JSON.stringify({ archived }),
+        });
+        if (!r.ok) {
+          const body = await r.json().catch(() => ({}) as any);
+          transientNotice(body.error || t("chat.errors.http_daemon", { status: r.status }));
+          return;
+        }
+        c.archived = archived;
+        if (archived) {
+          backToList();
+          toast(t("chat.archived.done", { title: c.title || c.agent_type }), "ok", 6000, null, {
+            label: t("chat.archived.undo"),
+            run: () => void unarchive(c),
+          });
+          return;
+        }
+        await loadChats();
+        renderConvHeader();
+      } catch {
+        transientNotice(t("chat.errors.offline_archive"));
+      }
+    }
+
+    async function unarchive(c: Chat): Promise<void> {
+      await setArchived(c, false);
+      if (!c.archived) await openChat(c.id);
+    }
+
+    async function archiveChat(): Promise<void> {
+      const c = activeChat();
+      if (!c) return;
+      if (c.archived) {
+        await setArchived(c, false);
+        return;
+      }
+      const ok = await confirmDialog({
+        title: t("chat.confirm.archive_title"),
+        message: t("chat.confirm.archive_message"),
+        confirmLabel: t("chat.confirm.archive_ok"),
+      });
+      if (ok) await setArchived(c, true);
+    }
+
+    async function deleteChat(): Promise<void> {
+      const c = activeChat();
+      if (!c) return;
+      const ok = await confirmDialog({
+        title: t("chat.confirm.delete_title"),
+        message: t("chat.confirm.delete_message"),
+        confirmLabel: t("chat.confirm.delete_ok"),
+        danger: true,
+      });
+      if (!ok) return;
+      try {
+        await fetch(API + `/chats/${c.id}`, { method: "DELETE", headers: jsonHeaders() });
+        backToList();
+      } catch {}
+    }
+
+    list.addEventListener("scroll", () => {
+      state.pinned = list.scrollHeight - list.scrollTop - list.clientHeight < 24;
+    });
+
+    input.addEventListener("keydown", (e: KeyboardEvent) => {
+      if (composerSubmits(e, "chat")) {
+        e.preventDefault();
+        form.requestSubmit();
+      }
+    });
+    input.addEventListener("input", () => growComposer(input, CHAT_INPUT_LINES));
+
+    function restoreDraft(chatId: string, text: string) {
+      if (chatId !== state.activeChatId) state.drafts.restore(chatId, text);
+      else if (!input.value.trim()) {
+        input.value = text;
+        growComposer(input, CHAT_INPUT_LINES);
+      }
+    }
+
+    form.addEventListener("submit", async (e: Event) => {
+      e.preventDefault();
+      const c = activeChat();
+      if (!c || state.busy) return;
+      const text = input.value.trim();
+      if (!text) return;
+      state.busy = true;
+      sendBtn.disabled = true;
+
+      const ghostId = "ghost-" + Date.now();
+      state.ghostId = ghostId;
+      const ghost = msgEl({
+        role: "user",
+        bodyHTML: msgMarkdown(text),
+        meta: "…",
+        attrs: { "data-id": ghostId },
+      });
+      addRow(ghost);
+      input.value = "";
+      growComposer(input, CHAT_INPUT_LINES);
+      showSpinner();
+      scrollToBottom();
+
+      try {
+        const r = await fetch(API + `/chats/${c.id}/messages`, {
+          method: "POST",
+          headers: jsonHeaders(),
+          body: JSON.stringify({ text }),
+        });
+        // The person may have switched chats during the send; drawing into the panel then would
+        // land in the other chat.
+        const stillHere = c.id === state.activeChatId;
+        if (!r.ok) {
+          ghost.remove();
+          state.ghostId = null;
+          restoreDraft(c.id, text);
+          if (!stillHere) return;
+          hideSpinner();
+          if (r.status === 409) {
+            transientNotice(t("chat.errors.busy_send"));
+            return;
+          }
+          const body = await r.json().catch(() => ({}) as any);
+          const error = body.error || t("chat.errors.http_daemon", { status: r.status });
+          if (body.code === "chatruntime.errors.no_prompt") {
+            const agent = (await chatAgent(c))?.name || c.agent_type;
+            pinnedNote(t("chat.errors.no_prompt", { agent }), {
+              href: agentLink(agent, "prompts"),
+              label: t("chat.errors.no_prompt_link"),
+            });
+            return;
+          }
+          transientNotice(error);
+          return;
+        }
+        const body = (await r.json()) as { message: Msg };
+        ghost.remove();
+        state.ghostId = null;
+        if (stillHere) appendMsg(body.message);
+        markRunning(c.id, true);
+      } catch {
+        ghost.remove();
+        state.ghostId = null;
+        restoreDraft(c.id, text);
+        if (c.id === state.activeChatId) {
+          hideSpinner();
+          transientNotice(t("chat.errors.offline_send"));
+        }
+      } finally {
+        state.busy = false;
+        sendBtn.disabled = false;
+        input.focus();
+      }
+    });
+
+    // The drawer persists across navigation, but the router replaces <html>'s attributes; carry
+    // data-chat over or the page loses its padding.
+    document.addEventListener("astro:before-swap", (e: Event) => {
+      const next = (e as Event & { newDocument: Document }).newDocument.documentElement;
+      const chat = document.documentElement.dataset.chat;
+      if (chat) next.dataset.chat = chat;
+    });
+
+    function openDrawer() {
+      drawer.classList.add("open");
+      drawer.setAttribute("aria-hidden", "false");
+      document.documentElement.dataset.chat = "open";
+      localStorage.setItem(OPEN_KEY, "1");
+    }
+    function closeDrawer() {
+      drawer.classList.remove("open");
+      drawer.setAttribute("aria-hidden", "true");
+      document.documentElement.dataset.chat = "closed";
+      leaveChat();
+      state.activeChatId = null;
+      localStorage.setItem(OPEN_KEY, "0");
+      localStorage.removeItem(LAST_KEY);
+      renderRows();
+    }
+
+    document.addEventListener("octopus:open-chat", (e) => {
+      const id = (e as CustomEvent<{ id?: string }>).detail?.id;
+      if (!id) return;
+      openDrawer();
+      void openChat(id);
+    });
+
+    // 1100px must match the --drawer-push media query: wider, this panel pushes the page; narrower,
+    // it overlays and would cover the task drawer.
+    const pushesPage = window.matchMedia("(min-width: 1100px)");
+    const wouldCoverTask = () => !pushesPage.matches && !!document.querySelector("#drawer.open");
+    document.addEventListener("octopus:task-drawer-open", () => {
+      if (!pushesPage.matches && drawer.classList.contains("open")) closeDrawer();
+    });
+
+    drawer
+      .querySelectorAll("[data-modal-close]")
+      .forEach((b) => b.addEventListener("click", closeDrawer));
+    drawer.querySelectorAll(".chat-back").forEach((b) => b.addEventListener("click", backToList));
+    document.getElementById("chat-new-btn")?.addEventListener("click", () => {
+      populateNewChatForm();
+      openDrawer();
+      setView("new");
+    });
+    drawer.addEventListener("keydown", (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || chatMenu.isOpen()) return;
+      backToList();
+    });
+
+    connectSSE();
+    loadChats().then(() => {
+      if (localStorage.getItem(OPEN_KEY) !== "1") return;
+      if (wouldCoverTask()) return;
+      const last = localStorage.getItem(LAST_KEY);
+      if (last && state.chats.some((c) => c.id === last)) openChat(last);
+    });
+  })();
+</script>

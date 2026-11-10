@@ -1,0 +1,263 @@
+/* The board's list layout (lib/task-list.ts). The table is .list-table; this sheet places it in the
+   page, styles the pieces the list adds (group heads, the task cell) and decides which columns give
+   way as the list narrows. */
+
+.task-list {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  container-type: inline-size;
+  margin-bottom: var(--s-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-scrollbar) transparent;
+}
+
+/* .task-list scrolls, not a .table-wrap, so the head can stick to its top edge. */
+.tl-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.tl-table th,
+.tl-table td {
+  white-space: nowrap;
+}
+
+.tl-group-row > th {
+  border-top: 1px solid var(--line);
+}
+.tl-table tbody:first-of-type .tl-group-row > th {
+  border-top: 0;
+}
+.tl-fold {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  width: 100%;
+  min-height: var(--control-h);
+  padding: var(--s-2) var(--s-4);
+  background: var(--surface-1);
+  border: 0;
+  color: var(--fg);
+  font: inherit;
+  font-weight: 600;
+  text-align: start;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.tl-fold:hover {
+  background: var(--surface-2);
+}
+.tl-fold:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.tl-fold-ico {
+  flex: none;
+  color: var(--fg-3);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.tl-fold[aria-expanded="true"] .tl-fold-ico {
+  transform: rotate(90deg);
+}
+.tl-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tl-dot, var(--fg-3));
+}
+.tl-group-count {
+  color: var(--fg-3);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.tl-row {
+  cursor: pointer;
+}
+.tl-row.is-match > td {
+  background: var(--accent-soft);
+}
+.tl-row.is-lifted > td {
+  background: var(--accent-soft);
+}
+
+.tl-c-task {
+  min-width: 280px;
+  white-space: normal;
+}
+.tl-task {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-2);
+}
+.tl-row-kid .tl-task {
+  padding-inline-start: var(--s-6);
+}
+.tl-task .tl-expand {
+  flex: none;
+  margin-top: calc(-1 * var(--s-1) / 2);
+}
+.tl-task .tl-expand .ico {
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.tl-task .tl-expand[aria-expanded="true"] .ico {
+  transform: rotate(90deg);
+}
+.tl-expand-gap {
+  flex: none;
+  width: var(--control-h-xs);
+}
+.tl-type {
+  display: inline-flex;
+  flex: none;
+  padding-top: 2px;
+}
+.tl-type:empty {
+  display: none;
+}
+.tl-task-text {
+  min-width: 0;
+}
+.tl-open {
+  color: var(--fg);
+  font-weight: 500;
+  line-height: 1.35;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  border-radius: var(--r-sm);
+}
+.tl-open:hover {
+  text-decoration: underline;
+}
+.tl-open:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.tl-sub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1) var(--s-3);
+  margin-top: var(--s-1);
+  color: var(--fg-3);
+  font-size: var(--t-xs);
+}
+.tl-sub-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+}
+.tl-sub-warn {
+  color: var(--warn);
+}
+
+/* The stage opens its choices in place, like an issue tracker's status. */
+.tl-stage {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  margin: calc(-1 * var(--s-1));
+  padding: var(--s-1);
+  background: none;
+  border: 0;
+  border-radius: var(--r-sm);
+  color: var(--fg-4);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+.tl-stage:hover,
+.tl-stage[aria-expanded="true"] {
+  background: var(--surface-2);
+  color: var(--fg-2);
+}
+.tl-stage:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+}
+/* The tag ellipsizes a long name; in the button it keeps its width so the column fits it. */
+.tl-stage > *,
+.tl-stage-ico {
+  flex: none;
+}
+
+.tl-c-status,
+.tl-c-projects,
+.tl-c-tags {
+  white-space: normal;
+}
+.tl-c-status > * + *,
+.tl-c-projects > * + *,
+.tl-c-tags > * + * {
+  margin-inline-start: var(--s-1);
+}
+.tl-c-updated {
+  color: var(--fg-3);
+  font-variant-numeric: tabular-nums;
+}
+.tl-c-actions {
+  width: 1%;
+  text-align: end;
+}
+.tl-none {
+  color: var(--fg-4);
+}
+
+/* Columns give way in reverse order of LIST_COLUMNS; the task, its status and its menu stay. */
+@container (max-width: 1180px) {
+  .tl-c-tags {
+    display: none;
+  }
+}
+@container (max-width: 1040px) {
+  .tl-c-projects {
+    display: none;
+  }
+}
+@container (max-width: 900px) {
+  .tl-c-subtasks,
+  .tl-c-agent {
+    display: none;
+  }
+}
+@container (max-width: 720px) {
+  .tl-c-updated,
+  .tl-c-priority {
+    display: none;
+  }
+}
+@container (max-width: 560px) {
+  /* Grouped by stage, the group head already names it. */
+  .tl-grouped .tl-c-stage {
+    display: none;
+  }
+  .tl-c-task {
+    min-width: 0;
+  }
+  .tl-table th,
+  .tl-table td {
+    padding-inline: var(--s-3);
+  }
+}
+
+@media (max-width: 640px) {
+  .task-list {
+    margin: 0 calc(-1 * var(--s-5)) 0;
+    border-inline: 0;
+    border-radius: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tl-fold,
+  .tl-fold-ico,
+  .tl-stage,
+  .tl-task .tl-expand .ico {
+    transition: none;
+  }
+}

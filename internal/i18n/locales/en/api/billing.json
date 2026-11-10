@@ -1,0 +1,20 @@
+{
+  "errors": {
+    "disabled": "billing not enabled",
+    "webhook_unconfigured": "billing webhook not configured",
+    "read_body": "read body",
+    "invalid_signature": "invalid signature",
+    "bad_event": "bad event",
+    "apply_plan_failed": "could not apply plan",
+    "entitlements_disabled": "entitlements not enabled",
+    "unknown_plan": "unknown plan",
+    "negative_limit": "a limit cannot be negative; use 0 for unlimited"
+  },
+  "audit": {
+    "plan_set": "Plan set to {plan}",
+    "plan_set_stripe": "Plan set to {plan} via Stripe"
+  },
+  "log": {
+    "apply_plan_failed": "apply plan {plan} to {workspace}: {err}"
+  }
+}

@@ -1,0 +1,1232 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Button from "../components/Button.astro";
+import Chart from "../components/Chart.astro";
+import ChartLegend from "../components/ChartLegend.astro";
+import EmptyState from "../components/EmptyState.astro";
+import DateInput from "../components/DateInput.astro";
+import FilterBar from "../components/FilterBar.astro";
+import FilterField from "../components/FilterField.astro";
+import PageHead from "../components/PageHead.astro";
+import Panel from "../components/Panel.astro";
+import Segmented from "../components/Segmented.astro";
+import StatGroup from "../components/StatGroup.astro";
+import StatTile from "../components/StatTile.astro";
+import Table from "../components/Table.astro";
+import { t } from "../i18n";
+import {
+  delegationAgentColumns,
+  delegationRecentColumns,
+  dimColumns,
+  mcpServerColumns,
+  optimizerColumns,
+  skillColumns,
+  toolColumns,
+  topTaskColumns,
+} from "../lib/usage-tables";
+---
+
+<Layout title={t("usage.title")}>
+  <main class="page usage-page" style="--page-max: 1400px; --page-pad-b: 80px">
+    <PageHead title={t("usage.heading")} subtitle={t("usage.subtitle")} subMax={720} flush>
+      <Fragment slot="actions">
+        <Button id="btn-refresh" size="md" icon="refresh">{t("common.buttons.refresh")}</Button>
+      </Fragment>
+    </PageHead>
+
+    <FilterBar look="boxed" as="section" label={t("usage.filters.aria")}>
+      <FilterField label={t("usage.filters.from")} for="f-from">
+        <DateInput id="f-from" />
+      </FilterField>
+      <FilterField label={t("usage.filters.to")} for="f-to">
+        <DateInput id="f-to" />
+      </FilterField>
+      <Segmented
+        id="f-presets"
+        name="usage-preset"
+        size="sm"
+        label={t("usage.filters.presets")}
+        value="30d"
+        options={[
+          { value: "24h", label: "24h" },
+          { value: "7d", label: "7d" },
+          { value: "30d", label: "30d" },
+          { value: "90d", label: "90d" },
+        ]}
+      />
+      <FilterField label={t("usage.filters.engine")} for="f-engine">
+        <select id="f-engine"><option value="">{t("usage.filters.all")}</option></select>
+      </FilterField>
+      <FilterField label={t("usage.filters.model")} for="f-model">
+        <select id="f-model"><option value="">{t("usage.filters.all")}</option></select>
+      </FilterField>
+      <FilterField label={t("usage.filters.agent_type")} for="f-agent-type">
+        <select id="f-agent-type"><option value="">{t("usage.filters.all")}</option></select>
+      </FilterField>
+      <FilterField label={t("usage.filters.project")} for="f-project-id">
+        <select id="f-project-id"><option value="">{t("usage.filters.all")}</option></select>
+      </FilterField>
+      <FilterField label={t("usage.filters.service_tier")} for="f-service-tier">
+        <select id="f-service-tier"><option value="">{t("usage.filters.all")}</option></select>
+      </FilterField>
+      <Fragment slot="end">
+        <Button id="btn-clear">{t("usage.buttons.clear")}</Button>
+        <Button id="btn-export" icon="file">{t("usage.buttons.export_csv")}</Button>
+      </Fragment>
+    </FilterBar>
+
+    <StatGroup layout="strip" id="plan-strip" label={t("usage.plan.aria")} hidden>
+      <StatTile id="plan-tile" size="sm" label={t("usage.plan.title")} value="" />
+      <StatTile
+        id="plan-quota"
+        size="sm"
+        label={t("usage.plan.runs_month")}
+        value=""
+        meter={{ value: 0, tone: "ok", attrs: { id: "plan-bar" } }}
+        hidden
+      />
+    </StatGroup>
+
+    <StatGroup tag="section" label={t("usage.kpis.aria")}>
+      <StatTile id="k-cost" label={t("usage.kpis.cost")} value="—" sub="—" />
+      <StatTile id="k-tokens" label={t("usage.kpis.tokens")} value="—" sub="—" />
+      <StatTile id="k-sessions" label={t("usage.kpis.sessions")} value="—" sub="—" />
+      <StatTile
+        id="k-cache"
+        label={t("usage.kpis.cache")}
+        value="—"
+        sub={t("usage.kpis.cache_sub")}
+      />
+      <StatTile
+        id="k-cpk"
+        label={t("usage.kpis.cost_per_ktoken")}
+        value="—"
+        sub={t("usage.kpis.cost_per_ktoken_sub")}
+      />
+      <StatTile id="k-burn" label={t("usage.kpis.burn")} value="—" sub={t("usage.kpis.burn_sub")} />
+    </StatGroup>
+
+    <Panel icon="zap" title={t("usage.panels.chart")}>
+      <Segmented
+        slot="actions"
+        id="chart-metric"
+        name="usage-chart-metric"
+        size="sm"
+        label={t("usage.chart.metric")}
+        value="cost"
+        options={[
+          { value: "cost", label: t("usage.chart.cost") },
+          { value: "tokens", label: t("usage.chart.tokens") },
+        ]}
+      />
+      <Chart id="chart" size="xl" interactive label={t("usage.panels.chart")} />
+      <ChartLegend id="chart-legend" items={[]} />
+      <EmptyState size="sm" id="chart-empty" hidden>{t("usage.empty.chart")}</EmptyState>
+    </Panel>
+
+    <section class="grid-2">
+      <Panel tag="div" icon="server" title={t("usage.panels.by_engine")} flush>
+        <Table id="t-engine" cols={dimColumns("t-engine")} stack />
+      </Panel>
+
+      <Panel tag="div" icon="bot" title={t("usage.panels.by_model")} flush>
+        <Table id="t-model" cols={dimColumns("t-model")} stack />
+      </Panel>
+
+      <Panel tag="div" icon="bot" title={t("usage.panels.by_agent_type")} flush>
+        <Table id="t-agent" cols={dimColumns("t-agent")} stack />
+      </Panel>
+
+      <Panel tag="div" icon="folder" title={t("usage.panels.by_project")} flush>
+        <Table id="t-project" cols={dimColumns("t-project")} stack />
+      </Panel>
+
+      <Panel tag="div" icon="terminal" title={t("usage.panels.by_tool")} flush class="grid-span">
+        <Table id="t-tool" cols={toolColumns()} stack />
+      </Panel>
+
+      <Panel tag="div" icon="skills" title={t("usage.panels.by_skill")} flush>
+        <Table id="t-skill" cols={skillColumns()} stack />
+      </Panel>
+
+      <Panel tag="div" icon="server" title={t("usage.panels.by_mcp_server")} flush>
+        <Table id="t-mcp" cols={mcpServerColumns()} stack />
+      </Panel>
+    </section>
+
+    <Panel icon="board" title={t("usage.panels.top_tasks")} flush>
+      <Table id="t-tasks" cols={topTaskColumns()} stack />
+    </Panel>
+
+    <Panel icon="zap" title={t("usage.panels.delegations")} pad="md">
+      <StatGroup layout="strip" label={t("usage.delegations.aria")}>
+        <StatTile id="dlg-count" size="sm" label={t("usage.delegations.count")} value="—" sub="—" />
+        <StatTile id="dlg-cost" size="sm" label={t("usage.delegations.cost")} value="—" sub="—" />
+        <StatTile
+          id="dlg-duration"
+          size="sm"
+          label={t("usage.delegations.avg_duration")}
+          value="—"
+        />
+      </StatGroup>
+    </Panel>
+
+    <section class="grid-2">
+      <Panel tag="div" icon="bot" title={t("usage.panels.delegations_by_agent")} flush>
+        <Table id="t-dlg-agent" cols={delegationAgentColumns()} stack />
+      </Panel>
+
+      <Panel tag="div" icon="zap" title={t("usage.panels.by_optimizer_level")} flush>
+        <Table id="t-optimizer" cols={optimizerColumns()} stack />
+      </Panel>
+    </section>
+
+    <Panel icon="clock" title={t("usage.panels.recent_delegations")} flush>
+      <Table id="t-dlg-recent" cols={delegationRecentColumns()} stack />
+    </Panel>
+
+    <Panel icon="flag" title={t("usage.panels.stop_reasons")} pad="md">
+      <span slot="aside" id="stop-hint"></span>
+      <div id="stop-bars"></div>
+    </Panel>
+  </main>
+
+  <style is:global>
+    /* The column of blocks; .page gives the width and the padding. */
+    .usage-page {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-6);
+    }
+
+    /* ─── Dimension tables ──────────────────────────────────── */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--s-4);
+    }
+    @media (max-width: 980px) {
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+    .grid-span {
+      grid-column: 1 / -1;
+    }
+
+    /* An id: the name people know sits above it when there is one. */
+    .key {
+      font-family: var(--font-mono);
+      font-size: var(--t-xs);
+    }
+    .usage-page .list-table a {
+      color: var(--fg);
+      text-decoration: none;
+    }
+    .usage-page .list-table a:hover {
+      text-decoration: underline;
+    }
+    code {
+      font-family: var(--font-mono);
+      font-size: var(--t-xs);
+    }
+  </style>
+
+  <script>
+    import { api } from "../lib/api";
+    import {
+      $,
+      badgeHTML,
+      chartBarsHTML,
+      downloadBlob,
+      emptyRowHTML,
+      emptyStateHTML,
+      esc as escapeHtml,
+      factRows,
+      makeToast,
+      meterHTML,
+      bindCrosshair,
+      segmentedValue,
+      setChartLegend,
+      setMeter,
+      setSegmentedValue,
+      setStat,
+      statTileHTML,
+      timeChart,
+      tableRowHTML,
+      tableSpan,
+      type BadgeTone,
+      type ProgressTone,
+      type StatTone,
+      type TableCell,
+      type TableColumn,
+      dateInputsValid,
+      readDateInput,
+      writeDateInput,
+    } from "../lib/ui";
+    import { taskHref } from "../lib/links";
+    import { costHTML, fmtCount, fmtDecimal, fmtPct, fmtUsdCompact } from "../lib/format";
+    import {
+      DAY_MS,
+      fmtUsageDay,
+      usageChartSummary,
+      usageDays,
+      usageSeries,
+      type UsageDay,
+    } from "../lib/usage-chart";
+    import { planFacts, planName, runQuota, unlimited, type Entitlements } from "../lib/plan";
+    import { fmtMs, isoLocal } from "../lib/time";
+    import { buildCSV, type CSVSection } from "../lib/csv";
+    import { locale, t } from "../i18n";
+    import { onPage, replaceURL } from "../lib/page";
+    import {
+      DIM_TABLES,
+      delegationAgentColumns,
+      delegationRecentColumns,
+      dimColumns,
+      mcpServerColumns,
+      optimizerColumns,
+      skillColumns,
+      toolColumns,
+      topTaskColumns,
+      type DimTableId,
+    } from "../lib/usage-tables";
+    import {
+      attributedCost,
+      delegationAgentCells,
+      delegationRowCells,
+      delegationTiles,
+      mcpServerCells,
+      optimizerCells,
+      optimizerLevelName,
+      sortOptimizerRows,
+      type DelegationsReport,
+      type MCPServerRow,
+      type OptimizerLevelRow,
+    } from "../lib/usage-optimizer";
+
+    onPage("/usage", (signal) => {
+      type Filter = {
+        from?: string;
+        to?: string;
+        engine?: string;
+        model?: string;
+        agent_type?: string;
+        project_id?: string;
+        service_tier?: string;
+      };
+      type TimePoint = {
+        bucket: string;
+        sessions: number;
+        turns: number;
+        input_tokens: number;
+        output_tokens: number;
+        cache_read: number;
+        cache_creation: number;
+        total_tokens: number;
+        cost_usd: number;
+      };
+      type DimensionRow = {
+        key: string;
+        sessions: number;
+        turns: number;
+        input_tokens: number;
+        output_tokens: number;
+        cache_read: number;
+        cache_creation: number;
+        total_tokens: number;
+        cost_usd: number;
+        estimated_cost_usd?: number;
+        unpriced_sessions?: number;
+        avg_cost_usd: number;
+        avg_duration_ms: number;
+        p50_duration_ms: number;
+        p95_duration_ms: number;
+        cache_hit_ratio: number;
+        tokens_per_turn: number;
+        cost_per_session: number;
+        label?: string;
+      };
+      // A daemon from before attribution sends only cost_share_usd (an even split per session), not
+      // cost_usd.
+      type ToolRow = {
+        tool_name: string;
+        tool_kind: string;
+        invocations: number;
+        sessions: number;
+        tasks: number;
+        input_bytes: number;
+        avg_input_bytes: number;
+        cost_share_usd?: number;
+        cost_usd?: number;
+        result_tokens?: number;
+        carried_calls?: number;
+      };
+      type SkillRow = {
+        skill: string;
+        invocations: number;
+        sessions: number;
+        tasks: number;
+        input_bytes: number;
+        avg_input_bytes: number;
+        cost_share_usd?: number;
+        cost_usd?: number;
+        result_tokens?: number;
+        carried_calls?: number;
+      };
+      type TaskRow = {
+        task_id: string;
+        title?: string;
+        sessions: number;
+        turns: number;
+        total_tokens: number;
+        cost_usd: number;
+        estimated_cost_usd?: number;
+        unpriced_sessions?: number;
+        total_duration_ms: number;
+        first_start: string;
+        last_finish: string;
+      };
+      type Efficiency = {
+        sessions: number;
+        turns: number;
+        total_tokens: number;
+        cost_usd: number;
+        estimated_cost_usd?: number;
+        unpriced_sessions?: number;
+        cache_hit_ratio: number;
+        output_input_ratio: number;
+        tokens_per_second: number;
+        cost_per_ktoken: number;
+        max_tokens_rate: number;
+        error_rate: number;
+        stop_reason_mix: Record<string, number>;
+      };
+      type BurnRate = {
+        window_hours: number;
+        baseline_days: number;
+        recent_usd: number;
+        baseline_usd: number;
+        ratio: number;
+        sessions_last: number;
+        sessions_baseline: number;
+      };
+
+      let chartMetric: "cost" | "tokens" = "cost";
+      let lastDays: UsageDay[] = [];
+      let unbindChart: () => void = () => undefined;
+      type LoadedData = {
+        byEng: DimensionRow[];
+        byMod: DimensionRow[];
+        byAg: DimensionRow[];
+        byProj: DimensionRow[];
+        byTool: ToolRow[];
+        bySkill: SkillRow[];
+        top: TaskRow[];
+        byMcp: MCPServerRow[];
+        delegations: DelegationsReport | null;
+        byLevel: OptimizerLevelRow[];
+      };
+      let lastData: LoadedData | null = null;
+      let projectNames = new Map<string, string>();
+
+      function currentFilter(): Filter {
+        const f: Filter = {};
+        const get = (id: string) => ($(id) as HTMLInputElement)?.value || "";
+        const from = readDateInput("f-from"),
+          to = readDateInput("f-to");
+        if (from) f.from = new Date(from).toISOString();
+        if (to) f.to = new Date(to).toISOString();
+        const engine = (($("f-engine") as HTMLSelectElement).value || "").trim();
+        const model = (($("f-model") as HTMLSelectElement).value || "").trim();
+        const agent = (($("f-agent-type") as HTMLSelectElement).value || "").trim();
+        const proj = (($("f-project-id") as HTMLSelectElement).value || "").trim();
+        const tier = (($("f-service-tier") as HTMLSelectElement).value || "").trim();
+        if (engine) f.engine = engine;
+        if (model) f.model = model;
+        if (agent) f.agent_type = agent;
+        if (proj) f.project_id = proj;
+        if (tier) f.service_tier = tier;
+        return f;
+      }
+      function qs(f: Filter): string {
+        const p = new URLSearchParams();
+        for (const [k, v] of Object.entries(f)) {
+          if (v) p.set(k, v as string);
+        }
+        const s = p.toString();
+        return s ? `?${s}` : "";
+      }
+      function syncURL(f: Filter) {
+        const url = new URL(window.location.href);
+        url.search = qs(f).slice(1);
+        replaceURL(url.toString());
+      }
+      function applyPreset(key: string) {
+        const now = new Date();
+        const to = new Date(now);
+        const from = new Date(now);
+        switch (key) {
+          case "24h":
+            from.setHours(now.getHours() - 24);
+            break;
+          case "7d":
+            from.setDate(now.getDate() - 7);
+            break;
+          case "30d":
+            from.setDate(now.getDate() - 30);
+            break;
+          case "90d":
+            from.setDate(now.getDate() - 90);
+            break;
+        }
+        writeDateInput("f-from", isoLocal(from));
+        writeDateInput("f-to", isoLocal(to));
+        setSegmentedValue($("f-presets"), key);
+      }
+      function clearPreset() {
+        $("f-presets")
+          .querySelectorAll<HTMLInputElement>("input:checked")
+          .forEach((r) => (r.checked = false));
+      }
+
+      function renderChart() {
+        unbindChart();
+        unbindChart = () => undefined;
+        const host = $("chart");
+        const legend = $("chart-legend");
+        const empty = $("chart-empty");
+        const has = lastDays.length > 0;
+        host.hidden = !has;
+        empty.hidden = has;
+        if (!has) {
+          host.replaceChildren();
+          setChartLegend(legend, []);
+          return;
+        }
+        const series = [usageSeries(chartMetric)];
+        const fmt = chartMetric === "cost" ? fmtUsdCompact : (v: number) => fmtCount(v);
+        const end = Date.parse(lastDays[lastDays.length - 1].t);
+        const model = timeChart(lastDays, series, {
+          width: host.clientWidth || 800,
+          height: host.clientHeight || 260,
+          rangeMs: Math.max(DAY_MS, end - Date.parse(lastDays[0].t)),
+          end,
+          intervalMs: DAY_MS,
+          fmtY: fmt,
+          fmtX: fmtUsageDay,
+        });
+        host.innerHTML = model.svg;
+        host.setAttribute("aria-label", usageChartSummary(lastDays, chartMetric, fmt));
+        setChartLegend(
+          legend,
+          series.map((s) => ({ label: s.label, color: s.color, swatch: "square" as const })),
+        );
+        unbindChart = bindCrosshair(host, model, lastDays, series, fmt, { fmtTime: fmtUsageDay });
+      }
+
+      function namedKeyCell(id: string, name: string | undefined, href?: string): TableCell {
+        if (!name) {
+          return {
+            html: href
+              ? `<a class="key" href="${escapeHtml(href)}">${escapeHtml(id)}</a>`
+              : `<span class="key">${escapeHtml(id)}</span>`,
+          };
+        }
+        return {
+          html: href ? `<a href="${escapeHtml(href)}">${escapeHtml(name)}</a>` : escapeHtml(name),
+          subHTML: `<span class="key">${escapeHtml(id)}</span>`,
+        };
+      }
+
+      function renderKPIs(eff: Efficiency, burn: BurnRate) {
+        $("k-cost").querySelector(".stat-value")!.innerHTML = costHTML(
+          eff.cost_usd,
+          eff.estimated_cost_usd,
+          fmtUsdCompact,
+          eff.unpriced_sessions,
+        );
+        // Pass count pre-formatted: plural rules read "1,234" as NaN, which selects "other".
+        setStat($("k-cost"), {
+          sub: t("usage.kpis.cost_sub", {
+            count: eff.turns.toLocaleString(locale),
+            tokens: fmtCount(eff.total_tokens),
+          }),
+        });
+        setStat($("k-tokens"), {
+          value: fmtCount(eff.total_tokens),
+          sub: t("usage.kpis.tokens_sub", { ratio: fmtDecimal(eff.output_input_ratio || 0, 2) }),
+        });
+        setStat($("k-sessions"), {
+          value: eff.sessions.toLocaleString(locale),
+          sub: t("usage.kpis.sessions_sub", {
+            error: fmtPct(eff.error_rate),
+            max_tokens: fmtPct(eff.max_tokens_rate),
+          }),
+        });
+        setStat($("k-cache"), { value: fmtPct(eff.cache_hit_ratio || 0) });
+        setStat($("k-cpk"), { value: fmtUsdCompact(eff.cost_per_ktoken || 0) });
+        const trend: StatTone =
+          burn.ratio > 1.4 ? "danger" : burn.ratio > 0 && burn.ratio < 0.8 ? "ok" : "neutral";
+        setStat($("k-burn"), {
+          value: burn.baseline_usd === 0 ? "—" : `${fmtDecimal(burn.ratio, 2)}×`,
+          sub: t("usage.kpis.burn_detail", {
+            recent: fmtUsdCompact(burn.recent_usd),
+            hours: burn.window_hours,
+            baseline: fmtUsdCompact(burn.baseline_usd),
+          }),
+          tone: trend,
+        });
+      }
+      function renderStopReasons(mix: Record<string, number>) {
+        const host = $("stop-bars");
+        const total = Object.values(mix || {}).reduce((a, b) => a + b, 0);
+        if (!total) {
+          host.innerHTML = emptyStateHTML({ size: "sm", body: t("usage.empty.stop_reasons") });
+          return;
+        }
+        const rows = Object.entries(mix)
+          .sort((a, b) => b[1] - a[1])
+          .map(([k, v]) => {
+            const pct = v / total;
+            const tone: ProgressTone = k.startsWith("error")
+              ? "danger"
+              : k === "max_tokens"
+                ? "warn"
+                : k === "end_turn" || k === "stop_sequence"
+                  ? "ok"
+                  : "accent";
+            return {
+              label: k,
+              mono: true,
+              share: pct * 100,
+              value: v.toLocaleString(locale),
+              sub: fmtPct(pct),
+              valueText: t("usage.labels.stop_reason_value", { count: v, pct: fmtPct(pct) }),
+              tone,
+            };
+          });
+        host.innerHTML = chartBarsHTML(rows);
+      }
+
+      function emptyBody(tbl: HTMLTableElement, text: string, cols: TableColumn[]) {
+        tbl.querySelector("tbody")!.innerHTML = emptyRowHTML(text, { cols: tableSpan(cols) });
+      }
+
+      function fillBody(tbl: HTMLTableElement, cols: TableColumn[], rows: TableCell[][]) {
+        tbl.querySelector("tbody")!.innerHTML = rows
+          .map((cells) => tableRowHTML(cols, { cells }, { stack: true }))
+          .join("");
+      }
+
+      function shareMeter(share: number): string {
+        return meterHTML(share * 100, {
+          label: t("usage.labels.cost_share"),
+          size: "xs",
+          inline: true,
+        });
+      }
+
+      const TOOL_KIND_TONE: Record<string, BadgeTone> = {
+        skill: "accent",
+        bash: "warn",
+        fs: "ok",
+        web: "info",
+        mcp: "muted",
+      };
+
+      function renderDimTable(
+        tableId: DimTableId,
+        emptyText: string,
+        rows: DimensionRow[],
+        names?: Map<string, string>,
+      ) {
+        const tbl = $(tableId) as HTMLTableElement;
+        const cols = dimColumns(tableId);
+        if (!rows.length) {
+          emptyBody(tbl, emptyText, cols);
+          return;
+        }
+        const totalCost = rows.reduce((s, r) => s + r.cost_usd, 0) || 1;
+        fillBody(
+          tbl,
+          cols,
+          rows.map((r) => {
+            const pct = r.cost_usd / totalCost;
+            const key: TableCell =
+              r.key === "(none)"
+                ? { html: `<span class="muted">${t("usage.labels.none")}</span>` }
+                : names
+                  ? namedKeyCell(
+                      r.key,
+                      r.label || names.get(r.key),
+                      `/project/?id=${encodeURIComponent(r.key)}`,
+                    )
+                  : { html: `<span class="key">${escapeHtml(r.key)}</span>` };
+            const cells = DIM_TABLES[tableId].metrics.map((c): TableCell => {
+              switch (c) {
+                case "sessions":
+                  return r.sessions.toLocaleString(locale);
+                case "tokens":
+                  return fmtCount(r.total_tokens);
+                case "turns":
+                  return r.turns.toLocaleString(locale);
+                case "cost":
+                  return {
+                    html: `${costHTML(r.cost_usd, r.estimated_cost_usd, fmtUsdCompact, r.unpriced_sessions)} ${shareMeter(pct)}`,
+                  };
+                case "cache":
+                  return fmtPct(r.cache_hit_ratio || 0);
+                case "perSess":
+                  return fmtUsdCompact(r.cost_per_session);
+                case "perTurn":
+                  return fmtCount(r.tokens_per_turn);
+                case "p95":
+                  return fmtMs(r.p95_duration_ms);
+              }
+            });
+            return [key, ...cells];
+          }),
+        );
+      }
+      function renderToolTable(rows: ToolRow[]) {
+        const tbl = $("t-tool") as HTMLTableElement;
+        const cols = toolColumns();
+        if (!rows.length) {
+          emptyBody(tbl, t("usage.empty.tools"), cols);
+          return;
+        }
+        const totalCost = rows.reduce((s, r) => s + attributedCost(r), 0) || 1;
+        fillBody(
+          tbl,
+          cols,
+          rows.map((r) => [
+            { html: `<span class="key">${escapeHtml(r.tool_name)}</span>` },
+            {
+              html: badgeHTML(r.tool_kind || "—", TOOL_KIND_TONE[r.tool_kind] ?? "neutral", {
+                size: "sm",
+                mono: true,
+              }),
+            },
+            r.invocations.toLocaleString(locale),
+            r.sessions.toLocaleString(locale),
+            r.result_tokens === undefined ? "—" : fmtCount(r.result_tokens),
+            r.carried_calls === undefined ? "—" : r.carried_calls.toLocaleString(locale),
+            {
+              html: `${escapeHtml(fmtUsdCompact(attributedCost(r)))} ${shareMeter(attributedCost(r) / totalCost)}`,
+            },
+          ]),
+        );
+      }
+      function renderSkillTable(rows: SkillRow[]) {
+        const tbl = $("t-skill") as HTMLTableElement;
+        const cols = skillColumns();
+        if (!rows.length) {
+          emptyBody(tbl, t("usage.empty.skills"), cols);
+          return;
+        }
+        const totalCost = rows.reduce((s, r) => s + attributedCost(r), 0) || 1;
+        fillBody(
+          tbl,
+          cols,
+          rows.map((r) => [
+            { html: `<span class="key">${escapeHtml(r.skill)}</span>` },
+            r.invocations.toLocaleString(locale),
+            r.tasks.toLocaleString(locale),
+            r.result_tokens === undefined ? "—" : fmtCount(r.result_tokens),
+            {
+              html: `${escapeHtml(fmtUsdCompact(attributedCost(r)))} ${shareMeter(attributedCost(r) / totalCost)}`,
+            },
+          ]),
+        );
+      }
+      function renderRows<R>(
+        id: string,
+        cols: TableColumn[],
+        rows: R[] | null | undefined,
+        cells: (r: R) => TableCell[],
+        emptyText: string,
+      ) {
+        const tbl = $(id) as HTMLTableElement;
+        if (!rows?.length) {
+          emptyBody(tbl, emptyText, cols);
+          return;
+        }
+        fillBody(tbl, cols, rows.map(cells));
+      }
+      function renderOptimizer(
+        byMcp: MCPServerRow[] | null,
+        dlg: DelegationsReport | null,
+        byLevel: OptimizerLevelRow[] | null,
+      ) {
+        renderRows(
+          "t-mcp",
+          mcpServerColumns(),
+          byMcp,
+          mcpServerCells,
+          t("usage.empty.mcp_servers"),
+        );
+        for (const tile of delegationTiles(dlg?.summary)) {
+          setStat($(tile.id), { value: tile.value, sub: tile.sub });
+        }
+        renderRows(
+          "t-dlg-agent",
+          delegationAgentColumns(),
+          dlg?.by_agent,
+          delegationAgentCells,
+          t("usage.empty.delegations"),
+        );
+        renderRows(
+          "t-dlg-recent",
+          delegationRecentColumns(),
+          dlg?.recent,
+          delegationRowCells,
+          t("usage.empty.delegations"),
+        );
+        renderRows(
+          "t-optimizer",
+          optimizerColumns(),
+          sortOptimizerRows(byLevel),
+          optimizerCells,
+          t("usage.empty.no_data"),
+        );
+      }
+      function renderTopTasks(rows: TaskRow[]) {
+        const tbl = $("t-tasks") as HTMLTableElement;
+        const cols = topTaskColumns();
+        if (!rows.length) {
+          emptyBody(tbl, t("usage.empty.tasks"), cols);
+          return;
+        }
+        fillBody(
+          tbl,
+          cols,
+          rows.map((r) => [
+            namedKeyCell(r.task_id, r.title, taskHref(r.task_id)),
+            r.sessions.toLocaleString(locale),
+            r.turns.toLocaleString(locale),
+            fmtCount(r.total_tokens),
+            {
+              html: costHTML(r.cost_usd, r.estimated_cost_usd, fmtUsdCompact, r.unpriced_sessions),
+            },
+            fmtMs(r.total_duration_ms),
+            {
+              actions: [
+                {
+                  iconOnly: true,
+                  icon: "arrow-up-right",
+                  variant: "ghost",
+                  href: taskHref(r.task_id),
+                  label: t("usage.buttons.open_task", { name: r.title || r.task_id }),
+                },
+              ],
+            },
+          ]),
+        );
+      }
+
+      const toast = makeToast(3500);
+
+      $("stop-hint").innerHTML = t("usage.hints.max_tokens_html");
+
+      function csvSections(d: LoadedData): CSVSection[] {
+        const dim = (title: string, keyLabel: string, rows: DimensionRow[]): CSVSection => ({
+          title,
+          header: [keyLabel, "sessions", "turns", "total_tokens", "cost_usd", "cache_hit_ratio"],
+          rows: rows.map((r) => [
+            r.key,
+            r.sessions,
+            r.turns,
+            r.total_tokens,
+            r.cost_usd,
+            r.cache_hit_ratio,
+          ]),
+        });
+        return [
+          dim(t("usage.panels.by_engine"), "engine", d.byEng),
+          dim(t("usage.panels.by_model"), "model", d.byMod),
+          dim(t("usage.panels.by_agent_type"), "agent_type", d.byAg),
+          {
+            title: t("usage.panels.by_project"),
+            header: [
+              "project",
+              "name",
+              "sessions",
+              "turns",
+              "total_tokens",
+              "cost_usd",
+              "cache_hit_ratio",
+            ],
+            rows: d.byProj.map((r) => [
+              r.key,
+              r.label || projectNames.get(r.key) || "",
+              r.sessions,
+              r.turns,
+              r.total_tokens,
+              r.cost_usd,
+              r.cache_hit_ratio,
+            ]),
+          },
+          {
+            title: t("usage.panels.by_tool"),
+            header: [
+              "tool",
+              "kind",
+              "invocations",
+              "sessions",
+              "result_tokens",
+              "carried_calls",
+              "cost_usd",
+            ],
+            rows: d.byTool.map((r) => [
+              r.tool_name,
+              r.tool_kind,
+              r.invocations,
+              r.sessions,
+              r.result_tokens ?? "",
+              r.carried_calls ?? "",
+              attributedCost(r),
+            ]),
+          },
+          {
+            title: t("usage.panels.by_skill"),
+            header: ["skill", "invocations", "tasks", "result_tokens", "cost_usd"],
+            rows: d.bySkill.map((r) => [
+              r.skill,
+              r.invocations,
+              r.tasks,
+              r.result_tokens ?? "",
+              attributedCost(r),
+            ]),
+          },
+          {
+            title: t("usage.panels.by_mcp_server"),
+            header: ["mcp_server", "invocations", "sessions", "result_tokens", "cost_usd"],
+            rows: d.byMcp.map((r) => [
+              r.mcp_server,
+              r.invocations,
+              r.sessions,
+              r.result_tokens,
+              r.cost_usd,
+            ]),
+          },
+          {
+            title: t("usage.panels.by_optimizer_level"),
+            header: [
+              "level",
+              "sessions",
+              "cost_usd",
+              "avg_cost_usd",
+              "tools_cost_usd",
+              "delegations_cost_usd",
+            ],
+            rows: sortOptimizerRows(d.byLevel).map((r) => [
+              r.level || optimizerLevelName(r.level),
+              r.sessions,
+              r.cost_usd,
+              r.avg_cost_usd,
+              r.tools_cost_usd,
+              r.delegations_cost_usd,
+            ]),
+          },
+          {
+            title: t("usage.panels.recent_delegations"),
+            header: [
+              "id",
+              "created_at",
+              "agent",
+              "stage",
+              "kind",
+              "provider",
+              "model",
+              "files",
+              "input_tokens",
+              "output_tokens",
+              "cost_usd",
+              "duration_ms",
+              "status",
+              "task_id",
+            ],
+            rows: (d.delegations?.recent ?? []).map((r) => [
+              r.id,
+              r.created_at,
+              r.agent,
+              r.stage,
+              r.kind,
+              r.provider,
+              r.model,
+              r.files,
+              r.input_tokens,
+              r.output_tokens,
+              r.cost_usd,
+              r.duration_ms,
+              r.status,
+              r.task_id ?? "",
+            ]),
+          },
+          {
+            title: t("usage.panels.top_tasks"),
+            header: [
+              "task_id",
+              "title",
+              "sessions",
+              "turns",
+              "total_tokens",
+              "cost_usd",
+              "total_duration_ms",
+            ],
+            rows: d.top.map((r) => [
+              r.task_id,
+              r.title ?? "",
+              r.sessions,
+              r.turns,
+              r.total_tokens,
+              r.cost_usd,
+              r.total_duration_ms,
+            ]),
+          },
+        ];
+      }
+      function exportCSV() {
+        if (!lastData) {
+          toast(t("usage.toasts.nothing_to_export"), "info");
+          return;
+        }
+        if (!dateInputsValid(["f-from", "f-to"], { focus: true })) return;
+        const datePart = (id: string) => {
+          const v = readDateInput(id);
+          return v ? v.slice(0, 10) : "all";
+        };
+        const filename = `usage-${datePart("f-from")}-${datePart("f-to")}.csv`;
+        downloadBlob(
+          new Blob([buildCSV(csvSections(lastData))], { type: "text/csv;charset=utf-8" }),
+          filename,
+        );
+      }
+
+      type SessionLite = {
+        engine?: string;
+        model?: string;
+        agent_type?: string;
+        project_id?: string;
+        service_tier?: string;
+      };
+      async function refreshFilterOptions() {
+        try {
+          const [sessions, projects] = await Promise.all([
+            api.get<SessionLite[]>("/usage/filtered-sessions?limit=1000"),
+            api.get<Array<{ id: string; name: string }>>("/projects").catch(() => []),
+          ]);
+          projectNames = new Map((projects || []).map((p) => [p.id, p.name]));
+          const setOpts = (id: string, vals: Set<string>, names?: Map<string, string>) => {
+            const sel = $(id) as HTMLSelectElement;
+            const current = sel.value;
+            const shown = (v: string) => names?.get(v) || v;
+            sel.innerHTML =
+              `<option value="">${t("usage.filters.all")}</option>` +
+              Array.from(vals)
+                .filter(Boolean)
+                .sort((a, b) => shown(a).localeCompare(shown(b), locale))
+                .map(
+                  (v) =>
+                    `<option value="${escapeHtml(v)}" title="${escapeHtml(v)}">${escapeHtml(shown(v))}</option>`,
+                )
+                .join("");
+            if (current) sel.value = current;
+          };
+          const eng = new Set<string>(),
+            mod = new Set<string>(),
+            ag = new Set<string>(),
+            pr = new Set<string>(),
+            tier = new Set<string>();
+          for (const s of sessions) {
+            if (s.engine) eng.add(s.engine);
+            if (s.model) mod.add(s.model);
+            if (s.agent_type) ag.add(s.agent_type);
+            if (s.project_id) pr.add(s.project_id);
+            if (s.service_tier) tier.add(s.service_tier);
+          }
+          setOpts("f-engine", eng);
+          setOpts("f-model", mod);
+          setOpts("f-agent-type", ag);
+          setOpts("f-project-id", pr, projectNames);
+          setOpts("f-service-tier", tier);
+        } catch {
+          toast(t("usage.toasts.filter_options_failed"), "err");
+        }
+      }
+
+      async function loadPlan() {
+        let ent: Entitlements;
+        try {
+          ent = await api.get<Entitlements>("/entitlements");
+        } catch {
+          return;
+        }
+        const free = unlimited(ent);
+        setStat($("plan-tile"), {
+          value: planName(ent.plan),
+          sub: free ? t("usage.plan.unlimited") : "",
+        });
+        const q = runQuota(ent);
+        const quota = $("plan-quota");
+        quota.hidden = !q;
+        if (q) {
+          setStat(quota, { value: q.value, sub: q.resets });
+          setMeter($("plan-bar"), q.ratio * 100, {
+            tone: q.tone === "full" ? "danger" : q.tone,
+            valueText: q.value,
+          });
+        }
+        const strip = $("plan-strip");
+        strip.querySelectorAll(".plan-fact").forEach((el) => el.remove());
+        if (!free) {
+          strip.insertAdjacentHTML(
+            "beforeend",
+            factRows(planFacts(ent).filter((f) => !(q && f.id === "runs")))
+              .map((f) =>
+                statTileHTML({
+                  label: f.label,
+                  value: f.value === null || f.value === undefined ? "" : String(f.value),
+                  size: "sm",
+                  cls: "plan-fact",
+                }),
+              )
+              .join(""),
+          );
+        }
+        $("plan-strip").hidden = false;
+      }
+
+      async function refresh() {
+        // An invalid date must not read as empty: that would drop the filter from the URL and load
+        // the whole period silently.
+        if (!dateInputsValid(["f-from", "f-to"])) return;
+        const f = currentFilter();
+        syncURL(f);
+        const q = qs(f);
+        try {
+          // Older daemons answer 404 on these endpoints; the page must render without them.
+          const optional = <T,>(p: Promise<T>) => p.catch((): T | null => null);
+          const [
+            series,
+            eff,
+            burn,
+            byEng,
+            byMod,
+            byAg,
+            byProj,
+            byTool,
+            bySkill,
+            top,
+            byMcp,
+            delegations,
+            byLevel,
+          ] = await Promise.all([
+            api.get<{ points: TimePoint[] }>(`/usage/timeseries${q}`),
+            api.get<Efficiency>(`/usage/efficiency${q}`),
+            api.get<BurnRate>(`/usage/burn-rate${q}`),
+            api.get<DimensionRow[]>(`/usage/by-engine${q}`),
+            api.get<DimensionRow[]>(`/usage/by-model${q}`),
+            api.get<DimensionRow[]>(`/usage/by-agent-type${q}`),
+            api.get<DimensionRow[]>(`/usage/by-project${q}`),
+            api.get<ToolRow[]>(`/usage/by-tool${q}`),
+            api.get<SkillRow[]>(`/usage/by-skill${q}`),
+            api.get<TaskRow[]>(`/usage/top-tasks${q}${q ? "&" : "?"}limit=20`),
+            optional(api.get<MCPServerRow[]>(`/usage/by-mcp-server${q}`)),
+            optional(api.get<DelegationsReport>(`/usage/delegations${q}`)),
+            optional(api.get<OptimizerLevelRow[]>(`/usage/token-optimizer${q}`)),
+          ]);
+          lastDays = usageDays(series.points || [], f);
+          renderChart();
+          renderKPIs(eff, burn);
+          renderStopReasons(eff.stop_reason_mix || {});
+          renderDimTable("t-engine", t("usage.empty.no_data"), byEng);
+          renderDimTable("t-model", t("usage.empty.no_data"), byMod);
+          renderDimTable("t-agent", t("usage.empty.no_data"), byAg);
+          renderDimTable("t-project", t("usage.empty.no_data"), byProj, projectNames);
+          renderToolTable(byTool);
+          renderSkillTable(bySkill);
+          renderTopTasks(top);
+          renderOptimizer(byMcp, delegations, byLevel);
+          lastData = {
+            byEng,
+            byMod,
+            byAg,
+            byProj,
+            byTool,
+            bySkill,
+            top,
+            byMcp: byMcp ?? [],
+            delegations,
+            byLevel: byLevel ?? [],
+          };
+        } catch (e) {
+          toast(
+            t("usage.toasts.load_failed", { error: e instanceof Error ? e.message : String(e) }),
+            "err",
+          );
+        }
+      }
+
+      function readURLToFilters() {
+        const url = new URL(window.location.href);
+        const setIf = (key: string, id: string) => {
+          const v = url.searchParams.get(key);
+          if (v) ($(id) as HTMLInputElement).value = v;
+        };
+        const from = url.searchParams.get("from"),
+          to = url.searchParams.get("to");
+        if (from) writeDateInput("f-from", isoLocal(new Date(from)));
+        if (to) writeDateInput("f-to", isoLocal(new Date(to)));
+        if (from || to) clearPreset();
+        setIf("engine", "f-engine");
+        setIf("model", "f-model");
+        setIf("agent_type", "f-agent-type");
+        setIf("project_id", "f-project-id");
+        setIf("service_tier", "f-service-tier");
+      }
+
+      void (async () => {
+        applyPreset("30d");
+        readURLToFilters();
+        $("f-presets").addEventListener("change", () => {
+          const key = segmentedValue($("f-presets"));
+          if (!key) return;
+          applyPreset(key);
+          refresh();
+        });
+        ["f-from", "f-to"].forEach((id) => $(id).addEventListener("input", clearPreset));
+        $("chart-metric").addEventListener("change", () => {
+          chartMetric = segmentedValue($("chart-metric")) === "tokens" ? "tokens" : "cost";
+          renderChart();
+        });
+        [
+          "f-from",
+          "f-to",
+          "f-engine",
+          "f-model",
+          "f-agent-type",
+          "f-project-id",
+          "f-service-tier",
+        ].forEach((id) => $(id)?.addEventListener("change", refresh));
+        $("btn-refresh")?.addEventListener("click", refresh);
+        $("btn-export")?.addEventListener("click", exportCSV);
+        $("btn-clear")?.addEventListener("click", () => {
+          ["f-engine", "f-model", "f-agent-type", "f-project-id", "f-service-tier"].forEach(
+            (id) => {
+              ($(id) as HTMLSelectElement).value = "";
+            },
+          );
+          applyPreset("30d");
+          refresh();
+        });
+        window.addEventListener("resize", () => renderChart(), { signal });
+
+        void loadPlan();
+        await refreshFilterOptions();
+        await refresh();
+      })();
+    });
+  </script>
+</Layout>

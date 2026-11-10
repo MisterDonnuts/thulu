@@ -1,0 +1,136 @@
+{
+  "title": "Automatizaciones",
+  "subtitle": "Se dispara un trigger, una receta corta junta contexto y el trabajo que necesita un modelo pasa a ser una tarea en un tablero.",
+  "header": {
+    "recipes": {
+      "one": "{count} receta",
+      "other": "{count} recetas"
+    },
+    "enabled": {
+      "one": "{count} activa",
+      "other": "{count} activas"
+    }
+  },
+  "buttons": {
+    "new": "Nueva automatización",
+    "run_now": "Correr ahora",
+    "disable": "Desactivar",
+    "enable": "Activar",
+    "delete_automation": "Eliminar automatización",
+    "validate": "Validar",
+    "run_test": "Correr con datos de prueba"
+  },
+  "panels": {
+    "recipes": "Recetas"
+  },
+  "tabs": {
+    "aria": "Secciones de la automatización",
+    "recipe": "Receta",
+    "runs": "Corridas"
+  },
+  "detail": {
+    "name_placeholder": "Poné un nombre a esta automatización",
+    "name_aria": "Nombre de la automatización"
+  },
+  "columns": {
+    "started": "Inicio",
+    "trigger": "Disparador",
+    "status": "Estado",
+    "agent_runs": "Corridas de agentes",
+    "duration": "Duración",
+    "actions": "Acciones"
+  },
+  "trigger": {
+    "schedule": "programada",
+    "event": "evento",
+    "metric": "métrica",
+    "manual": "manual",
+    "test": "datos de prueba"
+  },
+  "state": {
+    "enabled": "activa",
+    "suspended": "suspendida",
+    "unsaved": "sin guardar"
+  },
+  "labels": {
+    "next": "próxima {when}",
+    "last": "· última {ago}",
+    "schedule_tz": "{cron} en {tz}"
+  },
+  "empty": {
+    "unavailable": "Las automatizaciones no están habilitadas en esta instalación.",
+    "automations": "Todavía no hay automatizaciones",
+    "runs": "Todavía no hay corridas"
+  },
+  "modal": {
+    "title": "Nueva automatización",
+    "intro": "Arrancá de una receta que ya funciona y después editala."
+  },
+  "validate": {
+    "invalid": "inválida",
+    "next_runs": "próximas, en tu hora local: {runs}"
+  },
+  "confirm": {
+    "discard": "Se pierden los cambios a esta receta.",
+    "delete_title": "¿Eliminar la automatización?",
+    "delete_message": "Se eliminan \"{name}\" y su historial de corridas. No se puede deshacer."
+  },
+  "toasts": {
+    "run_canceled": "Corrida cancelada",
+    "cancel_failed": "No se pudo cancelar: {error}",
+    "saved": "Guardada",
+    "save_failed": "No se pudo guardar: {error}",
+    "skipped": "Salteada: {reason}",
+    "run_started": "Corrida iniciada",
+    "run_failed": "No se pudo correr: {error}",
+    "toggle_failed": "No se pudo cambiar el estado: {error}",
+    "deleted": "Eliminada",
+    "delete_failed": "No se pudo eliminar: {error}"
+  },
+  "guide": {
+    "trigger": "Disparador",
+    "kind": {
+      "schedule": "Programada",
+      "event": "Evento",
+      "metric": "Métrica",
+      "manual": "Manual"
+    },
+    "insert": "Insertar el ID de:",
+    "pick_board": "Tablero…",
+    "pick_stage": "Etapa…",
+    "pick_agent": "Agente…",
+    "pick_project": "Proyecto…",
+    "pick_env": "Entorno…",
+    "cron": "Cron",
+    "tz": "Zona horaria",
+    "event": "Evento",
+    "filter": "Filtro",
+    "environment": "Entorno",
+    "metric": "Métrica",
+    "window": "Ventana",
+    "agg": "Agregación",
+    "op": "Operador",
+    "threshold": "Umbral",
+    "every": "Revisar cada",
+    "choose": "Elegí…",
+    "locked": "Arreglá el YAML de abajo para volver a usar el formulario."
+  },
+  "runs": {
+    "raw_output": "Salida completa (JSON)",
+    "started_ago": "hace {ago}",
+    "no_steps": "No corrió ningún paso.",
+    "trigger_data": "Datos del disparador (trigger.payload)",
+    "batched": {
+      "one": "Juntó {count} evento",
+      "other": "Juntó {count} eventos"
+    }
+  },
+  "test": {
+    "title": "Correr con datos de prueba",
+    "intro": "La receta corre ahora con este payload como trigger.payload. Es un ejemplo con la forma del real: cambiá lo que necesites, por ejemplo task_id por el ID de una tarea que exista.",
+    "payload": "Payload de prueba",
+    "run": "Correr",
+    "bad_json": "No es JSON válido. Revisá comillas, comas y llaves.",
+    "not_object": "El payload tiene que ser un objeto JSON, entre llaves."
+  }
+}

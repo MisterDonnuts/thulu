@@ -1,0 +1,26 @@
+{
+  "errors": {
+    "statfs": "medir el sistema de archivos que contiene {path}",
+    "statfs_unsupported": "medir sistemas de archivos no está soportado en esta plataforma ({path})",
+    "docker_info": "leer la información del motor de Docker",
+    "docker_list": "listar los contenedores de Docker",
+    "docker_df": "leer el uso de disco de Docker",
+    "kube_namespaces": "listar los namespaces",
+    "kube_pods": "listar los pods",
+    "kube_nodes": "listar los nodos",
+    "kube_quotas": "listar las cuotas de recursos",
+    "kube_pvcs": "listar los persistent volume claims",
+    "kube_metrics": "leer el uso en vivo de metrics.k8s.io (¿está instalado metrics-server y el daemon tiene permiso para leerlo?)",
+    "pg_size": "leer el tamaño de la base y las conexiones",
+    "pg_tables": "leer el tamaño de las tablas",
+    "setting": "leer el ajuste {key}",
+    "sandboxes_held": "contar los sandboxes que ocupan lugar",
+    "usage_today": "leer el uso de LLM de hoy"
+  },
+  "log": {
+    "started": "inspector de infraestructura midiendo cada {interval} (uso de disco cada {slow})",
+    "stats_body": "estadísticas del contenedor {id}",
+    "rows_read": "leer una consulta de infraestructura",
+    "rows_close": "cerrar una consulta de infraestructura"
+  }
+}

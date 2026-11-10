@@ -1,0 +1,89 @@
+---
+import Crumbs from "./Crumbs.astro";
+import Icon from "./Icon.astro";
+import {
+  pageHeadClasses,
+  pageHeadHeading,
+  type Crumb,
+  type PageBack,
+  type PageHeadLevel,
+} from "../lib/ui/page-head";
+
+interface Props {
+  title: string;
+  subtitle?: string;
+  level?: PageHeadLevel;
+  flush?: boolean;
+  subMax?: number;
+  titleId?: string;
+  back?: PageBack;
+  crumbs?: Crumb[];
+  crumbsLabel?: string;
+  crumbsId?: string;
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  title,
+  subtitle,
+  level = "page",
+  flush = false,
+  subMax,
+  titleId,
+  back,
+  crumbs,
+  crumbsLabel,
+  crumbsId,
+  class: extra,
+  ...rest
+} = Astro.props;
+const cls = pageHeadClasses({ level, flush, cls: extra });
+const Heading = pageHeadHeading(level);
+const hasSub = Boolean(subtitle) || Astro.slots.has("sub");
+const hasStatus = Astro.slots.has("status");
+---
+
+<header class={cls} {...rest}>
+  <div class="page-head-text">
+    {
+      back && (
+        <a class="page-back" href={back.href}>
+          <Icon name="chevron-right" class="page-back-ico" />
+          {back.label}
+        </a>
+      )
+    }
+    {crumbs && <Crumbs crumbs={crumbs} label={crumbsLabel} id={crumbsId} />}
+    <slot name="above" />
+    {
+      hasStatus ? (
+        <div class="page-title-row">
+          <Heading class="page-title" id={titleId}>
+            {title}
+          </Heading>
+          <div class="page-head-status">
+            <slot name="status" />
+          </div>
+        </div>
+      ) : (
+        <Heading class="page-title" id={titleId}>
+          {title}
+        </Heading>
+      )
+    }
+    {
+      hasSub && (
+        <p class="page-sub" style={subMax ? `max-width:${subMax}px` : undefined}>
+          <slot name="sub">{subtitle}</slot>
+        </p>
+      )
+    }
+  </div>
+  {
+    Astro.slots.has("actions") && (
+      <div class="page-head-actions">
+        <slot name="actions" />
+      </div>
+    )
+  }
+</header>

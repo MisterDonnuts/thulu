@@ -1,0 +1,17 @@
+---
+import { chartA11y, chartClasses, type ChartSize } from "../lib/ui/chart";
+
+interface Props {
+  id?: string;
+  size?: ChartSize;
+  fluid?: boolean;
+  label?: string;
+  interactive?: boolean;
+  class?: string;
+  [key: string]: unknown;
+}
+const { id, size, fluid, label, interactive, class: extra, ...rest } = Astro.props;
+const cls = chartClasses({ size, fluid, cls: extra });
+---
+
+<div class={cls} {id} {...chartA11y({ label, interactive })} {...rest}><slot /></div>

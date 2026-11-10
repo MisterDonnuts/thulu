@@ -1,0 +1,269 @@
+input,
+textarea,
+select {
+  font-family: inherit;
+  font-size: var(--t-md);
+  color: var(--fg);
+  background: var(--color-field);
+  border: 1px solid var(--color-field-border);
+  border-radius: var(--r-md);
+  padding: var(--s-3) var(--control-pad-x);
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+input::placeholder,
+textarea::placeholder {
+  color: var(--fg-4);
+}
+/* A select renders text 2px taller than an input; 1px less padding per side keeps them the same height. */
+select {
+  padding-block: calc(var(--s-3) - 1px);
+}
+select:not(:disabled) {
+  cursor: pointer;
+}
+:is(input, textarea, select)[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+:is(input:not([type="checkbox"], [type="radio"]), textarea, select):disabled {
+  background: var(--color-well);
+  border-color: var(--line);
+  color: var(--fg-3);
+  cursor: not-allowed;
+}
+
+.select-sm {
+  height: var(--control-h-sm);
+  padding: 4px 8px;
+  background: var(--surface-2);
+  border-radius: var(--r-sm);
+  color: var(--fg-2);
+  font-family: inherit;
+  font-size: var(--t-sm);
+  cursor: pointer;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  min-width: 0;
+}
+.field > :is(input[type="checkbox"], input[type="radio"]) {
+  align-self: flex-start;
+}
+.field > textarea {
+  resize: vertical;
+  line-height: var(--lh-snug);
+}
+
+/* --fg-2: fields sit in modals (surface-3), where --fg-3 is under 4.5:1 in the dark theme. */
+.field-label {
+  font-size: var(--t-sm);
+  font-weight: 500;
+  line-height: var(--lh-snug);
+  color: var(--fg-2);
+}
+.field-optional,
+.field-hint {
+  font-size: var(--t-xs);
+  font-weight: 400;
+  color: var(--fg-2);
+}
+.field-help {
+  font-size: var(--t-xs);
+  line-height: var(--lh-snug);
+  color: var(--fg-2);
+}
+.field-help a {
+  color: var(--accent);
+}
+.field-warn {
+  font-size: var(--t-xs);
+  line-height: var(--lh-snug);
+  color: var(--warn);
+}
+:is(.field-hint, .field-help) code {
+  padding: 0 var(--s-1);
+  background: var(--surface-2);
+  border-radius: var(--r-sm);
+  font-family: var(--font-mono);
+  font-size: var(--t-2xs);
+}
+
+.field-sm {
+  gap: var(--s-1);
+}
+.field-sm > .field-label {
+  font-size: var(--t-xs);
+}
+.field-sm > :is(input:not([type="checkbox"], [type="radio"]), select) {
+  height: var(--control-h-sm);
+  padding: var(--s-1) var(--s-3);
+  font-size: var(--t-sm);
+}
+
+.field-grow {
+  flex: 1 1 var(--field-grow);
+}
+
+.field-inline {
+  display: grid;
+  grid-template-columns: var(--field-label-w) minmax(0, 1fr);
+  column-gap: var(--s-4);
+  row-gap: var(--s-2);
+  align-items: start;
+}
+.field-inline > .field-label {
+  grid-column: 1;
+  padding-top: calc(var(--s-3) + 1px);
+}
+.field-inline > :not(.field-label) {
+  grid-column: 2;
+}
+@media (max-width: 480px) {
+  .field-inline {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .field-inline > .field-label {
+    padding-top: 0;
+  }
+  .field-inline > :not(.field-label) {
+    grid-column: 1;
+  }
+}
+
+.field-error {
+  margin-top: var(--s-3);
+  font-size: var(--t-sm);
+  line-height: var(--lh-snug);
+  color: var(--color-danger-strong);
+}
+.field > .field-error {
+  margin-top: 0;
+}
+.field-error.field-error-row {
+  flex-basis: 100%;
+  margin-top: 0;
+  font-size: var(--t-xs);
+}
+
+.form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  min-width: 0;
+}
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--s-4);
+}
+.form-section {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.form-section-legend {
+  float: left;
+  width: 100%;
+  margin-bottom: var(--s-3);
+  padding: 0;
+  font-size: var(--t-md);
+  font-weight: 600;
+  line-height: var(--lh-snug);
+  color: var(--fg);
+}
+.form-section-legend > :is(h3, h4) {
+  font: inherit;
+  color: inherit;
+}
+.form-section-body {
+  clear: left;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  min-width: 0;
+}
+.form-section-group > .form-section-legend {
+  margin-bottom: var(--s-2);
+  font-size: var(--t-sm);
+  font-weight: 500;
+  color: var(--fg-2);
+}
+.form-section-ruled {
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--line);
+}
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.inline-status {
+  font-size: var(--t-sm);
+  line-height: var(--lh-snug);
+  color: var(--fg-2);
+  overflow-wrap: anywhere;
+}
+.inline-status[data-tone="ok"] {
+  color: var(--ok);
+}
+.inline-status[data-tone="danger"] {
+  color: var(--color-danger-strong);
+}
+
+/* .date-input-native is hidden with opacity, not display:none, so showPicker() can open it. */
+.date-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.date-input-text {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  padding-inline-end: calc(var(--control-h-sm) + var(--s-2));
+  font-variant-numeric: tabular-nums;
+}
+.date-input-pick {
+  position: absolute;
+  inset-inline-end: var(--s-1);
+}
+.date-input-native {
+  position: absolute;
+  inset-inline-end: 0;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.field-filter > .date-input-error {
+  width: 0;
+  min-width: 100%;
+  margin-top: 0;
+  font-size: var(--t-xs);
+}
+.field-filter > .date-input {
+  min-width: var(--filter-field-min);
+}
+@media (max-width: 640px) {
+  .field-filter:has(> .date-input) {
+    flex: 1 1 calc(22ch + var(--control-h-sm));
+  }
+}
+.field-filter > .date-input > .date-input-text {
+  min-height: var(--control-h-lg);
+  padding-block: var(--s-1);
+  padding-inline-start: var(--s-3);
+  font-size: var(--t-sm);
+}

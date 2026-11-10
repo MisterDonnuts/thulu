@@ -1,0 +1,29 @@
+{
+  "resets": "Resets {date}",
+  "no_limit": "No limit",
+  "names": {
+    "free": "Free",
+    "team": "Team",
+    "business": "Business",
+    "enterprise": "Enterprise",
+    "self_hosted": "Self-hosted"
+  },
+  "facts": {
+    "runs": "Agent runs this month",
+    "concurrency": "Agents at once",
+    "seats": "Members",
+    "storage": "Attachments"
+  },
+  "values": {
+    "runs": "{used} of {limit}",
+    "concurrency": {
+      "one": "{count} at a time",
+      "other": "{count} at a time"
+    },
+    "seats": {
+      "one": "{count} person",
+      "other": "{count} people"
+    },
+    "storage": "{used} of {limit}"
+  }
+}

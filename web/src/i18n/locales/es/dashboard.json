@@ -1,0 +1,70 @@
+{
+  "title": "Panel",
+  "subtitle": "Los agentes trabajan cada etapa; una persona decide qué se mergea.",
+  "buttons": {
+    "open_board": "Abrir tablero"
+  },
+  "metrics": {
+    "open_tasks": "Tareas abiertas",
+    "live_runs": "Corridas activas",
+    "cost_all_time": "Costo · histórico",
+    "rate_limit": "Límite de uso",
+    "tasks_sub": "{in_progress} en curso · {review} en revisión",
+    "runs_sub": {
+      "one": "{total} en total · {count} terminada",
+      "other": "{total} en total · {count} terminadas"
+    },
+    "cost_sub": "{sessions} · {tokens} tok sin caché",
+    "sessions": {
+      "one": "{count} sesión",
+      "other": "{count} sesiones"
+    },
+    "rate": {
+      "high": "cerca del límite",
+      "mid": "subiendo",
+      "low": "con margen de sobra",
+      "none": "sin datos del motor"
+    },
+    "runs_month": "Corridas del mes",
+    "aria": "El workspace de un vistazo"
+  },
+  "panels": {
+    "runs": "Corridas",
+    "recent_tasks": "Tareas recientes",
+    "view_all": "Ver todas",
+    "usage": "Uso"
+  },
+  "first_steps": {
+    "title": "Primeros pasos",
+    "all": "Ver la configuración inicial",
+    "intro": "Lo que le falta a este workspace para que un agente trabaje. Cada paso lleva a la página donde se completa.",
+    "until_then": "Mientras tanto: {effect}"
+  },
+  "agents": {
+    "stopped": "Se detuvo {name}",
+    "stop_failed": "No se pudo detener {name}",
+    "removed": "Se eliminó {name}",
+    "remove_failed": "No se pudo eliminar {name}",
+    "stop_short": "Detener",
+    "remove_short": "Eliminar",
+    "stop_named": "Detener {name}",
+    "remove_named": "Eliminar {name}",
+    "none": "No hay corridas",
+    "exit": "salida {code}",
+    "running": "corriendo",
+    "fallback_name": "agente"
+  },
+  "tasks": {
+    "empty": "No hay tareas todavía.",
+    "open_board": "Abrir el tablero"
+  },
+  "usage": {
+    "tokens_uncached": "Tokens sin caché",
+    "output": "Salida",
+    "total_cost": "Costo total",
+    "avg_cost": "Promedio / sesión",
+    "sessions": "Sesiones",
+    "turns": "Turnos",
+    "empty": "Todavía no hay datos de uso"
+  }
+}

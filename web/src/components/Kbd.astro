@@ -1,0 +1,45 @@
+---
+// Markup must match kbdHTML() in lib/ui/kbd.ts.
+import { keyLabel, modKeyAttr } from "../lib/shortcuts";
+import { kbdClasses, kbdGroupClasses, kbdKeys, type KbdAlign, type KbdSize } from "../lib/ui/kbd";
+
+interface Props {
+  keys: string | string[];
+  size?: KbdSize;
+  decorative?: boolean;
+  align?: KbdAlign;
+  inset?: boolean;
+  class?: string;
+}
+const {
+  keys: given,
+  size = "md",
+  decorative = false,
+  align,
+  inset = false,
+  class: extra,
+} = Astro.props;
+const keys = kbdKeys(given);
+const hidden = decorative ? "true" : undefined;
+const group = typeof keys === "string" ? "" : kbdGroupClasses({ align, inset, cls: extra });
+---
+
+{
+  typeof keys === "string" ? (
+    <kbd
+      class={kbdClasses(size, extra, inset)}
+      data-mod-key={modKeyAttr(keys)}
+      aria-hidden={hidden}
+    >
+      {keyLabel(keys)}
+    </kbd>
+  ) : (
+    <span class={group} aria-hidden={hidden}>
+      {keys.map((k) => (
+        <kbd class={kbdClasses(size)} data-mod-key={modKeyAttr(k)}>
+          {keyLabel(k)}
+        </kbd>
+      ))}
+    </span>
+  )
+}

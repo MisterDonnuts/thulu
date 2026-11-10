@@ -1,0 +1,18 @@
+{
+  "deps": {
+    "none": "None",
+    "soft": "heads-up",
+    "blocking": "blocking"
+  },
+  "branch": {
+    "copy": "Copy the branch name",
+    "none": "No branch yet",
+    "shared": "Shared with the parent",
+    "shared_note": "Subtasks commit to the parent's branch and land in its pull request.",
+    "force_pr": "Force PR",
+    "merge": "Merge into…"
+  },
+  "projects": {
+    "none": "No linked projects"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "errors": {
+    "bad_code": "pegá el código tal como lo muestra la página de inicio de sesión",
+    "code_not_accepted": "el CLI no aceptó ese código; copiá el código completo de la página de inicio de sesión y pegalo de nuevo",
+    "command_failed": "el comando del CLI terminó con código {code}",
+    "command_timeout": "el comando del CLI no terminó a tiempo",
+    "container": "no se pudo arrancar el contenedor de la sesión",
+    "login_failed": "el CLI no aceptó el código; empezá de nuevo",
+    "login_timeout": "el CLI no terminó de iniciar sesión a tiempo; empezá de nuevo",
+    "no_agent_image": "no hay imagen de agente para correr el CLI: definí {env}",
+    "no_pending_login": "no hay un inicio de sesión esperando un código; empezá de nuevo",
+    "no_url": "el CLI no mostró un enlace para iniciar sesión",
+    "unsupported_engine": "el engine {engine} no tiene sesión personal",
+    "volume": "no se pudo leer o cambiar el volumen de la sesión personal",
+    "volume_in_use": "una corrida todavía usa esta sesión; desconectala cuando terminen tus corridas",
+    "volume_taken": "ya existe un volumen de Docker llamado {volume} que no es una sesión de esta instalación; borralo o renombralo para conectar"
+  },
+  "log": {
+    "logout_failed": "logout de {engine} antes de borrar el volumen de la sesión",
+    "remove_container_failed": "borrar el contenedor de sesión {id}",
+    "remove_volume_failed": "borrar el volumen de sesión sin usar {volume}"
+  }
+}

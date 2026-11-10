@@ -1,0 +1,25 @@
+{
+  "summary": {
+    "task_created": "Creó la tarea «{title}»",
+    "task_created_agent": "Creó la tarea «{title}» y despertó a {agent}",
+    "task_commented": "La tarea «{title}» ya existía, así que comentó en ella",
+    "task_duplicate": "La tarea «{title}» ya existía, así que la dejó como estaba",
+    "mentioned": "Despertó a {agent} en «{title}»",
+    "commented": "Comentó en «{title}»; su etapa no tiene agente para despertar",
+    "commented_no_mention": "Comentó en «{title}»; {agent} no atiende menciones",
+    "metric": "Valor de la métrica: {value}",
+    "metric_empty": "La métrica no tiene datos en la ventana",
+    "tasks_found": {
+      "one": "Encontró {count} tarea",
+      "other": "Encontró {count} tareas"
+    },
+    "script": "El script terminó con código {code}",
+    "http": "El servidor respondió HTTP {code}"
+  },
+  "sample": {
+    "pr_title": "Arreglar la redirección del login",
+    "task_title": "Revisar las dependencias",
+    "comment": "Esto se rompe cuando vence la sesión.",
+    "review_body": "Falta un test para la sesión vencida."
+  }
+}

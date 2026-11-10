@@ -1,0 +1,20 @@
+{
+  "errors": {
+    "method_not_allowed": "method not allowed",
+    "unauthorized": "unauthorized",
+    "bad_request": "bad request",
+    "command_required": "command is required",
+    "marshal_request": "execagent: marshal request",
+    "build_request": "execagent: build request",
+    "call_sandbox": "execagent: call sandbox",
+    "kill_group": "execagent: kill the command's process group",
+    "sandbox_status": "execagent: sandbox returned {status}: {body}",
+    "decode_result": "execagent: decode result"
+  },
+  "log": {
+    "token_required": "sandbox-execagent: OCTOPUS_EXEC_TOKEN is required",
+    "unset_token_failed": "sandbox-execagent: unset token env: {err}",
+    "listening": "sandbox-execagent: listening on {addr}",
+    "serve_failed": "sandbox-execagent: {err}"
+  }
+}

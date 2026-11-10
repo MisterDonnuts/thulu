@@ -1,0 +1,16 @@
+{
+  "errors": {
+    "not_found": "no existe el workspace",
+    "owner_only": "sólo el dueño del workspace puede borrarlo",
+    "confirmation_required": "falta la confirmación: mandá {\"confirm\":\"<workspace-slug>\"}",
+    "erasure_failed": "falló el borrado: {cause}",
+    "tenant_teardown": "desmontar el runtime del tenant: {cause}"
+  },
+  "audit": {
+    "erased": "Workspace borrado para siempre: {slug}"
+  },
+  "log": {
+    "purge_failed": "workspace {workspace}: {err}",
+    "destroy_sandbox_failed": "[purge] destruir el sandbox {owner}"
+  }
+}

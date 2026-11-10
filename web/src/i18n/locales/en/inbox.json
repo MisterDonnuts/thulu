@@ -1,0 +1,33 @@
+{
+  "title": "Inbox",
+  "subtitle": "What agents and stages are waiting on a person to decide. Open a task to answer, or approve from here.",
+  "document_title": "Inbox ({count}) — Thulu",
+  "stats": {
+    "questions": "questions",
+    "approvals": "approvals",
+    "stalled": "stalled stages"
+  },
+  "panels": {
+    "questions": "Agent questions",
+    "approvals": "Pending approvals",
+    "stalled": "Stalled stages"
+  },
+  "columns": {
+    "task": "Task",
+    "what": "What",
+    "stage": "Stage",
+    "waiting": "Waiting"
+  },
+  "empty": {
+    "questions": "No agent is waiting on an answer.",
+    "approvals": "No approvals pending."
+  },
+  "errors": {
+    "load_failed": "Could not load the inbox",
+    "refresh_failed": "Refresh failed, showing the last list: {error}",
+    "approve_failed": "Could not approve: {error}"
+  },
+  "toasts": {
+    "approved": "Approved"
+  }
+}

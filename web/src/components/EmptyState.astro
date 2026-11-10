@@ -1,0 +1,99 @@
+---
+// Markup must match emptyStateHTML() in lib/ui/empty.ts.
+import Icon from "./Icon.astro";
+import {
+  emptyA11y,
+  emptyIconSize,
+  emptyStateClasses,
+  emptySteps,
+  emptyTitleTag,
+  loadingText,
+  type EmptySize,
+  type EmptyStep,
+  type EmptyTitleTag,
+  type EmptyTone,
+} from "../lib/ui/empty";
+
+interface Props {
+  size?: EmptySize;
+  tone?: EmptyTone;
+  dashed?: boolean;
+  icon?: string;
+  title?: string;
+  titleTag?: EmptyTitleTag;
+  steps?: EmptyStep[];
+  loading?: boolean;
+  as?: "div" | "li";
+  titleId?: string;
+  bodyId?: string;
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  size = "block",
+  tone = "neutral",
+  dashed = false,
+  icon,
+  title: givenTitle,
+  titleTag,
+  steps = [],
+  loading = false,
+  as: Tag = "div",
+  titleId,
+  bodyId,
+  class: extra,
+  ...rest
+} = Astro.props;
+const title = givenTitle ?? (loading ? loadingText() : undefined);
+const hasTitle = title !== undefined || titleId !== undefined;
+const hasBody = Astro.slots.has("default") || bodyId !== undefined;
+const hasAction = Astro.slots.has("action");
+emptySteps(size, steps);
+const TitleTag = emptyTitleTag(titleTag);
+---
+
+<Tag
+  class={emptyStateClasses({ size, tone, dashed, cls: extra })}
+  {...emptyA11y({ tone, loading, as: Tag })}
+  {...rest}
+>
+  {icon && <Icon name={icon} size={emptyIconSize(size)} class="empty-state-icon" />}
+  {
+    (hasTitle || hasBody) && (
+      <div class="empty-state-text">
+        {hasTitle && (
+          <TitleTag class="empty-state-title" id={titleId}>
+            {title}
+          </TitleTag>
+        )}
+        {hasBody && (
+          <p class="empty-state-body" id={bodyId}>
+            <slot />
+          </p>
+        )}
+      </div>
+    )
+  }
+  {
+    steps.length > 0 && (
+      <ol class="empty-state-steps">
+        {steps.map((st: EmptyStep, i: number) => (
+          <li class="empty-state-step">
+            <span class="empty-state-step-n" aria-hidden="true">
+              {i + 1}
+            </span>
+            <strong class="empty-state-step-title">{st.title}</strong>
+            {st.body && <span class="empty-state-step-body">{st.body}</span>}
+          </li>
+        ))}
+      </ol>
+    )
+  }
+  {
+    hasAction && (
+      <div class="empty-state-action">
+        <slot name="action" />
+      </div>
+    )
+  }
+</Tag>

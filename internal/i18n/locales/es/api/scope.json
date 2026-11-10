@@ -1,0 +1,45 @@
+{
+  "errors": {
+    "operator_only": "Sólo el operador puede {verb} {what}: es un recurso compartido por todos los workspaces. Definí {env} con el workspace que administra esta instalación y usá una credencial de admin de ese workspace.",
+    "project_not_found": "no existe el proyecto: {id}",
+    "chat_not_found": "no existe el chat: {id}",
+    "task_not_found": "no existe la tarea: {id}",
+    "other_workspace": "tu credencial está limitada a otro workspace",
+    "no_workspace": "tu credencial no tiene workspace",
+    "task_workspace_undetermined": "no se puede determinar el workspace de la tarea: vinculá un proyecto, creala en un tablero o pasá ?workspace=",
+    "resource_workspace_undetermined": "no se puede determinar a qué workspace pertenece {resource}: pasá ?workspace=",
+    "projects_span_workspaces": "los proyectos vinculados son de workspaces distintos ({first}, {second}): pasá ?workspace= para elegir uno",
+    "run_task_scope": "la key de una corrida de agente sólo puede cambiar su propia tarea, su tarea padre y las subtareas hermanas o hijas, y las tareas que creó su tarea",
+    "run_flag_decision": "decidir o quitar una aprobación (o un flag) le toca a una persona: una corrida de agente puede pedirla, no aprobarla",
+    "run_question_decision": "contestar o cancelar la pregunta de un agente lo decide una persona: una corrida de agente pregunta, no contesta",
+    "run_thread_decision": "aplicar o resolver un hilo lo decide una persona: una corrida de agente responde en los hilos, no los cierra",
+    "run_conversation": "la conversación de la tarea es el lado de la persona: una corrida de agente responde ahí, no habla por ella",
+    "run_cannot_open_chats": "una corrida de agente no puede abrir chats",
+    "run_own_chat_only": "la key de una corrida de agente sólo llega a su propio chat",
+    "run_chat_read_only": "una corrida de agente puede leer su chat, no escribir en él: un mensaje ahí es la persona hablando",
+    "run_transcripts_scope": "la key de una corrida de agente sólo puede leer las transcripciones de corridas en las tareas que puede cambiar",
+    "run_github_confirmation": "estas rutas le llevan a la persona el merge o la revisión de deploy que pide un chat delegado; una corrida de agente sobre una tarea mergea y aprueba con sus propias tools de GitHub",
+    "run_merge": "una corrida de agente no puede integrar la rama de una tarea ni subir el código de un proyecto; eso lo hace una persona desde el dashboard",
+    "run_evidence_scope": "la key de una corrida de agente puede leer Evidencia pero no cambiarla: entornos, secretos, casos y tandas los edita una persona. Un chat de grabación guarda su toma con las tools de grabación"
+  },
+  "operator_surfaces": {
+    "mcp_registry": "el registro de MCP",
+    "host_settings": "la configuración del host",
+    "plan_assignment": "la asignación de planes",
+    "metrics": "las métricas de toda la instalación",
+    "system_skills": "las skills del sistema"
+  },
+  "operator_verbs": {
+    "change": "cambiar",
+    "read": "leer"
+  },
+  "resources": {
+    "project": "el proyecto",
+    "chat": "el chat",
+    "policy": "la política",
+    "installation": "la instalación"
+  },
+  "log": {
+    "read_workspaces_failed": "leer los workspaces de la instalación"
+  }
+}

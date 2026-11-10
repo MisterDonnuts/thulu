@@ -1,0 +1,18 @@
+{
+  "errors": {
+    "internal": "internal server error",
+    "rate_limited": "rate limit exceeded"
+  },
+  "log": {
+    "cors_wildcard": "WARNING: OCTOPUS_ALLOWED_ORIGINS=* — all origins allowed (not recommended for production)",
+    "cors_same_origin_only": "no cross-origin callers allowed (same-origin only); set OCTOPUS_ALLOWED_ORIGINS to add some",
+    "cors_allowed_origins": "allowed origins: {origins}",
+    "request": "request",
+    "request_line": "{method} {path} → {status} ({duration}) req={request_id} ip={ip}",
+    "ratelimit_enabled": "enabled: {rps:%.0f} rps, burst {burst:%.0f}",
+    "ratelimit_per_key": "per API key: {rps:%.0f} rps, burst {burst:%.0f}",
+    "realip_bad_entry": "WARNING: OCTOPUS_TRUSTED_PROXIES entry #{index} is not an IP, CIDR or \"private\"; ignored",
+    "realip_private_in_kubernetes": "WARNING: OCTOPUS_TRUSTED_PROXIES=private inside Kubernetes trusts X-Forwarded-For from every pod in the cluster; list the ingress controller's pod CIDR or address instead",
+    "panic": "{method} {path} req={request_id}: {panic}\n{stack}"
+  }
+}

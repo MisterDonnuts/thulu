@@ -1,0 +1,31 @@
+# Apply instead of allow-dns-and-public-https (tenant-namespace.template.yaml), and only once the
+# LLM gateway is deployed.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: egress-controlplane-only
+  namespace: tenant-${TENANT_ID}
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              thulu.dev/plane: ${CONTROL_PLANE_LABEL}
+      ports:
+        - protocol: TCP
+          port: ${DAEMON_PORT}
+        - protocol: TCP
+          port: ${GATEWAY_PORT}
+        - protocol: TCP
+          port: ${MCP_PORT}

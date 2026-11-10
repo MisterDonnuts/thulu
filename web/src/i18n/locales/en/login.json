@@ -1,0 +1,56 @@
+{
+  "title": "Sign in",
+  "subtitle": "Continue with your identity provider.",
+  "pending": {
+    "page_title": "Waiting for access",
+    "title": "Your account is waiting for access",
+    "subtitle": "Sign-in worked, but you are not a member of any workspace yet.",
+    "text": "Ask an administrator to add you to a workspace. Once they have, sign out and sign in again.",
+    "sign_out": "Sign out",
+    "first_text": "You are the first person to sign in to this install, and its first workspace still belongs to the placeholder owner the setup wizard created. Run this in a terminal where OCTOPUS_API_KEY holds the key the wizard printed, then sign in again:",
+    "first_workspace_hint": "The command reads the workspace id from $OCTOPUS_OPERATOR_WORKSPACE. Export it first: its value is OCTOPUS_OPERATOR_WORKSPACE in deploy/.env (Docker) or in extraEnv in the Helm values (Kubernetes).",
+    "command_name": "the command"
+  },
+  "sso": {
+    "continue_with": "Continue with {provider}"
+  },
+  "notices": {
+    "first_user": "The first person to sign in becomes the workspace owner.",
+    "dev_link": "This install has no logins. Open the dashboard with the link the daemon prints on start, or run {cmd} on the machine it runs on.",
+    "no_provider": "No identity provider is configured, so there is no way to sign in yet. Set {issuer}, {client_id} and {client_secret} on the daemon and restart it."
+  },
+  "errors": {
+    "config_rejected": "The daemon rejected the configuration request. Check its logs.",
+    "unreachable": "Cannot reach the Thulu daemon."
+  },
+  "reasons": {
+    "state_expired": "The sign-in took too long. Try again.",
+    "session_missing": "The sign-in started in another browser or tab, or took too long. Start it again here.",
+    "email_unverified": "Verify your email in {provider}, then sign in again.",
+    "email_unverified_generic": "Verify your email with your identity provider, then sign in again."
+  },
+  "beta": {
+    "saas": "Sign-up is by invitation.",
+    "allowlist": "Sign-up here is by invitation.",
+    "waitlist": "Join the waitlist"
+  },
+  "invite": {
+    "for": "You were invited to {workspace}. Sign in with {email}.",
+    "awaiting": "That email doesn't have access yet. After you sign in you can ask for it.",
+    "gone": "This invitation was already used or canceled. Sign in to see where you have access."
+  },
+  "not_invited": {
+    "page_title": "No access yet",
+    "title": "You don't have access yet",
+    "text": "{email} is not on the access list yet.",
+    "invited": "{workspaces} invited you. Access comes from whoever runs Thulu, and the invitation waits until then.",
+    "invited_many": "{workspaces} invited you. Access comes from whoever runs Thulu, and the invitations wait until then.",
+    "request": "Request access",
+    "request_hint": "Request access tells whoever runs this install. Once they let you in, sign in with this same email.",
+    "waitlist_hint": "If nobody on this install knows you:",
+    "requesting": "Sending…",
+    "requested": "Request sent. Once you have access, sign in again with {email}.",
+    "request_failed": "Could not send the request: {error}",
+    "other_account": "Use another account"
+  }
+}

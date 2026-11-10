@@ -1,0 +1,61 @@
+{
+  "errors": {
+    "subject": "{subject}",
+    "bad_signature": "signature does not verify against the Thulu release key",
+    "not_digest_ref": "{ref}: not a reference by digest",
+    "no_image_signature": "{ref}: no signature found ({tag})",
+    "read_signature_manifest": "{ref}: read signature manifest",
+    "key_unexpected_pem": "release key: unexpected PEM block {type:%q}",
+    "release_key": "release key",
+    "key_not_p256": "release key: want an ECDSA P-256 public key",
+    "key_none_found": "release key: no PEM public key found",
+    "signature_not_base64": "signature is not base64",
+    "manifest_decode": "release manifest",
+    "manifest_trailing_data": "release manifest: trailing data",
+    "manifest_invalid": "release manifest {version}: {problems}",
+    "no_cosign": "verifying a preview build needs cosign (https://docs.sigstore.dev/cosign/system_config/installation/) in PATH",
+    "preview_manifest_rejected": "preview manifest: {output}",
+    "preview_claims_other": "a manifest signed by the preview workflow claims channel {channel:%q}, version {version}",
+    "cosign_rejected": "{ref}: {output}",
+    "source_off": "release lookups are off ({env}=off)",
+    "file_source_not_absolute": "{env}={value:%q}: a file:// source needs an absolute path",
+    "source_invalid": "{env}={value:%q}: want github, off, or an http(s) URL without credentials or query",
+    "asset_too_large": "{file} of {version} is larger than {limit} bytes",
+    "no_sigstore_bundle": "preview {version} has no Sigstore bundle ({file})",
+    "no_kms_signature": "{version} has no KMS signature ({file})",
+    "release_key_on_preview": "{version}: a release-key manifest on the preview channel",
+    "manifest_version_mismatch": "asked for {asked}, the signed manifest is for {signed}",
+    "http_get_failed": "GET {url}: {status}",
+    "list_github_releases": "list releases of {repo}",
+    "bad_asset_name": "asset name {file:%q}",
+    "bad_version": "version {version:%q}",
+    "release_lookup": "release {version}",
+    "asset_download": "{file} of {version}",
+    "asset_missing": "release {version} has no {file}",
+    "mirror_index": "{base}/{file}"
+  },
+  "manifest": {
+    "schema_unsupported": "schema {schema} not supported (this binary reads {supported}): use a newer thulu",
+    "version_not_release": "version {version:%q} is not a release version",
+    "stable_prerelease": "channel stable with prerelease version {version}",
+    "channel_unknown": "channel {channel:%q} unknown",
+    "commit_not_sha": "commit {commit:%q} is not a full git sha",
+    "published_at_missing": "published_at missing",
+    "octopus_image_missing": "images: octopus missing",
+    "image_not_digest": "images.{name}: {ref:%q} is not a reference by digest",
+    "third_party_not_pinned": "third_party.{name}: {ref:%q} is not pinned by digest",
+    "chart_not_pinned": "chart: want an oci:// reference and a sha256 digest",
+    "artifact_not_pinned": "{field}: want a plain file name and a hex sha256",
+    "upgrade_from_missing": "upgrade_from missing",
+    "upgrade_from_invalid": "upgrade_from: {err}",
+    "rollback_not_older": "rollback_to {rollback:%q} is not older than {version}",
+    "requires_not_env": "requires: {name:%q} is not an environment variable name",
+    "advisory_incomplete": "advisory without id or affected range"
+  },
+  "labels": {
+    "unparseable_url": "(unparseable URL)"
+  },
+  "log": {
+    "remove_temp_failed": "remove {path}"
+  }
+}

@@ -1,0 +1,320 @@
+---
+import Button from "./Button.astro";
+import DropZone from "./DropZone.astro";
+import EmptyRow from "./EmptyRow.astro";
+import EmptyState from "./EmptyState.astro";
+import Modal from "./Modal.astro";
+import SearchInput from "./SearchInput.astro";
+import Tabs from "./Tabs.astro";
+import { t } from "../i18n";
+
+const kinds = [
+  { id: "agent", label: t("workshop.tabs.agents"), icon: "bot" },
+  { id: "skill", label: t("workshop.tabs.skills"), icon: "skills" },
+].map((k) => ({ ...k, count: 0, tabId: `ws-shop-tab-${k.id}`, panelId: "ws-shop-list" }));
+---
+
+<Modal
+  id="ws-shop"
+  title={t("workshop.title")}
+  icon="box"
+  closable
+  class="wsp"
+  bodyClass="wsp-body"
+>
+  <Fragment slot="head">
+    <Button id="ws-shop-import" size="sm" icon="upload">{t("workshop.import.button")}</Button>
+    <input id="ws-shop-file" type="file" accept=".json,application/json" hidden />
+  </Fragment>
+  <div class="wsp-browse" id="ws-shop-browse">
+    <div class="wsp-side">
+      <Tabs
+        id="ws-shop-tabs"
+        variant="vertical"
+        label={t("workshop.title")}
+        items={kinds}
+        active="agent"
+      />
+    </div>
+    <div class="wsp-main">
+      <div class="wsp-search">
+        <SearchInput
+          id="ws-shop-q"
+          type="search"
+          kbd={false}
+          label={t("workshop.search.label")}
+          placeholder={t("workshop.search.placeholder")}
+          spellcheck="false"
+        />
+        <div class="wsp-tags" id="ws-shop-tags"></div>
+      </div>
+      <div class="wsp-split">
+        <div class="wsp-list" id="ws-shop-list" role="tabpanel" aria-live="polite">
+          <EmptyRow as="div" loading />
+        </div>
+        <div class="wsp-detail" id="ws-shop-detail">
+          <EmptyState size="sm">{t("workshop.detail.pick")}</EmptyState>
+        </div>
+      </div>
+      <div class="wsp-picks" id="ws-shop-picks" aria-live="polite" hidden></div>
+    </div>
+  </div>
+  <div class="wsp-plan" id="ws-shop-plan" hidden></div>
+  <DropZone
+    id="ws-shop-drop"
+    accept="json"
+    overlay
+    icon="upload"
+    title={t("workshop.import.drop")}
+    hidden
+  />
+</Modal>
+
+<style is:global>
+  .wsp {
+    width: min(1040px, calc(100vw - 2 * var(--s-5)));
+    height: min(680px, calc(100dvh - 2 * var(--s-5)));
+    display: flex;
+    flex-direction: column;
+  }
+  .wsp-body {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .wsp-browse {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 168px 1fr;
+  }
+  /* The column the kinds sit in, ruled off from the list. */
+  .wsp-side {
+    min-width: 0;
+    padding: var(--s-4) var(--s-3);
+    border-right: 1px solid var(--line);
+  }
+  .wsp-main {
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .wsp-search {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-3);
+    padding: var(--s-4) var(--s-5) var(--s-3);
+    border-bottom: 1px solid var(--line);
+  }
+  .wsp-tags:empty {
+    display: none;
+  }
+  .wsp-split {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(240px, 2fr) 3fr;
+  }
+  .wsp-list {
+    overflow-y: auto;
+    border-right: 1px solid var(--line);
+    padding: var(--s-2);
+  }
+  /* A row and, before it, the box that picks it for a joint install. */
+  .wsp-row-wrap {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--s-1);
+  }
+  /* The box sits on the row's first line. */
+  .wsp-pick {
+    flex: none;
+    margin: var(--s-3) 0 0 var(--s-2);
+  }
+  .wsp-picks {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    padding: var(--s-3) var(--s-5);
+    border-top: 1px solid var(--line);
+    background: var(--surface-2);
+  }
+  .wsp-picks-count {
+    margin-right: auto;
+    color: var(--fg-2);
+    font-size: var(--t-sm);
+  }
+  .wsp-detail {
+    min-width: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .wsp-detail-body {
+    flex: 1;
+    padding: var(--s-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-4);
+  }
+  /* Back goes from the detail to the list on a phone, where they take turns. */
+  .wsp-back {
+    display: none;
+  }
+  .wsp-desc {
+    margin: 0;
+    max-width: 72ch;
+    color: var(--fg-2);
+    line-height: var(--lh-snug);
+  }
+  /* The badges of one value of the detail's fact list. */
+  .wsp-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+  }
+  .wsp-none {
+    color: var(--fg-2);
+    font-size: var(--t-sm);
+  }
+  .wsp-file {
+    margin-top: var(--s-3);
+  }
+  .wsp-file-path {
+    font-family: var(--font-mono);
+    font-size: var(--t-xs);
+    color: var(--fg-2);
+  }
+  .wsp-file-path + .code-block {
+    margin-top: var(--s-2);
+  }
+  .wsp-detail-foot,
+  .wsp-plan-foot {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--s-3);
+    padding: var(--s-4) var(--s-5);
+    border-top: 1px solid var(--line);
+    background: var(--surface-2);
+  }
+  .wsp-foot-note {
+    margin-right: auto;
+    color: var(--fg-2);
+    font-size: var(--t-sm);
+  }
+  .wsp-plan {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .wsp-plan-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--s-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-4);
+  }
+  .wsp-plan-body h4 {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    margin: 0;
+    font-size: var(--t-lg);
+    font-weight: 600;
+  }
+  .wsp-copy-name {
+    grid-column: 2 / -1;
+  }
+  .wsp-copy-name input {
+    max-width: 320px;
+  }
+  .wsp-plan-lead {
+    margin: 0;
+    max-width: 72ch;
+    color: var(--fg-2);
+  }
+  .wsp-notices {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .wsp-items {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+  }
+  .wsp-item {
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr) auto;
+    gap: var(--s-2) var(--s-3);
+    align-items: center;
+    padding: var(--s-3) var(--s-4);
+  }
+  .wsp-item + .wsp-item {
+    border-top: 1px solid var(--line);
+  }
+  .wsp-item-name {
+    font-weight: 500;
+    overflow-wrap: anywhere;
+  }
+  .wsp-item-sub {
+    grid-column: 2 / -1;
+    color: var(--fg-2);
+    font-size: var(--t-xs);
+    line-height: var(--lh-snug);
+  }
+  /* The choice of an item takes the row under its name. */
+  .wsp-seg {
+    grid-column: 2 / -1;
+  }
+
+  @media (max-width: 760px) {
+    .wsp {
+      width: 100vw;
+      height: 100dvh;
+      max-width: none;
+      border-radius: 0;
+    }
+    .wsp-browse {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto 1fr;
+    }
+    .wsp-side {
+      padding: var(--s-3) var(--s-4) 0;
+      border-right: 0;
+    }
+    .wsp-search {
+      padding: var(--s-3) var(--s-4);
+    }
+    .wsp-split {
+      grid-template-columns: 1fr;
+    }
+    .wsp-list {
+      border-right: 0;
+    }
+    .wsp-split.show-detail .wsp-list,
+    .wsp-split:not(.show-detail) .wsp-detail {
+      display: none;
+    }
+    .wsp-back {
+      display: inline-flex;
+    }
+    .wsp-picks,
+    .wsp-detail-body,
+    .wsp-plan-body {
+      padding-left: var(--s-4);
+      padding-right: var(--s-4);
+    }
+  }
+</style>

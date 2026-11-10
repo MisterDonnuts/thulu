@@ -1,0 +1,8 @@
+{
+  "errors": {
+    "read_tools": "no se pueden leer las tools"
+  },
+  "log": {
+    "probe_failed": "tools: consultar {name} ({url}): {err}"
+  }
+}

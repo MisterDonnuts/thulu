@@ -1,0 +1,7 @@
+{
+  "errors": {
+    "authorize_nil": "gitremote: authorize no puede ser nil",
+    "unauthorized": "no autorizado",
+    "backend_not_found": "gitremote: no se encontró git-http-backend (se probó {candidates}); instalá el backend http de git (alpine: apk add git-daemon)"
+  }
+}

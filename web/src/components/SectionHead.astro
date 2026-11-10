@@ -1,0 +1,71 @@
+---
+import Count from "./Count.astro";
+import Icon from "./Icon.astro";
+import { sectionHeadClasses, type SectionHeadLevel, type SectionHeadToggle } from "../lib/ui/panel";
+import type { CountOptions } from "../lib/ui/count";
+
+interface Props {
+  title?: string;
+  id?: string;
+  level?: SectionHeadLevel;
+  count?: number | string;
+  countOpts?: CountOptions;
+  toggle?: SectionHeadToggle;
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  title,
+  id,
+  level = 3,
+  count,
+  countOpts = {},
+  toggle,
+  class: extra,
+  ...rest
+}: Props = Astro.props;
+const cls = sectionHeadClasses({ level, cls: extra });
+const Heading = level === 4 ? "h4" : "h3";
+const { id: countId, cls: countCls, attrs: countAttrs, ...countLook } = countOpts;
+const hasActions = Astro.slots.has("actions");
+---
+
+<div class={cls} {...rest}>
+  <Heading class="sec-title" id={id}>
+    {
+      toggle ? (
+        <button
+          class="sec-toggle"
+          id={toggle.id}
+          type="button"
+          aria-expanded={toggle.expanded ? "true" : "false"}
+          aria-controls={toggle.controls}
+          disabled={toggle.disabled}
+        >
+          <span>
+            <slot name="title">{title}</slot>
+          </span>
+          {count !== undefined && (
+            <Count n={count} id={countId} class={countCls} {...countLook} {...countAttrs} />
+          )}
+          <Icon name="chevron-right" />
+        </button>
+      ) : (
+        <Fragment>
+          <slot name="title">{title}</slot>
+          {count !== undefined && (
+            <Count n={count} id={countId} class={countCls} {...countLook} {...countAttrs} />
+          )}
+        </Fragment>
+      )
+    }
+  </Heading>
+  <slot name="aside" />
+  {
+    hasActions && (
+      <div class="sec-actions">
+        <slot name="actions" />
+      </div>
+    )
+  }
+</div>

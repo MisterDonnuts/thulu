@@ -1,0 +1,11 @@
+{
+  "description": "Sign in with the test account. The password comes from the render's secrets.",
+  "params": ["email"],
+  "steps": [
+    { "kind": "goto", "url": "/login", "label": "Open the sign-in page" },
+    { "kind": "fill", "target": "@email", "value": "{{email}}", "label": "Sign in as {{email}}" },
+    { "kind": "fill", "target": "@password", "secret": "password" },
+    { "kind": "click", "target": "@sign_in" },
+    { "kind": "wait_for", "target": "@account_menu", "state": "visible" }
+  ]
+}

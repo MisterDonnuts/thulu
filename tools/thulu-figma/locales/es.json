@@ -1,0 +1,93 @@
+{
+  "params": {
+    "file_key": "Key del archivo, o cualquier link de figma.com al archivo (design, proto, board, branch). Si node_ids no viene, se usa el node-id del link."
+  },
+  "tools": {
+    "file_get": {
+      "description": "Esquema de un archivo de Figma: páginas y sus frames por id, nombre y tipo, más los componentes y estilos compartidos del archivo. Empezá acá para encontrar los ids de nodo que toman nodes_get e images_render. No trae geometría ni estilos: para eso, nodes_get.",
+      "params": {
+        "depth": "Hasta qué nivel listar: 1 = páginas, 2 = frames de primer nivel (default), hasta 4.",
+        "library": "Incluir nombres de componentes y estilos (default true)."
+      }
+    },
+    "nodes_get": {
+      "description": "Lo que hace falta para construir una pantalla, por nodo: caja [x, y, w, h], auto-layout (modo, gap, padding, alineación), sizing, fills y strokes en hex, radio de las esquinas, efectos, texto y su fuente, y los nombres de los estilos compartidos que usa. Los hijos se describen hasta `depth`; los más profundos se cuentan.",
+      "params": {
+        "node_ids": "Ids de nodo (\"1:2\" o \"1-2\"), hasta 20. Por defecto, el node-id del link en file_key.",
+        "depth": "Niveles de hijos a describir: de 0 a 6, default 3."
+      }
+    },
+    "images_render": {
+      "description": "Renderiza nodos como imágenes con Figma. PNG y JPG vuelven inline para que los mires (hasta 4 por llamada); cualquier formato devuelve además la URL de Figma. Con attach=true sube los archivos a la tarea, donde una persona los puede ver.",
+      "params": {
+        "node_ids": "Ids de nodo a renderizar, hasta 10. Por defecto, el node-id del link en file_key.",
+        "format": "png (default), jpg, svg o pdf.",
+        "scale": "De 0.01 a 4, default 1. Usá 2 para ver nítido un componente chico.",
+        "inline": "Devolver PNG/JPG inline (default true para esos formatos).",
+        "attach": "Subir cada render a la tarea de esta corrida como adjunto."
+      }
+    },
+    "comments_list": {
+      "description": "Comentarios de un archivo agrupados en hilos, los más nuevos primero, con el nodo al que está anclado cada uno. Los hilos resueltos quedan afuera salvo con include_resolved.",
+      "params": {
+        "include_resolved": "Incluir hilos resueltos (default false).",
+        "limit": "Hilos a devolver: de 1 a 200, default 50."
+      }
+    },
+    "team_projects_list": {
+      "description": "Proyectos de un equipo de Figma. Figma no tiene un endpoint que liste los equipos de una persona: el id sale de un link como figma.com/files/team/<id>.",
+      "params": {
+        "team_id": "Id del equipo, o un link de figma.com que contenga /team/<id>."
+      }
+    },
+    "project_files_list": {
+      "description": "Archivos de un proyecto de Figma, con su key y su último cambio.",
+      "params": {
+        "project_id": "Id del proyecto, de team_projects_list."
+      }
+    }
+  },
+  "errors": {
+    "no_credential": "esta llamada no trajo ninguna credencial de Thulu — la key del agente viaja en el handshake del MCP (X-API-Key); este servidor no tiene una propia",
+    "octopus_api_unset": "OCTOPUS_API no está configurado en este servidor",
+    "octopus_unreachable": "no se puede llegar a Thulu en {url}: {err}",
+    "octopus_http": "Thulu {method} {path} → HTTP {status}: {body}",
+    "credential_refused": "{tool} rechazada: {detail}",
+    "credential_not_figma": "la credencial \"{credential}\" es de {provider}, no de Figma",
+    "no_figma_credential": "esta tarea no tiene un token de Figma disponible. Agregá una credencial de Figma en la página de Credenciales y concedela al workspace o al proyecto de esta tarea.",
+    "figma_unreachable": "no se puede llegar a Figma en {url}: {err}",
+    "figma_rate_limited": "Figma limitó la tasa de {path}; reintentá en {retry} s",
+    "figma_http": "figma {path} → HTTP {status}: {msg}",
+    "image_download": "la descarga del render falló con HTTP {status}",
+    "file_key_invalid": "no es una key ni un link de archivo de Figma: \"{value}\"",
+    "node_ids_required": "falta node_ids (o pasá como file_key un link con ?node-id=)",
+    "too_many_nodes": "{count} ids de nodo; como mucho {max} por llamada",
+    "node_id_invalid": "no es un id de nodo: \"{id}\"",
+    "attach_without_task": "attach necesita una tarea, y esta sesión no está atada a ninguna",
+    "render_failed": "Figma no pudo renderizar: {err}",
+    "team_id_invalid": "no es un id ni un link de equipo: \"{value}\"",
+    "project_id_invalid": "no es un id de proyecto: \"{value}\"",
+    "unknown_tool": "tool desconocida '{name}'",
+    "tool_not_allowed": "la tool '{name}' no está en la lista de tools permitidas de esta sesión",
+    "tool_scope_required": "la tool '{name}' requiere el scope '{required}', esta sesión tiene '{scope}'",
+    "tool_failed": "error en {tool}: {err}",
+    "session_not_found": "sesión no encontrada",
+    "handshake_no_key": "una sesión MCP necesita la key de la corrida en el handshake (X-API-Key o Authorization: Bearer)",
+    "message_key_mismatch": "este mensaje no trae la key con la que se abrió su sesión",
+    "list_only_session": "esta sesión se abrió sin credencial: puede listar tools, no llamarlas"
+  },
+  "text": {
+    "truncated": "[…recortado: thulu-figma omitió {bytes} bytes más. Pedí menos: menos profundidad, menos ids de nodo.]",
+    "render_empty": "Figma no devolvió imagen para este nodo (invisible, vacío o no renderizable)",
+    "inline_too_large": "{bytes} bytes, más que el tope inline de {max} bytes: bajá la escala, o usá attach",
+    "render_urls_expire": "Las URLs de imagen de Figma vencen a los 30 días; adjuntá las que la tarea tenga que conservar."
+  },
+  "log": {
+    "listening": "servidor MCP thulu-figma escuchando en :{port}",
+    "octopus_api": "  OCTOPUS_API:  {url}",
+    "figma_api": "  API de Figma: {url}",
+    "sse_endpoint": "  Endpoint SSE: GET  /sse?task=<id>&scope=read[&tools=a,b][&catalog=1]",
+    "health": "  Health check: GET  /health",
+    "shutting_down": "\nrecibido {signal}, apagando"
+  }
+}

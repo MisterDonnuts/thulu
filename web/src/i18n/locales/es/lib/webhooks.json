@@ -1,0 +1,46 @@
+{
+  "events": {
+    "task_created": "Se creó una tarea, en el tablero o por la API.",
+    "task_stage_changed": "Una tarea pasó a otra etapa.",
+    "task_deleted": "Se eliminó una tarea.",
+    "chat_message": "Una persona o un agente escribió en un chat.",
+    "stages_changed": "Cambiaron las columnas de un tablero: una etapa agregada, editada, quitada o reordenada.",
+    "boards_changed": "Se creó, renombró o eliminó un tablero, o pasó a ser el predeterminado.",
+    "task_types_changed": "Cambiaron los tipos de tarea de un tablero.",
+    "question_asked": "Un agente le hizo una pregunta a una persona y espera la respuesta.",
+    "question_answered": "Alguien respondió la pregunta de un agente.",
+    "question_canceled": "Se canceló la pregunta de un agente, por una persona o porque la tarea siguió sin ella.",
+    "approval_requested": "Una tarea necesita la aprobación de alguien: la abrió una etapa, o la pidió un agente o una persona.",
+    "approval_decided": "Alguien decidió una aprobación: aprobada, con cambios pedidos o dispensada."
+  },
+  "test": {
+    "ok": "Entrega de prueba OK: HTTP {status} en {ms} ms",
+    "failed_status": "Falló la entrega de prueba: HTTP {status}",
+    "failed_error": "Falló la entrega de prueba. {error}",
+    "failed": "Falló la entrega de prueba"
+  },
+  "deliveries": {
+    "http": "HTTP {status}",
+    "no_response": "Sin respuesta",
+    "state_delivered": "Entregada",
+    "state_retrying": "Se va a reintentar",
+    "state_retried": "Le siguió otro intento",
+    "state_failed": "Falló; no hay más intentos"
+  },
+  "errors": {
+    "url_required": "La URL es obligatoria.",
+    "url_invalid": "Ingresá una URL válida.",
+    "events_required": "Elegí al menos un evento."
+  },
+  "legacy": {
+    "title": "Firmado con HMAC usando sha256(secreto) como clave, no el secreto en sí. Rotá el secreto para corregirlo.",
+    "note": {
+      "one": "Un endpoint firma con una clave derivada del secreto que se te mostró, así que un receptor que verifica X-Octopus-Signature con ese secreto rechaza todas las entregas. Rotá el secreto de cada endpoint marcado con firma con clave derivada y pasale el nuevo al receptor: desde ese momento firma con HMAC-SHA256 usando el secreto en sí como clave.",
+      "other": "{count} endpoints firman con una clave derivada del secreto que se te mostró, así que un receptor que verifica X-Octopus-Signature con ese secreto rechaza todas las entregas. Rotá el secreto de cada endpoint marcado con firma con clave derivada y pasale el nuevo al receptor: desde ese momento firma con HMAC-SHA256 usando el secreto en sí como clave."
+    }
+  },
+  "secret": {
+    "created": "Secreto de firma para {url}. Copialo ahora: no se va a volver a mostrar.",
+    "rotated": "Nuevo secreto de firma para {url}. Copialo ahora: no se va a volver a mostrar."
+  }
+}

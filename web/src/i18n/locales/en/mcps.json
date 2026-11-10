@@ -1,0 +1,116 @@
+{
+  "title": "MCPs",
+  "subtitle": "Long-running MCP tool servers — agents reach them through the daemon.",
+  "header": {
+    "up": "up",
+    "use_in_agent": "Use in an agent",
+    "use_in_agent_title": "Servers are granted per agent and stage, in the MCP tab of Agents",
+    "unchecked": {
+      "one": "{count} not checked",
+      "other": "{count} not checked"
+    }
+  },
+  "buttons": {
+    "add": "Add MCP",
+    "register": "Register"
+  },
+  "panels": {
+    "services": "Services"
+  },
+  "columns": {
+    "name": "Name",
+    "source": "Source",
+    "endpoint": "Endpoint",
+    "status": "Status",
+    "health": "Health",
+    "uptime": "Uptime",
+    "actions": "Actions"
+  },
+  "empty": {
+    "none": "No MCP services found"
+  },
+  "modal": {
+    "register_title": "Register MCP",
+    "edit_title": "Edit {name}",
+    "intro_html": "Registers an MCP server that already runs somewhere else, over Streamable HTTP or SSE. Agents reach it through the daemon, which adds any credential itself; you then grant it per stage in each agent's MCP tab.",
+    "name": "Name",
+    "name_hint_html": "lowercase, dash-separated. Example: <code>my-mcp</code>",
+    "name_invalid": "3 to 64 lowercase letters, digits or dashes; it starts with a letter and does not end in a dash.",
+    "url": "URL",
+    "url_hint": "the daemon calls it; agents only see the daemon's proxy",
+    "url_invalid": "An address that starts with http:// or https://.",
+    "probe": "Detect",
+    "probe_running": "Checking…",
+    "probe_http": "Answers Streamable HTTP.",
+    "probe_sse": "Answers SSE.",
+    "probe_unknown": "Did not answer as an MCP server (HTTP {http}, SSE {sse}).",
+    "probe_auth": "Asks for authentication: pick a stored credential.",
+    "probe_oauth": "Asks for OAuth sign-in (metadata at {url}). Register it with a stored credential, then use Connect on its row.",
+    "probe_failed": "Could not check: {error}",
+    "transport": "Transport",
+    "transport_hint": "what the server speaks",
+    "transport_http": "Streamable HTTP",
+    "transport_sse": "SSE",
+    "auth": "Authentication",
+    "auth_help": "A stored credential is looked up by name in the workspace of the run that calls, and used only if it is granted to that run's task, project or environment. Agents never receive it.",
+    "auth_none": "None",
+    "auth_credential": "Stored credential",
+    "credential_ref": "Credential",
+    "credential_ref_hint": "its name on the Credentials page of each workspace that uses this server",
+    "credential_ref_invalid": "Name the credential this server authenticates with.",
+    "header_template": "Header template",
+    "header_template_help": "One \"Name: value\" per line, with {field} or {base64} taking the credential's fields. Empty sends the credential's own header (HTTP header credentials only).",
+    "description": "Description",
+    "description_hint": "optional — shown in the list",
+    "description_placeholder": "Read-only access to the ticket tracker",
+    "forward_key": "Acts on Thulu for the agent",
+    "forward_key_hint": "Hands this server the run's own API key, so what it can do is what the calling agent can do. Leave off for anything that doesn't call Thulu back.",
+    "docs_link": "How to register one"
+  },
+  "source": {
+    "runtime": "runtime",
+    "registered": "registered",
+    "env": "env",
+    "env_title": "Set in the daemon's environment. Change it where the install is configured (deploy/.env or the Helm values)."
+  },
+  "endpoint": {
+    "from_env": "from {key}",
+    "oauth": "OAuth: {status}"
+  },
+  "actions": {
+    "start": "Start",
+    "stop": "Stop",
+    "restart": "Restart",
+    "edit": "Edit URL",
+    "unregister": "Unregister",
+    "connect": "Connect"
+  },
+  "readonly": {
+    "lead": "The MCP registry and its servers are shared by every workspace on this install."
+  },
+  "confirm": {
+    "unregister_title": "Unregister {name}?",
+    "unregister_message": "Removes the MCP URL from the daemon's forwarding table. Agents launched after this stop seeing {env_key}, or get the daemon's own value for it if its environment sets one. The upstream server itself is not touched.",
+    "stop_title": "Stop {name}?",
+    "stop_message": "Stops the MCP container — agents in flight that depend on it will fail until you start it again."
+  },
+  "toasts": {
+    "write_failed": "{what} — {error}",
+    "updated": "{name}: updated",
+    "registered": "{name}: registered",
+    "unregistered": "{name}: unregistered",
+    "save_failed": "Save failed",
+    "save_failed_detail": "Save failed: {error}",
+    "delete_failed": "{name}: delete failed",
+    "start_ok": "{name}: start ok",
+    "stop_ok": "{name}: stop ok",
+    "restart_ok": "{name}: restart ok",
+    "start_failed": "{name}: start failed",
+    "stop_failed": "{name}: stop failed",
+    "restart_failed": "{name}: restart failed",
+    "refresh_failed": "Refresh failed: {error}"
+  },
+  "health": {
+    "unchecked_title": "The daemon checks these URLs only for the operator workspace. Not checked does not mean down."
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "errors": {
+    "no_such_route": "no such route",
+    "checker_not_configured": "update checker not configured",
+    "lookups_off": "release lookups are off ({env}=off); the operator sets the source when deploying",
+    "source_misconfigured": "the release source is misconfigured: {err}",
+    "check_too_soon": "a check ran less than a minute ago; try again in {wait}",
+    "bad_format": "format must be md or json",
+    "to_required": "to is required",
+    "no_verified_release": "no verified release {version} among the versions on offer; run a check first",
+    "render_package_failed": "render change package",
+    "read_history_failed": "read version history",
+    "report_needs_operator_key": "update reports take an API key of the operator workspace",
+    "audit_not_configured": "audit log not configured",
+    "invalid_body": "invalid body",
+    "from_not_version": "from is not a version",
+    "to_not_version": "to is required and must be a version",
+    "bad_result": "result must be ok, failed or rolled_back",
+    "bad_mode": "mode must be docker or kubernetes",
+    "bad_operator": "operator must be printable text of at most {max} bytes",
+    "bad_detail": "detail must be text of at most {max} bytes",
+    "bad_started_at": "started_at must be an RFC 3339 time",
+    "bad_finished_at": "finished_at must be an RFC 3339 time",
+    "finished_before_started": "finished_at is before started_at",
+    "finished_in_future": "finished_at is in the future",
+    "backup_status_too_large": "{path} is too large to be a backup status file",
+    "backup_status_unreadable": "{path} is not a backup status file deploy/backup.sh wrote"
+  },
+  "audit": {
+    "checked": "checked for updates",
+    "package_downloaded": "downloaded the change package to {version}",
+    "reported": "update {from} → {to}: {result}"
+  },
+  "labels": {
+    "operator_subject": "the install's version",
+    "operator_verb": "see or report on",
+    "unknown_version": "unknown",
+    "result_ok": "succeeded",
+    "result_failed": "failed",
+    "result_rolled_back": "rolled back"
+  },
+  "hints": {
+    "unverified_preview": "Preview build, not verified here: checking its keyless signature takes cosign, which the daemon does not carry. `thulu update` verifies it before installing and refuses it if the signature does not hold (the machine that runs it needs cosign)."
+  }
+}

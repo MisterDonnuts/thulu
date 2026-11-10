@@ -1,0 +1,68 @@
+# pods/ephemeralcontainers is matched because `kubectl debug` adds containers through it. The
+# tenant-*/octopus-sandboxes name match
+# covers namespaces that lost the label; both names are the ones the daemon uses.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: octopus-enforce-sandbox-runtime
+spec:
+  failurePolicy: Fail # closed: if the policy can't be evaluated, deny.
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["pods", "pods/ephemeralcontainers"]
+  # matchConditions cannot see namespaceObject, so the scope test lives here; every validation must
+  # start with `!variables.inScope ||`.
+  variables:
+    - name: inScope
+      expression: >-
+        namespaceObject != null && (
+          (has(namespaceObject.metadata.labels) &&
+           'thulu.dev/plane' in namespaceObject.metadata.labels &&
+           namespaceObject.metadata.labels['thulu.dev/plane'] == 'data') ||
+          namespaceObject.metadata.name.startsWith('tenant-') ||
+          namespaceObject.metadata.name == 'octopus-sandboxes')
+    - name: allContainers
+      expression: >-
+        object.spec.containers +
+        (has(object.spec.initContainers) ? object.spec.initContainers : []) +
+        (has(object.spec.ephemeralContainers) ? object.spec.ephemeralContainers : [])
+  validations:
+    - expression: >-
+        !variables.inScope ||
+        (has(object.spec.runtimeClassName) &&
+         object.spec.runtimeClassName in ['kata-clh', 'gvisor'])
+      messageExpression: >-
+        'tenant pods must run under a sandboxed RuntimeClass (kata-clh or gvisor); got ' +
+        (has(object.spec.runtimeClassName) ? object.spec.runtimeClassName : '<none>')
+      reason: Forbidden
+    - expression: "!variables.inScope || !has(object.spec.hostNetwork) || object.spec.hostNetwork == false"
+      message: "hostNetwork is not allowed for tenant pods"
+      reason: Forbidden
+    - expression: "!variables.inScope || !has(object.spec.hostPID) || object.spec.hostPID == false"
+      message: "hostPID is not allowed for tenant pods"
+      reason: Forbidden
+    - expression: "!variables.inScope || !has(object.spec.hostIPC) || object.spec.hostIPC == false"
+      message: "hostIPC is not allowed for tenant pods"
+      reason: Forbidden
+    - expression: "!variables.inScope || !has(object.spec.volumes) || object.spec.volumes.all(v, !has(v.hostPath))"
+      message: "hostPath volumes are not allowed for tenant pods"
+      reason: Forbidden
+    - expression: >-
+        !variables.inScope ||
+        variables.allContainers.all(c,
+          !has(c.securityContext) ||
+          !has(c.securityContext.privileged) ||
+          c.securityContext.privileged == false)
+      message: "privileged containers (including init and ephemeral containers) are not allowed for tenant pods"
+      reason: Forbidden
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: octopus-enforce-sandbox-runtime
+spec:
+  policyName: octopus-enforce-sandbox-runtime
+  validationActions: [Deny, Audit]

@@ -1,0 +1,68 @@
+---
+import Badge from "./Badge.astro";
+import Count from "./Count.astro";
+import Dot from "./Dot.astro";
+import Icon from "./Icon.astro";
+import {
+  activeTab,
+  tabAttrs,
+  tabDot,
+  tabIds,
+  tablistAttrs,
+  tabStop,
+  type TabItem,
+  type TabsVariant,
+} from "../lib/ui/tabs";
+
+interface Props {
+  items: TabItem[];
+  active?: string | null;
+  label: string;
+  variant?: TabsVariant;
+  id?: string;
+  idPrefix?: string;
+  panels?: boolean;
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  items,
+  active,
+  label,
+  variant = "underline",
+  id,
+  idPrefix,
+  panels = false,
+  class: extra,
+  ...rest
+} = Astro.props;
+const o = { items, active, label, variant, id, idPrefix, panels, cls: extra };
+const on = activeTab(items, active);
+const stop = tabStop(items, on);
+---
+
+<div {...tablistAttrs(o)} {...rest}>
+  {
+    items.map((item) => {
+      const ids = tabIds(item, o);
+      return (
+        <button {...tabAttrs(item, item.id === on, o, item.id === stop)}>
+          {item.dot ? (
+            <Dot tone={tabDot(item).tone} style={tabDot(item).style} />
+          ) : (
+            item.icon && <Icon name={item.icon} size="sm" />
+          )}
+          <span id={item.labelId}>{item.label}</span>
+          {item.badge && <Badge tone={item.badge.tone}>{item.badge.label}</Badge>}
+          {item.count !== undefined && <Count n={item.count} pill hideZero id={ids.count} />}
+          {item.flag !== undefined && (
+            <span class="tab-flag" id={ids.flag} hidden={item.flagHidden}>
+              <Icon name="warn" />
+              <span class="visually-hidden">{item.flag}</span>
+            </span>
+          )}
+        </button>
+      );
+    })
+  }
+</div>

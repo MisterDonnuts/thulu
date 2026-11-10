@@ -1,0 +1,11 @@
+{
+  "errors": {
+    "agent_not_found": "agent not found: {id}",
+    "ambiguous_identifier": "ambiguous identifier {id:%q}: matches multiple agents",
+    "schema": "registry schema",
+    "marshal_agent": "marshal agent {id}"
+  },
+  "log": {
+    "mirror_failed": "registry mirror: {op} {id}"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "kind": {
+    "question": "Agent question",
+    "blocker": "Agent is blocked"
+  },
+  "status": {
+    "open": "waiting for an answer",
+    "answered": "answered",
+    "canceled": "canceled"
+  },
+  "non_blocking": "keeps working meanwhile",
+  "pick_many": "pick any",
+  "other": "Other:",
+  "other_placeholder": "Other…",
+  "answer_placeholder": "Your answer",
+  "note": "Note:",
+  "note_placeholder": "Note for the agent (optional)",
+  "note_placeholder_blocker": "What the agent needs to go on (required)",
+  "default_label": "If nobody answers:",
+  "submit": "Send answer",
+  "cancel": "Cancel question",
+  "answered_by": "Answered by {who} · {when}",
+  "answered_at": "Answered · {when}",
+  "canceled_by": "Canceled by {who}",
+  "canceled": "Canceled",
+  "errors": {
+    "unanswered": "Answer \"{question}\": pick an option or write one",
+    "blocker_text": "The agent is blocked: write what it needs, in Other or in the note",
+    "unanswered_text": "Write an answer for \"{question}\""
+  },
+  "delivery": {
+    "steered": "The run that asked got it while it worked.",
+    "resumed": "The stage resumed with this answer.",
+    "thread": "No run was listening: it stays in the thread and the next run reads it.",
+    "pending": "Not delivered yet: it goes to the agent when the run ends or the other blocking questions are answered.",
+    "resume_failed": "Saved, but the agent could not be resumed with it. Relaunch the stage and the agent reads it."
+  },
+  "secret_warning": "What you write here stays visible in the thread. If the agent needs a secret, store it in Credentials instead of pasting it.",
+  "secret_link": "Open Credentials"
+}

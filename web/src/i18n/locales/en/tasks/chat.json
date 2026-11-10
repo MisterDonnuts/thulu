@@ -1,0 +1,40 @@
+{
+  "no_task": "Open a task to see its conversation.",
+  "placeholder": "Write to the agent… (Enter sends, Shift+Enter adds a line, @agent opens a separate chat)",
+  "input_label": "Message to the agent",
+  "interrupt_title": "Stops what it is doing now instead of waiting for the turn to end",
+  "interrupt": "interrupt",
+  "send": "Send",
+  "load_failed": "Could not read the conversation.",
+  "empty_html": "Nothing here yet.<br/>Write to the agent and the conversation starts.",
+  "agent_fallback": "agent",
+  "answers_in_chat": "@{agent} answers in its chat →",
+  "unread_note": "Nobody has read it yet.",
+  "to_comments": "Move it to comments",
+  "moved_to_comments": "Moved to comments.",
+  "to_comments_failed": "Could not move it to comments",
+  "answers_in_comments": "@{agent} answers in comments",
+  "run_turns": {
+    "one": "{count} turn",
+    "other": "{count} turns"
+  },
+  "status": {
+    "live": "live",
+    "reading": "reading",
+    "reconnecting": "reconnecting",
+    "finished": "finished",
+    "no_transcript": "no transcript",
+    "waiting_runner": "waiting for the runner"
+  },
+  "send_failed": "Could not send the message",
+  "session_start": "session start",
+  "session_start_model": "session start · {model}",
+  "thinking": "thinking",
+  "turn_finished": "Turn finished · {turns}",
+  "turn_failed": "Turn ended with an error · {turns}",
+  "turn_out_of_turns": "Out of turns · {turns}",
+  "stop": {
+    "max_tokens": "the answer hit the token limit",
+    "refusal": "the model declined to answer"
+  }
+}

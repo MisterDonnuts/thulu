@@ -1,0 +1,68 @@
+{
+  "blockers": {
+    "from_unknown": "the installed version could not be read; start the daemon so /info answers",
+    "unstamped_build": "{from:%q} is an unstamped build; its schema cannot be compared with a release",
+    "downgrade": "{to} is older than the installed {from}; going back is `thulu update -to {to}`",
+    "needs_intermediate": "{to} upgrades only from {upgrade_from}; {from} has to go through an intermediate release first",
+    "missing_env": "required variable {name} is not set",
+    "edited_by_hand": "deploy/{path} was edited by hand; move the edit to {override} and delete the file"
+  },
+  "backup": {
+    "kubernetes": "required, by you: snapshot the external database (PITR or a dump) and pass -backup-confirmed",
+    "external": "required, by you: snapshot the external database and pass -backup-confirmed",
+    "bundled": "taken by apply before anything changes: pg_dump of the bundled Postgres into backups/"
+  },
+  "downtime": {
+    "kubernetes": "none expected: the chart rolls pods and keeps the old version serving until the new one is ready",
+    "recreate": "about a minute: the daemon container is recreated"
+  },
+  "rollback": {
+    "nothing": "nothing to roll back to: the version installed now is unknown or the same",
+    "images_auto": "apply goes back to {from} on its own if the new version does not come up healthy.",
+    "images_by_hand": "Later, by hand: `thulu update -to {from}`. Images only; the database stays as it is.",
+    "external_restore": "Going back to {from} needs the database as it was before the update: restore your snapshot, then",
+    "external_by_hand": "`thulu update -to {from} -restore {restore}`. Anything written after the update is lost.",
+    "snapshot_auto": "apply goes back to {from} on its own, restoring the snapshot it took, if the new version does not come up healthy.",
+    "snapshot_by_hand": "Later, by hand: `thulu update -to {from} -restore <snapshot>` with the snapshot this update records. Anything written after the update is lost."
+  },
+  "doc": {
+    "unknown_version": "unknown",
+    "title": "# Thulu change package: {from} → {to}",
+    "row_generated": "| Generated | {at} |",
+    "row_mode": "| Mode | {mode} |",
+    "row_from": "| From | {from} |",
+    "row_to": "| To | {to} ({channel} channel, published {published}) |",
+    "row_commit": "| Commit | `{commit}` |",
+    "row_source": "| Source | {source} |",
+    "row_backup": "| Backup | {backup} |",
+    "row_downtime": "| Expected downtime | {downtime} |",
+    "blockers_heading": "## Blockers",
+    "blockers_intro": "apply refuses to run until these are resolved:",
+    "advisories_heading": "## Security advisories fixed",
+    "advisories_none": "None that affect {from}.",
+    "advisories_columns": "| ID | Severity | Summary |",
+    "migrations_heading": "## Migrations",
+    "migrations_added": "- Added: {count}",
+    "migrations_contract": "- Contract (drop or rename something an older version reads): {count}",
+    "migrations_back_images": "- Going back to {from} changes images only; the database stays.",
+    "migrations_back_snapshot": "- Going back to {from} needs the snapshot taken before this update.",
+    "config_heading": "## Configuration and manual steps",
+    "requires_none": "No new required variables.",
+    "requires": "Required variables: {names}.",
+    "missing_env": "Not set on this install: {names}.",
+    "manual_steps_none": "No manual steps.",
+    "manual_steps": "Manual steps (apply needs -ack-manual-steps):",
+    "files_heading": "## Deploy files",
+    "files_none": "No deploy file changes.",
+    "plan_heading": "## Execution plan",
+    "plan_explained": "apply verifies the manifest signature, checks the items above, takes the backup, pulls every image by digest and verifies its signature, then waits for /health/ready and checks /info reports {version}.",
+    "rollback_heading": "## Rollback",
+    "images_heading": "## Images",
+    "images_columns": "| Image | Reference |",
+    "image_third_party": "| {name} (third party, pinned by digest) | `{ref}` |",
+    "image_chart": "| Helm chart | `{ref}@{digest}` |",
+    "verify_intro": "Verify the signatures with the public key from SECURITY.md:",
+    "notes_heading": "## Release notes",
+    "notes_unsigned": "Quoted from the release page; not covered by the signature."
+  }
+}

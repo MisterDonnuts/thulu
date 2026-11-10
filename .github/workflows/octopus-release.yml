@@ -1,0 +1,697 @@
+name: Thulu Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions: {}
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+# linux/arm64 runs under QEMU on the amd64 runners, about 18 extra minutes on the images job. It is
+# published because amd64 images on Apple Silicon need Rosetta: under QEMU, the emulator Docker falls
+# back to, Claude Code crashes or hangs. internal/initwizard/execute.go keeps the same list.
+env:
+  IMAGE_PLATFORMS: linux/amd64,linux/arm64
+
+# install.sh and the Kyverno policy verify the keyless identity octopus-release.yml@refs/tags/v*;
+# moving signing to another file breaks them.
+jobs:
+  # Nothing is signed, tagged or published before this job passes; the builds run alongside only
+  # because they push untagged digests and upload artifacts.
+  ci-gate:
+    name: CI passed on the tagged commit
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read   # the commits API, to compare trees
+    timeout-minutes: 70
+    steps:
+      - name: Wait for octopus-ci.yml on ${{ github.sha }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          # Must match the compat step name in octopus-ci.yml.
+          COMPAT_STEP: prev → HEAD → prev → HEAD
+        run: |
+          deadline=$(( $(date +%s) + 60*60 ))
+          seen_deadline=$(( $(date +%s) + 10*60 ))
+          seen=""
+          want_tree=""
+          declare -A rejected=()   # PR run id → why it does not count
+
+          # A failed lookup rejects that run for good: falling back to the push run is slower but
+          # never wrong, and avoids a retry storm on the API rate limit.
+          find_pr_run() {
+            local list id head tree compat
+            accepted=""
+            # Filter by event in jq: with event=pull_request the API can return old runs, not the newest.
+            if ! list=$(gh api "repos/$REPO/actions/workflows/octopus-ci.yml/runs?status=success&per_page=50" \
+              --jq '.workflow_runs[] | select(.event == "pull_request" and .status == "completed" and .conclusion == "success") | "\(.id) \(.head_sha)"'); then
+              echo "::warning::could not list pull_request CI runs; retrying"
+              return
+            fi
+            while read -r id head; do
+              [ -n "$id" ] && [ -z "${rejected[$id]:-}" ] || continue
+              if ! tree=$(gh api "repos/$REPO/commits/$head" --jq .commit.tree.sha); then
+                rejected[$id]="commit unreadable"; continue
+              fi
+              if [ "$tree" != "$want_tree" ]; then rejected[$id]="other tree"; continue; fi
+              if ! compat=$(gh api "repos/$REPO/actions/runs/$id/jobs?per_page=100" \
+                --jq "[.jobs[].steps[]? | select(.name == env.COMPAT_STEP) | .conclusion] | join(\",\")"); then
+                rejected[$id]="jobs unreadable"; continue
+              fi
+              if [ "$compat" != success ]; then
+                rejected[$id]="compat did not run"
+                echo "PR run $id tested this tree but its compat step concluded '${compat:-absent}'; it does not count"
+                continue
+              fi
+              accepted="$id ($head)"
+              return
+            done <<< "$list"
+          }
+
+          while :; do
+            now=$(date +%s)
+            if [ "$now" -gt "$deadline" ]; then
+              echo "::error::octopus-ci.yml on $SHA did not finish within 60 minutes"
+              exit 1
+            fi
+
+            if [ -z "$want_tree" ]; then
+              want_tree=$(gh api "repos/$REPO/commits/$SHA" --jq .commit.tree.sha) || want_tree=""
+              if [ -z "$want_tree" ]; then
+                echo "::warning::could not read the tree of $SHA; retrying"
+                sleep 30
+                continue
+              fi
+              echo "tagged commit $SHA has tree $want_tree"
+            fi
+
+            find_pr_run
+            if [ -n "$accepted" ]; then
+              echo "CI passed on the same tree: pull_request run $accepted"
+              exit 0
+            fi
+
+            if ! runs=$(gh api "repos/$REPO/actions/workflows/octopus-ci.yml/runs?head_sha=$SHA&event=push&branch=main&per_page=20" \
+              --jq '.workflow_runs[] | "\(.status) \(.conclusion)"'); then
+              echo "::warning::could not list CI runs; retrying"
+              sleep 30
+              continue
+            fi
+            if [ -n "$runs" ]; then seen=1; fi
+            if echo "$runs" | grep -q '^completed success$'; then
+              echo "CI passed on $SHA"
+              exit 0
+            fi
+            if [ -n "$runs" ] && ! echo "$runs" | grep -qv '^completed '; then
+              echo "::error::every octopus-ci.yml run on $SHA finished without success:"
+              echo "$runs"
+              exit 1
+            fi
+            if [ -z "$seen" ] && [ "$now" -gt "$seen_deadline" ]; then
+              echo "::error::no octopus-ci.yml push run on main for $SHA after 10 minutes, and no successful pull_request run of the same tree. Tag a commit that is on main (make release does)."
+              exit 1
+            fi
+            echo "waiting for CI on $SHA: ${runs:-no run yet}"
+            sleep 30
+          done
+
+  # Image jobs get no id-token on purpose: before ci-gate they can only push untagged, unsigned
+  # digests.
+  image-base:
+    name: Image octopus-agent-base
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write      # push to ghcr.io (by digest)
+    outputs:
+      ref: ${{ steps.image.outputs.image }}@${{ steps.image.outputs.digest }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - id: image
+        uses: ./.github/actions/release-image
+        with:
+          name: octopus-agent-base
+          file: images/docker/Dockerfile
+          context: images/docker
+          platforms: ${{ env.IMAGE_PLATFORMS }}
+          sign: "false"
+
+  # Same list as RELEASE_IMAGES in the Makefile and as sign-images below; change all three together.
+  images:
+    name: Image ${{ matrix.name }}
+    needs: image-base
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: octopus
+            file: deploy/Dockerfile
+            context: .
+          - name: octopus-agent
+            file: images/kube-agent/Dockerfile
+            context: .
+            base: true
+          - name: octopus-agent-claude-code
+            file: images/kube-agent/Dockerfile
+            context: .
+            base: true
+            build-args: ENGINES=claude-code
+          - name: octopus-agent-codex
+            file: images/kube-agent/Dockerfile
+            context: .
+            base: true
+            build-args: ENGINES=codex
+          - name: octopus-agent-opencode
+            file: images/kube-agent/Dockerfile
+            context: .
+            base: true
+            build-args: ENGINES=opencode
+          - name: octopus-sandbox
+            file: images/sandbox/Dockerfile
+            context: .
+          - name: octopus-runtime
+            file: images/runtime/Dockerfile
+            context: images/runtime
+          - name: octopus-mcp-octopus-api
+            file: tools/octopus-api/Dockerfile
+            context: tools/octopus-api
+          - name: octopus-mcp-github
+            file: tools/thulu-github/Dockerfile
+            context: tools/thulu-github
+          - name: octopus-mcp-browser
+            file: tools/thulu-browser/Dockerfile
+            context: tools/thulu-browser
+          - name: octopus-mcp-cloud
+            file: tools/thulu-cloud/Dockerfile
+            context: tools/thulu-cloud
+          - name: octopus-mcp-figma
+            file: tools/thulu-figma/Dockerfile
+            context: tools/thulu-figma
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/release-image
+        with:
+          name: ${{ matrix.name }}
+          file: ${{ matrix.file }}
+          context: ${{ matrix.context }}
+          platforms: ${{ env.IMAGE_PLATFORMS }}
+          base: ${{ matrix.base && needs.image-base.outputs.ref || '' }}
+          build-args: ${{ matrix.build-args || '' }}
+          sign: "false"
+
+  # Builds before ci-gate because workflow artifacts are unreachable outside this run; only the
+  # release job publishes them, after the gate.
+  build-binaries:
+    name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: go.mod
+          cache: false   # never restore what a branch or preview build wrote
+
+      # -tags hostcli must match HOST_TAGS in the Makefile.
+      # Keep the bare binary next to the .tar.gz: `thulu update` and install.sh fetch it by name.
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          BINARY="octopus_${VERSION}_${GOOS}_${GOARCH}"
+          mkdir -p dist
+          go build -tags hostcli -trimpath \
+            -ldflags="-s -w -X github.com/MisterDonnuts/thulu/internal/buildinfo.Version=${VERSION}" \
+            -o "dist/${BINARY}" \
+            .
+          cd dist
+          sha256sum "${BINARY}" > "${BINARY}.sha256"
+
+          # install.sh extracts the member named `octopus`; root ownership keeps the runner's uid
+          # out.
+          staging="${RUNNER_TEMP}/archive"
+          mkdir -p "$staging"
+          cp "${BINARY}" "$staging/octopus"
+          set -- octopus
+          for f in LICENSE LICENSE-EXCEPTION NOTICE THIRD_PARTY_NOTICES; do
+            cp "${GITHUB_WORKSPACE}/$f" "$staging/"
+            set -- "$@" "$f"
+          done
+          if [ -f "${GITHUB_WORKSPACE}/ee/LICENSE" ]; then
+            mkdir -p "$staging/ee"
+            cp "${GITHUB_WORKSPACE}/ee/LICENSE" "$staging/ee/"
+            set -- "$@" ee/LICENSE
+          fi
+          tar --owner=0 --group=0 --numeric-owner -czf "${BINARY}.tar.gz" -C "$staging" "$@"
+          tar -tvzf "${BINARY}.tar.gz"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: binary-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/
+
+  chart:
+    name: Chart
+    needs: ci-gate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write      # keyless cosign signature
+    outputs:
+      ref: ${{ steps.push.outputs.ref }}
+      digest: ${{ steps.push.outputs.digest }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: v2.6.5
+
+      - name: Package and push
+        id: push
+        env:
+          CHART_REGISTRY_USER: ${{ github.actor }}
+          CHART_REGISTRY_PASSWORD: ${{ github.token }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          owner="$(echo "$OWNER" | tr '[:upper:]' '[:lower:]')"
+          repo="oci://ghcr.io/${owner}/charts"
+          make chart-push VERSION="$VERSION" CHART_REPO="$repo"
+          {
+            echo "ref=${repo}/octopus:${VERSION}"
+            echo "digest=$(cat dist/chart.digest)"
+          } >> "$GITHUB_OUTPUT"
+
+      # Helm keeps the login from `make chart-push` to itself; cosign reads the Docker config and
+      # gets a 401 without this.
+      - name: Log in to GitHub Container Registry
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ACTOR: ${{ github.actor }}
+        run: echo "$GH_TOKEN" | cosign login ghcr.io -u "$ACTOR" --password-stdin
+
+      - name: Sign chart (cosign keyless)
+        env:
+          REF: ${{ steps.push.outputs.ref }}
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: cosign sign --yes "${REF#oci://}@${DIGEST}"
+
+  # Same image list as the image jobs; tag-images refuses to tag an image this job did not sign.
+  sign-images:
+    name: Sign ${{ matrix.name }}
+    needs: [ci-gate, image-base, images]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write      # cosign pushes the signature and attestation next to the image
+      id-token: write      # keyless cosign signing + provenance (OIDC)
+      attestations: write  # GitHub artifact attestation (provenance)
+    strategy:
+      fail-fast: false
+      matrix:
+        name:
+          - octopus-agent-base
+          - octopus
+          - octopus-agent
+          - octopus-agent-claude-code
+          - octopus-agent-codex
+          - octopus-agent-opencode
+          - octopus-sandbox
+          - octopus-runtime
+          - octopus-mcp-octopus-api
+          - octopus-mcp-github
+          - octopus-mcp-browser
+          - octopus-mcp-cloud
+          - octopus-mcp-figma
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ref-${{ matrix.name }}
+          path: image-ref/
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: sbom-${{ matrix.name }}
+          path: sbom/
+
+      - name: Read the pushed reference
+        id: ref
+        env:
+          NAME: ${{ matrix.name }}
+        run: |
+          ref="$(tr -d '[:space:]' < "image-ref/${NAME}.ref")"
+          {
+            echo "image=${ref%@*}"
+            echo "digest=${ref#*@}"
+            echo "sbom=sbom/${NAME}-${GITHUB_REF_NAME#v}.spdx.json"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: ./.github/actions/sign-image
+        with:
+          image: ${{ steps.ref.outputs.image }}
+          digest: ${{ steps.ref.outputs.digest }}
+          sbom: ${{ steps.ref.outputs.sbom }}
+
+  manifest:
+    name: Release manifest
+    needs: [ci-gate, image-base, images, chart, build-binaries]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: go.mod
+          cache: false   # never restore what a branch or preview build wrote
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: ref-*
+          path: dist/images/
+          merge-multiple: true
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: binary-*
+          path: dist/
+          merge-multiple: true
+
+      # Same postgres/caddy tags as deploy/docker-compose.yml.
+      - name: Build manifest
+        env:
+          CHART_REF: ${{ needs.chart.outputs.ref }}
+          CHART_DIGEST: ${{ needs.chart.outputs.digest }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          pin() { echo "$1@$(docker buildx imagetools inspect "$1" --format '{{ .Manifest.Digest }}')"; }
+          go run ./cmd/deploy-bundle -o "dist/octopus_${VERSION}_deploy.tar.gz"
+          go run ./cmd/release-manifest \
+            -version "$VERSION" -commit "$SHA" \
+            -images dist/images \
+            -third-party "postgres=$(pin postgres:16-alpine)" \
+            -third-party "caddy=$(pin caddy:2-alpine)" \
+            -chart-ref "$CHART_REF" -chart-digest "$CHART_DIGEST" \
+            -bundle "dist/octopus_${VERSION}_deploy.tar.gz" \
+            -binaries dist \
+            -notes-url "https://github.com/${REPO}/releases/tag/${GITHUB_REF_NAME}" \
+            -o dist/octopus-release.json
+          cat dist/octopus-release.json
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-manifest
+          path: |
+            dist/octopus-release.json
+            dist/octopus_*_deploy.tar.gz
+
+  # The AWS role trusts only the `release` environment, which admits only v* tags, so no branch or
+  # PR can reach the key.
+  # After sign-images: both write the same sha256-<digest>.sig next to each image.
+  sign:
+    name: Sign with the release key
+    needs: [manifest, sign-images]
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: read
+      packages: write      # cosign pushes the signature next to each image
+      id-token: write      # OIDC → the AWS role, and the keyless bundle
+    env:
+      KEY: awskms:///alias/octopus-release-signing
+      AWS_REGION: us-east-1
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: go.mod
+          cache: false   # never restore what a branch or preview build wrote
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: release-manifest
+          path: dist/
+
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: v2.6.5
+
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_RELEASE_ROLE_ARN }}
+          role-session-name: octopus-release-${{ github.run_id }}
+          aws-region: us-east-1
+
+      - name: Log in to GitHub Container Registry
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ACTOR: ${{ github.actor }}
+        run: echo "$GH_TOKEN" | cosign login ghcr.io -u "$ACTOR" --password-stdin
+
+      - name: Sign images and chart
+        run: |
+          jq -r '.images[], (.chart.ref | sub("^oci://"; "") | sub(":[^:/]+$"; "")) + "@" + .chart.digest' \
+            dist/octopus-release.json | while read -r ref; do
+            echo "signing $ref"
+            cosign sign --yes --key "$KEY" "$ref"
+          done
+
+      - name: Sign the manifest
+        run: |
+          cosign sign-blob --yes --key "$KEY" \
+            --output-signature dist/octopus-release.json.sig dist/octopus-release.json
+          cosign sign-blob --yes \
+            --bundle dist/octopus-release.json.sigstore.json dist/octopus-release.json
+
+      - name: Verify as a client would
+        run: go run ./cmd/release-manifest -verify dist/octopus-release.json
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-signed
+          path: |
+            dist/octopus-release.json
+            dist/octopus-release.json.sig
+            dist/octopus-release.json.sigstore.json
+            dist/octopus_*_deploy.tar.gz
+
+  tag-images:
+    name: Tag images
+    needs: [sign, sign-images]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write      # write the tags
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: release-signed
+          path: dist/
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: v2.6.5
+
+      # --prefer-index=false: otherwise imagetools wraps the manifest in a new index whose digest
+      # nobody signed.
+      - name: Point the version tags at the signed digests
+        env:
+          REPO: ${{ github.repository }}
+          PRERELEASE: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          identity="https://github.com/${REPO}/.github/workflows/octopus-release.yml@${GITHUB_REF}"
+          mapfile -t refs < <(jq -r '.images[]' dist/octopus-release.json)
+          if [ "${#refs[@]}" -eq 0 ]; then
+            echo "::error::the signed manifest lists no images"
+            exit 1
+          fi
+          for ref in "${refs[@]}"; do
+            image="${ref%@*}"
+            digest="${ref#*@}"
+            cosign verify \
+              --certificate-identity "$identity" \
+              --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+              "$ref" >/dev/null
+            tags=("${image}:${version}")
+            if [ "$PRERELEASE" != "true" ]; then tags+=("${image}:latest"); fi
+            args=()
+            for t in "${tags[@]}"; do args+=(-t "$t"); done
+            docker buildx imagetools create --prefer-index=false "${args[@]}" "$ref"
+            for t in "${tags[@]}"; do
+              got="$(docker buildx imagetools inspect "$t" --format '{{ .Manifest.Digest }}')"
+              if [ "$got" != "$digest" ]; then
+                echo "::error::$t points at $got, not the signed $digest"
+                exit 1
+              fi
+              echo "$t → $digest"
+            done
+          done
+
+  release:
+    name: Publish GitHub Release
+    runs-on: ubuntu-latest
+    needs: [ci-gate, build-binaries, sign-images, sign, tag-images]
+    permissions:
+      contents: write      # create the release
+      id-token: write      # keyless cosign signature over the checksums
+      attestations: write  # provenance for the binaries
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: binary-*
+          path: dist/
+          merge-multiple: true
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: sbom-*
+          path: dist/
+          merge-multiple: true
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: release-signed
+          path: dist/
+
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: v2.6.5
+
+      - name: Extract changelog entry
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk "/^## \[${VERSION}\]/{found=1; next} found && /^## \[/{exit} found{print}" CHANGELOG.md > release-notes.md
+          test -s release-notes.md || { echo "::error::CHANGELOG.md has no entry for ${VERSION}"; exit 1; }
+
+      # Software Bill of Materials (SPDX JSON) for the source tree, with the
+      # same syft version the Makefile pins. Each image's own SBOM comes from
+      # its job (sbom-* artifacts) and is also attached to the image as a
+      # signed attestation.
+      - name: Generate source SBOM (SPDX JSON)
+        uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
+        with:
+          path: .
+          format: spdx-json
+          output-file: dist/octopus-${{ github.ref_name }}.spdx.json
+          syft-version: v1.52.0
+          upload-artifact: false
+          upload-release-assets: false
+
+      # One checksums file over every binary and archive, signed keylessly.
+      # install.sh verifies this signature (identity: this workflow at a v*
+      # tag) and then the line of the file it downloads. The per-binary .sha256
+      # files are published too.
+      - name: Checksums + signature
+        id: sums
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          SUMS="octopus_${VERSION}_checksums.txt"
+          cd dist
+          : > "$SUMS"
+          for f in octopus_"${VERSION}"_*; do
+            case "$f" in *.sha256|"$SUMS") continue ;; esac
+            sha256sum "$f" >> "$SUMS"
+          done
+          cat "$SUMS"
+          cosign sign-blob --yes --bundle "${SUMS}.sigstore.json" "$SUMS"
+          echo "path=dist/${SUMS}" >> "$GITHUB_OUTPUT"
+
+      # See the image jobs: non-blocking where GitHub offers no attestations.
+      - name: Attest build provenance (binaries)
+        id: provenance
+        continue-on-error: true
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
+        with:
+          subject-checksums: ${{ steps.sums.outputs.path }}
+
+      - name: Create release
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
+        with:
+          name: "Thulu ${{ github.ref_name }}"
+          body_path: release-notes.md
+          files: |
+            dist/octopus_*
+            dist/octopus-release.json
+            dist/octopus-release.json.sig
+            dist/octopus-release.json.sigstore.json
+            dist/*.spdx.json
+            install.sh
+          # A draft until every asset is up: with immutable releases a published release takes no
+          # more uploads.
+          draft: true
+          prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRERELEASE: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}
+        run: |
+          latest=true
+          if [ "$PRERELEASE" = "true" ]; then latest=false; fi
+          gh release edit "$GITHUB_REF_NAME" -R "$GITHUB_REPOSITORY" --draft=false --latest="$latest"

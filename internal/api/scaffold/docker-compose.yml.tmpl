@@ -1,0 +1,28 @@
+services:
+    {{.Name}}:
+        entrypoint:
+            - /bin/bash
+            - /setup.sh
+        environment:
+            - CLAUDE_CODE_OAUTH_TOKEN=${CLAUDE_CODE_OAUTH_TOKEN}
+            - INSTANCE_ID={{.Name}}-1
+            # ENGINE mirrors thulu.engine so setup.sh can route to the right
+            # engines/<name>.sh runner. The daemon sets this on real task
+            # launches; we hardcode it here for standalone `docker compose up`.
+            - ENGINE=claude-code
+        image: octopus-docker:latest
+        labels:
+            thulu.agent: "true"
+            thulu.description: {{.Name}} agent (scaffolded from scratch — edit setup.sh, the engine runner, and these labels to taste).
+            thulu.engine: claude-code
+            thulu.model: sonnet
+            thulu.stages: in_progress
+            thulu.turns: in_progress:50
+            thulu.type: {{.Name}}
+            # works_without_repo lets this agent run on tasks with no linked repo.
+            # Flip to "false" once it does real code changes against a worktree.
+            thulu.works_without_repo: "true"
+        volumes:
+            - ./setup.sh:/setup.sh:ro
+            # engines/ holds the per-engine runners setup.sh sources.
+            - ./engines:/engines:ro

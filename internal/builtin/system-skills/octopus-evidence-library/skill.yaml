@@ -1,0 +1,9 @@
+name: octopus-evidence-library
+description: How to record a case from the Evidence library in a recording chat with thulu-browser. Read the case and the environment with evidence_recording, film the flow live with measured verifications, type the test logins with browser_type(secret=...) and save the take with evidence_save_case so Thulu replays it on its own in each environment. Use it when the chat was opened to record an EV-n case.
+type: knowledge
+enforcement: on_demand
+requires: []
+# Bump on every change: the daemon syncs this skill at boot only when version exceeds the stored
+# one.
+version: 4
+mcp: thulu-browser

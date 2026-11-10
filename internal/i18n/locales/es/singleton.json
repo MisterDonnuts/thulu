@@ -1,0 +1,15 @@
+{
+  "errors": {
+    "timing": "lease del daemon: el plazo {deadline} más el latido {heartbeat} tiene que ser menor que el timeout de inactividad {idle}",
+    "connect": "lease del daemon: abrir una conexión",
+    "configure": "lease del daemon: fijar el timeout de inactividad de la sesión",
+    "lock": "lease del daemon: tomar el lock"
+  },
+  "log": {
+    "waiting": "otro daemon tiene el lease de esta base; esperando (van {waited})",
+    "acquired_after_wait": "tomó el lease del daemon después de esperar {waited}",
+    "lost": "perdió el lease del daemon: {since} sin confirmación ({err}); se detiene para que otro daemon tome el lugar",
+    "drop_conn": "lease del daemon: descartar la conexión del lock",
+    "close_conn": "lease del daemon: cerrar la conexión del lock"
+  }
+}

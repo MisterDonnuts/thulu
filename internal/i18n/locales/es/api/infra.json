@@ -1,0 +1,20 @@
+{
+  "labels": {
+    "surface": "el inspector de infraestructura"
+  },
+  "errors": {
+    "unavailable": "el inspector de infraestructura no está corriendo en este daemon",
+    "bad_range": "range tiene que ser 15m, 1h o 2h, no {range:%q}",
+    "cache_unavailable": "el panel de la caché de dependencias necesita el store de sandboxes, y este daemon no lo tiene",
+    "bad_cache_range": "range tiene que ser 7d, 30d o 90d, no {range:%q}",
+    "container_not_found": "el contenedor {id} no está en la última lectura; actualizá y probá de nuevo",
+    "not_stoppable": "un contenedor de tipo {kind} no se detiene desde acá",
+    "sandbox_not_found": "ningún sandbox activo corre en el contenedor {id}; actualizá y probá de nuevo",
+    "not_orphan": "{name} no es huérfano: lo explica una corrida de la tarea, así que se para desde la corrida"
+  },
+  "log": {
+    "cache_names_failed": "leer los nombres para el panel de la caché",
+    "orphan_removed": "se borró el contenedor de agente huérfano {container} de la tarea {task}",
+    "orphan_remove_failed": "no se pudo borrar el contenedor de agente huérfano {container} de la tarea {task}: {error}"
+  }
+}

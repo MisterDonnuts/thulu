@@ -1,0 +1,43 @@
+{
+  "status": {
+    "loading": "Cargando…",
+    "daemon_offline": "Daemon sin conexión",
+    "saving": "Guardando…"
+  },
+  "kbd": {
+    "shortcuts": "Atajos de teclado",
+    "shortcuts_hint": "Atajos de teclado (?)",
+    "show_help": "Mostrar esta ayuda",
+    "close_modal": "Cerrar cualquier modal",
+    "esc": "Esc",
+    "focus_search": "Ir a la búsqueda",
+    "palette": "Buscar tareas, proyectos, agentes, tableros y páginas",
+    "navigation": "Navegación",
+    "ctrl": "Ctrl",
+    "alt": "Alt",
+    "option": "Opción",
+    "enter": "Enter"
+  },
+  "nav": {
+    "tasks": "Tareas",
+    "projects": "Proyectos",
+    "agents": "Agentes",
+    "dashboard": "Panel",
+    "inbox": "Pendientes",
+    "evidence": "Evidencia",
+    "settings": "Configuración"
+  },
+  "buttons": {
+    "back": "Volver",
+    "cancel": "Cancelar",
+    "close": "Cerrar",
+    "copy": "Copiar",
+    "create": "Crear",
+    "delete": "Eliminar",
+    "discard": "Descartar",
+    "edit": "Editar",
+    "refresh": "Actualizar",
+    "remove": "Quitar",
+    "save": "Guardar"
+  }
+}

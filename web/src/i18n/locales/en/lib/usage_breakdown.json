@@ -1,0 +1,58 @@
+{
+  "title": "Where the cost went",
+  "categories": {
+    "startup": "Startup",
+    "reasoning": "Reasoning",
+    "user_input": "Request",
+    "tools": "Tools",
+    "subagents": "Subagents",
+    "compaction": "Compaction",
+    "delegation": "Delegation",
+    "unattributed": "Unattributed"
+  },
+  "part": "{category}: {cost}",
+  "from_mcp": "MCP {server}",
+  "from_skill": "skill {skill}",
+  "delegated": "Delegated",
+  "delegated_title": "Handed to the Token optimizer worker ({id}), which cost {cost}.",
+  "error": "Error",
+  "columns": {
+    "tool": "Call",
+    "run": "Agent · stage",
+    "result_tokens": "Result tokens",
+    "carried": "Re-read",
+    "cost": "Cost",
+    "open": "Open run",
+    "turn": "Turn",
+    "model": "Model",
+    "input": "Input",
+    "cache_read": "Cache read",
+    "cache_write": "Cache write",
+    "output": "Output",
+    "prompt": "Prompt",
+    "time": "Time"
+  },
+  "open_run": "Open the breakdown of {run}",
+  "delegations": {
+    "one": "{count} delegation to the worker, {cost}.",
+    "other": "{count} delegations to the worker, {cost}."
+  },
+  "unattributed_note": "{cost} of {total} could not be traced to a call.",
+  "top_calls": "Top calls",
+  "not_attributed": "This run predates per-call attribution: only its totals were kept.",
+  "facts": {
+    "cost": "Cost",
+    "api_calls": "API calls",
+    "base_tokens": "Startup tokens",
+    "compactions": "Compactions",
+    "unattributed": "Unattributed",
+    "optimizer": "Token optimizer"
+  },
+  "compaction": "Compaction",
+  "tool_calls": "Tool calls",
+  "api_calls": "API calls",
+  "no_tools": "This run called no tools.",
+  "no_calls": "No API calls recorded.",
+  "run_title": "Run breakdown",
+  "run_failed": "Couldn't load the run's breakdown: {error}"
+}

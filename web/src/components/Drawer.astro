@@ -1,0 +1,105 @@
+---
+// Markup must match drawerHTML() in lib/ui/drawer.ts.
+import type { HTMLAttributes } from "astro/types";
+import DrawerHead from "./DrawerHead.astro";
+import {
+  checkResizable,
+  drawerBodyClasses,
+  drawerClasses,
+  drawerIds,
+  drawerOverlayClasses,
+  drawerResizerAttrs,
+  type DrawerBody,
+  type DrawerSide,
+  type DrawerSize,
+} from "../lib/ui/drawer";
+
+interface Props {
+  id: string;
+  title: string;
+  titleId?: string;
+  titleAttrs?: Record<string, unknown>;
+  sub?: string;
+  side?: DrawerSide;
+  size?: DrawerSize;
+  modal?: boolean;
+  closable?: boolean;
+  resizable?: boolean;
+  body?: DrawerBody;
+  footNote?: string;
+  class?: string;
+  bodyClass?: string;
+  [key: string]: unknown;
+}
+const {
+  id,
+  title,
+  titleId,
+  titleAttrs,
+  sub,
+  side = "right",
+  size,
+  modal = true,
+  closable = true,
+  resizable = false,
+  body,
+  footNote,
+  class: extra,
+  bodyClass,
+  ...rest
+} = Astro.props;
+checkResizable(side, resizable);
+const ids = drawerIds(id, titleId);
+const hasFoot = !!footNote || Astro.slots.has("foot");
+const hasBar = Astro.slots.has("bar");
+const Outer = modal ? "div" : Fragment;
+const outerAttrs = modal
+  ? { id, class: drawerOverlayClasses(side), role: "presentation", ...rest }
+  : {};
+const boxAttrs: HTMLAttributes<"aside"> = {
+  class: drawerClasses({ side, size, modal, cls: extra }),
+  role: "dialog",
+  "aria-modal": modal ? "true" : undefined,
+  "aria-labelledby": ids.title,
+  "aria-describedby": sub !== undefined ? ids.sub : undefined,
+  tabindex: "-1",
+  ...(modal ? {} : { id, ...rest }),
+};
+---
+
+<Outer {...outerAttrs}>
+  <aside {...boxAttrs}>
+    {resizable && <div {...drawerResizerAttrs()} />}
+    <DrawerHead
+      {title}
+      titleId={ids.title}
+      {titleAttrs}
+      {sub}
+      subId={sub !== undefined ? ids.sub : undefined}
+      {closable}
+    >
+      <slot name="lead" slot="lead" />
+      <slot name="eyebrow" slot="eyebrow" />
+      <slot name="actions" slot="actions" />
+      <slot name="head" />
+    </DrawerHead>
+    {
+      hasBar && (
+        <div class="drawer-bar">
+          <slot name="bar" />
+        </div>
+      )
+    }
+    <div class={drawerBodyClasses(body, bodyClass)}>
+      <slot />
+    </div>
+    {
+      hasFoot && (
+        <footer class="drawer-foot">
+          {footNote && <p class="drawer-foot-note">{footNote}</p>}
+          <slot name="foot" />
+        </footer>
+      )
+    }
+  </aside>
+</Outer>

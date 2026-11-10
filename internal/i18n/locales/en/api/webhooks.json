@@ -1,0 +1,18 @@
+{
+  "errors": {
+    "url_required": "url required",
+    "invalid_url": "url: {cause}",
+    "unknown_event": "unknown webhook event {events} (see GET /webhooks/events)",
+    "id_required": "id required",
+    "dispatcher_unavailable": "webhook dispatcher not available",
+    "not_found": "webhook not found",
+    "delivery_not_found": "delivery not found for this webhook",
+    "delivery_not_retryable": "that event is still being retried or was already delivered: retrying it now would send it twice"
+  },
+  "text": {
+    "test_delivery": "This is a test delivery from Thulu. Your webhook is configured correctly."
+  },
+  "audit": {
+    "secret_rotated": "rotated webhook signing secret for {url}"
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "errors": {
+    "delete_rollup": "borrar el resumen de uso",
+    "delete_tool_events": "borrar los eventos de herramientas",
+    "delete_sessions": "borrar las sesiones",
+    "invalid_dimension": "uso: dimensión inválida {column:%q}",
+    "parse_float": "nullableFloat: leer {value:%q}",
+    "migrations": "migraciones de uso",
+    "add_delegation": "registrar la delegación {id}",
+    "list_delegations": "listar delegaciones",
+    "attribution_session": "leer la sesión {id} para atribuirla",
+    "attribution_save": "guardar la atribución de la sesión {id}",
+    "attribution_queue": "listar las sesiones a reatribuir",
+    "attribution_read": "leer la atribución de la sesión {id}",
+    "finish_delegation": "cerrar la delegación {id}",
+    "close_started_delegations": "cerrar las delegaciones que ningún pod terminó"
+  },
+  "log": {
+    "backfill_failed": "uso: completar {id}",
+    "persist_backfilled_events": "uso: guardar los eventos completados de {id}",
+    "backfill_service_tier": "uso: completar service_tier de {id}",
+    "adopt_orphan": "uso: adoptar la huérfana {id}",
+    "store_adopted_events": "uso: guardar los eventos adoptados {id}",
+    "seed_model_pricing": "uso: cargar model_pricing",
+    "rollup_totals": "uso: sumar el resumen diario",
+    "estimate_unpriced": "uso: estimar el costo de las sesiones sin precio",
+    "count_unattributed": "uso: contar las sesiones sin atribuir",
+    "unattributed_sessions": {
+      "one": "{count} sesión no tiene workspace y queda oculta para quienes consultan con scope; {tasks} nombran una tarea y {projects} un proyecto que tampoco tiene workspace",
+      "other": "{count} sesiones no tienen workspace y quedan ocultas para quienes consultan con scope; {tasks} nombran una tarea y {projects} un proyecto que tampoco tiene workspace"
+    },
+    "iterate_sessions": "uso: recorrer las filas de sesiones",
+    "iterate_task_sessions": "uso: recorrer las filas de sesiones de la tarea",
+    "iterate_by_agent": "uso: recorrer las filas por agente",
+    "migrate_session": "uso: migrar la sesión {id} desde JSON",
+    "rename_migrated_json": "uso: renombrar el JSON migrado {path}",
+    "create_logs_dir": "uso: crear el directorio de logs del colector {path}",
+    "save_logs_failed": "no se pudieron guardar los logs de {agent}: {err}",
+    "read_logs_failed": "no se pudieron leer los logs de {agent}: {err}",
+    "no_result_event": "no hay evento de resultado en los logs de {agent}",
+    "store_session_failed": "no se pudo guardar la sesión de {agent}: {err}",
+    "session_recorded": "sesión registrada: {agent} — {turns} turnos, ${cost:%.4f}, {tools} eventos de herramientas, logs: {file}",
+    "store_tool_events_failed": "no se pudieron guardar los eventos de herramientas de {agent}: {err}",
+    "rate_limit": "rate limit: {percent:%.1f}% usado, se reinicia en {resets}",
+    "backfill_daily_estimated": "uso: completar la parte estimada del resumen diario",
+    "attribution_failed": "uso: atribuir la corrida de {agent}",
+    "reattribute_failed": "uso: reatribuir {id}"
+  }
+}

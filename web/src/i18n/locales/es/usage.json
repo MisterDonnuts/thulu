@@ -1,0 +1,156 @@
+{
+  "title": "Uso",
+  "heading": "Uso y costo",
+  "subtitle": "Consumo de tokens y tendencia de costos. Segmentá por motor, modelo, agente, proyecto, herramienta o skill para ver qué optimizar.",
+  "buttons": {
+    "clear": "Limpiar",
+    "export_csv": "Exportar CSV",
+    "open_task": "Abrir la tarea {name}"
+  },
+  "filters": {
+    "aria": "Filtros",
+    "from": "Desde",
+    "to": "Hasta",
+    "engine": "Motor",
+    "model": "Modelo",
+    "agent_type": "Tipo de agente",
+    "project": "Proyecto",
+    "service_tier": "Nivel de servicio",
+    "presets": "Rango rápido",
+    "all": "Todos"
+  },
+  "kpis": {
+    "aria": "Métricas clave",
+    "cost": "Costo · período",
+    "tokens": "Tokens · período",
+    "sessions": "Sesiones",
+    "cache": "Aciertos de caché",
+    "cache_sub": "entrada que salió de la caché",
+    "cost_per_ktoken": "Costo / 1k tokens",
+    "cost_per_ktoken_sub": "promedio de todos los modelos del período",
+    "burn": "Ritmo de gasto · 24h vs 30d",
+    "burn_sub": "reciente vs referencia",
+    "cost_sub": {
+      "one": "{count} turno · {tokens} tokens",
+      "other": "{count} turnos · {tokens} tokens"
+    },
+    "tokens_sub": "relación salida/entrada: {ratio}",
+    "sessions_sub": "{error} con error · {max_tokens} max_tokens",
+    "burn_detail": "{recent} en las últimas {hours}h vs {baseline} de referencia"
+  },
+  "panels": {
+    "chart": "Costo y tokens en el tiempo",
+    "by_engine": "Por motor",
+    "by_model": "Por modelo",
+    "by_agent_type": "Por tipo de agente",
+    "by_project": "Por proyecto",
+    "by_tool": "Por herramienta",
+    "by_skill": "Por skill",
+    "top_tasks": "Tareas más caras",
+    "stop_reasons": "Motivos de corte",
+    "by_mcp_server": "Por servidor MCP",
+    "delegations": "Delegaciones del Token optimizer",
+    "delegations_by_agent": "Delegaciones por agente",
+    "by_optimizer_level": "Corridas por nivel del optimizador",
+    "recent_delegations": "Delegaciones recientes"
+  },
+  "chart": {
+    "metric": "Métrica del gráfico",
+    "cost": "Costo",
+    "tokens": "Tokens"
+  },
+  "columns": {
+    "engine": "Motor",
+    "model": "Modelo",
+    "agent": "Agente",
+    "project": "Proyecto",
+    "tool": "Herramienta",
+    "skill": "Skill",
+    "task": "Tarea",
+    "kind": "Tipo",
+    "sessions": "Sesiones",
+    "tokens": "Tokens",
+    "turns": "Turnos",
+    "cost": "Costo",
+    "cache_pct": "% caché",
+    "cost_per_session": "$/sesión",
+    "p95_duration": "dur. p95",
+    "tokens_per_turn": "Tokens/turno",
+    "calls": "Llamadas",
+    "tasks": "Tareas",
+    "duration": "Duración",
+    "open": "Abrir",
+    "result_tokens": "Tokens del resultado",
+    "carried": "Releída",
+    "mcp_server": "Servidor MCP",
+    "stage": "Etapa",
+    "delegations": "Delegaciones",
+    "when": "Cuándo",
+    "run": "Agente · etapa",
+    "files": "Archivos",
+    "tokens_in_out": "Tokens entrada / salida",
+    "status": "Estado",
+    "level": "Nivel",
+    "tools_cost": "Herramientas",
+    "delegations_cost": "Delegaciones"
+  },
+  "empty": {
+    "chart": "No hay datos en el período elegido.",
+    "no_data": "No hay datos en el período elegido.",
+    "tools": "Todavía no hay eventos de herramientas.",
+    "skills": "No hubo llamadas a skills en el período.",
+    "tasks": "No hubo corridas de tareas en el período.",
+    "stop_reasons": "No hubo sesiones en el período.",
+    "mcp_servers": "No hubo llamadas a MCP en el período elegido.",
+    "delegations": "No hubo delegaciones en el período elegido."
+  },
+  "hints": {
+    "max_tokens_html": "Mucho <code>max_tokens</code> indica prompts demasiado grandes."
+  },
+  "labels": {
+    "none": "(ninguno)",
+    "cost_share": "Parte del costo",
+    "stop_reason_value": {
+      "one": "{count} sesión ({pct})",
+      "other": "{count} sesiones ({pct})"
+    }
+  },
+  "plan": {
+    "aria": "Plan del workspace",
+    "title": "Plan",
+    "unlimited": "Este plan no tiene topes.",
+    "runs_month": "Corridas del mes"
+  },
+  "estimated": {
+    "mark": "≈{amount}",
+    "tooltip": "Incluye {amount} estimados con la tabla de precios por modelo: el motor no informó el costo de esas sesiones."
+  },
+  "toasts": {
+    "nothing_to_export": "Todavía no hay nada para exportar. Esperá a que carguen los datos.",
+    "filter_options_failed": "No se pudieron cargar las opciones de filtro",
+    "load_failed": "No se pudieron cargar los datos de uso: {error}"
+  },
+  "unpriced": {
+    "none": "sin precio",
+    "partial": "· {count} sin precio",
+    "tooltip": {
+      "one": "{count} sesión usó un modelo sin precio en la tabla de modelos: sus tokens no suman costo.",
+      "other": "{count} sesiones usaron un modelo sin precio en la tabla de modelos: sus tokens no suman costo."
+    }
+  },
+  "delegations": {
+    "aria": "Delegaciones del Token optimizer",
+    "count": "Delegaciones",
+    "cost": "Costo del worker",
+    "avg_duration": "Duración promedio",
+    "ok_failed": "{ok} ok · {failed} fallidas",
+    "tokens_in_out": "{input} entrada · {output} salida",
+    "kinds": {
+      "read": "Lectura",
+      "write": "Escritura"
+    }
+  },
+  "optimizer": {
+    "no_level": "Sin registrar"
+  }
+}

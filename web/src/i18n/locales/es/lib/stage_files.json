@@ -1,0 +1,12 @@
+{
+  "hook_template_comments": "# Corre dentro de /workspace/projects/<proyecto>/ antes de que arranque el agente.\n# Lo que imprime y el código de salida se suman al prompt del agente.",
+  "labels": {
+    "not_set": "Sin definir",
+    "new_suffix": "(nuevo)"
+  },
+  "orphans": {
+    "title": "Archivos huérfanos",
+    "intro": "De etapas que ya no existen: {files}. Quedan en disco y no hacen nada hasta que vuelva a existir una etapa con ese id.",
+    "clean_up": "Limpiar"
+  }
+}

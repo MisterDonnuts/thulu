@@ -1,0 +1,9 @@
+name: octopus-refinement
+description: How to refine a Thulu task so someone else can work it without asking again. Goal, context, a Definition of Done that gets checked with evidence, out-of-scope and risks as body sections, test cases as rows, agents per stage, tags, which reviews to note for the stage that makes the change, and when to split into subtasks or tasks with dependencies. Use it when it is your turn to define, plan or refine a task before someone implements it.
+type: knowledge
+enforcement: on_demand
+requires: []
+# Bump on every change: the daemon syncs this skill at boot only when version exceeds the stored
+# one.
+version: 3
+mcp: octopus-api

@@ -1,0 +1,26 @@
+{
+  "state": {
+    "done": "Done",
+    "running": "Running",
+    "question": "Waiting for an answer",
+    "failed": "Failed",
+    "blocked": "Blocked",
+    "todo": "Not started",
+    "active": "Started"
+  },
+  "waits_unknown": "Waits for another task",
+  "waits_for": "Waits for {title}",
+  "waits_for_more": {
+    "one": "Waits for {title} and {count} more",
+    "other": "Waits for {title} and {count} more"
+  },
+  "ready": "Ready to start",
+  "after": "After {title}",
+  "after_more": {
+    "one": "After {title} and {count} more",
+    "other": "After {title} and {count} more"
+  },
+  "start_in": "Start in {stage}",
+  "row_name": "{title}, {state}, {stage}",
+  "row_name_short": "{title}, {stage}"
+}

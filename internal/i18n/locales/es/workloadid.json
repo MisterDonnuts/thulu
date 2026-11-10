@@ -1,0 +1,13 @@
+{
+  "errors": {
+    "claims_incomplete": "un token de identidad necesita un workspace y una audiencia",
+    "generate_key": "generar una clave de firma de identidad de carga de trabajo",
+    "issuer_not_https": "{env} tiene que ser una URL https:// sin query ni fragmento (llegó {value})",
+    "load_keys": "leer las claves de firma de identidad de carga de trabajo",
+    "no_signing_key": "todavía no hay una clave de firma de identidad de carga de trabajo activa",
+    "not_configured": "la federación de identidad necesita la dirección pública del daemon: seteá {env} (u OCTOPUS_DOMAIN)",
+    "parse_key": "la clave de firma de identidad {kid} no se puede leer",
+    "sign": "firmar un token de identidad de carga de trabajo",
+    "store_key": "guardar una clave de firma de identidad de carga de trabajo"
+  }
+}

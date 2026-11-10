@@ -1,0 +1,28 @@
+{
+  "audit": {
+    "decided": "approval {approval:%q} on task {task}: {decision}",
+    "deleted": "approval {approval:%q} removed from task {task}"
+  },
+  "errors": {
+    "gate_closed": "{stage} is waiting for approval: {approvals}. Approve or waive them before moving forward.",
+    "no_dispatcher": "approvals cannot be decided right now: the dispatcher is not running",
+    "note_required": "{decision} needs a note saying why",
+    "open_limit": "agents already asked for {max} approvals on this task that nobody has decided: wait for those before asking for more",
+    "stage_requirement": "{approval:%q} is required by the stage and cannot be removed: waive it instead, with a note",
+    "gate_closed_create": "A new task starts in {stage}, which needs approval to leave: {approvals}. Create it in {stage} and move it once approved."
+  },
+  "events": {
+    "skipped": "moved past without a decision ({cause}): {approvals}",
+    "waived_note": "skipped by an administrative move ({cause})"
+  },
+  "log": {
+    "hook_task": "read task {task} for an approval webhook",
+    "skipped": "read the approvals task {task} skipped"
+  },
+  "prompts": {
+    "brief_heading": "## Approvals\n\n",
+    "brief_line": "- **{label}**{stage}: {status}\n",
+    "brief_note": "  {by}: {note}\n",
+    "brief_stage": " ({stage})"
+  }
+}

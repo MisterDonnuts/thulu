@@ -1,0 +1,6 @@
+{
+  "summary": {
+    "one": "{metric} over {count} day: {total} in total",
+    "other": "{metric} over {count} days: {total} in total"
+  }
+}

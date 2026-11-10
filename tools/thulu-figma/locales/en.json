@@ -1,0 +1,93 @@
+{
+  "params": {
+    "file_key": "File key, or any figma.com link to the file (design, proto, board, branch). A link's node-id is used when node_ids is omitted."
+  },
+  "tools": {
+    "file_get": {
+      "description": "Outline of a Figma file: pages and their frames by id, name and type, plus the file's components and shared styles. Start here to find the node ids nodes_get and images_render take. Geometry and styles are not included: use nodes_get for those.",
+      "params": {
+        "depth": "How deep to list: 1 = pages, 2 = top-level frames (default), up to 4.",
+        "library": "Include component and style names (default true)."
+      }
+    },
+    "nodes_get": {
+      "description": "What building a screen takes, per node: box [x, y, w, h], auto-layout (mode, gap, padding, alignment), sizing, fills and strokes as hex, corner radius, effects, text and its font, and the names of the shared styles it uses. Children recurse to `depth`; deeper ones are counted.",
+      "params": {
+        "node_ids": "Node ids (\"1:2\" or \"1-2\"), up to 20. Defaults to the node-id of the link in file_key.",
+        "depth": "Levels of children to describe: 0 to 6, default 3."
+      }
+    },
+    "images_render": {
+      "description": "Render nodes to images through Figma. PNG and JPG come back inline so you can look at them (up to 4 per call); every format also returns Figma's URL. attach=true uploads the files to the task, where a person can see them.",
+      "params": {
+        "node_ids": "Node ids to render, up to 10. Defaults to the node-id of the link in file_key.",
+        "format": "png (default), jpg, svg or pdf.",
+        "scale": "0.01 to 4, default 1. Use 2 for a sharp view of a small component.",
+        "inline": "Return PNG/JPG inline (default true for those formats).",
+        "attach": "Upload each render to this run's task as an attachment."
+      }
+    },
+    "comments_list": {
+      "description": "Comments on a file grouped into threads, newest first, with the node each one is pinned to. Resolved threads are left out unless include_resolved is set.",
+      "params": {
+        "include_resolved": "Include resolved threads (default false).",
+        "limit": "Threads to return: 1 to 200, default 50."
+      }
+    },
+    "team_projects_list": {
+      "description": "Projects of a Figma team. Figma has no endpoint that lists a person's teams: the team id comes from a link like figma.com/files/team/<id>.",
+      "params": {
+        "team_id": "Team id, or a figma.com link that contains /team/<id>."
+      }
+    },
+    "project_files_list": {
+      "description": "Files of a Figma project, with their keys and last change.",
+      "params": {
+        "project_id": "Project id, from team_projects_list."
+      }
+    }
+  },
+  "errors": {
+    "no_credential": "no Thulu credential was forwarded with this call — the agent's key rides on the MCP handshake (X-API-Key); this server holds none of its own",
+    "octopus_api_unset": "OCTOPUS_API is not set on this server",
+    "octopus_unreachable": "cannot reach Thulu at {url}: {err}",
+    "octopus_http": "Thulu {method} {path} → HTTP {status}: {body}",
+    "credential_refused": "{tool} refused: {detail}",
+    "credential_not_figma": "credential \"{credential}\" is a {provider} credential, not a Figma one",
+    "no_figma_credential": "no Figma token is available to this task. Add a Figma credential on the Credentials page and grant it to the workspace or to this task's project.",
+    "figma_unreachable": "cannot reach Figma at {url}: {err}",
+    "figma_rate_limited": "Figma rate-limited {path}; retry after {retry} s",
+    "figma_http": "figma {path} → HTTP {status}: {msg}",
+    "image_download": "downloading the render failed with HTTP {status}",
+    "file_key_invalid": "not a Figma file key or link: \"{value}\"",
+    "node_ids_required": "node_ids is required (or pass a link with ?node-id= as file_key)",
+    "too_many_nodes": "{count} node ids; at most {max} per call",
+    "node_id_invalid": "not a node id: \"{id}\"",
+    "attach_without_task": "attach needs a task, and this session is not tied to one",
+    "render_failed": "Figma could not render: {err}",
+    "team_id_invalid": "not a team id or team link: \"{value}\"",
+    "project_id_invalid": "not a project id: \"{value}\"",
+    "unknown_tool": "unknown tool '{name}'",
+    "tool_not_allowed": "tool '{name}' is not in the allowed tool list for this session",
+    "tool_scope_required": "tool '{name}' requires scope '{required}', this session has '{scope}'",
+    "tool_failed": "{tool} error: {err}",
+    "session_not_found": "session not found",
+    "handshake_no_key": "an MCP session needs the run's key on the handshake (X-API-Key or Authorization: Bearer)",
+    "message_key_mismatch": "this message does not carry the key its session was opened with",
+    "list_only_session": "this session was opened without a credential: it can list tools, not call them"
+  },
+  "text": {
+    "truncated": "[…truncated: {bytes} more bytes omitted by thulu-figma. Ask for less: a lower depth, fewer node ids.]",
+    "render_empty": "Figma returned no image for this node (invisible, empty, or not renderable)",
+    "inline_too_large": "{bytes} bytes, over the {max}-byte inline cap: lower the scale, or use attach",
+    "render_urls_expire": "Figma's image URLs expire after 30 days; attach the ones the task should keep."
+  },
+  "log": {
+    "listening": "thulu-figma MCP server listening on :{port}",
+    "octopus_api": "  OCTOPUS_API:  {url}",
+    "figma_api": "  Figma API:    {url}",
+    "sse_endpoint": "  SSE endpoint: GET  /sse?task=<id>&scope=read[&tools=a,b][&catalog=1]",
+    "health": "  Health check: GET  /health",
+    "shutting_down": "\n{signal} received, shutting down"
+  }
+}

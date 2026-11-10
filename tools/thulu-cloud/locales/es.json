@@ -1,0 +1,113 @@
+{
+  "tools": {
+    "environments_list": {
+      "description": "Entornos desplegados de un proyecto (dev/staging/prod) con provider, región, selectores y si tienen una credencial configurada. Empezá por acá para obtener un environment_id.",
+      "params": {
+        "project_id": "Id del proyecto en Thulu"
+      }
+    },
+    "discover_resources": {
+      "description": "Inventaría los recursos cloud de un entorno. AWS: load balancers, servicios ECS, Lambdas, RDS, log groups. GCP: servicios de Cloud Run, load balancers HTTPS, clusters GKE, Cloud SQL, Cloud Functions, log names. Cada recurso trae fuentes de métricas `suggested` por señal: copialas tal cual, incluidos `unit` y `scale`. NO decide qué recurso es de este proyecto: eso lo correlacionás vos con la config de deploy del repo."
+    },
+    "metrics_query": {
+      "description": "Series de tiempo para fuentes de métricas explícitas. La forma de la fuente depende del provider del entorno. AWS: {namespace, metric_name, dimensions, stat}; GCP: {metric_type, filter, aligner, reducer}. Usá discover_resources para obtener fuentes bien formadas en vez de escribirlas a mano.",
+      "params": {
+        "sources": "AWS: [{namespace, metric_name, dimensions, stat}]. GCP: [{metric_type, filter, aligner, reducer}].",
+        "from": "RFC3339; por defecto, hace 1 h",
+        "to": "RFC3339; por defecto, ahora",
+        "period_seconds": "Resolución; por defecto 300"
+      }
+    },
+    "error_groups": {
+      "description": "Excepciones agrupadas por mensaje, con cantidad y primera/última aparición: CloudWatch Logs Insights en AWS, Error Reporting (con Cloud Logging de respaldo) en GCP. Es la señal que más vale acá: un grupo con first_seen reciente y una cantidad que sube es una regresión que apunta a código concreto.",
+      "params": {
+        "log_groups": "Por defecto, los selectores log_group del entorno",
+        "limit": "Máximo de grupos; por defecto 20"
+      }
+    },
+    "logs_search": {
+      "description": "Busca en los logs. En AWS `query` es una consulta de CloudWatch Logs Insights; en GCP es un filtro de Cloud Logging (p. ej. `severity >= \"ERROR\" AND resource.labels.service_name=\"api\"`). Son lenguajes distintos, así que fijate primero el provider del entorno. La salida tiene tope: achicá la ventana en vez de subir el tope.",
+      "params": {
+        "query": "AWS: consulta de Logs Insights. GCP: filtro de Cloud Logging. Por defecto: mensajes recientes, los más nuevos primero."
+      }
+    },
+    "deploys": {
+      "description": "Marcas de deploy en una ventana, para atribuir un cambio en una métrica a un release. Sin ellas, la correlación es adivinar. Implementado en GCP (fecha de creación de las revisiones de Cloud Run); en AWS se declara no disponible en vez de devolver una lista vacía que confunda."
+    }
+  },
+  "errors": {
+    "no_credential": "esta llamada no trajo ninguna credencial de Thulu: la key del agente viaja en el handshake MCP (X-API-Key) y este server no tiene una propia",
+    "octopus_unreachable": "no se puede llegar a Thulu en {url}: {err}",
+    "octopus_http": "Thulu GET {path} → HTTP {status}: {body}",
+    "credential_refused": "{tool} rechazada para el entorno {environment}: {detail}",
+    "environment_id_required": "environment_id es obligatorio",
+    "project_id_required": "project_id es obligatorio",
+    "environment_not_linked": "el entorno {environment} es del proyecto {project}, que no está vinculado a la tarea {task}",
+    "no_credential_granted": "el entorno {environment} no tiene ninguna credencial concedida. Concedé una en la página Credentials (\"Reachable from\" → este entorno).",
+    "credential_provider_mismatch": "la credencial \"{credential}\" es una key de {credential_provider} pero el entorno {environment} es de {provider}. Concedele una credencial de {provider}.",
+    "aws_keys_incomplete": "a la credencial aws_keys le falta access_key_id o secret_access_key",
+    "aws_role_unsupported": "las credenciales aws_role todavía no están soportadas: usá aws_keys",
+    "credential_kind_not_aws": "el entorno {environment} tiene una credencial de tipo '{kind}', se esperaba aws_keys",
+    "aws_only": "esta tool sólo soporta el provider 'aws'; el entorno es '{provider}'",
+    "provider_unsupported": "{tool} soporta los providers {providers}; el entorno {environment} es '{provider}'. No se va a recolectar nada de él hasta que ese provider esté implementado.",
+    "credential_kind_not_gcp": "el entorno {environment} tiene una credencial de tipo '{kind}', se esperaba gcp_sa para un entorno GCP",
+    "service_account_json_invalid": "service_account_json no es JSON válido: {err}",
+    "gcp_sa_without_json": "a la credencial gcp_sa le falta service_account_json",
+    "service_account_incomplete": "al JSON de la service account le falta client_email o private_key",
+    "gcp_project_unknown": "no se sabe qué proyecto de GCP consultar: el archivo de la key no tiene project_id; poné el id del proyecto en el campo `account` del entorno",
+    "gcp_auth_failed": "falló la autenticación con GCP: {err}",
+    "host_unreachable": "no se puede llegar a {host}: {err}",
+    "google_http": "{path} → HTTP {status}{detail}: {msg}",
+    "range_not_rfc3339": "from/to tienen que ser timestamps RFC3339",
+    "range_inverted": "`to` tiene que ser posterior a `from`",
+    "range_too_wide": "un rango de {hours} h supera el tope de {max} h",
+    "gcp_metric_type_missing": "una fuente de métricas de GCP necesita `metric_type`",
+    "divide_by_empty": "divide_by {metric} no devolvió ningún valor usable en ningún bucket",
+    "no_log_groups": "no hay log groups: pasá log_groups o configurá un selector `log_group` en el entorno",
+    "insights_query_ended": "consulta de Logs Insights {status}",
+    "sources_empty": "sources tiene que ser un array no vacío",
+    "unknown_tool": "tool desconocida '{name}'",
+    "tool_not_allowed": "la tool '{name}' no está en la lista de tools permitidas de esta sesión",
+    "tool_scope_required": "la tool '{name}' requiere el scope '{required}' y esta sesión tiene '{scope}'",
+    "tool_without_handler": "la tool '{name}' no tiene handler (bug del server)",
+    "tool_failed": "error en {tool}{status}: {err}",
+    "session_not_found": "no se encontró la sesión",
+    "collect_body_invalid": "environment_id y mappings[] son obligatorios",
+    "handshake_no_key": "una sesión MCP necesita la key del run en el handshake (X-API-Key o Authorization: Bearer)",
+    "message_key_mismatch": "este mensaje no trae la key con la que se abrió su sesión",
+    "list_only_session": "esta sesión se abrió sin credencial: puede listar las tools, no llamarlas",
+    "collect_target_missing": "collect necesita el environment y su credencial en el body: los resuelve y los manda el daemon (este server no tiene llave para pedirlos)"
+  },
+  "text": {
+    "truncated": "[…{label} recortado: thulu-cloud omitió {bytes} bytes más]",
+    "query_still_running": "la consulta sigue en {status} después de {ms} ms",
+    "gap_probe_failed": "no se pudo enumerar {kind}: {error}. Esto NO prueba que el recurso no exista. No marques ninguna señal como not_applicable por esto; reportá la falta de acceso.",
+    "gap_aws_no_serving": "no se encontró ningún load balancer ni Lambda: la latencia y la tasa de errores no tienen una fuente obvia",
+    "gap_lambda_without_gateway": "hay Lambdas pero no se ve ningún API Gateway: error_rate desde AWS/Lambda Errors no cuenta los 5xx manejados ni ningún 4xx rechazado en el borde, así que una caída total de autenticación mostraría un dashboard en verde",
+    "gap_no_log_groups": "no se ve ningún log group: error_groups y logs_search no van a funcionar",
+    "gap_gcp_no_serving": "no se encontró ningún servicio de Cloud Run, load balancer HTTPS ni Cloud Function: latencia, error_rate y throughput no tienen una fuente obvia",
+    "gap_no_gke": "no hay cluster GKE: `restarts` no tiene fuente en este entorno (Cloud Run no lo expone)",
+    "gap_gcp_cost": "en GCP cost_daily no se puede leer desde una API: el detalle de facturación vive en un export a BigQuery que tiene que habilitar quien administra la cuenta. Dejá esa señal sin mapear.",
+    "error_reporting_empty": "Error Reporting no devolvió grupos para esta ventana; se agruparon las entradas de log con severidad ERROR",
+    "gke_narrow_filter": "acotá `filter` con resource.labels.namespace_name y container_name antes de proponer un mapping",
+    "deploys_truncated": {
+      "one": "no se revisó {count} servicio más de Cloud Run (tope de fan-out)",
+      "other": "no se revisaron {count} servicios más de Cloud Run (tope de fan-out)"
+    },
+    "deploys_none": "no se creó ninguna revisión de Cloud Run en esta ventana; los deploys de GKE y Cloud Functions todavía no se leen",
+    "deploys_aws_unavailable": "las marcas de deploy todavía no están conectadas para AWS. Thulu sabe cuándo se mergeó cada PR: usá eso como aproximación hasta que se conecten los eventos de CodeDeploy.",
+    "collect_provider_unsupported": "el provider {provider} todavía no está soportado",
+    "collect_no_usable_source": {
+      "one": "el único mapping activo ({count}) no tiene una fuente con la forma del provider '{provider}'",
+      "other": "ninguno de los {count} mappings activos tiene una fuente con la forma del provider '{provider}'"
+    }
+  },
+  "log": {
+    "listening": "servidor MCP thulu-cloud escuchando en :{port}",
+    "octopus_api": "  OCTOPUS_API:  {url}",
+    "sse_endpoint": "  Endpoint SSE: GET  /sse?task=<id>&scope=read|write[&tools=a,b][&catalog=1]",
+    "collector": "  Colector:     POST /collect",
+    "health": "  Health check: GET  /health",
+    "shutting_down": "\nllegó {signal}, apagando"
+  }
+}

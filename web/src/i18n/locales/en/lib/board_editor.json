@@ -1,0 +1,140 @@
+{
+  "board": {
+    "edit": "Edit board",
+    "done": "Done editing",
+    "done_short": "Done",
+    "edit_title": "Reorder, rename and add columns",
+    "editing_hint": "Drag a column by its handle to reorder it. Double-click a name to rename it, or use ⋯ for color, behavior and delete. Changes save right away."
+  },
+  "head": {
+    "move": "Move column {column}",
+    "options": "Options for column {column}",
+    "options_title": "Column options",
+    "rename": "Rename column {column}",
+    "rename_title": "Double-click or press Enter to rename",
+    "grip_hint": "Press Space to pick the column up, the arrow keys to move it and Space again to drop it. Escape puts it back. {alt} with the left or right arrow moves it one step."
+  },
+  "menu": {
+    "rename": "Rename",
+    "color": "Color",
+    "behavior": "Behavior",
+    "approvals": "Required approvals",
+    "move_left": "Move left",
+    "move_right": "Move right",
+    "add_before": "Add column before",
+    "add_after": "Add column after",
+    "delete": "Delete column",
+    "delete_initial": "New tasks start here. Make another column the start to delete this one."
+  },
+  "summary": {
+    "initial": "Start",
+    "terminal": "Finish",
+    "auto_advance": "Auto-advance",
+    "open_pr": "Opens PR"
+  },
+  "colors": {
+    "slate": "Slate",
+    "orange": "Orange",
+    "green": "Green",
+    "blue": "Blue",
+    "cyan": "Cyan",
+    "purple": "Purple",
+    "pink": "Pink",
+    "red": "Red",
+    "yellow": "Yellow",
+    "gray": "Gray"
+  },
+  "rename": {
+    "label": "Column name",
+    "empty": "A column needs a name. The old one stays.",
+    "done": "Column renamed to {column}"
+  },
+  "add": {
+    "button": "Add column",
+    "name": "New column",
+    "placeholder": "Security review",
+    "hint": "Press Enter to add it, Escape to cancel.",
+    "id_preview": "Saved with the id {id}",
+    "required": "Type a name for the column.",
+    "submit": "Add column",
+    "done": "Column {column} added"
+  },
+  "behavior": {
+    "title": "Behavior of {column}",
+    "title_generic": "Column behavior",
+    "lead": "Changes save as you make them and apply to this board only.",
+    "flow": "Where tasks start and finish",
+    "agent": "What happens in this column",
+    "wip": "Counts toward",
+    "wip_desc": "The board's counters at the top add up the tasks in columns marked here.",
+    "saving": "Saving…",
+    "approvals_saved": "Approvals saved",
+    "saved": "{setting} saved",
+    "elsewhere": "Also set per column:",
+    "agents_link": "Which agent runs here",
+    "sandboxes_link": "Sandbox priority"
+  },
+  "flags": {
+    "initial": "Tasks start here",
+    "initial_desc": "New tasks land in this column, and a task with unfinished dependencies waits here.",
+    "terminal": "Work finishes here",
+    "terminal_desc": "Tasks in this column count as done and unblock the tasks that depend on them.",
+    "auto_advance": "Move on when the agent finishes",
+    "auto_advance_desc": "When the agent's run ends cleanly, the task moves to the next column on its own.",
+    "push_branch": "Push the branch",
+    "push_branch_desc": "A clean run here pushes the task's branch to the repository.",
+    "open_pr": "Open a pull request",
+    "open_pr_desc": "A task entering this column opens its pull request.",
+    "legacy": "Every approval blocks the task",
+    "legacy_desc": "Any approval on the task keeps it here, not only the required ones. Turn it off to rely on required approvals.",
+    "no_agents": "No agent covers this column yet.",
+    "agents_link": "Set one up in Agents"
+  },
+  "locks": {
+    "initial_move": "To change it, make another column the start.",
+    "initial_terminal": "A finishing column can't be the start.",
+    "last_terminal": "The board needs at least one finishing column.",
+    "terminal_initial": "The start column can't also finish work.",
+    "terminal_no_advance": "A finishing column does not pass the task on."
+  },
+  "wip": {
+    "none": "Nothing",
+    "work": "In progress",
+    "review": "Needs review"
+  },
+  "delete": {
+    "title": "Delete column {column}?",
+    "empty": "The column is empty.",
+    "with_tasks": {
+      "one": "{count} task is in this column.",
+      "other": "{count} tasks are in this column."
+    },
+    "move_to": {
+      "one": "Move {count} task to",
+      "other": "Move {count} tasks to"
+    },
+    "lost": "Its behavior and approvals are deleted with it. This can't be undone.",
+    "confirm": "Delete column",
+    "done": "Column {column} deleted"
+  },
+  "move": {
+    "picked": "Picked up {column}, position {position} of {count}.",
+    "picked_kbd": "Picked up {column}, position {position} of {count}. Use the arrow keys to move it, Space to drop it, Escape to cancel.",
+    "moved": "{column} moved to position {position} of {count}.",
+    "unchanged": "The column stayed where it was.",
+    "cancelled": "Move cancelled. The column is back where it was.",
+    "at_start": "The column is already first.",
+    "at_end": "The column is already last."
+  },
+  "warnings": {
+    "initial_not_first": "Tasks start in {stage}, which is not the first column.",
+    "after_terminal": "{stage} comes after {terminal}, where work finishes. Tasks that finish never reach it."
+  },
+  "errors": {
+    "generic": "The daemon didn't answer. Check your connection and try again.",
+    "reorder": "Couldn't move the column: {error}",
+    "patch": "Couldn't save the column: {error}",
+    "create": "Couldn't add the column: {error}",
+    "remove": "Couldn't delete the column: {error}"
+  }
+}

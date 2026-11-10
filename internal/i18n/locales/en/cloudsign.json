@@ -1,0 +1,28 @@
+{
+  "errors": {
+    "no_aws_identity": "no AWS identity on this daemon (no keys in its environment, no web identity token, no container credentials, no instance role)",
+    "instance_metadata": "instance metadata",
+    "read_env_file": "read {env}",
+    "sts_assume_role": "sts AssumeRoleWithWebIdentity",
+    "decode_assume_role": "decode AssumeRoleWithWebIdentity",
+    "container_credentials": "container credentials",
+    "instance_no_role": "the instance has no role",
+    "decode_credentials": "decode credentials",
+    "no_keys_returned": "the credential endpoint returned no keys",
+    "http_status": "HTTP {status}",
+    "endpoint_not_https": "{env} must be an absolute https:// URL without credentials",
+    "aws_creds_incomplete": "aws credentials are incomplete",
+    "sa_key_not_json": "service account key is not valid JSON",
+    "sa_key_incomplete": "service account key has no client_email or private_key",
+    "sign_assertion": "sign assertion",
+    "private_key_not_pem": "private_key is not PEM-encoded",
+    "private_key_not_rsa": "private_key is not an RSA key",
+    "parse_private_key": "parse private_key",
+    "no_google_identity": "no Google identity on this daemon (metadata server)",
+    "read_token_response": "read token response",
+    "google_token_error": "google token endpoint: {error}: {description}",
+    "google_token_status": "google token endpoint: HTTP {status}",
+    "decode_token_response": "decode token response",
+    "google_no_access_token": "google returned no access token"
+  }
+}

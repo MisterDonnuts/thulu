@@ -1,0 +1,13 @@
+{
+  "audit": {
+    "connected": "Connected their own {engine} login",
+    "disconnected": "Disconnected their own {engine} login"
+  },
+  "errors": {
+    "unavailable": "personal engine logins are available only on a Docker install",
+    "unsupported_engine": "engine {engine} has no personal login"
+  },
+  "labels": {
+    "person_connecting": "connecting an engine login"
+  }
+}

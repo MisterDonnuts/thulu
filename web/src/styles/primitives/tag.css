@@ -1,0 +1,230 @@
+.tag {
+  --tag-bg: var(--color-fill-chip);
+  --tag-fg: var(--fg-2);
+  --tag-line: transparent;
+  --tag-mark: currentColor;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  min-width: 0;
+  max-width: 100%;
+  padding: calc(var(--s-1) / 2) var(--s-3);
+  border: 1px solid var(--tag-line);
+  border-radius: var(--r-pill);
+  background: var(--tag-bg);
+  color: var(--tag-fg);
+  font-family: inherit;
+  font-size: var(--t-xs);
+  font-weight: 500;
+  line-height: var(--lh-snug);
+  white-space: nowrap;
+  text-decoration: none;
+  vertical-align: middle;
+}
+.tag-sm {
+  padding: 0 var(--s-2);
+}
+.tag-lg {
+  padding: calc(var(--s-1) / 2) var(--s-3);
+  font-size: var(--t-md);
+  font-weight: 600;
+}
+.tag-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tag .ico {
+  width: 1.1em;
+  height: 1.1em;
+  color: var(--tag-mark);
+}
+.tag-dot {
+  flex: none;
+  width: 0.55em;
+  height: 0.55em;
+  border-radius: var(--r-pill);
+  background: var(--tag-mark);
+}
+
+.tag-tint {
+  --tag-color: var(--fg-4);
+  --tag-bg: color-mix(in srgb, var(--tag-color) 15%, transparent);
+  --tag-fg: color-mix(in srgb, var(--tag-color) var(--mix-data-ink), var(--fg));
+  --tag-line: color-mix(in srgb, var(--tag-color) 33%, transparent);
+  --tag-mark: var(--tag-color);
+}
+
+.tag-gray {
+  --tag-bg: var(--tag-gray-bg);
+  --tag-fg: var(--tag-gray-fg);
+}
+.tag-brown {
+  --tag-bg: var(--tag-brown-bg);
+  --tag-fg: var(--tag-brown-fg);
+}
+.tag-orange {
+  --tag-bg: var(--tag-orange-bg);
+  --tag-fg: var(--tag-orange-fg);
+}
+.tag-yellow {
+  --tag-bg: var(--tag-yellow-bg);
+  --tag-fg: var(--tag-yellow-fg);
+}
+.tag-green {
+  --tag-bg: var(--tag-green-bg);
+  --tag-fg: var(--tag-green-fg);
+}
+.tag-blue {
+  --tag-bg: var(--tag-blue-bg);
+  --tag-fg: var(--tag-blue-fg);
+}
+.tag-purple {
+  --tag-bg: var(--tag-purple-bg);
+  --tag-fg: var(--tag-purple-fg);
+}
+.tag-pink {
+  --tag-bg: var(--tag-pink-bg);
+  --tag-fg: var(--tag-pink-fg);
+}
+.tag-red {
+  --tag-bg: var(--tag-red-bg);
+  --tag-fg: var(--tag-red-fg);
+}
+
+.tag-dot-gray {
+  --tag-mark: var(--tag-gray-fg);
+}
+.tag-dot-brown {
+  --tag-mark: var(--tag-brown-fg);
+}
+.tag-dot-orange {
+  --tag-mark: var(--tag-orange-fg);
+}
+.tag-dot-yellow {
+  --tag-mark: var(--tag-yellow-fg);
+}
+.tag-dot-green {
+  --tag-mark: var(--tag-green-fg);
+}
+.tag-dot-blue {
+  --tag-mark: var(--tag-blue-fg);
+}
+.tag-dot-purple {
+  --tag-mark: var(--tag-purple-fg);
+}
+.tag-dot-pink {
+  --tag-mark: var(--tag-pink-fg);
+}
+.tag-dot-red {
+  --tag-mark: var(--tag-red-fg);
+}
+
+.tag-muted {
+  --tag-fg: var(--fg-3);
+}
+.tag-special {
+  --tag-bg: var(--color-special-bg);
+  --tag-fg: var(--color-special);
+  --tag-line: var(--color-special-border);
+}
+.tag-warn {
+  --tag-bg: var(--warn-soft);
+  --tag-fg: var(--color-warning);
+  --tag-line: var(--warn-line);
+}
+.tag-danger {
+  --tag-bg: var(--danger-soft);
+  --tag-fg: var(--color-danger-strong);
+  --tag-line: var(--danger-line);
+}
+
+.tag-inline {
+  --tag-bg: transparent;
+  --tag-line: transparent;
+  padding-inline: 0;
+}
+.tag-inline.tag-special {
+  --tag-fg: var(--fg-2);
+  --tag-mark: var(--color-special);
+}
+
+.tag-dashed {
+  --tag-bg: transparent;
+  --tag-line: var(--color-border-control);
+  border-style: dashed;
+}
+.tag-dashed:not(.tag-tint, .tag-special, .tag-warn, .tag-danger) {
+  --tag-fg: var(--fg-3);
+}
+
+.tag-mono {
+  font-family: var(--font-mono);
+}
+
+a.tag,
+button.tag {
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+a.tag:hover,
+button.tag:hover {
+  background: color-mix(in srgb, var(--tag-mark) 12%, var(--tag-bg));
+  --tag-line: color-mix(in srgb, var(--tag-fg) 40%, transparent);
+}
+button.tag:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.tag-check {
+  display: none;
+}
+.tag[aria-pressed="true"] {
+  --tag-line: currentColor;
+}
+.tag[aria-pressed="true"] .tag-check {
+  display: inline-block;
+}
+
+.tag-removable {
+  padding-right: var(--s-1);
+}
+.tag-x {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: inherit;
+  opacity: 0.6;
+  cursor: pointer;
+}
+.tag-x:hover,
+.tag-x:focus-visible {
+  opacity: 1;
+  background: var(--color-shade);
+}
+.tag-x::before {
+  content: "";
+  position: absolute;
+  inset: calc(var(--s-1) / -1);
+}
+.tag .tag-x .ico {
+  width: 0.9em;
+  height: 0.9em;
+  color: currentColor;
+}
+@media (pointer: coarse) {
+  .tag-x::before {
+    inset: min(0px, calc((100% - var(--tap-min)) / 2));
+  }
+}

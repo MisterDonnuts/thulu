@@ -1,0 +1,173 @@
+{
+  "title": "Projects",
+  "subtitle": "Cloned repos and uploaded folders · one worktree per active task.",
+  "buttons": {
+    "new_project": "New project",
+    "open_board": "Open board",
+    "connect_github": "Connect GitHub",
+    "install_other_org": "Install on another organization",
+    "new_credential": "New credential…",
+    "save_credential": "Save credential",
+    "delete_project": "Delete project",
+    "open_project": "Open project",
+    "create_first": "Create your first project",
+    "back_to_task": "Back to the task"
+  },
+  "toolbar": {
+    "search": "Search projects",
+    "count": {
+      "one": "{count} project",
+      "other": "{count} projects"
+    },
+    "filtered": "{shown} of {total}"
+  },
+  "empty": {
+    "none": "No projects yet",
+    "no_match": "No projects match “{query}”"
+  },
+  "modal": {
+    "title": "New project",
+    "name": "Name",
+    "name_placeholder": "My project",
+    "repo_access": "Repository access",
+    "repo_access_hint": "secrets live on the credentials page, never on the project",
+    "repo_url": "Repository URL",
+    "description": "Description",
+    "description_hint": "short blurb the agent reads at init",
+    "description_placeholder": "Public website (Next.js). Marketing copy, landing pages, A/B tests.",
+    "default_branch": "Default branch",
+    "default_branch_placeholder": "Empty: the repository's own",
+    "default_board": "Default board",
+    "default_board_hint": "Where this project's tasks start when the API or an agent creates them without naming a board. A task created from the board starts on the board that is open.",
+    "stage_template": "Stage template",
+    "stage_template_hint": "default agent per stage",
+    "column_stage": "Stage",
+    "column_default_agent": "Default agent",
+    "source": "Where the code comes from",
+    "more_options": "More options"
+  },
+  "auth": {
+    "github_app": "GitHub App",
+    "github_org": "GitHub organization",
+    "repository": "Repository",
+    "pick_repo": "Pick a repository…",
+    "loading_repos": "Loading repositories…",
+    "repos_failed": "Couldn't load repositories",
+    "app_info": "Repositories the App installation grants. Picking one fills the URL below and links the project to the installation — tokens are minted per operation and nothing long-lived is stored.",
+    "install_hint": "Install the App on your org to pick repos without tokens.",
+    "saved_credential": "Saved credential",
+    "credential_aria": "GitHub credential",
+    "pick_credential": "— pick a credential —",
+    "credential_name": "Name",
+    "credential_name_placeholder": "GitHub — deploys",
+    "token": "Personal access token",
+    "token_placeholder": "ghp_…  or  github_pat_…",
+    "token_info_html": "Validated against api.github.com and stored on the credentials page, where it can be rotated, disabled or granted to other projects. Classic tokens need <code>repo</code>, plus <code>workflow</code> to dispatch Actions.",
+    "public_repo": "Public repo",
+    "public_repo_hint": "clone without credentials"
+  },
+  "labels": {
+    "defaults": {
+      "one": "{count} default",
+      "other": "{count} defaults"
+    },
+    "suspended": "(suspended)",
+    "private": "(private)",
+    "state_invalid": "(invalid)",
+    "state_expired": "(expired)",
+    "uploaded": "Uploaded to Thulu",
+    "cloning": "Cloning",
+    "clone_failed": "Clone failed",
+    "clone_failed_reason": "The clone failed: {reason}."
+  },
+  "status": {
+    "validating": "Validating…",
+    "packing": "Packing…",
+    "uploading": "Uploading…",
+    "processing": "Saving the code…"
+  },
+  "toasts": {
+    "token_rejected": "GitHub rejected that token — it was saved, but it will not clone",
+    "credential_saved": "Saved {name}",
+    "credential_saved_identity": "Saved {name} — {identity}",
+    "install_failed": "Couldn't start GitHub install: {error}",
+    "github_connected": "GitHub connected — pick a repository",
+    "github_authorized": "GitHub authorization complete",
+    "install_requested": "Install requested — waiting for your GitHub org admin to approve",
+    "github_failed": "GitHub connection failed ({reason})",
+    "created": "Created {name}",
+    "delete_failed": "Couldn't delete project",
+    "deleted": "Deleted {name}",
+    "read_failed": "Could not read the folder. Try Choose folder instead.",
+    "cloning": "{name} is cloning; its card says when it is ready",
+    "link_task_failed": "The project was created but could not be linked to the task: {error}"
+  },
+  "errors": {
+    "unknown": "unknown",
+    "no_install_url": "no install URL returned",
+    "credential_save_failed": "Couldn't save the credential: {error}",
+    "save_failed": "Couldn't save: {error}",
+    "name_required": "The project needs a name",
+    "pick_folder": "Choose a folder or a .zip with the code",
+    "too_big": "The upload is {size}; the limit is {max}. Leave out build output or large assets and try again.",
+    "pick_credential": "Pick a credential or create one, or choose “Public repo”",
+    "repo_required": "The project needs the repository URL",
+    "credential_name_required": "The credential needs a name",
+    "token_required": "Paste the token the credential stores"
+  },
+  "confirm": {
+    "delete_title": "Delete \"{name}\"?",
+    "delete_message": "Removes the local clone and all worktrees. Tasks linked to it will lose their project.",
+    "delete_ok": "Delete project"
+  },
+  "kbd": {
+    "close_modal": "Close modal / clear search"
+  },
+  "github_reasons": {
+    "state": "the install link expired, was already used, or was opened in another browser; start again from Thulu",
+    "fetch": "Thulu couldn't read the installation from GitHub",
+    "store": "Thulu couldn't save the installation",
+    "params": "GitHub sent back no installation",
+    "claimed": "that installation is already connected to another workspace; ask the operator to move it",
+    "installer": "your GitHub user can't see that installation",
+    "authorize": "GitHub didn't send the authorization this install needs; the App must request user authorization during installation",
+    "oauth": "GitHub refused the authorization code",
+    "unclaimed": "the installation isn't connected to any workspace; install it from Thulu"
+  },
+  "source": {
+    "git_title": "Git repository",
+    "git_desc": "Clone from GitHub or another remote",
+    "upload_title": "Upload a folder",
+    "upload_desc": "From your computer, no GitHub needed"
+  },
+  "upload": {
+    "drop_title": "Drag the project folder here",
+    "drop_sub": "or pick it from your computer. A .zip works too.",
+    "pick_folder": "Choose folder",
+    "pick_zip": "Choose .zip",
+    "rules": "node_modules, .venv and other dependency folders stay out, and so do files that look like secrets (.env, private keys). With its .git the project keeps its history; without it, the folder is the first commit on main.",
+    "reading": "Reading the folder…",
+    "files": {
+      "one": "{count} file",
+      "other": "{count} files"
+    },
+    "with_history": "With git history",
+    "nothing_left": "No files left to upload once dependency folders and secrets are taken out.",
+    "excluded": {
+      "one": "{count} file left out as a possible secret",
+      "other": "{count} files left out as possible secrets"
+    },
+    "skipped": {
+      "one": "{count} folder left out",
+      "other": "{count} folders left out"
+    },
+    "and_more": "and {count} more",
+    "zip_note": "Thulu sorts the zip's files when it arrives.",
+    "progress": "{pct}% · {sent} of {total}",
+    "created_title": "{name} is ready",
+    "created_history": "History kept. {branch} is at {commit}.",
+    "created_fresh": "New repository. The folder is the first commit on {branch} ({commit}).",
+    "history_ignored": "The .git in the upload had no commits, so the project starts a new history.",
+    "progress_label": "Upload progress"
+  }
+}

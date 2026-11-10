@@ -1,0 +1,43 @@
+{
+  "team": {
+    "title": "Miembros",
+    "subtitle": "Quién tiene acceso a este espacio de trabajo y con qué rol.",
+    "subtitle_named": "Quién tiene acceso a {workspace} y con qué rol."
+  },
+  "boards": {
+    "title": "Tableros",
+    "subtitle": "Los tableros, sus columnas y los tipos de tarea."
+  },
+  "llm": {
+    "title": "Motores de IA",
+    "subtitle": "La clave y el modelo con que corre cada motor, los perfiles que pueden elegir los agentes y cuánto puede durar una corrida."
+  },
+  "webhooks": {
+    "title": "Webhooks",
+    "subtitle": "Endpoints que reciben eventos de tareas y corridas."
+  },
+  "api": {
+    "title": "API",
+    "subtitle": "Las API keys, la especificación OpenAPI y la dirección de telemetría."
+  },
+  "health": {
+    "title": "Salud",
+    "subtitle": "Docker, base de datos y disco del daemon, la licencia y cuánto se guardan los datos."
+  },
+  "updates": {
+    "title": "Actualizaciones",
+    "subtitle": "La versión en marcha, las releases más nuevas y cómo pasar a ellas."
+  },
+  "audit": {
+    "title": "Registro de auditoría",
+    "subtitle": "Quién hizo qué, y cuándo."
+  },
+  "language": {
+    "title": "Idioma",
+    "subtitle": "El idioma del dashboard en este navegador."
+  },
+  "account": {
+    "title": "Cuenta",
+    "subtitle": "Tu perfil y tus sesiones activas."
+  }
+}

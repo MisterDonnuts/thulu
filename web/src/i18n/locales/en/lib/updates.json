@@ -1,0 +1,65 @@
+{
+  "source": {
+    "misconfigured": "Release source misconfigured: {error}",
+    "off": "Release lookups are off (OCTOPUS_UPDATE_SOURCE=off).",
+    "checking_last": {
+      "one": "Checking {source} for {channels} releases every hour; last checked {date}.",
+      "other": "Checking {source} for {channels} releases every {count} hours; last checked {date}."
+    },
+    "checking_never": {
+      "one": "Checking {source} for {channels} releases every hour; not checked yet.",
+      "other": "Checking {source} for {channels} releases every {count} hours; not checked yet."
+    }
+  },
+  "buttons": {
+    "download_package": "Download change package",
+    "json": "JSON"
+  },
+  "command_name": "the update command",
+  "advisories": {
+    "heading": "The running version has known security advisories.",
+    "fallback_severity": "advisory",
+    "fixed_in": "fixed in {version}"
+  },
+  "release": {
+    "published": "published {date}",
+    "no_migrations": "No database migrations.",
+    "migrations": "{added} migration(s).",
+    "migrations_contract": "{added} migration(s), {contract} of them remove old columns or tables.",
+    "upgrades_from": "Upgrades from {version}.",
+    "rollback_no_restore": "Going back to {version} needs no database restore.",
+    "rollback_snapshot": "Going back to {version} needs the snapshot taken before the update.",
+    "requires_html": "Requires {vars}.",
+    "manual_steps": "Manual steps",
+    "blockers": "Before this update: {blockers}",
+    "full_notes": "Full release notes"
+  },
+  "versions": {
+    "running": "running",
+    "no_restore": "No database restore needed.",
+    "no_snapshot": "No snapshot recorded for this version; replace <snapshot> with one from the backups directory.",
+    "restore_loses": "Restores the database: anything written since {date} is lost.",
+    "restore_loses_undated": "Restores the database: anything written after the install left this version is lost."
+  },
+  "history": {
+    "version_changed": "Daemon started on a new version",
+    "update_reported": "Update run",
+    "result_ok": "succeeded",
+    "result_failed": "failed",
+    "result_rolled_back": "rolled back",
+    "first_start": "first start"
+  },
+  "check_error": {
+    "title": "Could not look for releases.",
+    "badge": "could not check",
+    "offline": "No connection to {source}.",
+    "rate_limited": "{source} is limiting requests; the next check usually goes through.",
+    "not_found": "{source} does not have the releases this install asks for: check OCTOPUS_UPDATE_SOURCE.",
+    "other": "The lookup at {source} failed.",
+    "detail": "Detail",
+    "unknown_newest": "The last lookup failed, so whether a newer version exists is unknown."
+  },
+  "unreported": {
+    "note_html": "The daemon restarted into {versions} and no update run reported it, so the history lacks who ran the update and how it went. <code>thulu update</code> reports with an API key of this workspace (admin role, settings permission) in {env} on the host: create one under <a href=\"/settings/#api\">API</a>."
+  }
+}

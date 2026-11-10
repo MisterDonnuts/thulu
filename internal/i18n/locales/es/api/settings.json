@@ -1,0 +1,18 @@
+{
+  "errors": {
+    "not_found": "no existe",
+    "unknown_setting": "no existe el ajuste: {setting}",
+    "priorities_shape": "sandbox.priorities tiene que ser un mapa {stage: int}",
+    "sandbox_max_positive": "sandbox.max tiene que ser un entero positivo",
+    "non_negative_int": "{setting} tiene que ser un entero no negativo",
+    "positive_int": "{setting} tiene que ser un entero positivo",
+    "retention_days": "{setting} tiene que ser un entero no negativo (días; 0 guarda para siempre)",
+    "percent_range": "{setting} tiene que ser un entero de 0 (apagado) a 100",
+    "int_range": "{setting} tiene que ser un entero entre {min} y {max}",
+    "public_url_string": "ingest.public_url tiene que ser un string",
+    "batch_empty": "mandá al menos un ajuste"
+  },
+  "log": {
+    "reprioritize_failed": "reordenar la cola de sandboxes después de cambiar una prioridad"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "source": {
+    "agent": "Agent",
+    "auditor": "Auditor",
+    "user": "Person",
+    "system": "Thulu"
+  },
+  "kind": {
+    "agent_index": "Run summary",
+    "evidence": "Evidence",
+    "auditor_feedback": "Auditor feedback"
+  },
+  "verdict": {
+    "continue": "Verdict: continue",
+    "block": "Verdict: stop for a person to decide",
+    "needs_more_turns": "Verdict: run again with more turns",
+    "kick_back": "Verdict: send back",
+    "kick_back_to": "Verdict: send back to {stage}"
+  },
+  "fallback_title": "Report",
+  "score": "Score {score}",
+  "stage": {
+    "mention": "Mention",
+    "chat": "Chat"
+  }
+}

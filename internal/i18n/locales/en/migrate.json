@@ -1,0 +1,19 @@
+{
+  "errors": {
+    "component": "migrate {component}",
+    "create_history": "migrate {component}: create schema_migrations",
+    "load_history": "migrate {component}: load history",
+    "out_of_order": "migration {id} follows {prev}: IDs must be unique and strictly increasing",
+    "begin": "migrate {component}#{id}: begin",
+    "apply": "migrate {component}#{id}",
+    "commit": "migrate {component}#{id}: commit",
+    "record": "migrate {component}#{id}: record",
+    "inspect_table": "migrate: inspect {table}",
+    "lock": "migrate {component}: take the migration lock",
+    "lock_busy": "another process is migrating this database and did not finish within {wait}"
+  },
+  "log": {
+    "release_conn": "migrate: return the lock connection",
+    "drop_conn": "migrate: drop the connection whose unlock failed"
+  }
+}

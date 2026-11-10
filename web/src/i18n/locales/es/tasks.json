@@ -1,0 +1,345 @@
+{
+  "title": "Tareas",
+  "hints": {
+    "click_to_edit": "Hacé clic para editar · Enter guarda · Esc deshace",
+    "drag_to_resize": "Arrastrá para cambiar el ancho · doble clic para restablecerlo"
+  },
+  "buttons": {
+    "new_task": "Nueva tarea",
+    "open_projects": "Abrir proyectos"
+  },
+  "toolbar": {
+    "search_placeholder": "Buscá por título, repo, agente o #id",
+    "search_placeholder_short": "Buscá tareas",
+    "filters": "Filtros",
+    "type": "Tipo",
+    "blocked": "Bloqueadas",
+    "blocked_title": "Solo las tarjetas que frena una dependencia sin terminar",
+    "needs_you": "Te necesitan",
+    "needs_you_title": "Solo las tarjetas de este tablero que esperan a una persona: una pregunta, una aprobación o una corrida que falló, se frenó o no arrancó",
+    "subtasks": "Subtareas",
+    "mode_nested": "Anidadas",
+    "mode_nested_sub": "Las subtareas se ven como filas dentro de la tarjeta madre.",
+    "mode_cards": "Como tarjetas",
+    "mode_cards_sub": "Cada subtarea es una tarjeta en la columna de su etapa.",
+    "mode_nested_label": "Subtareas: anidadas",
+    "mode_cards_label": "Subtareas: como tarjetas",
+    "show": "Mostrar",
+    "stages": "Etapas",
+    "layout": "Vista",
+    "layout_board": "Tablero",
+    "layout_list": "Lista",
+    "group": "Agrupar",
+    "group_stage": "Por etapa",
+    "group_stage_sub": "Una sección por etapa, en el orden del flujo.",
+    "group_none": "Sin agrupar",
+    "group_none_sub": "Todas las tareas en una sola lista.",
+    "group_stage_label": "Agrupar: etapa",
+    "group_none_label": "Agrupar: nada"
+  },
+  "kbd": {
+    "enter": "Enter",
+    "drag": "Arrastrar",
+    "focus_search": "Ir al buscador",
+    "close_all": "Cerrar modal / panel / limpiar búsqueda",
+    "on_card": "Sobre una tarjeta con foco",
+    "open_task": "Abrir la tarea",
+    "move_columns": "Mover entre columnas (soltala en cualquier etapa)",
+    "viewing_attachment": "Mirando un adjunto",
+    "prev_next_attachment": "Adjunto anterior / siguiente",
+    "close_viewer": "Cerrar el visor",
+    "in_task": "En una tarea abierta",
+    "edit_brief": "Editar la descripción",
+    "expand": "Agrandar o achicar el panel",
+    "next_prev_task": "Tarea siguiente / anterior",
+    "prev_next_sibling": "Subtarea anterior / siguiente",
+    "open_parent": "Abrir la tarea madre",
+    "pick_stage": "Cambiar de etapa",
+    "pick_priority": "Elegir la prioridad",
+    "pick_tags": "Editar las etiquetas",
+    "pick_deps": "Editar las dependencias",
+    "pick_agent": "Editar los agentes",
+    "shift": "Mayús",
+    "add_subtask": "Agregar una subtarea",
+    "more_actions": "Más acciones",
+    "save_brief": "Guardar la descripción",
+    "delete": "Supr",
+    "comment": "Escribir un comentario",
+    "post_comment": "Publicar el comentario o la respuesta",
+    "reply_thread": "Responder el hilo enfocado",
+    "resolve_thread": "Resolver o reabrir el hilo enfocado",
+    "move_focus": "Moverte entre tarjetas",
+    "space": "Espacio",
+    "pick_up": "Levantar la tarjeta; las flechas la mueven, Espacio la suelta, Esc cancela",
+    "move_to": "Mover a una etapa",
+    "card_menu": "Menú de la tarjeta",
+    "shift_f10": "Mayús F10",
+    "toggle_layout": "Cambiar entre tablero y lista",
+    "on_row": "Sobre una fila de la lista",
+    "row_focus": "Fila anterior / siguiente"
+  },
+  "new_task": {
+    "title": "Nueva tarea",
+    "labels": {
+      "board": "Tablero",
+      "repos": "Repos",
+      "type": "Tipo",
+      "title": "Título",
+      "body": "Descripción",
+      "priority": "Prioridad",
+      "tags": "Etiquetas"
+    },
+    "hints": {
+      "board": "(la tarea aparece en su primera columna)",
+      "repos": "(opcional: los agentes que necesitan un repo se bloquean hasta que vincules uno)",
+      "type": "(define por qué columnas pasa esta tarea)",
+      "tags": "(separadas por coma)"
+    },
+    "placeholders": {
+      "title": "Título corto",
+      "body": "Describí la tarea: contexto, restricciones, criterios de aceptación",
+      "tags": "frontend, checkout"
+    },
+    "no_projects_html": "Todavía no hay proyectos: la tarea se va a crear sin repo vinculado. <a href=\"/projects/\" style=\"color:var(--accent)\">Creá uno</a> si tu agente lo necesita.",
+    "clone_failed": "No se pueden elegir porque falló su clon: {projects}.",
+    "board_note": {
+      "here": "{projects}: sus tareas van a {board}. Esta se va a crear en {current}, el tablero que tenés abierto.",
+      "use": "Crearla en {board}"
+    }
+  },
+  "lightbox": {
+    "previous": "Adjunto anterior",
+    "previous_hint": "Anterior (←)",
+    "next": "Adjunto siguiente",
+    "next_hint": "Siguiente (→)",
+    "open_new_tab": "Abrir en una pestaña nueva",
+    "open": "Abrir ↗",
+    "no_preview": "No hay vista previa para este tipo de archivo."
+  },
+  "errors": {
+    "refresh_failed": "no se pudo actualizar",
+    "network": "Error de red",
+    "http_status": "HTTP {status}",
+    "unknown": "error desconocido",
+    "network_detail": "Error de red: {error}"
+  },
+  "toasts": {
+    "agents_load_failed": "No se pudieron cargar los agentes: {error}",
+    "projects_load_failed": "No se pudieron cargar los proyectos: {error}",
+    "board_name_empty": "El nombre del tablero no puede quedar vacío",
+    "board_renamed": "Tablero renombrado",
+    "board_rename_failed": "No se pudo renombrar el tablero",
+    "created_in": "Creada en {stage}",
+    "create_failed_detail": "No se pudo crear: {error}",
+    "uploaded": "{file} subido",
+    "image_upload_failed": "No se pudo subir la imagen: {error}",
+    "type_skips": "{type} saltea {stage}",
+    "this_type_skips": "Este tipo saltea {stage}",
+    "move_blocked": "Bloqueada: {reason}",
+    "move_failed": "No se pudo mover; se deshizo el cambio",
+    "move_network_error": "Error de red; se deshizo el cambio",
+    "title_required": "El título es obligatorio",
+    "task_created": "Tarea creada",
+    "load_failed": "No se pudo cargar la tarea",
+    "forked": "Bifurcada; abriendo la copia",
+    "fork_failed": "No se pudo bifurcar: {error}",
+    "force_pr": {
+      "opened": {
+        "one": "Forzar PR: se abrió {count} pull request",
+        "other": "Forzar PR: se abrieron {count} pull requests"
+      },
+      "no_projects": "Forzar PR: no hay nada que hacer, la tarea no tiene proyectos vinculados",
+      "no_token": "Forzar PR: el proyecto \"{name}\" no tiene credencial de GitHub. Elegí una en Proyecto → Repositorio → Acceso a GitHub.",
+      "open_project": "Abrir el proyecto",
+      "no_secrets_store": "Forzar PR: el daemon no tiene un almacén de secretos configurado.",
+      "bad_remote": "Forzar PR: la URL del repo de \"{name}\" no es un remoto de GitHub reconocido.",
+      "project_missing": "Forzar PR: no se pudo cargar el proyecto \"{name}\": {error}",
+      "open_failed": "Forzar PR: GitHub rechazó el PR de \"{name}\": {error}",
+      "already_open": "Forzar PR: todos los repos vinculados ya tienen un PR.",
+      "unknown_status": "Forzar PR: estado desconocido \"{status}\" para \"{name}\"",
+      "failed": "Falló Forzar PR: {error}"
+    },
+    "relaunched": {
+      "one": "Relanzada con {count} turno",
+      "other": "Relanzada con {count} turnos"
+    },
+    "relaunch_failed": "No se pudo relanzar: {error}",
+    "cloned": "Clonada; abriendo la copia",
+    "clone_failed": "No se pudo clonar: {error}",
+    "task_deleted": "Tarea eliminada",
+    "delete_failed": "No se pudo eliminar: {error}",
+    "title_empty": "El título no puede quedar vacío",
+    "title_saved": "Título guardado",
+    "title_save_failed": "No se pudo guardar el título",
+    "copy_failed": "No se pudo copiar al portapapeles",
+    "link_copied": "Enlace copiado",
+    "branch_copied": "Nombre de la rama copiado",
+    "archived": "Tarea archivada",
+    "unarchived": "La tarea volvió al tablero",
+    "archive_failed": "No se pudo archivar: {error}"
+  },
+  "board": {
+    "resize_column": "Cambiar el ancho de la columna",
+    "inline": {
+      "no_repo": "sin repo",
+      "placeholder": "¿Qué hay que hacer?",
+      "repo_title": "Repo al que pertenece esta tarea",
+      "hint_html": "<kbd>↵</kbd> agregar · <kbd>Esc</kbd> cancelar"
+    },
+    "live": {
+      "picked": "Levantaste {title} en {stage}. Izquierda y derecha la mueven, Espacio la suelta, Esc cancela.",
+      "over": "{title} sobre {stage}. Espacio la suelta acá.",
+      "edge": "{stage} es el final del flujo de esta tarea.",
+      "dropped": "Soltaste {title} en {stage}.",
+      "canceled": "{title} se queda en {stage}."
+    },
+    "no_match": "Ninguna tarea coincide",
+    "clear_filters": "Quitar los filtros"
+  },
+  "types": {
+    "untyped_option": "Sin tipo: pasa por todas las columnas",
+    "change_failed": "No se pudo cambiar el tipo",
+    "changed": "Tipo cambiado"
+  },
+  "confirm": {
+    "fork_running_title": "¿Bifurcar una tarea que está corriendo?",
+    "fork_running_message": "Guarda una foto del estado actual. Lo que el agente produzca después queda en la original.",
+    "fork_button": "Bifurcar",
+    "delete_task_title": "¿Eliminar \"{title}\"?",
+    "delete_this_task_title": "¿Eliminar \"esta tarea\"?",
+    "delete_task_message": "Elimina la tarea y limpia sus worktrees. No se puede deshacer.",
+    "finish_parent_title": {
+      "one": "¿Terminar \"{title}\" con {count} subtarea abierta?",
+      "other": "¿Terminar \"{title}\" con {count} subtareas abiertas?"
+    },
+    "finish_parent_message": "Las subtareas abiertas siguen en el tablero y siguen commiteando en la rama compartida.",
+    "delete_subtask_title": "¿Eliminar \"{title}\"?",
+    "delete_subtask_message": "Sus commits quedan en la rama compartida. No se puede deshacer.",
+    "delete_subtask_button": "Eliminar la subtarea",
+    "delete_with_subtasks_button": {
+      "one": "Eliminar 1 tarea",
+      "other": "Eliminar {count} tareas"
+    },
+    "retry_after_audit_title": "¿Correr la etapa otra vez?",
+    "retry_after_audit_message": "El auditor frenó la última corrida. Su devolución está en Reportes; leela antes de que el agente vuelva a intentar."
+  },
+  "test_cases": {
+    "title_required": "El título es obligatorio.",
+    "save_failed": "No se pudo guardar.",
+    "delete_title": "¿Eliminar {key}?",
+    "delete_message": "Se va a eliminar \"{title}\". Los videos y archivos a los que apuntan las corridas quedan en la tarea.",
+    "delete_message_runs": {
+      "one": "Se van a eliminar \"{title}\" y su corrida. Los videos y archivos a los que apuntan las corridas quedan en la tarea.",
+      "other": "Se van a eliminar \"{title}\" y sus {count} corridas. Los videos y archivos a los que apuntan las corridas quedan en la tarea."
+    },
+    "delete_failed": "No se pudo eliminar el caso: {error}",
+    "move_failed": "No se pudo mover el caso: {error}",
+    "import_failed": "No se pudieron importar los casos de prueba de la descripción: {error}",
+    "mark_failed": "No se pudo marcar el caso: {error}",
+    "status_failed": "No se pudo cambiar el estado: {error}",
+    "imported": {
+      "one": "Se importó {count} caso de prueba",
+      "other": "Se importaron {count} casos de prueba"
+    },
+    "report_gone": "Ese reporte ya no está en esta tarea",
+    "not_found": "Esta tarea no tiene el caso de prueba {key}",
+    "run_url_invalid": "Escribí una URL que empiece con http:// o https://.",
+    "run_no_cases": "Elegí al menos un caso.",
+    "run_started": {
+      "one": "Le pedí a {agent} que corra {count} caso. Lo ves en la actividad.",
+      "other": "Le pedí a {agent} que corra {count} casos. Lo ves en la actividad."
+    },
+    "run_failed": "No se pudo lanzar la corrida: {error}",
+    "section_removed": "La sección Test Cases salió del cuerpo.",
+    "remove_section_failed": "No se pudo quitar la sección: {error}",
+    "pass_unrun_title": "¿Marcar {key} como aprobado?",
+    "pass_unrun_message": "Nadie corrió este caso todavía. Marcalo aprobado sólo si lo probaste vos.",
+    "pass_unrun_confirm": "Marcar aprobado"
+  },
+  "approvals": {
+    "note_required": "Primero escribí el motivo",
+    "approved_mappings": {
+      "one": "Aprobada: {count} mapeo ya está recolectando",
+      "other": "Aprobada: {count} mapeos ya están recolectando"
+    },
+    "update_failed": "No se pudo actualizar la aprobación: {error}",
+    "add_failed": "No se pudo agregar la aprobación: {error}",
+    "delete_title": "¿Borrar \"{label}\"?",
+    "delete_message": "La aprobación y su decisión salen de la tarea. El agente deja de esperarla.",
+    "delete_button": "Borrar aprobación",
+    "note_needed_changes": "Primero escribí qué hay que cambiar",
+    "note_needed_waive": "Primero escribí por qué se puede saltear"
+  },
+  "questions": {
+    "answered": "Respuesta enviada",
+    "answer_failed": "No se pudo enviar la respuesta: {error}",
+    "cancel_title": "¿Cancelar esta pregunta?",
+    "cancel_message": "El agente no recibe respuesta. Si estaba esperándola, la tarea queda estacionada hasta que alguien la mueva o la relance.",
+    "cancel_button": "Cancelar pregunta",
+    "cancel_failed": "No se pudo cancelar la pregunta: {error}"
+  },
+  "head": {
+    "more": "Más acciones del tablero"
+  },
+  "merge": {
+    "title": "Integrar en",
+    "project": "Proyecto",
+    "target": "En la rama",
+    "submit": "Integrar",
+    "note": "Lleva {branch} a {target}: avanza {target} si no se movió y, si se movió, crea un commit de merge. Si algún archivo choca, no se escribe nada.",
+    "merged": "Integrada en {target} ({commit})",
+    "up_to_date": "{target} ya tiene todos los commits de la tarea",
+    "conflicts": {
+      "one": "1 archivo choca con {target}; no se integró nada:",
+      "other": "{count} archivos chocan con {target}; no se integró nada:"
+    },
+    "failed": "No se pudo integrar: {error}",
+    "redo": "Rehacer sobre {branch}",
+    "return": "Devolver al agente",
+    "redo_done": "Copia creada: arranca de {branch} y lista los archivos que chocaron",
+    "redo_title": "{title} (rehecha sobre {branch})",
+    "returned": "Comentario agregado con los archivos. Si hay una corrida trabajando en la tarea lo recibe ahora; si no, lo lee la próxima."
+  },
+  "archived": {
+    "title": "Archivadas",
+    "count": {
+      "one": "1 tarea archivada en este tablero",
+      "other": "{count} tareas archivadas en este tablero"
+    },
+    "empty": "Nada archivado. Archivar saca una tarea del tablero sin borrar su historial.",
+    "restore": "Devolver"
+  },
+  "readonly": {
+    "board": "Tu rol en este workspace es lector: podés ver las tareas, pero no crearlas, moverlas ni cambiarlas.",
+    "menu": "Tu rol sólo puede leer este workspace.",
+    "comments": "Tu rol sólo puede leer este workspace: no podés comentar ni editar la tarea."
+  },
+  "list": {
+    "label": "Tareas del tablero",
+    "columns": {
+      "task": "Tarea",
+      "stage": "Etapa",
+      "status": "Estado",
+      "priority": "Prioridad",
+      "agent": "Agente",
+      "projects": "Repos",
+      "tags": "Etiquetas",
+      "subtasks": "Subtareas",
+      "updated": "Actualizada",
+      "actions": "Acciones"
+    },
+    "group": {
+      "show": {
+        "one": "Mostrar la tarea de {stage}",
+        "other": "Mostrar las {count} tareas de {stage}"
+      },
+      "hide": "Ocultar las tareas de {stage}"
+    },
+    "empty": "Este tablero todavía no tiene tareas.",
+    "save_failed": "No se pudo guardar la vista en tu cuenta: {error}. En este navegador queda igual.",
+    "live": {
+      "list": "Vista de lista.",
+      "board": "Vista de tablero."
+    }
+  }
+}

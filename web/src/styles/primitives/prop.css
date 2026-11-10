@@ -1,0 +1,98 @@
+/* A container query cannot read a custom property: 26rem is duplicated in the page that lays out the columns. */
+
+.prop-list {
+  min-width: 0;
+}
+.prop-list-auto {
+  container: prop-list / inline-size;
+}
+
+.nprop {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--prop-label-w) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--s-2);
+  min-width: 0;
+}
+/* --fg-2: the phone sheet is a drawer (surface-3), where --fg-3 is under 4.5:1 in the dark theme. */
+.nprop-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-width: 0;
+  padding: calc((var(--prop-value-h) - 1lh) / 2) 0;
+  color: var(--fg-2);
+  font-size: var(--t-xs);
+  line-height: var(--lh-snug);
+  user-select: none;
+}
+.nprop-label .ico {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  color: var(--fg-4);
+}
+.nprop-value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-1);
+  min-width: 0;
+  min-height: var(--prop-value-h);
+  margin-left: calc(var(--s-2) * -1);
+  padding: 2px var(--s-2);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.nprop-value:hover {
+  background: var(--surface-2);
+}
+.nprop-value:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+}
+.nprop-static {
+  cursor: default;
+}
+.nprop-static:hover {
+  background: transparent;
+}
+.nprop-value-empty {
+  color: var(--fg-3);
+  font-size: var(--t-sm);
+  font-style: normal;
+}
+
+@media (pointer: coarse) {
+  .nprop {
+    min-height: var(--tap-min);
+    align-items: center;
+  }
+  .nprop-label {
+    padding: 0;
+  }
+}
+
+.prop-list-sheet .nprop {
+  grid-template-columns: var(--prop-sheet-label-w) minmax(0, 1fr);
+  align-items: center;
+  min-height: var(--tap-min);
+}
+.prop-list-sheet .nprop-label {
+  padding: 0;
+}
+
+@container prop-list (width >= 26rem) {
+  .nprop {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    min-height: 0;
+  }
+  .nprop-label {
+    padding: 0;
+  }
+}

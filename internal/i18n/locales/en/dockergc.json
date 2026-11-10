@@ -1,0 +1,44 @@
+{
+  "errors": {
+    "list_containers": "list containers",
+    "list_images": "list images",
+    "list_volumes": "list volumes",
+    "list_networks": "list networks",
+    "inspect_container": "inspect {id}",
+    "remove_container": "remove container {name}",
+    "remove_image": "remove image {image}",
+    "remove_volume": "remove volume {name}",
+    "remove_network": "remove network {name}"
+  },
+  "reasons": {
+    "in_use": "in use by {containers}",
+    "configured": "configured",
+    "rollback_until": "rollback image until {date}",
+    "newer_than_running": "newer than the running {version} (an update may be installing it)",
+    "uninstall": "uninstall",
+    "untagged_build": "untagged Thulu build",
+    "rollback_ended": "rollback window ended {date}",
+    "older_version": "older version",
+    "newer_than_kept": "built after the version this install uses (an update, or another install on this engine)",
+    "unclaimed": "not configured and not in use",
+    "nothing_to_compare": "nothing configured to compare it with",
+    "build_cache": "build cache",
+    "data": "data",
+    "data_role": "data ({role})",
+    "stale_base": "older than the FROM the Dockerfiles pin",
+    "kind_node": "kind node image, no kind cluster running",
+    "sandbox_cache": "dependency cache of workspace {workspace}",
+    "engine_cache": "engines installed on first use, for {scope}",
+    "personal_login": "a person's own {engine} login"
+  },
+  "container_kinds": {
+    "agent": "agent",
+    "sandbox": "sandbox",
+    "chat": "chat",
+    "build": "build leftover",
+    "mcp": "mcp",
+    "stack": "stack",
+    "browser": "per-run browser",
+    "login": "personal login command"
+  }
+}

@@ -1,0 +1,14 @@
+---
+// Only the renderer's sanitized HTML goes inside, never raw input.
+// Markup must match mdHTML() in lib/ui/conversation.ts.
+import { mdClasses } from "../lib/ui/conversation";
+
+interface Props {
+  compact?: boolean;
+  class?: string;
+  [key: string]: unknown;
+}
+const { compact = false, class: extra, ...rest } = Astro.props;
+---
+
+<div class={mdClasses({ compact, cls: extra })} {...rest}><slot /></div>

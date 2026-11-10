@@ -1,0 +1,14 @@
+{
+  "title": "Search",
+  "placeholder": "Search tasks, projects, agents, boards and pages",
+  "results": "Results",
+  "hint": "↑↓ to move · Enter to open · Esc to close",
+  "empty": "Nothing matches “{query}”.",
+  "groups": {
+    "pages": "Pages",
+    "tasks": "Tasks",
+    "projects": "Projects",
+    "agents": "Agents",
+    "boards": "Boards"
+  }
+}

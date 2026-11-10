@@ -1,0 +1,44 @@
+{
+  "chart": {
+    "no_samples": "{title}: no samples yet",
+    "summary": "{title}, latest: {values}"
+  },
+  "cache": {
+    "status": {
+      "skipped": "Already there",
+      "restored": "From snapshot",
+      "ran": "Installed",
+      "failed": "Failed",
+      "none": "No setup"
+    },
+    "bar_title": "{date}: {skipped} already there, {restored} from snapshot, {ran} installed, {failed} failed, {prewarms} prewarms",
+    "bars_summary": "Installs over {days} days: {skipped} already there, {restored} from snapshot, {ran} installed, {failed} failed",
+    "areas": {
+      "npm": "npm",
+      "go_mod": "Go modules",
+      "go_build": "Go build cache",
+      "pip": "pip",
+      "mise": "mise toolchains",
+      "snapshots": "Snapshots",
+      "other": "Other"
+    },
+    "signals": {
+      "cache_growth": "{workspace}: the cache grew {value} in this range (threshold {threshold})",
+      "cache_full": "{workspace}: the cache disk is {value} full (threshold {threshold})",
+      "low_hit_rate": "{project} ({workspace}): {value} of installs came from the cache (threshold {threshold})",
+      "prewarm_failing": {
+        "one": "{project} ({workspace}): the last prewarm failed",
+        "other": "{project} ({workspace}): the last {count} prewarms failed"
+      },
+      "key_churn": {
+        "one": "{project} ({workspace}): {count} setup key in {days} days",
+        "other": "{project} ({workspace}): {count} different setup keys in {days} days, so snapshots rarely match"
+      },
+      "tool_unused": {
+        "one": "{tool}: cached, and no run asked for it in {count} day",
+        "other": "{tool}: cached, and no run asked for it in {count} days"
+      },
+      "tool_never_used": "{tool}: cached, and no run in the log asked for it"
+    }
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "errors": {
+    "third_party_format": "-third-party {value:%q}: want name=ref",
+    "bad_version": "version {version:%q}",
+    "channel_mismatch": "version {version} cannot be on the {channel} channel",
+    "lock_not_ready": "migrations lock is not ready for {version}:\n{cause}",
+    "lock_mismatch": "migrations lock does not match the code:\n{cause}",
+    "flag_required": "{flag} is required",
+    "no_ref_files": "no *.ref files in {dir}",
+    "no_binaries": "no {prefix}<os>_<arch> binaries in {dir}",
+    "meta_file": "{dir}/{version}.json",
+    "signature": "signature",
+    "bundle_sha_mismatch": "{file}: sha256 {got}, manifest says {want}",
+    "signatures_failed": "{failed} of {total} signatures failed:\n  {list}"
+  },
+  "cli": {
+    "failed": "release-manifest: {err}",
+    "manifest_signature_ok": "manifest {version}: signature ok",
+    "sha256_ok": "{file}: sha256 ok",
+    "signature_ok": "{ref}: signature ok"
+  },
+  "flags": {
+    "verify": "verify this signed manifest the way a client does, and exit",
+    "version": "release version, without the leading v",
+    "channel": "stable, prerelease or preview (default: from the version)",
+    "commit": "full git sha of the tagged commit",
+    "images": "directory of <name>.ref files, each holding repo@sha256:…",
+    "chart_ref": "oci:// reference of the published chart",
+    "chart_digest": "sha256 digest of the published chart",
+    "bundle": "path of the deploy bundle",
+    "binaries": "directory holding octopus_<version>_<os>_<arch>",
+    "lock": "migrations lock",
+    "meta": "directory of <version>.json release facts",
+    "notes_url": "URL of the release notes",
+    "output": "output file (default stdout)",
+    "third_party": "name=image@sha256:… (repeatable)"
+  }
+}

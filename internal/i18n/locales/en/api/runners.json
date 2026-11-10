@@ -1,0 +1,35 @@
+{
+  "errors": {
+    "unavailable": "runners are not available on this instance",
+    "runner_revoked": "runner {runner} was revoked",
+    "protocol": "this runner speaks protocol {got}; the daemon speaks {want}. Update the runner",
+    "log_too_large": "a log chunk is limited to 4 MB",
+    "no_output_dir": "this run has no output directory on the daemon",
+    "task_mixes_projects": "project {project} does not run its agents on a runner: a task's projects must all run on the same runner",
+    "task_mixes_runners": "a task's projects must all run on the same runner",
+    "task_without_runner": "the task has no project on a runner",
+    "engine_not_supported": "this runner runs Claude Code only; {engine} needs a container",
+    "no_steering": "this run takes no messages while it runs; the message waits for the next run",
+    "no_kill": "this runtime cannot stop a run",
+    "push_on_runner": "project {project} runs its agents on a runner, which pushes the task branch from its machine; the daemon does not push it"
+  },
+  "log": {
+    "output_dir": "create the run output directory {dir}",
+    "queued": "queued for runner {runner}; waiting for it to take the run",
+    "expire_failed": "end the runs nobody answered for: {err}",
+    "expired": "{count} runner runs ended without an answer",
+    "settle_failed": "read the ended runner runs: {err}",
+    "lost": "runner {runner} stopped answering (or never took the run); the run is marked failed",
+    "reap_failed": "mark runner run {job} processed",
+    "read_log_failed": "read the log of runner run {job}; the recorded session has none",
+    "write_log_failed": "write the log of runner run {job}"
+  },
+  "audit": {
+    "token_created": "Registration token for runner {name} created",
+    "registered": "Runner {runner} registered from {host}",
+    "revoked": "Runner {runner} revoked",
+    "project_created": "Project {project} added on runner {runner}",
+    "project_runner_set": "Project {project} now runs its agents on runner {runner}",
+    "project_runner_cleared": "Project {project} runs its agents on this instance again"
+  }
+}

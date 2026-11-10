@@ -1,0 +1,8 @@
+{
+  "errors": {
+    "invalid_version": "semver: invalid version {version:%q}",
+    "empty_constraint": "empty constraint",
+    "unknown_operator": "constraint {constraint:%q}: unknown operator {op:%q}",
+    "not_a_version": "constraint {constraint:%q}: {version:%q} is not a version"
+  }
+}

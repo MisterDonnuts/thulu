@@ -1,0 +1,13 @@
+{
+  "revision": 2,
+  "tags": ["code", "example"],
+  "descriptions": {
+    "es": "Un agente de programación de ejemplo para arrancar: implementa la tarea en su rama, corre los tests del proyecto y commitea. Instalalo, ponelo en una columna y copialo cuando sepas qué tiene que hacer distinto el agente de tu equipo."
+  },
+  "definition": {
+    "name": "sample-developer",
+    "type": "sample-developer",
+    "description": "An example coding agent to start from: implements the task in its branch, runs the project's tests and commits. Install it, put it in a column and copy it once you know what your team's agent should do differently.",
+    "valid_stages": ["in_progress"]
+  }
+}

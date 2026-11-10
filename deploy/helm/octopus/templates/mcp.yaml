@@ -1,0 +1,145 @@
+{{- /*
+One Deployment + ClusterIP Service per enabled MCP server (values: mcp.<key>).
+Agents reach them cross-namespace by FQDN through the MCP_<NAME>_URL the
+daemon forwards; see octopus.mcpEnv in _mcp.tpl. None of them carries a
+Thulu credential: the calling agent's run-scoped key arrives on the MCP
+handshake (OCTOPUS_MCP_FORWARD_CREDENTIAL), so a server can do exactly what
+the agent that called it can do.
+*/ -}}
+{{- $daemonURL := include "octopus.daemonURL" . }}
+{{- $githubAPI := include "octopus.githubAPIURL" . }}
+{{- range $s := (include "octopus.mcpCatalog" . | fromYaml).servers }}
+{{- $cfg := index $.Values.mcp $s.key }}
+{{- if $cfg.enabled }}
+{{- $ctx := dict "root" $ "name" $s.name "key" $s.key }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "octopus.mcpFullname" $ctx }}
+  labels:
+    {{- include "octopus.mcpLabels" $ctx | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "octopus.mcpSelectorLabels" $ctx | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "octopus.mcpLabels" $ctx | nindent 8 }}
+    spec:
+      automountServiceAccountToken: false
+      {{- with $.Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml $.Values.mcp.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ $s.name }}
+          image: {{ include "octopus.mcpImage" $ctx }}
+          imagePullPolicy: {{ $.Values.mcp.pullPolicy }}
+          ports:
+            - name: sse
+              containerPort: 3000
+          env:
+            - name: OCTOPUS_API
+              value: {{ $daemonURL | quote }}
+            # Root filesystem is read-only; Chromium needs a writable HOME.
+            - name: HOME
+              value: /tmp
+            {{- if $.Values.caBundle.configMap }}
+            - name: NODE_EXTRA_CA_CERTS
+              value: {{ printf "/etc/octopus-ca/%s" $.Values.caBundle.key | quote }}
+            {{- end }}
+            {{- if and (eq $s.name "thulu-github") $githubAPI (not (hasKey $cfg.extraEnv "GITHUB_API_URL")) }}
+            - name: GITHUB_API_URL
+              value: {{ $githubAPI | quote }}
+            {{- end }}
+            {{- if and (eq $s.name "thulu-browser") (eq (include "octopus.browserMode" $) "per-run") (not (hasKey $cfg.extraEnv "MCP_CATALOG_ONLY")) }}
+            - name: MCP_CATALOG_ONLY
+              value: "1"
+            {{- end }}
+            {{- range $k, $v := $cfg.extraEnv }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: sse
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: sse
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          resources:
+            {{- toYaml $cfg.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml $.Values.mcp.securityContext | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            {{- if $.Values.caBundle.configMap }}
+            - name: ca-bundle
+              mountPath: /etc/octopus-ca
+              readOnly: true
+            {{- end }}
+            {{- if eq $s.name "thulu-browser" }}
+            - name: dshm
+              mountPath: /dev/shm
+            # The browser tools' documented contract reads and writes scripts and screenshots under
+            # /agents-shared.
+            - name: agents-shared
+              mountPath: /agents-shared
+            {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        {{- if $.Values.caBundle.configMap }}
+        - name: ca-bundle
+          configMap:
+            name: {{ $.Values.caBundle.configMap }}
+            items:
+              - key: {{ $.Values.caBundle.key }}
+                path: {{ $.Values.caBundle.key }}
+        {{- end }}
+        {{- if eq $s.name "thulu-browser" }}
+        # Chromium keeps renderer memory in /dev/shm; the runtime's 64Mi default crashes tabs.
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1Gi
+        - name: agents-shared
+          emptyDir:
+            sizeLimit: 1Gi
+        {{- end }}
+      {{- with $.Values.mcp.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $.Values.mcp.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "octopus.mcpFullname" $ctx }}
+  labels:
+    {{- include "octopus.mcpLabels" $ctx | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "octopus.mcpSelectorLabels" $ctx | nindent 4 }}
+  ports:
+    - name: sse
+      port: 3000
+      targetPort: sse
+{{- end }}
+{{- end }}

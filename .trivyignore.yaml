@@ -1,0 +1,62 @@
+misconfigurations:
+  - id: DS-0002
+    paths:
+      - "images/docker/Dockerfile"
+      - "images/agent/Dockerfile"
+    statement: >-
+      Docker-mode agent base and image. The entrypoint starts as root to take
+      ownership of the mounted docker socket and worktrees, then drops to the
+      `node` user with gosu before the agent CLI runs. The Kubernetes agent
+      image built on this base (images/kube-agent) sets USER 1000:1000.
+  - id: DS-0002
+    paths:
+      - "images/runtime/Dockerfile"
+    statement: >-
+      Docker-mode task sandbox. Tasks install toolchains with apt-get through
+      `exec`, which needs root; the daemon runs the container as 1000:1000 in
+      rootless mode (internal/sandbox/docker.go). The Kubernetes sandbox
+      (images/sandbox) sets USER 1000:1000.
+  - id: DS-0002
+    paths:
+      - "deploy/Dockerfile.dev"
+    statement: >-
+      Development-only live-reload image (air), never published. It writes the
+      Go build and module caches under /root in bind-mounted volumes.
+
+  - id: KSV-0056
+    paths:
+      - "deploy/helm/octopus/templates/rbac.yaml"
+    statement: >-
+      Kubernetes-mode daemon: it creates the per-sandbox Services its in-pod
+      exec agents listen behind and applies per-tenant NetworkPolicies, in
+      namespaces created on demand, which only a ClusterRole can reach. The
+      ValidatingAdmissionPolicy in templates/admission-policy.yaml (on by
+      default) confines every write to tenant-* namespaces labeled
+      thulu.dev/plane=data and the sandbox namespace.
+
+  - id: KSV-0041
+    paths:
+      - "deploy/helm/octopus/templates/rbac.yaml"
+    statement: >-
+      The <fullname>-tenant-secrets ClusterRole has no ClusterRoleBinding. The
+      daemon binds it with one RoleBinding per tenant-* / sandbox namespace to
+      write each pod's <pod>-env Secret, so it never reaches Secrets in
+      kube-system or its own namespace. A namespaced Role cannot replace it:
+      the daemon would need escalate, or the same verbs cluster-wide, to create
+      one. The ValidatingAdmissionPolicy in templates/admission-policy.yaml
+      allows RoleBindings only to this role and the daemon's ServiceAccount.
+
+  - id: KSV-0009
+    paths:
+      - "deploy/helm/octopus/templates/image-build.yaml"
+    statement: >-
+      registry-mirror is how nodes pull the agent image the install builds
+      (agentRuntime.imageBuild). containerd pulls localhost:<hostPort> over
+      plain HTTP with no node configuration only when the registry is on the
+      node's own loopback, so the mirror shares the host network and listens
+      on 127.0.0.1 only. The alternative, a NodePort, would put the registry
+      on every node address, public ones included. It runs non-root, with a
+      read-only root filesystem, no capabilities and no ServiceAccount token,
+      serves only the read-only port of the bundled registry, and lives in the
+      builder namespace, not a tenant one. agentRuntime.imageBuild.enabled=false
+      or an external registry removes it.

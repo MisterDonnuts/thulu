@@ -1,0 +1,12 @@
+{
+  "errors": {
+    "action_decided": "chat: action already decided",
+    "init_schema": "chat: init schema",
+    "marshal_metadata": "chat: marshal message metadata",
+    "not_found": "chat: not found",
+    "workspace_required": "chat: workspace_id is required"
+  },
+  "log": {
+    "bump_updated_at_failed": "chat: bump updated_at for {chat}: {err}"
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "kill_message": "The container of {owner} is stopped and removed. Its next command starts a new one.",
+  "kill_kube_note": "Since it runs on Kubernetes, its work volume is deleted too when no run is using it."
+}

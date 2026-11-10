@@ -1,0 +1,215 @@
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-3);
+  min-width: 0;
+}
+.filter-bar:has(> .field-filter:not(.field-filter-inline)) {
+  align-items: end;
+}
+.filter-bar-boxed {
+  padding: var(--s-4) var(--s-5);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+.filter-bar-ruled {
+  padding: var(--s-3) 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.filter-bar-inset {
+  padding: var(--s-3) var(--s-5);
+  border-bottom: 1px solid var(--line);
+}
+.filter-bar-end {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+  margin-left: auto;
+}
+
+/* .field (form.css) comes later in the layer; the doubled selector is needed to win. */
+.field.field-filter {
+  gap: var(--s-1);
+}
+.field-filter > .field-label {
+  font-size: var(--t-xs);
+}
+.field-filter > :is(select, input:not([type="checkbox"], [type="radio"])) {
+  min-width: var(--filter-field-min);
+  min-height: var(--control-h-lg);
+  padding: var(--s-1) var(--s-3);
+  font-size: var(--t-sm);
+}
+.field-filter-grow {
+  flex: 1 1 var(--filter-field-grow);
+}
+.field.field-filter-inline {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.search {
+  position: relative;
+  flex: 0 1 var(--search-w, auto);
+  min-width: 0;
+  max-width: 100%;
+}
+.search-fluid {
+  flex: 1 1 var(--search-w, var(--filter-field-grow));
+}
+.field > .search {
+  flex: none;
+}
+.search > .search-input {
+  width: 100%;
+  min-height: var(--control-h-lg);
+  padding: 0 calc(var(--s-4) + var(--key-h-sm) + var(--s-3)) 0
+    calc(var(--s-3) + var(--icon-md) + var(--s-3));
+  background: var(--surface-2);
+  border: 1px solid var(--color-field-border);
+  border-radius: var(--r-md);
+  color: var(--fg);
+  font-family: inherit;
+  font-size: var(--t-sm);
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out);
+}
+.search:not(:has(> .kbd-inset)) > .search-input {
+  padding-right: var(--s-3);
+}
+.search > .search-input:focus {
+  background: var(--surface-3);
+  border-color: var(--color-field-focus-border);
+}
+.search > .search-input::placeholder {
+  color: var(--fg-4);
+}
+.search > .search-icon {
+  position: absolute;
+  left: var(--s-3);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--fg-3);
+  pointer-events: none;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-1);
+  min-height: var(--control-h-sm);
+  padding: 0 var(--control-pad-x);
+  font-family: inherit;
+  font-size: var(--t-xs);
+  font-weight: 500;
+  line-height: var(--lh-snug);
+  color: var(--fg-2);
+  white-space: nowrap;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  transition:
+    background var(--dur-fast),
+    border-color var(--dur-fast),
+    color var(--dur-fast);
+}
+.chip-md {
+  gap: var(--s-2);
+  min-height: var(--control-h-lg);
+  padding: 0 var(--s-4);
+  font-size: var(--t-sm);
+}
+.chip:hover,
+.chip[aria-expanded="true"] {
+  background: var(--surface-2);
+  color: var(--fg);
+  border-color: var(--line-strong);
+}
+.chip.is-active,
+.chip[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent-line);
+}
+.chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.chip:disabled:hover {
+  background: transparent;
+  color: var(--fg-2);
+  border-color: var(--line);
+}
+.chip > .ico {
+  flex-shrink: 0;
+}
+.chip > .chip-count {
+  color: var(--fg);
+  font-weight: 600;
+}
+.chip:is(.is-active, [aria-pressed="true"]) > .chip-count {
+  color: inherit;
+}
+.chip > .chip-chevron {
+  color: var(--fg-3);
+}
+.chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+/* Same tap-area trick as button.css: ::before grows the hit area to --tap-min without resizing the chip. */
+@media (pointer: coarse) {
+  .chip {
+    position: relative;
+  }
+  .chip::before {
+    content: "";
+    position: absolute;
+    inset: min(0px, calc((100% - var(--tap-min)) / 2));
+  }
+  .search > .search-input,
+  .field-filter > :is(select, input:not([type="checkbox"], [type="radio"])) {
+    min-height: var(--tap-min);
+  }
+}
+
+@media (max-width: 640px) {
+  .filter-bar-boxed {
+    padding: var(--s-4);
+  }
+  .filter-bar-inset {
+    padding-inline: var(--s-4);
+  }
+  .filter-bar-end {
+    width: 100%;
+    margin-left: 0;
+  }
+  .field-filter {
+    flex: 1 1 var(--filter-field-min);
+  }
+  .field-filter > :is(select, input:not([type="checkbox"], [type="radio"])) {
+    width: 100%;
+    min-width: 0;
+  }
+  .field-filter-grow,
+  .search {
+    flex-basis: 100%;
+  }
+  .search > .kbd-inset {
+    display: none;
+  }
+  .search > .search-input {
+    padding-right: var(--s-3);
+  }
+}

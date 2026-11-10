@@ -1,0 +1,34 @@
+{
+  "title": "Tu propia sesión de motor",
+  "lede": "Iniciá sesión con tu propia cuenta en la página de inicio de sesión del motor. Las corridas que arranques usan esa sesión en lugar de la key del workspace, de a una por vez. Thulu nunca ve lo que guarda el inicio de sesión.",
+  "warning": "Cualquier contenedor de agente que arranque una corrida tuya puede leer esta sesión. Conectá una cuenta personal sólo en una instalación propia que controles.",
+  "connected": "Conectada",
+  "not_connected": "Sin conectar",
+  "pending": "Esperando tu código",
+  "meta_connected": "{who} · las corridas que arranques usan esta sesión",
+  "meta_none": "Las corridas que arranques usan la key del workspace",
+  "connect": "Conectar",
+  "disconnect": "Desconectar",
+  "modal": {
+    "title": "Iniciar sesión en {engine}",
+    "lede": "Abrí la página de inicio de sesión, aprobá el acceso con tu cuenta y pegá acá el código que te muestra.",
+    "open": "Abrir la página de inicio de sesión",
+    "code": "Código",
+    "submit": "Conectar"
+  },
+  "confirm": {
+    "title": "¿Desconectar tu sesión de {engine}?",
+    "message": "El motor cierra esta sesión y se borra su volumen. Las corridas que arranques vuelven a usar la key del workspace.",
+    "button": "Desconectar"
+  },
+  "toast": {
+    "connected": "Conectada como {who}",
+    "disconnected": "Sesión desconectada"
+  },
+  "errors": {
+    "load": "No se pudieron cargar tus sesiones de motor.",
+    "start": "No se pudo iniciar el inicio de sesión.",
+    "complete": "El inicio de sesión no terminó.",
+    "disconnect": "No se pudo desconectar la sesión."
+  }
+}

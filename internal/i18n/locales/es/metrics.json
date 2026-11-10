@@ -1,0 +1,17 @@
+{
+  "help": {
+    "http_requests_total": "Total de requests HTTP por método, grupo de ruta y código de estado.",
+    "http_request_duration_seconds": "Duración de las requests HTTP en segundos.",
+    "sandboxes_active": "Cantidad de sandboxes activos (no liberados).",
+    "tasks_by_stage": "Cantidad de tareas por tablero y etapa.",
+    "tasks_by_type": "Cantidad de tareas por tablero y tipo de tarea (tipo vacío = sin tipo).",
+    "agent_runs_total": "Total de corridas de agentes por tipo de agente y motivo de parada.",
+    "tokens_consumed_total": "Total de tokens de LLM consumidos por modelo y tipo de token.",
+    "cost_usd_total": "Costo estimado total en USD por modelo.",
+    "env_metrics_polls_total": "Pasadas de recolección de métricas cloud por entorno, según resultado (ok, fail).",
+    "auth_events_total": "Eventos de autenticación por tipo (register, refresh, logout, sso).",
+    "event_hub_streams": "Streams de eventos multiplexados abiertos (uno por pestaña del navegador).",
+    "event_hub_sources": "Fuentes de eventos en marcha (puentes del bus de chat, tails de logs).",
+    "event_hub_subscriptions": "Suscripciones a temas en todos los streams abiertos."
+  }
+}

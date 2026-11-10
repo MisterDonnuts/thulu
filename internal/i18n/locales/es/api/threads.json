@@ -1,0 +1,26 @@
+{
+  "comments": {
+    "applied": "{author} le mandó este hilo al agente. {detail}"
+  },
+  "errors": {
+    "no_such_thread": "no existe ese hilo en esta tarea",
+    "resolved_required": "falta resolved",
+    "agent_gone": "{agent}, el agente que trabajó esta tarea, ya no existe: no hay sesión a la que mandarle el hilo. El hilo sigue en comentarios.",
+    "no_session_yet": "Esta tarea todavía no corrió: no hay sesión a la que mandarle el hilo. El hilo sigue en comentarios y el primer agente lo lee en su brief."
+  },
+  "log": {
+    "note_applied": "anotar el hilo aplicado {thread} en la tarea {task}",
+    "record_applied_event": "registrar el evento de hilo aplicado de la tarea {task}",
+    "record_resolved_event": "registrar el evento de hilo resuelto de la tarea {task}"
+  },
+  "prompts": {
+    "apply_intro": "Se aplica el hilo «{thread}» de los comentarios de la tarea. Llevá a cabo en esta etapa lo que se concluyó ahí.\n",
+    "apply_note": "\n**Indicación:** {note}\n",
+    "apply_transcript": "\n---\n\n**El hilo:**\n\n{transcript}"
+  },
+  "timeline": {
+    "applied": "Hilo «{title}» mandado a {agent}: {detail}",
+    "reopened": "{who} reabrió el hilo «{title}»",
+    "resolved": "{who} resolvió el hilo «{title}»"
+  }
+}

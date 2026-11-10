@@ -1,0 +1,15 @@
+{
+  "errors": {
+    "read_dir": "cannot read skills dir",
+    "skill_exists": "this workspace already has a skill named {name}",
+    "invalid_name": "invalid skill name: use lowercase letters, digits and dashes",
+    "description_too_long": "the description has more than {max} characters; engines cut it there",
+    "invalid_enforcement": "delivery must be on_demand or always",
+    "yaml_not_mapping": "skill.yaml has to be a list of key: value lines"
+  },
+  "audit": {
+    "content_updated": "skill content updated: {skill}/{path}",
+    "content_deleted": "skill content deleted: {skill}/{path}",
+    "content_restored": "skill content restored: {skill}/{path}"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "reasons": {
+    "no_agent": "Ningún agente responde menciones, así que nadie puede correr los casos.",
+    "no_browser": "Ningún agente tiene thulu-browser en la etapa con la que responde menciones. Sumáselo a uno en Agentes."
+  },
+  "missing": "{agent} no tiene {servers} en su etapa {stage}: sin eso no puede abrir el navegador. Sumáselo en Agentes.",
+  "stage_mention": "de menciones",
+  "stage_chat": "de chat",
+  "comment": "@{agent} corré los casos de prueba {keys} de esta tarea en {url}.",
+  "comment_compare": "@{agent} corré los casos de prueba {keys} de esta tarea en {url} y compará con {compare}.",
+  "instructions_summary": "Instrucciones para el agente",
+  "instructions": "Usá thulu-browser: filmá cada caso con evidence_start … evidence_finish, verificá cada resultado esperado con evidence_verify usando la clave del caso, y publicá con evidence_publish para que cada caso registre su corrida.",
+  "instructions_compare": "Usá thulu-browser: filmá cada caso con evidence_start … evidence_finish, verificá cada resultado esperado con evidence_verify usando la clave del caso, filmá el antes y el después con evidence_render y compare_base_url, y publicá con evidence_publish para que cada caso registre su corrida."
+}

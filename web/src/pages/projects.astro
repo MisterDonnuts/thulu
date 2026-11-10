@@ -1,0 +1,1346 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Button from "../components/Button.astro";
+import Check from "../components/Check.astro";
+import CheckGroup from "../components/CheckGroup.astro";
+import Count from "../components/Count.astro";
+import Disclosure from "../components/Disclosure.astro";
+import DropZone from "../components/DropZone.astro";
+import Field from "../components/Field.astro";
+import FilterBar from "../components/FilterBar.astro";
+import FormError from "../components/FormError.astro";
+import Icon from "../components/Icon.astro";
+import KbdHelp from "../components/KbdHelp.astro";
+import Meter from "../components/Meter.astro";
+import Modal from "../components/Modal.astro";
+import PageHead from "../components/PageHead.astro";
+import SearchInput from "../components/SearchInput.astro";
+import Table from "../components/Table.astro";
+import { t } from "../i18n";
+---
+
+<Layout title={t("projects.title")}>
+  <main class="page">
+    <PageHead title={t("projects.title")} subtitle={t("projects.subtitle")}>
+      <Fragment slot="actions">
+        <Button id="new-btn" variant="primary" size="md" icon="plus" kbd="N"
+          >{t("projects.buttons.new_project")}</Button
+        >
+        <Button
+          href="/tasks/"
+          iconOnly
+          size="lg"
+          icon="board"
+          label={t("projects.buttons.open_board")}
+        />
+        <Button
+          id="kbd-help-btn"
+          iconOnly
+          size="lg"
+          icon="keyboard"
+          label={t("common.kbd.shortcuts")}
+          title={t("common.kbd.shortcuts_hint")}
+        />
+      </Fragment>
+    </PageHead>
+
+    <FilterBar look="ruled" class="proj-toolbar">
+      <SearchInput id="search" placeholder={t("projects.toolbar.search")} width={360} />
+      <Count n={t("projects.toolbar.count", { count: 0 })} pill id="count-pill" />
+    </FilterBar>
+
+    <div id="list" class="proj-grid"></div>
+
+    <Modal id="modal" title={t("projects.modal.title")} icon="folder" size="md" closable>
+      <div id="m-step-form" class="form-stack">
+        <Field label={t("projects.modal.name")} for="m-name" errorId="m-name-error">
+          <input id="m-name" placeholder={t("projects.modal.name_placeholder")} />
+        </Field>
+
+        <Field label={t("projects.modal.source")}>
+          <CheckGroup type="radio" layout="grid" label={t("projects.modal.source")}>
+            <Check
+              type="radio"
+              card
+              name="m-source"
+              value="git"
+              icon="branch"
+              label={t("projects.source.git_title")}
+              hint={t("projects.source.git_desc")}
+              checked
+            />
+            <Check
+              type="radio"
+              card
+              name="m-source"
+              value="upload"
+              icon="upload"
+              label={t("projects.source.upload_title")}
+              hint={t("projects.source.upload_desc")}
+            />
+          </CheckGroup>
+        </Field>
+
+        <div class="form-stack" id="m-src-git">
+          <Field
+            label={t("projects.modal.repo_access")}
+            hint={t("projects.modal.repo_access_hint")}
+          >
+            <CheckGroup type="radio" id="m-auth" label={t("projects.modal.repo_access")}>
+              <Check
+                type="radio"
+                name="m-auth-mode"
+                value="app"
+                label={t("projects.auth.github_app")}
+                data-auth-app
+                hidden
+              >
+                <span slot="hint" id="m-auth-app-slug"></span>
+              </Check>
+              <div class="check-nested form-stack" id="m-ghapp" hidden>
+                <div id="m-ghapp-pick" class="form-stack" hidden>
+                  <div class="gh-pick-grid">
+                    <select id="m-ghapp-inst" aria-label={t("projects.auth.github_org")}></select>
+                    <select id="m-ghapp-repo" aria-label={t("projects.auth.repository")}>
+                      <option value="">{t("projects.auth.pick_repo")}</option>
+                    </select>
+                  </div>
+                  <p class="muted gh-info">{t("projects.auth.app_info")}</p>
+                </div>
+                <div class="form-actions" id="m-ghapp-connect-row" hidden>
+                  <span class="muted gh-info" id="m-ghapp-install-hint"
+                    >{t("projects.auth.install_hint")}</span
+                  >
+                  <Button id="m-ghapp-connect" icon="github">
+                    <span id="m-ghapp-connect-label">{t("projects.buttons.connect_github")}</span>
+                  </Button>
+                </div>
+              </div>
+
+              <Check
+                type="radio"
+                name="m-auth-mode"
+                value="credential"
+                label={t("projects.auth.saved_credential")}
+              />
+              <div class="check-nested form-stack" id="m-cred-body">
+                <Field
+                  label={t("projects.auth.credential_aria")}
+                  for="m-cred"
+                  errorId="m-cred-error"
+                >
+                  <div class="cred-pick">
+                    <select id="m-cred"></select>
+                    <Button size="sm" id="m-cred-new">{t("projects.buttons.new_credential")}</Button
+                    >
+                  </div>
+                </Field>
+                <div id="m-cred-form" class="form-stack" hidden>
+                  <Field
+                    label={t("projects.auth.credential_name")}
+                    for="m-cred-name"
+                    errorId="m-cred-name-error"
+                  >
+                    <input
+                      id="m-cred-name"
+                      placeholder={t("projects.auth.credential_name_placeholder")}
+                    />
+                  </Field>
+                  <Field
+                    label={t("projects.auth.token")}
+                    for="m-cred-token"
+                    helpId="m-cred-info"
+                    errorId="m-cred-token-error"
+                  >
+                    <input
+                      id="m-cred-token"
+                      type="password"
+                      autocomplete="off"
+                      aria-describedby="m-cred-info"
+                      placeholder={t("projects.auth.token_placeholder")}
+                    />
+                    <Fragment slot="help"></Fragment>
+                  </Field>
+                  <FormError id="m-cred-save-error" />
+                  <div class="form-actions">
+                    <Button size="sm" id="m-cred-cancel">{t("common.buttons.cancel")}</Button>
+                    <Button size="sm" variant="primary" id="m-cred-save"
+                      >{t("projects.buttons.save_credential")}</Button
+                    >
+                  </div>
+                </div>
+              </div>
+
+              <Check
+                type="radio"
+                name="m-auth-mode"
+                value="none"
+                label={t("projects.auth.public_repo")}
+                hint={t("projects.auth.public_repo_hint")}
+              />
+            </CheckGroup>
+          </Field>
+
+          <Field label={t("projects.modal.repo_url")} for="m-repo" errorId="m-repo-error">
+            <!-- i18n-ignore sample git URL, not a message -->
+            <input id="m-repo" placeholder="git@github.com:org/repo.git" />
+          </Field>
+
+          <Field label={t("projects.modal.default_branch")} for="m-branch">
+            <input id="m-branch" placeholder={t("projects.modal.default_branch_placeholder")} />
+          </Field>
+        </div>
+
+        <div id="m-src-upload" hidden>
+          <DropZone
+            id="m-drop"
+            icon="folder"
+            title={t("projects.upload.drop_title")}
+            sub={t("projects.upload.drop_sub")}
+          />
+          <div class="upload-plan" id="m-plan" hidden></div>
+          <div class="upload-progress" id="m-progress" hidden>
+            <Meter
+              value={0}
+              label={t("projects.upload.progress_label")}
+              id="m-progress-bar"
+              class="upload-meter"
+            />
+            <span class="muted" id="m-progress-text"></span>
+          </div>
+          <p class="upload-rules">{t("projects.upload.rules")}</p>
+        </div>
+
+        <Field
+          label={t("projects.modal.description")}
+          for="m-desc"
+          hint={t("projects.modal.description_hint")}
+        >
+          <textarea id="m-desc" rows="2" placeholder={t("projects.modal.description_placeholder")}
+          ></textarea>
+        </Field>
+
+        <Disclosure variant="fields" ruled summary={t("projects.modal.more_options")} id="m-more">
+          <div class="form-stack">
+            <Field
+              label={t("projects.modal.default_board")}
+              for="m-board"
+              help={t("projects.modal.default_board_hint")}
+            >
+              <select id="m-board"></select>
+            </Field>
+
+            <Field
+              label={t("projects.modal.stage_template")}
+              hint={t("projects.modal.stage_template_hint")}
+            >
+              <Table
+                compact
+                bodyId="m-template"
+                cols={[
+                  { label: t("projects.modal.column_stage"), width: "shrink" },
+                  { label: t("projects.modal.column_default_agent"), width: "fill" },
+                ]}
+              />
+            </Field>
+          </div>
+        </Disclosure>
+
+        <FormError id="m-error" />
+      </div>
+
+      <div id="m-step-result" hidden>
+        <div class="result-head">
+          <Icon name="check-circle" size="lg" />
+          <div>
+            <p class="result-title" id="m-result-title"></p>
+            <p class="muted" id="m-result-sub"></p>
+          </div>
+        </div>
+        <div id="m-result-body" class="upload-plan"></div>
+      </div>
+      <Fragment slot="foot">
+        <Button id="m-cancel" kbd={t("common.kbd.esc")} data-modal-close
+          ><span id="m-cancel-label">{t("common.buttons.cancel")}</span></Button
+        >
+        <Button id="m-save" variant="primary">{t("common.buttons.create")}</Button>
+        <Button id="m-open" variant="primary" hidden>{t("projects.buttons.open_project")}</Button>
+      </Fragment>
+    </Modal>
+
+    <KbdHelp
+      rows={[
+        { keys: ["N"], label: t("projects.buttons.new_project") },
+        { keys: ["/"], label: t("common.kbd.focus_search") },
+        { keys: [t("common.kbd.esc")], label: t("projects.kbd.close_modal") },
+      ]}
+    />
+  </main>
+
+  <style is:global>
+    .proj-toolbar {
+      margin-bottom: var(--s-5);
+    }
+    /* Project cards: Card from the primitives, in a grid. */
+    .proj-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
+      gap: var(--s-4);
+    }
+    .proj-repo {
+      font-family: var(--font-mono);
+      font-size: var(--t-xs);
+      color: var(--fg-4);
+      word-break: break-all;
+    }
+    .proj-clone-error {
+      color: var(--danger);
+      font-size: var(--t-xs);
+      line-height: var(--lh-loose);
+      word-break: break-word;
+      /* The reason is one sentence; the project page has the rest. */
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .proj-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--s-1);
+      margin-top: var(--s-1);
+    }
+
+    /* The EmptyState spans the whole grid. */
+    .proj-empty {
+      grid-column: 1 / -1;
+    }
+
+    /* The App's two pickers side by side: the organization, then its repository. */
+    .gh-pick-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.6fr;
+      gap: var(--s-2);
+    }
+    /* The credential select with its "New credential" button. */
+    .cred-pick {
+      display: flex;
+      align-items: center;
+      gap: var(--s-2);
+    }
+    .cred-pick select {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .result-head {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--s-3);
+    }
+    .result-head .ico {
+      width: 22px;
+      height: 22px;
+      color: var(--ok);
+      flex: none;
+    }
+    .result-title {
+      margin: 0;
+      font-weight: 600;
+      font-size: var(--t-md);
+    }
+    .result-head .muted {
+      margin: 2px 0 0;
+      font-size: var(--t-sm);
+    }
+    @media (max-width: 520px) {
+      .gh-pick-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .gh-info {
+      margin: 0;
+      font-size: var(--t-sm);
+      line-height: var(--lh-loose);
+    }
+    /* The agent picker of each stage fills its column of the template. */
+    #m-template select {
+      width: 100%;
+    }
+  </style>
+
+  <script>
+    import { requireAuth, sessionInfo } from "../lib/auth";
+    import { api, ApiError } from "../lib/api";
+    import { listCredentials } from "../lib/credentials";
+    import {
+      $,
+      badgeHTML,
+      bindDropZone,
+      buttonHTML,
+      cardHTML,
+      clearFormErrors,
+      confirmDialog,
+      emptyStateHTML,
+      esc,
+      makeToast,
+      resetDropZone,
+      setCount,
+      setFieldError,
+      setFormError,
+      setMeter,
+      uploadPlanHTML,
+      uploadReportHTML,
+    } from "../lib/ui";
+    import { safeUrl } from "../lib/safe-url";
+    import { matchesQuery } from "../lib/filter";
+    import { bindModal } from "../lib/modal";
+    import { initKeyboard } from "../lib/keyboard";
+    import { registerCreate, takeNewParam } from "../lib/create";
+    import type { Board, BoardsResponse, Stage } from "../lib/stages";
+    import { boardOptions, stageTemplateTable } from "../lib/pickers";
+    import type { AgentType } from "../lib/pickers";
+    import { t } from "../i18n";
+    import { navigate } from "astro:transitions/client";
+    import { onPage, replaceURL } from "../lib/page";
+    import {
+      buildTarGz,
+      formatBytes,
+      MAX_UPLOAD_BYTES,
+      pickedFromDrop,
+      pickedFromInput,
+      planUpload,
+      sendUpload,
+      UploadError,
+      type UploadPlan,
+      type UploadReport,
+    } from "../lib/project-upload";
+    import {
+      createWorkspace,
+      draftHasContent,
+      newProjectContext,
+      stashDraft,
+      takeDraft,
+      withWorkspace,
+      type NewProjectDraft,
+    } from "../lib/project-new";
+
+    onPage("/projects", (signal) => {
+      requireAuth();
+
+      interface Project {
+        id: string;
+        name: string;
+        repo_url: string;
+        description: string;
+        default_branch: string;
+        default_board_id?: string;
+        stage_template: Record<string, string>;
+        github_installation_id?: number;
+        source?: string;
+        clone_status?: "cloning" | "failed";
+        clone_error?: string;
+      }
+      interface GithubAppStatus {
+        configured: boolean;
+        slug?: string;
+      }
+      interface CredentialSummary {
+        id: string;
+        name: string;
+        provider: string;
+        identity?: string;
+        state?: string;
+        disabled?: boolean;
+      }
+      interface GithubInstallation {
+        installation_id: number;
+        account_login: string;
+        repository_selection?: string;
+        suspended_at?: string;
+      }
+      interface GithubRepo {
+        full_name: string;
+        name: string;
+        private: boolean;
+        default_branch: string;
+        clone_url: string;
+      }
+      let stages: Stage[] = [];
+      let boards: Board[] = [];
+      let agents: AgentType[] = [];
+      let projects: Project[] = [];
+      let searchQuery = "";
+      let workspace = "";
+      let returnTask = "";
+
+      const toast = makeToast();
+
+      $("m-cred-info").innerHTML = t("projects.auth.token_info_html");
+
+      async function bootstrap() {
+        // /stages is the full catalog on purpose: the stage template configures stages by id across
+        // every board.
+        const [catalog, types, boardsResp] = await Promise.all([
+          api.get<Stage[]>("/stages"),
+          api.get<AgentType[]>("/types"),
+          api.get<BoardsResponse>("/boards"),
+        ]);
+        stages = catalog;
+        agents = types;
+        boards = boardsResp.boards;
+        await Promise.all([refresh(), loadGithubApp()]);
+        workspace = createWorkspace(await sessionInfo(), boards);
+        if (handleGithubReturn()) return;
+        if (takeNewParam()) {
+          const ctx = newProjectContext(window.location.search);
+          replaceURL(window.location.pathname);
+          returnTask = ctx.task;
+          void openNew({ name: ctx.name });
+        }
+      }
+
+      let clonePoll: number | null = null;
+      signal.addEventListener("abort", () => {
+        if (clonePoll !== null) window.clearTimeout(clonePoll);
+      });
+
+      async function refresh() {
+        try {
+          projects = await api.get<Project[]>("/projects");
+        } catch {
+          projects = [];
+        }
+        render();
+        if (clonePoll !== null) window.clearTimeout(clonePoll);
+        clonePoll = null;
+        if (!signal.aborted && projects.some((p) => p.clone_status === "cloning"))
+          clonePoll = window.setTimeout(() => void refresh(), 3000);
+      }
+
+      function cloneBadge(p: Project): string {
+        if (p.clone_status === "cloning")
+          return badgeHTML(t("projects.labels.cloning"), "accent", { icon: "i-clock" });
+        if (p.clone_status === "failed")
+          return badgeHTML(t("projects.labels.clone_failed"), "danger", {
+            icon: "i-alert",
+            title: p.clone_error || undefined,
+          });
+        return "";
+      }
+
+      function branchBadge(p: Project): string {
+        // A failed clone never read the repository, so its stored branch is unconfirmed; don't show
+        // it or guess "main".
+        if (p.clone_status === "failed" || (!p.default_branch && p.clone_status)) return "";
+        return badgeHTML(p.default_branch || "main", "neutral", { icon: "i-branch", mono: true });
+      }
+
+      function projectHref(id: string): string {
+        return `/project/?id=${encodeURIComponent(id)}`;
+      }
+      function openProject(id: string) {
+        void navigate(projectHref(id));
+      }
+
+      function matchesSearch(p: Project): boolean {
+        return matchesQuery(searchQuery, [p.name, p.repo_url, p.description]);
+      }
+
+      function render() {
+        const visible = projects.filter(matchesSearch);
+        const total = projects.length;
+        setCount(
+          $("count-pill"),
+          visible.length === total
+            ? t("projects.toolbar.count", { count: total })
+            : t("projects.toolbar.filtered", { shown: visible.length, total }),
+          { pill: true },
+        );
+
+        if (total === 0) {
+          $("list").innerHTML = emptyStateHTML({
+            dashed: true,
+            icon: "folder",
+            title: t("projects.empty.none"),
+            action: {
+              id: "empty-new",
+              label: t("projects.buttons.create_first"),
+              variant: "primary",
+              size: "md",
+              icon: "plus",
+            },
+            cls: "proj-empty",
+          });
+          $("empty-new")?.addEventListener("click", () => void openNew());
+          return;
+        }
+        if (visible.length === 0) {
+          $("list").innerHTML = emptyStateHTML({
+            dashed: true,
+            icon: "search",
+            title: t("projects.empty.no_match", { query: searchQuery }),
+            cls: "proj-empty",
+          });
+          return;
+        }
+
+        $("list").innerHTML = visible
+          .map((p) => {
+            const tplCount = Object.keys(p.stage_template || {}).length;
+            const source = p.source === "upload" ? t("projects.labels.uploaded") : p.repo_url;
+            const failed =
+              p.clone_status === "failed" && p.clone_error
+                ? `<p class="proj-clone-error" title="${esc(p.clone_error)}">${esc(t("projects.labels.clone_failed_reason", { reason: p.clone_error }))}</p>`
+                : "";
+            return cardHTML({
+              title: p.name,
+              href: projectHref(p.id),
+              reveal: "hover",
+              bodyHTML:
+                `<p class="proj-repo">${esc(source)}</p>` +
+                (p.description ? `<p>${esc(p.description)}</p>` : "") +
+                failed +
+                `<div class="proj-meta">${cloneBadge(p)}${branchBadge(p)}${
+                  tplCount > 0
+                    ? badgeHTML(t("projects.labels.defaults", { count: tplCount }), "accent")
+                    : ""
+                }</div>`,
+              footHTML:
+                `<span class="grow"></span>` +
+                buttonHTML({
+                  iconOnly: true,
+                  icon: "trash",
+                  variant: "danger",
+                  label: t("projects.buttons.delete_project"),
+                  attrs: { "data-del": p.id },
+                }),
+              attrs: { "data-id": p.id },
+            });
+          })
+          .join("");
+
+        $("list")
+          .querySelectorAll<HTMLButtonElement>("[data-del]")
+          .forEach((b) =>
+            b.addEventListener("click", (e) => {
+              e.stopPropagation();
+              del(b.dataset.del!);
+            }),
+          );
+      }
+
+      let ghApp: GithubAppStatus = { configured: false };
+      let ghInstalls: GithubInstallation[] = [];
+
+      async function loadGithubApp() {
+        try {
+          ghApp = await api.get<GithubAppStatus>("/github/app");
+        } catch {
+          ghApp = { configured: false };
+        }
+        if (!ghApp.configured) {
+          ghInstalls = [];
+          return;
+        }
+        try {
+          ghInstalls = await api.get<GithubInstallation[]>("/github/installations");
+        } catch {
+          ghInstalls = [];
+        }
+      }
+
+      // The form never holds a secret: new tokens are written to /credentials so there is one place
+      // to rotate, disable or audit them.
+
+      let ghCreds: CredentialSummary[] = [];
+
+      async function loadCredentials() {
+        try {
+          ghCreds = (await listCredentials()).filter((c) => c.provider === "github" && !c.disabled);
+        } catch {
+          ghCreds = [];
+        }
+        renderCredentialOptions("");
+      }
+
+      const CRED_STATE = {
+        invalid: "projects.labels.state_invalid",
+        expired: "projects.labels.state_expired",
+      } as const;
+      function renderCredentialOptions(selected: string) {
+        const sel = $("m-cred") as HTMLSelectElement;
+        sel.innerHTML =
+          `<option value="">${t("projects.auth.pick_credential")}</option>` +
+          ghCreds
+            .map((c) => {
+              const who = c.identity ? ` — ${c.identity}` : "";
+              const bad =
+                c.state === "invalid" || c.state === "expired" ? ` ${t(CRED_STATE[c.state])}` : "";
+              return `<option value="${esc(c.id)}"${c.id === selected ? " selected" : ""}>${esc(
+                c.name,
+              )}${esc(who)}${bad}</option>`;
+            })
+            .join("");
+        if (selected) sel.value = selected;
+      }
+
+      function authMode(): string {
+        const picked = document.querySelector<HTMLInputElement>(
+          'input[name="m-auth-mode"]:checked',
+        );
+        return picked?.value ?? "none";
+      }
+
+      function renderAuthModes() {
+        const appRow = document.querySelector<HTMLElement>("[data-auth-app]")!;
+        const usable = ghApp.configured;
+        appRow.hidden = !usable;
+        $("m-auth-app-slug").textContent = ghApp.slug ?? "";
+
+        if (!document.querySelector('input[name="m-auth-mode"]:checked')) {
+          const want = usable ? "app" : ghCreds.length ? "credential" : "none";
+          selectAuthMode(want);
+        }
+        if (authMode() === "app" && !usable) selectAuthMode(ghCreds.length ? "credential" : "none");
+        syncAuthBodies();
+      }
+
+      function selectAuthMode(mode: string) {
+        document.querySelectorAll<HTMLInputElement>('input[name="m-auth-mode"]').forEach((el) => {
+          el.checked = el.value === mode;
+        });
+        syncAuthBodies();
+      }
+
+      function syncAuthBodies() {
+        const mode = authMode();
+        ($("m-ghapp") as HTMLElement).hidden = mode !== "app";
+        ($("m-cred-body") as HTMLElement).hidden = mode !== "credential";
+      }
+
+      // Stored with no grants; the project create that follows grants it. If that create fails, the
+      // credential stays on /credentials.
+      async function saveNewCredential() {
+        const nameEl = $("m-cred-name") as HTMLInputElement;
+        const tokenEl = $("m-cred-token") as HTMLInputElement;
+        const name = nameEl.value.trim();
+        const token = tokenEl.value.trim();
+        clearFormErrors($("m-cred-form"));
+        setFieldError(tokenEl, token ? "" : t("projects.errors.token_required"));
+        setFieldError(nameEl, name ? "" : t("projects.errors.credential_name_required"));
+        if (!name || !token) {
+          (name ? tokenEl : nameEl).focus();
+          return;
+        }
+        const btn = $("m-cred-save") as HTMLButtonElement;
+        btn.disabled = true;
+        btn.textContent = t("projects.status.validating");
+        try {
+          const created = await api.post<{ id: string; state?: string; identity?: string }>(
+            "/credentials",
+            { name, provider: "github", kind: "github_pat", payload: { token }, grants: [] },
+          );
+          tokenEl.value = "";
+          nameEl.value = "";
+          $("m-cred-form").hidden = true;
+          await loadCredentials();
+          renderCredentialOptions(created.id);
+          setFieldError($("m-cred"), "");
+          if (created.state === "invalid") {
+            toast(t("projects.toasts.token_rejected"), "err", 6000);
+          } else {
+            toast(
+              created.identity
+                ? t("projects.toasts.credential_saved_identity", {
+                    name,
+                    identity: created.identity,
+                  })
+                : t("projects.toasts.credential_saved", { name }),
+              "ok",
+            );
+          }
+        } catch (e) {
+          setFormError(
+            $("m-cred-save-error"),
+            t("projects.errors.credential_save_failed", {
+              error: e instanceof ApiError ? e.message : t("projects.errors.unknown"),
+            }),
+          );
+        } finally {
+          btn.disabled = false;
+          btn.textContent = t("projects.buttons.save_credential");
+        }
+      }
+
+      function renderGhAppSection() {
+        const pick = $("m-ghapp-pick") as HTMLElement;
+        const connectRow = $("m-ghapp-connect-row") as HTMLElement;
+        const repoSel = $("m-ghapp-repo") as HTMLSelectElement;
+        repoSel.dataset.installationId = "";
+        pick.hidden = true;
+        connectRow.hidden = true;
+        const installed = ghInstalls.length > 0;
+        $("m-ghapp-install-hint").hidden = installed;
+        $("m-ghapp-connect").classList.toggle("btn-ghost", installed);
+        $("m-ghapp-connect-label").textContent = installed
+          ? t("projects.buttons.install_other_org")
+          : t("projects.buttons.connect_github");
+        if (!ghApp.configured) return;
+        if (!ghInstalls.length) {
+          connectRow.hidden = false;
+          return;
+        }
+        const instSel = $("m-ghapp-inst") as HTMLSelectElement;
+        instSel.innerHTML = ghInstalls
+          .map(
+            (i) =>
+              `<option value="${esc(String(i.installation_id))}">${esc(i.account_login)}${i.suspended_at ? ` ${t("projects.labels.suspended")}` : ""}</option>`,
+          )
+          .join("");
+        pick.hidden = false;
+        connectRow.hidden = false;
+        const instId = Number(instSel.value);
+        // Reuse the rendered repo list: the GitHub rate-limit budget is shared with agents'
+        // PR/comment calls.
+        if (repoSel.dataset.loadedFor === String(instId) && repoSel.options.length > 1) {
+          repoSel.dataset.installationId = String(instId);
+          repoSel.value = "";
+        } else {
+          void loadGhRepos(instId);
+        }
+      }
+
+      async function loadGhRepos(installationId: number) {
+        const repoSel = $("m-ghapp-repo") as HTMLSelectElement;
+        repoSel.dataset.installationId = "";
+        repoSel.dataset.loadedFor = "";
+        repoSel.innerHTML = `<option value="">${t("projects.auth.loading_repos")}</option>`;
+        try {
+          const repos = await api.get<GithubRepo[]>(
+            `/github/installations/${installationId}/repositories`,
+          );
+          repoSel.innerHTML =
+            `<option value="">${t("projects.auth.pick_repo")}</option>` +
+            repos
+              .map(
+                (r) =>
+                  `<option value="${esc(r.clone_url)}" data-name="${esc(r.name)}" data-branch="${esc(r.default_branch)}">${esc(r.full_name)}${r.private ? ` ${t("projects.labels.private")}` : ""}</option>`,
+              )
+              .join("");
+          repoSel.dataset.installationId = String(installationId);
+          repoSel.dataset.loadedFor = String(installationId);
+        } catch {
+          repoSel.innerHTML = `<option value="">${t("projects.auth.repos_failed")}</option>`;
+        }
+      }
+
+      function currentDraft(): NewProjectDraft {
+        return {
+          name: ($("m-name") as HTMLInputElement).value.trim(),
+          repo: ($("m-repo") as HTMLInputElement).value.trim(),
+          branch: ($("m-branch") as HTMLInputElement).value.trim(),
+          description: ($("m-desc") as HTMLTextAreaElement).value,
+          board: ($("m-board") as HTMLSelectElement).value,
+          template: stageTemplate(),
+          task: returnTask,
+        };
+      }
+
+      function sessionStore(): Storage | null {
+        try {
+          return window.sessionStorage;
+        } catch {
+          return null;
+        }
+      }
+
+      async function connectGithub() {
+        try {
+          const j = await api.get<{ url?: string }>("/github/app/install-link");
+          const url = safeUrl(j.url);
+          if (!url) throw new Error(t("projects.errors.no_install_url"));
+          const draft = currentDraft();
+          if (newProject.isOpen() && draftHasContent(draft)) stashDraft(sessionStore(), draft);
+          // GitHub returns to /github/oauth/callback, which redirects to /projects/?github=…
+          // (handled by handleGithubReturn).
+          window.location.href = url;
+        } catch (e) {
+          toast(
+            t("projects.toasts.install_failed", { error: String((e as Error).message ?? e) }),
+            "err",
+            4500,
+          );
+        }
+      }
+
+      // Only these fixed ?reason= values from the install callbacks are shown; any other URL text
+      // is untrusted and never printed.
+      const GITHUB_REASONS = {
+        state: "projects.github_reasons.state",
+        fetch: "projects.github_reasons.fetch",
+        store: "projects.github_reasons.store",
+        params: "projects.github_reasons.params",
+        claimed: "projects.github_reasons.claimed",
+        installer: "projects.github_reasons.installer",
+        authorize: "projects.github_reasons.authorize",
+        oauth: "projects.github_reasons.oauth",
+        unclaimed: "projects.github_reasons.unclaimed",
+      } as const;
+
+      function handleGithubReturn(): boolean {
+        const params = new URLSearchParams(window.location.search);
+        const gh = params.get("github");
+        if (!gh) return false;
+        replaceURL(window.location.pathname);
+        const draft = takeDraft(sessionStore());
+        if (gh === "connected") {
+          toast(t("projects.toasts.github_connected"), "ok", 4500);
+          returnTask = draft?.task ?? "";
+          void openNew(draft ?? undefined);
+        } else if (gh === "authorized") {
+          toast(t("projects.toasts.github_authorized"), "ok");
+        } else if (gh === "requested") {
+          toast(t("projects.toasts.install_requested"), "info", 6000);
+        } else {
+          const reason = params.get("reason") ?? "";
+          const key = Object.hasOwn(GITHUB_REASONS, reason)
+            ? GITHUB_REASONS[reason as keyof typeof GITHUB_REASONS]
+            : "projects.errors.unknown";
+          toast(t("projects.toasts.github_failed", { reason: t(key) }), "err", 6000);
+        }
+        if (gh !== "connected" && draft) {
+          returnTask = draft.task;
+          void openNew(draft);
+        }
+        return true;
+      }
+
+      // Esc is not bound here: initKeyboard below runs the single Esc cascade for the page.
+      const newProject = bindModal($("modal"));
+
+      async function openNew(fill: Partial<NewProjectDraft> = {}) {
+        ($("m-name") as HTMLInputElement).value = fill.name ?? "";
+        ($("m-repo") as HTMLInputElement).value = fill.repo ?? "";
+        ($("m-desc") as HTMLTextAreaElement).value = fill.description ?? "";
+        ($("m-branch") as HTMLInputElement).value = fill.branch ?? "";
+        const template = fill.template ?? {};
+        ($("m-more") as HTMLDetailsElement).open = !!(fill.board || Object.keys(template).length);
+        selectSource("git");
+        resetUpload();
+        clearFormErrors($("m-step-form"));
+        showStep("form");
+        renderBoardOptions(fill.board ?? "");
+        await loadCredentials();
+        renderGhAppSection();
+        renderAuthModes();
+        renderTemplate(template);
+        newProject.open($("m-name").matches(":placeholder-shown") ? $("m-name") : $("m-repo"));
+      }
+
+      const SOURCES = { git: "m-src-git", upload: "m-src-upload" } as const;
+      type Source = keyof typeof SOURCES;
+
+      function sourceMode(): Source {
+        const v = document.querySelector<HTMLInputElement>('input[name="m-source"]:checked')?.value;
+        return v === "upload" ? "upload" : "git";
+      }
+      function selectSource(src: Source) {
+        document.querySelectorAll<HTMLInputElement>('input[name="m-source"]').forEach((el) => {
+          el.checked = el.value === src;
+        });
+        syncSource();
+      }
+      function syncSource() {
+        const mode = sourceMode();
+        for (const [src, id] of Object.entries(SOURCES))
+          ($(id) as HTMLElement).hidden = src !== mode;
+      }
+
+      function showStep(step: "form" | "result") {
+        ($("m-step-form") as HTMLElement).hidden = step !== "form";
+        ($("m-step-result") as HTMLElement).hidden = step !== "result";
+        ($("m-save") as HTMLElement).hidden = step !== "form";
+        ($("m-open") as HTMLElement).hidden = step !== "result";
+        $("m-cancel-label").textContent =
+          step === "form" ? t("common.buttons.cancel") : t("common.buttons.close");
+      }
+
+      let plan: UploadPlan | null = null;
+      let zipFile: File | null = null;
+      let pickedName = "";
+      let createdID = "";
+
+      function resetUpload() {
+        plan = null;
+        zipFile = null;
+        pickedName = "";
+        resetDropZone($("m-drop"));
+        $("m-drop-title").textContent = t("projects.upload.drop_title");
+        ($("m-plan") as HTMLElement).hidden = true;
+        ($("m-progress") as HTMLElement).hidden = true;
+      }
+
+      function suggestName(name: string) {
+        const input = $("m-name") as HTMLInputElement;
+        if (!input.value.trim() && name) input.value = name;
+      }
+
+      function renderPlan() {
+        const box = $("m-plan") as HTMLElement;
+        if (!zipFile && !plan) {
+          box.hidden = true;
+          return;
+        }
+        $("m-drop-title").textContent = zipFile
+          ? zipFile.name
+          : pickedName || t("projects.upload.drop_title");
+        box.innerHTML = uploadPlanHTML(plan, { zip: zipFile, history: "keep" });
+        box.hidden = false;
+      }
+
+      function takeFolder(picked: ReturnType<typeof pickedFromInput>) {
+        zipFile = null;
+        const first = picked[0]?.path ?? "";
+        pickedName = first.includes("/") ? first.slice(0, first.indexOf("/")) : "";
+        plan = planUpload(picked);
+        suggestName(pickedName);
+        renderPlan();
+      }
+
+      function takeZip(f: File) {
+        plan = null;
+        zipFile = f;
+        pickedName = f.name.replace(/\.zip$/i, "");
+        suggestName(pickedName);
+        renderPlan();
+      }
+
+      async function takeDroppedFolder(items: DataTransferItemList) {
+        $("m-drop-title").textContent = t("projects.upload.reading");
+        try {
+          takeFolder(await pickedFromDrop(items));
+        } catch {
+          resetUpload();
+          toast(t("projects.toasts.read_failed"), "err", 4500);
+        }
+      }
+
+      function showProgress(sent: number, total: number) {
+        ($("m-progress") as HTMLElement).hidden = false;
+        const pct = total > 0 ? Math.round((sent / total) * 100) : 0;
+        setMeter($("m-progress-bar"), pct);
+        $("m-progress-text").textContent =
+          pct >= 100
+            ? t("projects.status.processing")
+            : t("projects.upload.progress", {
+                pct,
+                sent: formatBytes(sent),
+                total: formatBytes(total),
+              });
+      }
+
+      function renderResult(name: string, r: UploadReport) {
+        $("m-result-title").textContent = t("projects.upload.created_title", { name });
+        $("m-result-sub").textContent = r.history
+          ? t("projects.upload.created_history", { branch: r.branch, commit: r.commit.slice(0, 7) })
+          : t("projects.upload.created_fresh", { branch: r.branch, commit: r.commit.slice(0, 7) });
+        $("m-result-body").innerHTML = uploadReportHTML(r);
+      }
+
+      function stageTemplate(): Record<string, string> {
+        const out: Record<string, string> = {};
+        $("m-template")
+          .querySelectorAll<HTMLSelectElement>("[data-stage]")
+          .forEach((s) => {
+            if (s.value) out[s.dataset.stage!] = s.value;
+          });
+        return out;
+      }
+
+      async function saveUpload() {
+        const name = ($("m-name") as HTMLInputElement).value.trim();
+        const nothing = !zipFile && (!plan || plan.count === 0);
+        clearFormErrors($("m-step-form"));
+        if (nothing) setFormError($("m-error"), t("projects.errors.pick_folder"));
+        if (!name) setFieldError($("m-name"), t("projects.errors.name_required"), { focus: true });
+        if (!name || nothing) return;
+        const saveBtn = $("m-save") as HTMLButtonElement;
+        saveBtn.disabled = true;
+        saveBtn.textContent = t("projects.status.packing");
+        try {
+          const archive = zipFile ?? (await buildTarGz(plan!.files));
+          if (archive.size > MAX_UPLOAD_BYTES) {
+            setFormError(
+              $("m-error"),
+              t("projects.errors.too_big", {
+                size: formatBytes(archive.size),
+                max: formatBytes(MAX_UPLOAD_BYTES),
+              }),
+            );
+            return;
+          }
+          saveBtn.textContent = t("projects.status.uploading");
+          const res = await sendUpload<{ project: Project; report: UploadReport }>(
+            withWorkspace("/projects/upload", workspace),
+            archive,
+            zipFile ? zipFile.name : "folder.tar.gz",
+            {
+              name,
+              description: ($("m-desc") as HTMLTextAreaElement).value.trim(),
+              default_board_id: ($("m-board") as HTMLSelectElement).value,
+              stage_template: stageTemplate(),
+            },
+            showProgress,
+          );
+          createdID = res.project.id;
+          await linkReturnTask(createdID);
+          renderResult(name, res.report);
+          $("m-open").textContent = returnTask
+            ? t("projects.buttons.back_to_task")
+            : t("projects.buttons.open_project");
+          showStep("result");
+          await refresh();
+        } catch (e) {
+          const msg =
+            e instanceof UploadError && e.message ? e.message : t("projects.errors.unknown");
+          setFormError($("m-error"), t("projects.errors.save_failed", { error: msg }));
+        } finally {
+          ($("m-progress") as HTMLElement).hidden = true;
+          saveBtn.disabled = false;
+          saveBtn.textContent = t("common.buttons.create");
+        }
+      }
+      const closeModal = newProject.close;
+
+      function renderBoardOptions(selected: string) {
+        ($("m-board") as HTMLSelectElement).innerHTML = boardOptions(boards, selected);
+      }
+
+      const templateTable = stageTemplateTable({
+        table: $("m-template"),
+        boardSelect: $("m-board") as HTMLSelectElement,
+        catalog: () => stages,
+        agents: () => agents,
+        boards: () => boards,
+        signal,
+      });
+      function renderTemplate(template: Record<string, string>) {
+        void templateTable.render(template);
+      }
+
+      async function save() {
+        if (sourceMode() === "upload") return saveUpload();
+        const stage_template = stageTemplate();
+        const body: Record<string, unknown> = {
+          name: ($("m-name") as HTMLInputElement).value.trim(),
+          repo_url: ($("m-repo") as HTMLInputElement).value.trim(),
+          description: ($("m-desc") as HTMLTextAreaElement).value.trim(),
+          // Empty lets the daemon use the repository's HEAD branch; defaulting to "main" broke
+          // master-only repos.
+          default_branch: ($("m-branch") as HTMLInputElement).value.trim(),
+          default_board_id: ($("m-board") as HTMLSelectElement).value,
+          stage_template,
+        };
+        clearFormErrors($("m-step-form"));
+        const missing: Array<[string, string]> = [];
+        if (!body.name) missing.push(["m-name", t("projects.errors.name_required")]);
+        if (authMode() === "credential") {
+          const credID = ($("m-cred") as HTMLSelectElement).value;
+          if (credID) body.github_credential_id = credID;
+          else missing.push(["m-cred", t("projects.errors.pick_credential")]);
+        }
+        if (!body.repo_url) missing.push(["m-repo", t("projects.errors.repo_required")]);
+        missing.forEach(([id, msg], i) => setFieldError($(id), msg, { focus: i === 0 }));
+        if (missing.length) return;
+        // Link the installation only if the URL still equals the picker's choice; a hand-edited URL
+        // overrides it.
+        const repoSel = $("m-ghapp-repo") as HTMLSelectElement;
+        const pickedInst = Number(repoSel.dataset.installationId || 0);
+        if (
+          authMode() === "app" &&
+          pickedInst &&
+          repoSel.value &&
+          body.repo_url === repoSel.value
+        ) {
+          body.github_installation_id = pickedInst;
+        }
+        body.background = true;
+        const saveBtn = $("m-save") as HTMLButtonElement;
+        saveBtn.disabled = true;
+        saveBtn.textContent = t("projects.status.validating");
+        try {
+          let created: Project;
+          try {
+            created = await api.post<Project>(withWorkspace("/projects", workspace), body);
+          } catch (e) {
+            setFormError(
+              $("m-error"),
+              t("projects.errors.save_failed", {
+                error: e instanceof ApiError ? e.message : t("projects.errors.unknown"),
+              }),
+            );
+            return;
+          }
+          closeModal();
+          toast(
+            created.clone_status === "cloning"
+              ? t("projects.toasts.cloning", { name: String(body.name) })
+              : t("projects.toasts.created", { name: String(body.name) }),
+            "ok",
+            4500,
+          );
+          if (await linkReturnTask(created.id)) {
+            void navigate(`/tasks/#task-${encodeURIComponent(returnTask)}`);
+            return;
+          }
+          await refresh();
+        } finally {
+          saveBtn.disabled = false;
+          saveBtn.textContent = t("common.buttons.create");
+        }
+      }
+
+      async function linkReturnTask(projectID: string): Promise<boolean> {
+        if (!returnTask) return false;
+        try {
+          const task = await api.get<{ project_ids?: string[] }>(
+            `/tasks/${encodeURIComponent(returnTask)}`,
+          );
+          const ids = [...(task.project_ids ?? []), projectID];
+          await api.patch(`/tasks/${encodeURIComponent(returnTask)}`, { project_ids: ids });
+          return true;
+        } catch (e) {
+          toast(
+            t("projects.toasts.link_task_failed", {
+              error: e instanceof ApiError ? e.message : t("projects.errors.unknown"),
+            }),
+            "err",
+            6000,
+          );
+          returnTask = "";
+          return false;
+        }
+      }
+
+      async function del(id: string) {
+        const p = projects.find((x) => x.id === id);
+        if (!p) return;
+        const ok = await confirmDialog({
+          title: t("projects.confirm.delete_title", { name: p.name }),
+          message: t("projects.confirm.delete_message"),
+          confirmLabel: t("projects.confirm.delete_ok"),
+          danger: true,
+        });
+        if (!ok) return;
+        try {
+          await api.del(`/projects/${id}`);
+        } catch {
+          toast(t("projects.toasts.delete_failed"), "err");
+          return;
+        }
+        toast(t("projects.toasts.deleted", { name: p.name }), "ok");
+        await refresh();
+      }
+
+      $("new-btn").addEventListener("click", () => {
+        returnTask = "";
+        void openNew();
+      });
+      document.querySelectorAll<HTMLInputElement>('input[name="m-source"]').forEach((el) => {
+        el.addEventListener("change", syncSource);
+      });
+      $("m-open").addEventListener("click", () => {
+        closeModal();
+        if (returnTask) void navigate(`/tasks/#task-${encodeURIComponent(returnTask)}`);
+        else if (createdID) openProject(createdID);
+      });
+      bindDropZone($("m-drop"), {
+        onFolderPick: (files) => takeFolder(pickedFromInput(files)),
+        onZip: takeZip,
+        onFolderDrop: (items) => void takeDroppedFolder(items),
+        signal,
+      });
+      registerCreate("project", () => {
+        returnTask = "";
+        void openNew();
+      });
+      $("m-save").addEventListener("click", save);
+      $("m-ghapp-connect").addEventListener("click", () => void connectGithub());
+      document.querySelectorAll<HTMLInputElement>('input[name="m-auth-mode"]').forEach((el) => {
+        el.addEventListener("change", syncAuthBodies);
+      });
+      $("m-cred-new").addEventListener("click", () => {
+        const form = $("m-cred-form") as HTMLElement;
+        form.hidden = !form.hidden;
+        if (!form.hidden) setTimeout(() => ($("m-cred-name") as HTMLInputElement).focus(), 50);
+      });
+      $("m-cred-cancel").addEventListener("click", () => {
+        ($("m-cred-token") as HTMLInputElement).value = "";
+        clearFormErrors($("m-cred-form"));
+        $("m-cred-form").hidden = true;
+      });
+      for (const id of ["m-name", "m-repo", "m-cred", "m-cred-name", "m-cred-token"]) {
+        const el = $(id);
+        el.addEventListener(el instanceof HTMLSelectElement ? "change" : "input", () =>
+          setFieldError(el, ""),
+        );
+      }
+      $("m-cred-save").addEventListener("click", () => void saveNewCredential());
+      $("m-ghapp-inst").addEventListener("change", () => {
+        const v = Number(($("m-ghapp-inst") as HTMLSelectElement).value);
+        if (v) void loadGhRepos(v);
+      });
+      $("m-ghapp-repo").addEventListener("change", () => {
+        const sel = $("m-ghapp-repo") as HTMLSelectElement;
+        if (!sel.value) return;
+        ($("m-repo") as HTMLInputElement).value = sel.value;
+        setFieldError($("m-repo"), "");
+        const opt = sel.selectedOptions[0];
+        const nameInput = $("m-name") as HTMLInputElement;
+        if (!nameInput.value.trim() && opt.dataset.name) nameInput.value = opt.dataset.name;
+        if (opt.dataset.branch) ($("m-branch") as HTMLInputElement).value = opt.dataset.branch;
+      });
+
+      const searchInput = $("search") as HTMLInputElement;
+      let debounce: number | null = null;
+      searchInput.addEventListener("input", () => {
+        if (debounce !== null) window.clearTimeout(debounce);
+        debounce = window.setTimeout(() => {
+          searchQuery = searchInput.value.trim();
+          render();
+        }, 80);
+      });
+
+      initKeyboard({
+        onEscape: [
+          () => {
+            if (!newProject.isOpen()) return false;
+            closeModal();
+            return true;
+          },
+          () => {
+            if (!searchInput.value) return false;
+            searchInput.value = "";
+            searchQuery = "";
+            render();
+            searchInput.blur();
+            return true;
+          },
+        ],
+        onSearch: () => {
+          searchInput.focus();
+          searchInput.select();
+        },
+        onNew: () => {
+          if (newProject.isOpen()) return;
+          returnTask = "";
+          void openNew();
+        },
+      });
+
+      bootstrap();
+    });
+  </script>
+</Layout>

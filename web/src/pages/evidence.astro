@@ -1,0 +1,1550 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Button from "../components/Button.astro";
+import Callout from "../components/Callout.astro";
+import Check from "../components/Check.astro";
+import CheckGroup from "../components/CheckGroup.astro";
+import Chip from "../components/Chip.astro";
+import CodeBlock from "../components/CodeBlock.astro";
+import Count from "../components/Count.astro";
+import Dot from "../components/Dot.astro";
+import Drawer from "../components/Drawer.astro";
+import EmptyRow from "../components/EmptyRow.astro";
+import EmptyState from "../components/EmptyState.astro";
+import DateInput from "../components/DateInput.astro";
+import Field from "../components/Field.astro";
+import FilterBar from "../components/FilterBar.astro";
+import FilterChips from "../components/FilterChips.astro";
+import FilterField from "../components/FilterField.astro";
+import FormError from "../components/FormError.astro";
+import FormSection from "../components/FormSection.astro";
+import KbdHelp from "../components/KbdHelp.astro";
+import Markdown from "../components/Markdown.astro";
+import Menu from "../components/Menu.astro";
+import Modal from "../components/Modal.astro";
+import PageHead from "../components/PageHead.astro";
+import Panel from "../components/Panel.astro";
+import SearchInput from "../components/SearchInput.astro";
+import SectionHead from "../components/SectionHead.astro";
+import Segmented from "../components/Segmented.astro";
+import Table from "../components/Table.astro";
+import Tabs from "../components/Tabs.astro";
+import { STATUS_ORDER, statusLabel, statusLook } from "../lib/test-cases";
+import { qaColumns } from "../lib/qa-view";
+import { caseListColumns } from "../lib/evidence-html";
+import { t } from "../i18n";
+import type { TabItem } from "../lib/ui/tabs";
+
+const TABS: TabItem[] = [
+  { id: "cases", icon: "tt-checklist", label: t("evidence.tabs.cases") },
+  { id: "runs", icon: "play", label: t("evidence.tabs.runs") },
+  { id: "environments", icon: "server", label: t("evidence.tabs.environments") },
+  { id: "tasks", icon: "board", label: t("evidence.tabs.tasks") },
+];
+const PRESETS: [string, string][] = [
+  ["off", t("evidence.schedule.off")],
+  ["hourly", t("evidence.schedule.hourly")],
+  ["daily", t("evidence.schedule.daily")],
+  ["weekdays", t("evidence.schedule.weekdays")],
+  ["custom", t("evidence.schedule.custom")],
+];
+const SLUG_SAMPLE = "staging";
+---
+
+<Layout title={t("evidence.title")}>
+  <main class="page ev-page" style="--page-max: 1280px">
+    <PageHead title={t("evidence.title")} subtitle={t("evidence.subtitle")} subMax={640}>
+      <Fragment slot="actions">
+        <Count n={0} pill label={t("evidence.summary.passing")} id="ev-sum-pass" hidden />
+        <Count
+          n={0}
+          pill
+          tone="danger"
+          label={t("evidence.summary.failing")}
+          id="ev-sum-fail"
+          hidden
+        />
+        <Count
+          n={0}
+          pill
+          tone="warn"
+          label={t("evidence.summary.blocked")}
+          id="ev-sum-blocked"
+          hidden
+        />
+      </Fragment>
+    </PageHead>
+
+    <FilterBar id="ev-scope" class="ev-scope" hidden>
+      <FilterField inline label={t("evidence.picker.label")} for="ev-project">
+        <select id="ev-project">
+          <option value="">{t("evidence.filters.all_projects")}</option>
+        </select>
+      </FilterField>
+      <span id="ev-scope-note" class="ev-dim ev-small"></span>
+    </FilterBar>
+
+    <Tabs id="ev-tabs" class="ev-tabs" label={t("evidence.tabs.aria")} items={TABS} panels />
+
+    <section id="panel-cases" class="ev-panel" role="tabpanel" aria-labelledby="tab-cases" hidden>
+      <FilterBar class="ev-toolbar">
+        <div id="ev-status-chips"></div>
+        <Fragment slot="end">
+          <Segmented
+            id="ev-view"
+            name="ev-view"
+            iconOnly
+            label={t("evidence.cases.view_aria")}
+            value="grid"
+            options={[
+              { value: "grid", label: t("evidence.cases.view_grid"), icon: "columns" },
+              { value: "list", label: t("evidence.cases.view_list"), icon: "list" },
+            ]}
+          />
+          <Button id="ev-run-all" size="md" icon="play" data-needs="write"
+            >{t("evidence.actions.run_all")}</Button
+          >
+          <Button
+            id="ev-new-case"
+            variant="primary"
+            size="md"
+            icon="plus"
+            kbd="N"
+            data-needs="write">{t("evidence.actions.new_case")}</Button
+          >
+        </Fragment>
+      </FilterBar>
+      <Callout id="c-readonly" tone="warn" class="ev-readonly" hidden
+        >{t("evidence.can.viewer")}</Callout
+      >
+
+      <FilterBar look="boxed" as="section" class="ev-filters" label={t("evidence.filters.aria")}>
+        <FilterField id="f-project-field" label={t("evidence.filters.project")} for="f-project">
+          <select id="f-project"
+            ><option value="">{t("evidence.filters.all_projects")}</option></select
+          >
+        </FilterField>
+        <FilterField label={t("evidence.filters.env")} for="f-env">
+          <select id="f-env"><option value="">{t("evidence.filters.any_env")}</option></select>
+        </FilterField>
+        <FilterField label={t("evidence.filters.priority")} for="f-priority">
+          <select id="f-priority">
+            <option value="">{t("evidence.filters.any_priority")}</option>
+            <option value="critical">{t("lib.test_cases.priority.critical")}</option>
+            <option value="high">{t("lib.test_cases.priority.high")}</option>
+            <option value="medium">{t("lib.test_cases.priority.medium")}</option>
+            <option value="low">{t("lib.test_cases.priority.low")}</option>
+          </select>
+        </FilterField>
+        <FilterField label={t("evidence.filters.tag")} for="f-tag">
+          <select id="f-tag"><option value="">{t("evidence.filters.all_tags")}</option></select>
+        </FilterField>
+        <FilterField label={t("evidence.filters.sort")} for="f-sort">
+          <select id="f-sort">
+            <option value="newest">{t("evidence.filters.sort_newest")}</option>
+            <option value="priority">{t("evidence.filters.sort_priority")}</option>
+            <option value="status">{t("evidence.filters.sort_status")}</option>
+          </select>
+        </FilterField>
+        <FilterField grow label={t("evidence.filters.search")} for="f-q" class="ev-field-search">
+          <SearchInput
+            id="f-q"
+            label={t("evidence.filters.search")}
+            placeholder={t("evidence.filters.search_placeholder")}
+          />
+        </FilterField>
+        <Chip id="f-clear" size="md" label={t("evidence.filters.clear")} hidden />
+        <div class="ev-tag-picked">
+          <div
+            id="f-tags"
+            class="ev-tag-chips"
+            role="group"
+            aria-label={t("evidence.filters.tags_aria")}
+            hidden
+          >
+          </div>
+          <span id="f-tags-note" class="ev-dim ev-small" hidden
+            >{t("evidence.filters.tags_all")}</span
+          >
+        </div>
+      </FilterBar>
+
+      <EmptyState
+        id="ev-cases-empty"
+        dashed
+        titleTag="h2"
+        title={t("evidence.empty.title")}
+        steps={[
+          { title: t("evidence.empty.step1_title"), body: t("evidence.empty.step1_body") },
+          { title: t("evidence.empty.step2_title"), body: t("evidence.empty.step2_body") },
+          { title: t("evidence.empty.step3_title"), body: t("evidence.empty.step3_body") },
+        ]}
+        hidden
+      >
+        <Button
+          slot="action"
+          id="ev-empty-new"
+          variant="primary"
+          size="md"
+          icon="plus"
+          data-needs="write">{t("evidence.empty.cta")}</Button
+        >
+      </EmptyState>
+
+      <EmptyState id="ev-cases-nomatch" size="sm" dashed hidden>
+        {t("evidence.cases.no_matches")}
+        <Button slot="action" id="ev-nomatch-clear">{t("evidence.filters.clear")}</Button>
+      </EmptyState>
+
+      <EmptyRow as="div" loading id="ev-cases-loading" />
+      <div id="ev-cases-grid" class="ev-grid" hidden></div>
+      <Panel id="ev-cases-list" flush hidden>
+        <Table cols={caseListColumns()} stack loading bodyId="ev-cases-rows" />
+      </Panel>
+      <p id="ev-cases-note" class="ev-note" hidden></p>
+    </section>
+
+    <section id="panel-runs" class="ev-panel" role="tabpanel" aria-labelledby="tab-runs" hidden>
+      <FilterBar class="ev-toolbar">
+        <FilterField inline label={t("evidence.runs.env_filter")} for="r-env">
+          <select id="r-env"><option value="">{t("evidence.runs.all_envs")}</option></select>
+        </FilterField>
+        <span id="r-live" class="ev-live" hidden
+          ><Dot tone="accent" pulse />{t("evidence.runs.live")}</span
+        >
+        <Button slot="end" id="r-run-all" variant="primary" size="md" icon="play" data-needs="write"
+          >{t("evidence.actions.run_all")}</Button
+        >
+      </FilterBar>
+      <Callout id="r-readonly" tone="warn" class="ev-readonly" hidden
+        >{t("evidence.can.viewer")}</Callout
+      >
+      <p id="r-note" class="ev-note" hidden></p>
+      <Panel id="r-batches-box" tag="div" flush>
+        <ul id="r-batches" class="row-list">
+          <EmptyRow as="li" loading />
+        </ul>
+      </Panel>
+      <EmptyState id="r-empty" size="sm" dashed title={t("evidence.runs.empty_title")} hidden>
+        {t("evidence.runs.empty_body")}
+      </EmptyState>
+    </section>
+
+    <section
+      id="panel-environments"
+      class="ev-panel"
+      role="tabpanel"
+      aria-labelledby="tab-environments"
+      hidden
+    >
+      <FilterBar class="ev-toolbar">
+        <p class="ev-dim ev-toolbar-text">{t("evidence.envs.intro")}</p>
+        <Button slot="end" id="e-new" variant="primary" size="md" icon="plus"
+          >{t("evidence.envs.new")}</Button
+        >
+      </FilterBar>
+      <Callout id="e-readonly" tone="warn" class="ev-readonly" hidden
+        ><span id="e-readonly-text"></span></Callout
+      >
+      <div id="e-list" class="ev-env-groups">
+        <EmptyRow as="div" loading />
+      </div>
+      <EmptyState id="e-empty" size="sm" dashed title={t("evidence.envs.empty_title")} hidden>
+        {t("evidence.envs.empty_body")}
+        <Button slot="action" id="e-empty-new" variant="primary" size="md" icon="plus"
+          >{t("evidence.envs.new")}</Button
+        >
+      </EmptyState>
+    </section>
+
+    <section id="panel-tasks" class="ev-panel" role="tabpanel" aria-labelledby="tab-tasks" hidden>
+      <p class="ev-dim ev-toolbar-text ev-tasks-intro">{t("evidence.tasks.intro")}</p>
+      <section class="qa-summary" aria-label={t("evidence.tasks.aria.status_totals")}>
+        <FilterChips
+          id="t-status-chips"
+          size="md"
+          attr="status"
+          picked={[]}
+          label={t("evidence.tasks.aria.filter_by_status")}
+          items={STATUS_ORDER.map((s) => ({
+            value: s,
+            label: statusLabel(s),
+            dot: statusLook(s).dot,
+            count: 0,
+          }))}
+        />
+        <div id="t-progress" class="qa-progress"></div>
+      </section>
+
+      <FilterBar look="boxed" as="section" class="ev-filters" label={t("evidence.filters.aria")}>
+        <FilterField label={t("evidence.tasks.filters.board")} for="t-board">
+          <select id="t-board"
+            ><option value="">{t("evidence.tasks.filters.all_boards")}</option></select
+          >
+        </FilterField>
+        <FilterField label={t("evidence.filters.project")} for="t-project">
+          <select id="t-project"
+            ><option value="">{t("evidence.filters.all_projects")}</option></select
+          >
+        </FilterField>
+        <FilterField grow label={t("evidence.filters.search")} for="t-q">
+          <SearchInput
+            id="t-q"
+            label={t("evidence.filters.search")}
+            placeholder={t("evidence.tasks.filters.search_placeholder")}
+          />
+        </FilterField>
+        <Check
+          id="t-uncovered"
+          label={t("evidence.tasks.filters.uncovered_only")}
+          class="qa-only-uncovered"
+        />
+        <Chip id="t-clear" size="md" label={t("evidence.filters.clear")} hidden />
+      </FilterBar>
+
+      <Panel icon="tt-checklist" title={t("evidence.tasks.panel")} flush>
+        <span slot="aside" id="t-note"></span>
+        <Table cols={qaColumns()} stack loading bodyId="t-list" />
+      </Panel>
+    </section>
+
+    <Drawer id="ev-drawer" title="" size="lg">
+      <Fragment slot="eyebrow">
+        <span id="ev-d-key" class="ev-key"></span>
+        <span id="ev-d-status"></span>
+      </Fragment>
+      <Fragment slot="head">
+        <div id="ev-d-meta" class="ev-d-meta"></div>
+        <div class="ev-d-actions" data-needs="write">
+          <Button variant="primary" icon="bot" data-d-act="record" id="ev-d-record">
+            <span id="ev-d-record-label">{t("evidence.actions.record")}</span>
+          </Button>
+          <Button icon="play" data-d-act="run" id="ev-d-run">{t("evidence.actions.run_on")}</Button>
+          <Button variant="ghost" icon="edit" data-d-act="edit">{t("common.buttons.edit")}</Button>
+          <Button variant="danger" icon="trash" data-d-act="delete"
+            >{t("common.buttons.delete")}</Button
+          >
+        </div>
+      </Fragment>
+      <div class="ev-d-stack">
+        <div id="ev-d-loading"><EmptyRow as="div" loading /></div>
+        <Callout
+          id="ev-d-draft"
+          tone="accent"
+          icon="bot"
+          title={t("evidence.detail.draft_title")}
+          hidden
+        >
+          <p>{t("evidence.detail.draft_body")}</p>
+          <p id="ev-d-draft-noenv" hidden>{t("evidence.detail.draft_no_env")}</p>
+        </Callout>
+
+        <section id="ev-d-run-section" class="ev-d-section" hidden>
+          <SectionHead title={t("evidence.detail.latest_run")}>
+            <div slot="actions" id="ev-d-envs"></div>
+          </SectionHead>
+          <div id="ev-d-runbox"></div>
+        </section>
+
+        <section class="ev-d-section" id="ev-d-what">
+          <SectionHead title={t("evidence.detail.what")} />
+          <Markdown id="ev-d-description" />
+          <div class="ev-d-pair">
+            <div>
+              <SectionHead level={4} title={t("evidence.detail.steps")} />
+              <Markdown id="ev-d-steps" />
+            </div>
+            <div>
+              <SectionHead level={4} title={t("evidence.detail.expected")} />
+              <Markdown id="ev-d-expected" />
+            </div>
+          </div>
+        </section>
+
+        <section class="ev-d-section">
+          <SectionHead title={t("evidence.detail.recording")} />
+          <div class="ev-d-take">
+            <span id="ev-d-take-status"></span>
+            <Button id="ev-d-take-download" size="sm" icon="file" hidden
+              >{t("evidence.detail.download_take")}</Button
+            >
+          </div>
+        </section>
+
+        <section class="ev-d-section" id="ev-d-history-section">
+          <SectionHead title={t("evidence.detail.history")} />
+          <div id="ev-d-history"></div>
+        </section>
+      </div>
+    </Drawer>
+
+    <Menu
+      id="ev-menu"
+      floating
+      label={t("evidence.actions.menu_aria")}
+      items={[
+        {
+          title: t("evidence.actions.record"),
+          titleId: "ev-menu-record",
+          icon: "bot",
+          attrs: { "data-m-act": "record" },
+        },
+        { title: t("evidence.actions.run_on"), icon: "play", attrs: { "data-m-act": "run" } },
+        { title: t("common.buttons.edit"), icon: "edit", attrs: { "data-m-act": "edit" } },
+        {
+          title: t("common.buttons.delete"),
+          icon: "trash",
+          danger: true,
+          attrs: { "data-m-act": "delete" },
+        },
+      ]}
+    />
+
+    <Modal
+      id="case-modal"
+      title={t("evidence.case_form.new_title")}
+      icon="tt-checklist"
+      size="md"
+      closable
+      cancel
+      primary={{
+        label: t("common.buttons.save"),
+        id: "cf-save",
+        type: "submit",
+        form: "case-form",
+      }}
+    >
+      <form id="case-form" class="ev-form form-stack" novalidate>
+        <Field label={t("evidence.case_form.title")} for="cf-title" errorId="cf-title-error">
+          <input
+            id="cf-title"
+            maxlength="200"
+            required
+            placeholder={t("evidence.case_form.title_placeholder")}
+          />
+        </Field>
+        <Field
+          label={t("evidence.case_form.description")}
+          for="cf-description"
+          hint={t("evidence.case_form.description_hint")}
+        >
+          <textarea
+            id="cf-description"
+            rows="3"
+            placeholder={t("evidence.case_form.description_placeholder")}></textarea>
+        </Field>
+        <Field
+          label={t("evidence.case_form.steps")}
+          for="cf-steps"
+          hint={t("evidence.case_form.steps_hint")}
+        >
+          <textarea id="cf-steps" rows="4" placeholder={t("evidence.case_form.steps_placeholder")}
+          ></textarea>
+        </Field>
+        <Field label={t("evidence.case_form.expected")} for="cf-expected">
+          <textarea
+            id="cf-expected"
+            rows="2"
+            placeholder={t("evidence.case_form.expected_placeholder")}></textarea>
+        </Field>
+        <div class="form-row">
+          <Field label={t("evidence.columns.priority")} for="cf-priority" grow>
+            <select id="cf-priority">
+              <option value="low">{t("lib.test_cases.priority.low")}</option>
+              <option value="medium" selected>{t("lib.test_cases.priority.medium")}</option>
+              <option value="high">{t("lib.test_cases.priority.high")}</option>
+              <option value="critical">{t("lib.test_cases.priority.critical")}</option>
+            </select>
+          </Field>
+          <Field label={t("evidence.columns.project")} for="cf-project" grow>
+            <select id="cf-project"
+              ><option value="">{t("evidence.case_form.no_project")}</option></select
+            >
+          </Field>
+        </div>
+        <Field
+          label={t("evidence.case_form.tags")}
+          for="cf-tags"
+          hint={t("evidence.case_form.tags_hint")}
+        >
+          <input
+            id="cf-tags"
+            placeholder={t("evidence.case_form.tags_placeholder")}
+            autocomplete="off"
+          />
+        </Field>
+        <FormError id="cf-error" />
+      </form>
+    </Modal>
+
+    <Modal
+      id="record-modal"
+      title={t("evidence.record.title")}
+      icon="bot"
+      size="sm"
+      closable
+      cancel
+      primary={{ label: t("evidence.record.start"), id: "rec-start" }}
+    >
+      <p class="modal-lede" id="rec-lead"></p>
+      <div class="form-stack">
+        <Field label={t("evidence.record.env")}>
+          <CheckGroup type="radio" id="rec-envs" label={t("evidence.record.env")} />
+        </Field>
+        <Field
+          label={t("evidence.record.agent")}
+          for="rec-agent"
+          hint={t("evidence.record.agent_hint")}
+        >
+          <select id="rec-agent"><option value="">{t("evidence.record.agent_auto")}</option></select
+          >
+        </Field>
+        <p id="rec-agent-note" class="ev-small ev-rec-note" aria-live="polite" hidden></p>
+        <p class="ev-dim ev-modal-note">{t("evidence.record.note")}</p>
+        <FormError id="rec-error" />
+      </div>
+    </Modal>
+
+    <Modal
+      id="run-modal"
+      title={t("evidence.run.title")}
+      icon="play"
+      size="sm"
+      closable
+      cancel
+      primary={{ label: t("evidence.run.start"), id: "run-start" }}
+    >
+      <p class="modal-lede" id="run-lead"></p>
+      <div class="form-stack">
+        <Field label={t("evidence.run.env")}>
+          <CheckGroup type="radio" id="run-envs" label={t("evidence.run.env")} />
+        </Field>
+        <Field
+          label={t("evidence.run.branch")}
+          for="run-branch"
+          hint={t("evidence.run.branch_hint")}
+          errorId="run-branch-error"
+          id="run-branch-row"
+          hidden
+        >
+          <input id="run-branch" class="mono" autocomplete="off" spellcheck="false" />
+        </Field>
+        <FormError id="run-error" />
+      </div>
+    </Modal>
+
+    <Modal
+      id="env-modal"
+      title={t("evidence.env_form.new_title")}
+      icon="server"
+      size="lg"
+      closable
+      primary={{
+        label: t("common.buttons.save"),
+        id: "ef-save",
+        type: "submit",
+        form: "env-form",
+      }}
+    >
+      <form id="env-form" class="ev-form form-stack" novalidate>
+        <Callout id="ef-limit" tone="warn" bare role="note" hidden />
+        <Field label={t("evidence.env_form.kind")} id="ef-kind-row" hidden>
+          <CheckGroup type="radio" layout="grid" label={t("evidence.env_form.kind")}>
+            <Check
+              type="radio"
+              card
+              name="ef-kind"
+              value="project"
+              checked
+              label={t("evidence.env_form.kind_project")}
+              hint={t("evidence.env_form.kind_project_hint")}
+            />
+            <Check
+              type="radio"
+              card
+              name="ef-kind"
+              value="standalone"
+              label={t("evidence.env_form.kind_standalone")}
+              hint={t("evidence.env_form.kind_standalone_hint")}
+            />
+          </CheckGroup>
+        </Field>
+        <Field label={t("evidence.columns.project")} for="ef-project" id="ef-project-row">
+          <select id="ef-project"></select>
+        </Field>
+        <p id="ef-sandbox-lead" class="ev-dim ev-small" hidden>
+          {t("evidence.env_form.sandbox_lead")}
+        </p>
+        <div class="form-row" id="ef-name-row">
+          <Field label={t("evidence.env_form.name")} for="ef-name" errorId="ef-name-error" grow>
+            <input
+              id="ef-name"
+              maxlength="60"
+              required
+              placeholder={t("evidence.env_form.name_placeholder")}
+            />
+          </Field>
+          <Field
+            label={t("evidence.env_form.slug")}
+            for="ef-slug"
+            hint={t("evidence.env_form.slug_hint")}
+            errorId="ef-slug-error"
+            grow
+          >
+            <input
+              id="ef-slug"
+              class="mono"
+              maxlength="40"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder={SLUG_SAMPLE}
+            />
+          </Field>
+        </div>
+        <div id="ef-url-row" class="form-stack">
+          <Field label={t("evidence.env_form.base_url")} for="ef-url" errorId="ef-url-error">
+            <input
+              id="ef-url"
+              type="url"
+              required
+              placeholder={t("evidence.env_form.base_url_placeholder")}
+            />
+          </Field>
+          <Check id="ef-prod" label={t("evidence.env_form.production")} hint="" />
+        </div>
+        <Field
+          label={t("evidence.env_form.hosts")}
+          for="ef-hosts"
+          hint={t("evidence.env_form.hosts_hint")}
+        >
+          <textarea id="ef-hosts" rows="2" placeholder={t("evidence.env_form.hosts_placeholder")}
+          ></textarea>
+        </Field>
+
+        <FormSection legend={t("evidence.env_form.logins")} ruled>
+          <p class="ev-dim ev-small">{t("evidence.env_form.logins_hint")}</p>
+          <div id="ef-logins" class="ev-logins"></div>
+          <div class="form-actions">
+            <Button id="ef-login-add" size="sm" icon="plus"
+              >{t("evidence.env_form.login_add")}</Button
+            >
+          </div>
+        </FormSection>
+
+        <FormSection legend={t("evidence.env_form.schedule")} ruled id="ef-schedule-section">
+          <div class="form-row">
+            <Field label={t("evidence.env_form.repeat")} for="ef-preset" grow>
+              <select id="ef-preset">
+                {PRESETS.map(([v, label]) => <option value={v}>{label}</option>)}
+              </select>
+            </Field>
+            <Field label={t("evidence.env_form.time")} for="ef-time" grow>
+              <DateInput id="ef-time" mode="time" value="09:00" />
+            </Field>
+            <Field label={t("evidence.env_form.minute")} for="ef-minute" grow>
+              <input id="ef-minute" type="number" min="0" max="59" value="0" />
+            </Field>
+            <Field
+              label={t("evidence.env_form.cron")}
+              for="ef-cron"
+              hint={t("evidence.env_form.cron_hint")}
+              errorId="ef-sched-error"
+              grow
+            >
+              <input id="ef-cron" class="mono" placeholder="0 9 * * 1-5" autocomplete="off" />
+            </Field>
+            <Field label={t("evidence.env_form.timezone")} for="ef-tz" grow>
+              <input id="ef-tz" list="ef-tz-list" autocomplete="off" />
+            </Field>
+          </div>
+          <datalist id="ef-tz-list"></datalist>
+          <div class="form-row" id="ef-sched-scope" hidden>
+            <Field label={t("evidence.env_form.schedule_project")} for="ef-sched-project" grow>
+              <select id="ef-sched-project"></select>
+            </Field>
+            <Field
+              label={t("evidence.env_form.schedule_tag")}
+              for="ef-sched-tag"
+              hint={t("evidence.env_form.schedule_tag_hint")}
+              grow
+            >
+              <input id="ef-sched-tag" list="ef-tag-list" autocomplete="off" />
+            </Field>
+          </div>
+          <datalist id="ef-tag-list"></datalist>
+          <p id="ef-sched-preview" class="ev-dim ev-small" aria-live="polite"></p>
+          <p id="ef-sched-count" class="ev-small" aria-live="polite" hidden></p>
+        </FormSection>
+
+        <FormSection legend={t("evidence.env_form.deploy")} ruled id="ef-deploy-section">
+          <Check id="ef-deploy-on" label={t("evidence.env_form.deploy_on")} hint="" />
+        </FormSection>
+
+        <FormSection legend={t("evidence.env_form.hook")} ruled id="ef-hook-section">
+          <p id="ef-hook-new" class="ev-dim ev-small">{t("evidence.env_form.hook_after_save")}</p>
+          <p id="ef-hook-hint" class="ev-dim ev-small">{t("evidence.env_form.hook_hint")}</p>
+          <CodeBlock
+            textId="ef-hook-cmd"
+            multiline
+            copy
+            label={t("evidence.env_form.hook_copy_label")}
+          />
+          <div class="ev-hook-actions">
+            <a class="ev-link ev-small" href="/settings/#api" target="_blank" rel="noopener"
+              >{t("evidence.env_form.hook_key_link")}</a
+            >
+          </div>
+        </FormSection>
+        <p id="ef-delete-note" class="ev-dim ev-small" hidden>
+          {t("evidence.env_form.delete_on_project")}{" "}<a
+            id="ef-delete-link"
+            class="ev-link"
+            href="/projects/">{t("evidence.env_form.delete_on_project_link")}</a
+          >
+        </p>
+        <FormError id="ef-error" />
+      </form>
+      <!-- Not the Modal's `cancel` prop: the script finds #ef-cancel and renames it "Close" when read-only, which would drop the Esc hint. -->
+      <Button slot="actions" data-modal-close id="ef-cancel">{t("common.buttons.cancel")}</Button>
+    </Modal>
+
+    <Modal
+      id="link-modal"
+      title={t("evidence.link.title")}
+      icon="link"
+      size="sm"
+      closable
+      cancel
+      primary={{ label: t("evidence.link.save"), id: "link-save" }}
+    >
+      <p class="modal-lede" id="link-lead"></p>
+      <div class="form-stack">
+        <Field label={t("evidence.link.target")} for="link-target" hint={t("evidence.link.hint")}>
+          <select id="link-target"></select>
+        </Field>
+        <p id="link-none" class="ev-dim ev-small" hidden>{t("evidence.link.none")}</p>
+        <FormError id="link-error" />
+      </div>
+    </Modal>
+
+    <Modal
+      id="shot-modal"
+      title={t("evidence.detail.captures")}
+      icon="eye"
+      variant="viewer"
+      closable
+    >
+      <span slot="head" id="shot-count" class="ev-dim ev-small"></span>
+      <div class="ev-shot-stage">
+        <Button
+          id="shot-prev"
+          iconOnly
+          size="lg"
+          icon="chevron-left"
+          label={t("evidence.detail.capture_prev")}
+        />
+        <img id="shot-img" alt="" />
+        <Button
+          id="shot-next"
+          iconOnly
+          size="lg"
+          icon="chevron-right"
+          label={t("evidence.detail.capture_next")}
+        />
+      </div>
+      <Fragment slot="foot">
+        <Button
+          id="shot-open"
+          size="md"
+          icon="arrow-up-right"
+          href="#"
+          target="_blank"
+          rel="noreferrer">{t("evidence.detail.capture_open")}</Button
+        >
+      </Fragment>
+    </Modal>
+
+    <KbdHelp
+      rows={[
+        { keys: ["/"], label: t("common.kbd.focus_search") },
+        { keys: ["N"], label: t("evidence.kbd.new_case") },
+        { keys: [t("common.kbd.esc")], label: t("evidence.kbd.close") },
+      ]}
+    />
+  </main>
+
+  <style is:global>
+    /* ── Frame ─────────────────────────────────────────────────────────── */
+    .ev-page .page-head {
+      margin-bottom: var(--s-4);
+    }
+    .ev-dim {
+      color: var(--fg-3);
+    }
+    /* The warn Callout that says why a tab's buttons are off. */
+    .ev-readonly {
+      margin-bottom: var(--s-3);
+    }
+    .ev-small {
+      font-size: var(--t-sm);
+    }
+    .ev-note {
+      margin-top: var(--s-3);
+      font-size: var(--t-sm);
+      color: var(--fg-3);
+    }
+    .ev-note-err {
+      color: var(--danger);
+    }
+    .ev-link {
+      color: var(--accent);
+      font-size: var(--t-sm);
+      font-weight: 500;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .ev-link:hover {
+      text-decoration: underline;
+    }
+    .ev-mono {
+      font-family: var(--font-mono);
+      font-size: var(--t-xs);
+    }
+
+    /* ── Project picker ────────────────────────────────────────────────── */
+    .ev-scope {
+      margin-bottom: var(--s-4);
+    }
+    .ev-scope.ev-scope-off {
+      display: none;
+    }
+
+    /* ── Groups (All projects, environments by project) ────────────────── */
+    .ev-group-link {
+      margin-left: auto;
+    }
+    .ev-grid > .group-head {
+      grid-column: 1 / -1;
+      margin-top: var(--s-4);
+    }
+    .ev-grid > .group-head:first-child {
+      margin-top: 0;
+    }
+
+    /* ── Tabs, toolbars and filters ────────────────────────────────────── */
+    .ev-tabs {
+      margin-bottom: var(--s-5);
+    }
+    .ev-toolbar {
+      margin-bottom: var(--s-4);
+    }
+    .ev-toolbar-text {
+      flex: 1 1 320px;
+      margin: 0;
+      font-size: var(--t-md);
+      max-width: 680px;
+    }
+    .ev-tasks-intro {
+      margin-bottom: var(--s-4);
+    }
+    .ev-library-empty :is(#ev-status-chips, .ev-filters, #ev-view, #ev-run-all) {
+      display: none;
+    }
+    .ev-filters {
+      margin-bottom: var(--s-5);
+    }
+    /* The tags picked so far, under the filters: a case needs all of them. */
+    .ev-tag-picked {
+      display: flex;
+      flex: 1 0 100%;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--s-2) var(--s-3);
+    }
+    .ev-tag-picked:has(> #f-tags[hidden]) {
+      display: none;
+    }
+    .ev-tag-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--s-2);
+    }
+    .ev-live {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--s-2);
+      font-size: var(--t-sm);
+      color: var(--accent);
+    }
+
+    /* ── Case meta ─────────────────────────────────────────────────────── */
+    /* Statuses are pill Badges and status Dots (lib/evidence-html.ts). */
+    .ev-key {
+      font-family: var(--font-mono);
+      font-size: var(--t-xs);
+      color: var(--fg-3);
+      white-space: nowrap;
+    }
+    .ev-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--s-1);
+    }
+    .ev-project {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--s-1);
+      min-width: 0;
+      overflow: hidden;
+      font-size: var(--t-xs);
+      color: var(--fg-3);
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    .ev-project .ico {
+      width: 12px;
+      height: 12px;
+    }
+
+    /* ── Case cards ────────────────────────────────────────────────────── */
+    .ev-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(268px, 1fr));
+      gap: var(--s-4);
+    }
+    /* Over a poster: a raised Badge (badge-raised), pinned to the corner. */
+    .ev-card-pill {
+      position: absolute;
+      top: var(--s-3);
+      left: var(--s-3);
+    }
+    .ev-card-ph {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--s-2);
+      color: var(--fg-3);
+      font-size: var(--t-sm);
+    }
+    .ev-card-meta {
+      display: flex;
+      align-items: center;
+      gap: var(--s-3);
+      min-width: 0;
+    }
+    .ev-row-title {
+      display: block;
+      margin-bottom: var(--s-1);
+      font-weight: 500;
+      color: var(--fg);
+      text-decoration: none;
+    }
+    .ev-row-title:hover {
+      color: var(--accent);
+    }
+    .ev-envs {
+      list-style: none;
+      margin: var(--s-1) 0 0;
+      padding: var(--s-2) 0 0;
+      border-top: 1px solid var(--line-soft);
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-1);
+    }
+    .ev-env-res {
+      display: flex;
+      align-items: center;
+      gap: var(--s-2);
+      font-size: var(--t-sm);
+      min-width: 0;
+    }
+    .ev-env-name {
+      color: var(--fg-2);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .ev-when {
+      margin-left: auto;
+      color: var(--fg-3);
+      font-size: var(--t-xs);
+      white-space: nowrap;
+    }
+    .ev-env-more {
+      font-size: var(--t-xs);
+      color: var(--fg-3);
+    }
+    /* ── Compact list ──────────────────────────────────────────────────── */
+    /* Under a project heading the Project column repeats it. */
+    .ev-grouped .ev-col-project {
+      display: none;
+    }
+    /* In a row the results follow the pill with no rule above them. */
+    td .ev-envs {
+      border-top: none;
+      padding-top: 0;
+    }
+
+    /* ── Runs feed ─────────────────────────────────────────────────────── */
+    /* A batch: its head is a button row that opens the runs; the progress,
+       an error and the runs line up with the head's title, past the caret. */
+    .ev-batch {
+      --ev-batch-indent: calc(var(--s-4) + var(--icon-sm) + var(--s-3));
+    }
+    .ev-batch-trigger {
+      overflow-wrap: anywhere;
+    }
+    .ev-batch-progress {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--s-2) var(--s-4);
+      padding: 0 var(--s-4) var(--s-3) var(--ev-batch-indent);
+    }
+    .ev-batch-bar {
+      display: flex;
+      flex: 1 1 240px;
+      flex-direction: column;
+      gap: var(--s-1);
+      min-width: 0;
+      max-width: 480px;
+    }
+    .ev-batch-counts {
+      font-size: var(--t-xs);
+      color: var(--fg-3);
+    }
+    .ev-batch-time {
+      display: flex;
+      flex-direction: column;
+    }
+    .ev-batch-time .ev-dim {
+      font-size: var(--t-xs);
+    }
+    /* A danger Callout under the batch head, lined up with its text. */
+    .ev-batch-error {
+      margin: 0 var(--s-4) var(--s-3) var(--ev-batch-indent);
+    }
+    /* The branch a Sandbox batch started from, on its own line under the
+       trigger. */
+    .ev-source {
+      display: flex;
+      align-items: center;
+      gap: var(--s-2);
+      width: fit-content;
+      max-width: 100%;
+      margin-top: 2px;
+      color: var(--fg-2);
+    }
+    .ev-source .ico {
+      width: 12px;
+      height: 12px;
+      color: var(--fg-3);
+      flex-shrink: 0;
+    }
+    .ev-source .ev-mono {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* A warn Callout under the batch head, lined up with its text. */
+    .ev-bringup-fail {
+      margin: 0 var(--s-4) var(--s-4) var(--ev-batch-indent);
+    }
+    /* The runs a batch opens: a sunken band under the batch, so the hover
+       fill of each run's link row (surface-2) still shows. A .row-detail
+       has that same surface-2 fill, which would hide the hover. */
+    .ev-batch-runs {
+      background: var(--surface-0);
+      border-top: 1px solid var(--line-soft);
+    }
+    .ev-runs {
+      padding-inline-start: var(--s-6);
+    }
+
+    /* ── Environments ──────────────────────────────────────────────────── */
+    .ev-env-groups {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-7);
+    }
+    .ev-env-group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-3);
+    }
+    .ev-env-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr));
+      gap: var(--s-4);
+    }
+    /* An environment is a Card; the page only lines its parts up. */
+    .ev-env-slug {
+      color: var(--fg-3);
+    }
+    .ev-env-nourl,
+    .ev-env-sub {
+      font-family: inherit;
+      font-size: var(--t-sm);
+      color: var(--fg-3);
+    }
+    .ev-env-sub {
+      margin-top: var(--s-1);
+      max-width: 60ch;
+      line-height: var(--lh-snug);
+    }
+    .ev-env-limit {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--s-2);
+      font-size: var(--t-sm);
+      color: var(--fg-2);
+    }
+    .ev-env-limit .ico {
+      color: var(--fg-3);
+      flex-shrink: 0;
+    }
+    .ev-env-blank {
+      align-self: start;
+    }
+    .ev-env-url {
+      overflow: hidden;
+      font-family: var(--font-mono);
+      font-size: var(--t-xs);
+      color: var(--fg-3);
+      text-decoration: none;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .ev-env-url:hover {
+      color: var(--accent);
+    }
+    .ev-env-facts {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-2);
+      font-size: var(--t-sm);
+      color: var(--fg-2);
+    }
+    .ev-env-facts li {
+      display: flex;
+      align-items: center;
+      gap: var(--s-2);
+    }
+    .ev-env-facts .ico {
+      color: var(--fg-3);
+      flex-shrink: 0;
+    }
+    .ev-env-last {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--s-2);
+      padding-top: var(--s-3);
+      border-top: 1px solid var(--line-soft);
+      font-size: var(--t-sm);
+    }
+    /* Link and delete sit at the far end of the foot. */
+    .ev-env .ev-env-link,
+    .ev-env .ev-env-del {
+      margin-left: auto;
+    }
+    .ev-env .ev-env-link + .ev-env-del {
+      margin-left: 0;
+    }
+
+    /* ── The case drawer ───────────────────────────────────────────────── */
+    .ev-d-meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--s-3);
+    }
+    .ev-d-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--s-2);
+      margin-top: var(--s-2);
+    }
+    .ev-d-actions .btn-danger {
+      margin-left: auto;
+    }
+    .ev-d-stack {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-7);
+    }
+    .ev-d-section {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-3);
+    }
+    /* The section spaces its children; its head adds no margin of its own. */
+    .ev-d-section > .sec-head {
+      margin-bottom: 0;
+    }
+    .ev-d-pair {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--s-5);
+    }
+    .ev-run-summary {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--s-2) var(--s-4);
+      font-size: var(--t-sm);
+      color: var(--fg-2);
+    }
+    /* Video and posters keep a black letterbox in both themes. */
+    .ev-video {
+      width: 100%;
+      max-height: 60vh;
+      display: block;
+      background: var(--color-media-bg);
+      border: 1px solid var(--line);
+      border-radius: var(--r-lg);
+    }
+    .ev-poster {
+      width: 100%;
+      display: block;
+      border: 1px solid var(--line);
+      border-radius: var(--r-lg);
+    }
+    .ev-chapters {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--s-2);
+    }
+    .ev-chapters button {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--s-2);
+      min-height: 28px;
+      padding: var(--s-1) var(--s-3);
+      border: 1px solid transparent;
+      border-radius: var(--r-pill);
+      background: var(--color-fill-chip);
+      color: var(--fg);
+      font: inherit;
+      font-size: var(--t-xs);
+      cursor: pointer;
+    }
+    .ev-chapters button:hover {
+      border-color: var(--color-border-hover);
+    }
+    .ev-chapter-at {
+      font-family: var(--font-mono);
+      color: var(--fg-2);
+    }
+    .ev-failures {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-2);
+    }
+    /* The browser's error under a failed step: an identifier-like line
+       that wraps anywhere rather than widening the drawer. */
+    .ev-failures .ev-mono {
+      overflow-wrap: anywhere;
+    }
+    .ev-shots {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: var(--s-3);
+    }
+    .ev-shot {
+      padding: 0;
+      aspect-ratio: 16 / 10;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      background: var(--color-well);
+      cursor: zoom-in;
+    }
+    .ev-shot img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top;
+      display: block;
+    }
+    .ev-shot:hover {
+      border-color: var(--accent-line);
+    }
+    /* The run's report, folded: the rendered markdown on a well. */
+    .ev-report-body {
+      padding: var(--s-4);
+      background: var(--color-well);
+      border-radius: var(--r-md);
+    }
+    .ev-d-take {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--s-3);
+      font-size: var(--t-sm);
+      color: var(--fg-2);
+    }
+
+    /* A part the case left blank. */
+    .ev-blank {
+      margin: 0;
+      color: var(--fg-3);
+    }
+
+    /* ── Forms ─────────────────────────────────────────────────────────── */
+    .ev-modal-note {
+      font-size: var(--t-sm);
+      line-height: var(--lh-snug);
+    }
+    /* --fg-3 is under 4.5:1 on the modal's surface in the dark theme. */
+    .modal .ev-dim {
+      color: var(--fg-2);
+    }
+    /* A card and, under it, the callout that says how to make it usable. */
+    .ev-env-opt-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-1);
+    }
+    /* The address or branch a card points at: an identifier, so monospace,
+       broken anywhere so a long URL wraps instead of widening the dialog. */
+    .ev-env-url {
+      font-family: var(--font-mono);
+      overflow-wrap: anywhere;
+    }
+    .ev-logins {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-2);
+    }
+    .ev-logins:empty {
+      display: none;
+    }
+    .ev-login {
+      display: grid;
+      grid-template-columns: minmax(120px, 0.8fr) minmax(0, 1.2fr) auto;
+      align-items: center;
+      gap: var(--s-2);
+    }
+    .ev-login-name {
+      font-family: var(--font-mono);
+      font-size: var(--t-sm);
+      color: var(--fg);
+    }
+    .ev-login-set {
+      font-size: var(--t-sm);
+      color: var(--ok);
+    }
+    .ev-login-gone .ev-login-name {
+      text-decoration: line-through;
+      color: var(--fg-2);
+    }
+    .ev-login-gone .ev-login-set {
+      color: var(--color-danger-strong);
+    }
+    .ev-login-btns {
+      display: inline-flex;
+      gap: var(--s-1);
+      justify-content: flex-end;
+    }
+    .ev-login input {
+      width: 100%;
+      min-width: 0;
+    }
+    .ev-hook-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--s-3);
+    }
+    .ev-rec-note {
+      margin: var(--s-2) 0 0;
+    }
+    .ev-rec-note.ev-rec-blocked {
+      color: var(--danger);
+    }
+    /* A schedule that would run no case: it still saves (the tag may get
+       cases later), but it reads as a warning. */
+    .ev-sched-empty {
+      color: var(--warn);
+    }
+
+    /* ── Lightbox ──────────────────────────────────────────────────────── */
+    /* The viewer's body is the well; the stage fills it, the arrows either
+       side of the capture. */
+    .ev-shot-stage {
+      flex: 1;
+      align-self: stretch;
+      display: flex;
+      align-items: center;
+      gap: var(--s-3);
+      min-width: 0;
+      min-height: 0;
+      padding: var(--s-3);
+    }
+    .ev-shot-stage img {
+      flex: 1;
+      min-width: 0;
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: var(--r-md);
+    }
+
+    /* ── From tasks (the QA view's own pieces) ─────────────────────────── */
+    .qa-summary {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-3);
+      margin-bottom: var(--s-4);
+    }
+    /* Sits on the filter row's baseline, level with the text in the fields. */
+    .qa-only-uncovered {
+      margin-bottom: var(--s-2);
+    }
+    .qa-note-err {
+      color: var(--danger);
+    }
+    .qa-group-bar {
+      flex: 0 0 120px;
+    }
+    .qa-group-count {
+      font-size: var(--t-xs);
+      font-variant-numeric: tabular-nums;
+      color: var(--fg-2);
+      white-space: nowrap;
+    }
+    .qa-title {
+      color: var(--fg);
+      text-decoration: none;
+    }
+    .qa-title:hover {
+      color: var(--accent);
+    }
+    .qa-covered {
+      color: var(--ok);
+    }
+    .qa-uncovered,
+    .qa-never {
+      color: var(--fg-3);
+    }
+    .qa-verdict {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--s-2);
+      margin-right: var(--s-1);
+      white-space: nowrap;
+    }
+    .qa-when {
+      color: var(--fg-3);
+      white-space: nowrap;
+    }
+    .qa-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--s-3);
+      white-space: nowrap;
+    }
+    .qa-open,
+    .qa-lib {
+      color: var(--accent);
+      font-size: var(--t-xs);
+      font-weight: 500;
+      text-decoration: none;
+    }
+    .qa-lib {
+      color: var(--ok);
+    }
+    .qa-open:hover,
+    .qa-lib:hover {
+      text-decoration: underline;
+    }
+
+    /* ── Touch: 44px targets ─────────────────────────────────────────────── */
+    /* Buttons, tabs, chips, menu rows and filter controls take their own tap
+       area from the primitives; these are the inline links. */
+    @media (pointer: coarse) {
+      .ev-sandbox-off a,
+      .ev-group-link,
+      .ev-bringup-fail a,
+      #ef-prod-hint a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+      }
+    }
+
+    /* ── Phones ────────────────────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .ev-d-pair {
+        grid-template-columns: 1fr;
+      }
+    }
+    @media (max-width: 640px) {
+      .ev-page {
+        --page-pad-x: 16px;
+        --page-pad-y: 20px;
+      }
+      .ev-page .page-head-actions {
+        display: none;
+      }
+      /* Auto basis: a button that does not fit beside the others drops to
+         its own row and fills it, instead of every button shrinking until
+         its label breaks. */
+      .ev-toolbar .filter-bar-end .btn-md {
+        flex: 1 1 auto;
+      }
+      .ev-env-grid {
+        grid-template-columns: 1fr;
+      }
+      .ev-scope .field-filter {
+        flex: 1;
+      }
+      .ev-scope .field-filter > select {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .ev-d-actions .btn {
+        flex: 1 1 auto;
+      }
+      .ev-d-actions .btn-danger {
+        margin-left: 0;
+      }
+      .ev-login {
+        grid-template-columns: 1fr auto;
+      }
+      .ev-login > :nth-child(2) {
+        grid-column: 1 / -1;
+        grid-row: 2;
+      }
+      /* The search gets the whole row, so its placeholder reads in full. */
+      .ev-field-search {
+        flex-basis: 100%;
+      }
+      /* Four tabs on one phone row: words only. */
+      .ev-tabs .tab .ico {
+        display: none;
+      }
+    }
+  </style>
+
+  <script>
+    import { onPage } from "../lib/page";
+    import { startEvidencePage } from "../lib/evidence-page";
+
+    onPage("/evidence", startEvidencePage);
+  </script>
+</Layout>

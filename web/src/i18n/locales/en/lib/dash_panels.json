@@ -1,0 +1,27 @@
+{
+  "options": {
+    "no_group": "— none —",
+    "half_row": "half row",
+    "full_row": "full row"
+  },
+  "labels": {
+    "title_placeholder": "Panel title",
+    "multi_series": "{count} series — edit them through the API"
+  },
+  "buttons": {
+    "remove": "Remove panel"
+  },
+  "hints": {
+    "group_required": "This chart needs a label to split by",
+    "group_optional": "Split by a label"
+  },
+  "fields": {
+    "title": "Title",
+    "type": "Chart",
+    "metric": "Metric",
+    "agg": "Aggregation",
+    "group_by": "Split by",
+    "range": "Hours",
+    "width": "Width"
+  }
+}

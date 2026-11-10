@@ -1,0 +1,78 @@
+{
+  "labels": {
+    "title": "Casos de prueba",
+    "priority": "Prioridad",
+    "covered": "Probado por alguien",
+    "covered_aria": "{key} cubierto",
+    "runs_count": {
+      "one": "{count} corrida",
+      "other": "{count} corridas"
+    },
+    "status_of": "Estado de {key}",
+    "status": "Estado",
+    "last_run": "{runs} · {ago}",
+    "not_run": "Sin correr",
+    "latest_run": "Última corrida",
+    "older_runs": {
+      "one": "{count} corrida anterior",
+      "other": "{count} corridas anteriores"
+    },
+    "observed": "Observado",
+    "by_hand": "a mano"
+  },
+  "buttons": {
+    "import": "Importar desde el cuerpo",
+    "add": "Agregar caso",
+    "move_up": "Subir {key}",
+    "move_down": "Bajar {key}",
+    "edit": "Editar {key}",
+    "delete": "Borrar {key}",
+    "run": "Correr casos",
+    "remove_section": "Quitar la sección del cuerpo",
+    "open_agents": "Abrir Agentes"
+  },
+  "hints": {
+    "import": "Convierte cada línea de checklist de la sección Test Cases del cuerpo en un caso",
+    "covered": "Alguien probó este caso",
+    "description": "Contexto, precondiciones, datos (markdown)",
+    "steps": "1. Abrí…\n2. Hacé clic…",
+    "expected": "Qué tendría que pasar (markdown)",
+    "by_hand": "Alguien puso este estado a mano: no es el que dio la última corrida."
+  },
+  "empty": {
+    "cases": "Todavía no hay casos de prueba.",
+    "runs": "Todavía no se corrió.",
+    "details": "Todavía no tiene descripción, pasos ni resultado esperado."
+  },
+  "fields": {
+    "title": "Título",
+    "description": "Descripción",
+    "steps": "Pasos",
+    "expected": "Resultado esperado"
+  },
+  "gone": {
+    "take": "La toma se eliminó",
+    "captures": "Se eliminaron algunas capturas",
+    "report": "reporte eliminado",
+    "video": "video: archivo eliminado"
+  },
+  "links": {
+    "take": "Toma",
+    "open_report": "Abrir en Reportes",
+    "report": "Reporte",
+    "video": "Reproducir el video {name}"
+  },
+  "notices": {
+    "section_left": "El cuerpo todavía tiene la sección Test Cases con estos casos, y nadie la mantiene al día."
+  },
+  "run": {
+    "agent": "Agente",
+    "agent_missing": "{name} (le falta el navegador)",
+    "url": "URL a probar",
+    "compare": "Comparar con",
+    "compare_hint": "https://produccion.example.com",
+    "cases": "Casos",
+    "start": "Lanzar",
+    "url_hint": "https://staging.example.com"
+  }
+}

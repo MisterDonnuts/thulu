@@ -1,0 +1,3566 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Badge from "../components/Badge.astro";
+import Button from "../components/Button.astro";
+import Callout from "../components/Callout.astro";
+import Check from "../components/Check.astro";
+import Chart from "../components/Chart.astro";
+import ChartLegend from "../components/ChartLegend.astro";
+import CodeBlock from "../components/CodeBlock.astro";
+import Count from "../components/Count.astro";
+import DropZone from "../components/DropZone.astro";
+import EmptyState from "../components/EmptyState.astro";
+import Field from "../components/Field.astro";
+import DateInput from "../components/DateInput.astro";
+import FilterBar from "../components/FilterBar.astro";
+import FilterChips from "../components/FilterChips.astro";
+import FilterField from "../components/FilterField.astro";
+import FormError from "../components/FormError.astro";
+import ListRow from "../components/ListRow.astro";
+import Meter from "../components/Meter.astro";
+import Modal from "../components/Modal.astro";
+import PageHead from "../components/PageHead.astro";
+import Panel from "../components/Panel.astro";
+import SectionHead from "../components/SectionHead.astro";
+import Segmented from "../components/Segmented.astro";
+import StatGroup from "../components/StatGroup.astro";
+import StatTile from "../components/StatTile.astro";
+import Table from "../components/Table.astro";
+import Tabs from "../components/Tabs.astro";
+import { SLOT, t, tParts } from "../i18n";
+import type { TabItem } from "../lib/ui/tabs";
+import { dimColumns, topTaskColumns } from "../lib/project-tables";
+
+const SAMPLE = {
+  repo: "git@github.com:org/repo.git",
+  branch: "main",
+  envName: "prod",
+  system: "acme-platform",
+  region: "us-east-1",
+  account: "123456789012",
+  url: "https://app.example.com",
+  // i18n-ignore selector syntax sample, not a message
+  selectors: "tag:Environment=prod\nlog_group=/aws/lambda/api-prod",
+  credName: "prod-aws",
+};
+
+const TABS: TabItem[] = [
+  { id: "overview", icon: "home", label: t("project.tabs.overview") },
+  { id: "environments", icon: "server", label: t("project.tabs.environments") },
+  { id: "repo", icon: "github", label: t("project.tabs.repo") },
+  { id: "settings", icon: "settings", label: t("project.tabs.settings") },
+];
+
+const PRESETS = ["24h", "7d", "30d", "90d"].map((value) => ({ value, label: value }));
+
+const KPI_ROWS: [string, [string, string, string][]][] = [
+  [
+    t("project.kpis.flow"),
+    [
+      ["k-open", t("project.kpis.in_flight"), "—"],
+      ["k-throughput", t("project.kpis.throughput"), t("project.kpis.throughput_sub")],
+      ["k-lead", t("project.kpis.lead_time"), t("project.kpis.lead_time_sub")],
+      ["k-firstpass", t("project.kpis.first_pass"), t("project.kpis.first_pass_sub")],
+    ],
+  ],
+  [
+    t("project.kpis.quality"),
+    [
+      ["k-rework", t("project.kpis.rework"), t("project.kpis.rework_sub")],
+      ["k-runs", t("project.kpis.runs"), t("project.kpis.runs_sub")],
+      ["k-human", t("project.kpis.human"), t("project.kpis.human_sub")],
+      ["k-cache", t("project.kpis.cache"), t("project.kpis.cache_sub")],
+    ],
+  ],
+  [
+    t("project.kpis.spend"),
+    [
+      ["k-cost-task", t("project.kpis.cost_task"), "—"],
+      ["k-cost-done", t("project.kpis.cost_done"), t("project.kpis.cost_done_sub")],
+      ["k-agent-time", t("project.kpis.agent_time"), "—"],
+      ["k-tokens-task", t("project.kpis.tokens_task"), "—"],
+    ],
+  ],
+];
+
+const [envBefore, , envAfter] = tParts("project.environments.intro", { em: SLOT });
+const [credBefore, , credAfter] = tParts("project.credentials.intro", { link: SLOT });
+---
+
+<Layout title={t("project.title")}>
+  <main class="proj-page">
+    <PageHead
+      title={t("common.status.loading")}
+      titleId="p-title"
+      flush
+      subMax={720}
+      crumbs={[
+        { label: t("common.nav.projects"), href: "/projects/" },
+        { label: "…", id: "crumb-name" },
+      ]}
+    >
+      <Fragment slot="sub"><span id="p-sub">—</span></Fragment>
+      <Fragment slot="actions">
+        <Button id="p-tasks-link" href="/tasks/" size="md" icon="board"
+          >{t("common.nav.tasks")}</Button
+        >
+        <Button
+          id="p-repo-link"
+          href="#"
+          size="md"
+          icon="github"
+          target="_blank"
+          rel="noreferrer"
+          hidden
+        >
+          {t("project.header.repo")}
+        </Button>
+        <Button id="btn-refresh" size="md" icon="refresh">{t("common.buttons.refresh")}</Button>
+      </Fragment>
+    </PageHead>
+
+    <EmptyState
+      id="load-error"
+      tone="danger"
+      icon="warn"
+      title={t("project.errors.not_found")}
+      titleId="load-error-msg"
+      hidden
+    >
+      <Button slot="action" href="/projects/" variant="primary" size="md"
+        >{t("project.header.back_to_projects")}</Button
+      >
+    </EmptyState>
+
+    <div id="body" hidden>
+      <div id="clone-banner" class="clone-banner" role="status" hidden></div>
+      <Tabs id="proj-tabs" label={t("project.tabs.aria")} items={TABS} panels />
+
+      <div id="panel-overview" class="proj-panel" role="tabpanel" aria-labelledby="tab-overview">
+        <FilterBar look="boxed" as="section" label={t("project.filters.aria")}>
+          <FilterField label={t("project.filters.from")} for="f-from">
+            <DateInput id="f-from" />
+          </FilterField>
+          <FilterField label={t("project.filters.to")} for="f-to">
+            <DateInput id="f-to" />
+          </FilterField>
+          <FilterChips
+            id="f-presets"
+            items={PRESETS}
+            picked="30d"
+            attr="preset"
+            label={t("project.filters.presets_aria")}
+          />
+          <Badge slot="end" shape="pill" id="window-pill">—</Badge>
+        </FilterBar>
+
+        <section class="kpis" aria-label={t("project.kpis.aria")}>
+          {
+            KPI_ROWS.map(([label, tiles]) => (
+              <StatGroup label={label}>
+                {tiles.map(([id, tileLabel, sub]) => (
+                  <StatTile id={id} label={tileLabel} value="—" sub={sub} />
+                ))}
+              </StatGroup>
+            ))
+          }
+        </section>
+
+        <section class="grid-2">
+          <Panel icon="board" title={t("project.charts.flow")}>
+            <Fragment slot="aside">{t("project.charts.flow_hint")}</Fragment>
+            <Chart id="chart-flow" size="lg" label={t("lib.minicharts.throughput.aria")} />
+            <ChartLegend id="chart-flow-legend" items={[]} />
+            <EmptyState id="chart-flow-empty" size="sm" hidden>
+              {t("project.charts.flow_empty")}
+            </EmptyState>
+          </Panel>
+
+          <Panel icon="zap" title={t("project.charts.spend")}>
+            <Segmented
+              slot="actions"
+              id="spend-metric"
+              name="spend-metric"
+              size="sm"
+              label={t("project.charts.metric_aria")}
+              value="cost"
+              options={[
+                { value: "cost", label: t("project.charts.cost") },
+                { value: "tokens", label: t("project.charts.tokens") },
+              ]}
+            />
+            <Chart id="chart-spend" size="lg" interactive label={t("lib.minicharts.spend.aria")} />
+            <EmptyState id="chart-spend-empty" size="sm" hidden>
+              {t("project.charts.spend_empty")}
+            </EmptyState>
+          </Panel>
+        </section>
+
+        <section class="grid-2">
+          <Panel icon="clock" title={t("project.charts.dwell")}>
+            <Fragment slot="aside">{t("project.charts.dwell_hint")}</Fragment>
+            <div id="dwell-bars"></div>
+            <EmptyState id="dwell-empty" size="sm" hidden>
+              {t("project.charts.dwell_empty")}
+            </EmptyState>
+          </Panel>
+
+          <Panel icon="folder" title={t("project.charts.census")}>
+            <Fragment slot="aside">{t("project.charts.census_hint")}</Fragment>
+            <div id="census-bars"></div>
+            <EmptyState id="census-empty" size="sm" hidden>
+              {t("project.charts.census_empty")}
+            </EmptyState>
+          </Panel>
+        </section>
+
+        <section class="grid-2">
+          <Panel icon="board" title={t("project.tables.cost_by_stage")} flush>
+            <Table cols={dimColumns("stage")} stack id="t-stage" />
+          </Panel>
+          <Panel icon="bot" title={t("project.tables.cost_by_model")} flush>
+            <Table cols={dimColumns("model")} stack id="t-model" />
+          </Panel>
+        </section>
+
+        <Panel icon="zap" title={t("project.tables.top_tasks")} flush>
+          <Table cols={topTaskColumns()} stack id="t-tasks" />
+        </Panel>
+      </div>
+
+      <div
+        id="panel-settings"
+        class="proj-panel"
+        role="tabpanel"
+        aria-labelledby="tab-settings"
+        hidden
+      >
+        <Panel icon="settings" title={t("project.settings.title")} bodyClass="form-grid">
+          <Button slot="actions" size="sm" variant="primary" id="s-save"
+            >{t("common.buttons.save")}</Button
+          >
+          <div class="form-col form-stack">
+            <Field label={t("project.labels.name")} for="s-name" errorId="s-name-error">
+              <input id="s-name" placeholder={t("project.settings.name_placeholder")} />
+            </Field>
+            <Field
+              label={t("project.settings.repo")}
+              for="s-repo"
+              id="s-repo-field"
+              errorId="s-repo-error"
+            >
+              <input id="s-repo" placeholder={SAMPLE.repo} />
+            </Field>
+            <Field label={t("project.settings.branch")} for="s-branch">
+              <input id="s-branch" placeholder={SAMPLE.branch} />
+            </Field>
+            <Field
+              label={t("project.settings.board")}
+              for="s-board"
+              help={t("project.settings.board_hint")}
+            >
+              <select id="s-board" aria-describedby="s-board-help"></select>
+            </Field>
+          </div>
+          <div class="form-col form-stack">
+            <Field
+              label={t("project.settings.description")}
+              for="s-desc"
+              hint={t("project.settings.description_hint")}
+            >
+              <textarea
+                id="s-desc"
+                rows="4"
+                placeholder={t("project.settings.description_placeholder")}></textarea>
+            </Field>
+            <Field
+              label={t("project.settings.template")}
+              hint={t("project.settings.template_hint")}
+            >
+              <Table
+                compact
+                bodyId="s-template"
+                cols={[
+                  { label: t("project.columns.stage"), width: "shrink" },
+                  { label: t("project.columns.default_agent"), width: "fill" },
+                ]}
+              />
+            </Field>
+          </div>
+        </Panel>
+
+        <Panel icon="warn" title={t("project.danger.title")} tone="danger">
+          <Button slot="actions" size="sm" variant="danger" id="p-delete" icon="trash"
+            >{t("project.danger.delete")}</Button
+          >
+          <p class="panel-lede">
+            {t("project.danger.note")}
+          </p>
+        </Panel>
+      </div>
+
+      <div
+        id="panel-environments"
+        class="proj-panel"
+        role="tabpanel"
+        aria-labelledby="tab-environments"
+        hidden
+      >
+        <Panel icon="server" title={t("project.environments.title")}>
+          <Button slot="actions" size="sm" id="env-new" icon="plus"
+            >{t("project.environments.add")}</Button
+          >
+          <p class="panel-lede">
+            {envBefore}<em>{t("project.environments.intro_em")}</em>{envAfter}
+          </p>
+          <div id="env-list"></div>
+        </Panel>
+      </div>
+
+      <div id="panel-repo" class="proj-panel" role="tabpanel" aria-labelledby="tab-repo" hidden>
+        <Panel icon="folder" title={t("project.code.title")} id="code-panel" hidden>
+          <p class="panel-lede">{t("project.code.intro")}</p>
+          <Field label={t("project.code.branch")} for="code-branch" class="code-download">
+            <div class="code-download-row">
+              <select id="code-branch"></select>
+              <Button variant="primary" id="code-download" href="#" icon="arrow-down" download
+                >{t("project.code.download")}</Button
+              >
+            </div>
+          </Field>
+          <Field label={t("project.code.new_version")} class="code-new">
+            <DropZone id="code-drop" title={t("project.code.drop_title")} />
+          </Field>
+          <div class="upload-plan" id="code-plan" hidden></div>
+          <div class="upload-progress" id="code-progress" hidden>
+            <Meter
+              value={0}
+              label={t("projects.upload.progress_label")}
+              id="code-progress-bar"
+              class="upload-meter"
+            />
+            <span class="muted" id="code-progress-text"></span>
+          </div>
+          <p class="upload-rules" id="code-replace-note"></p>
+          <div class="code-actions">
+            <Button variant="primary" id="code-upload" disabled>{t("project.code.upload")}</Button>
+          </div>
+        </Panel>
+
+        <Panel icon="github" title={t("project.github.title")} id="gh-panel">
+          <ListRow id="gh-app-row" title={t("project.github.app")} hidden>
+            <span slot="meta" id="gh-app-status"></span>
+            <Button slot="actions" size="sm" variant="danger" id="gh-app-unlink"
+              >{t("project.buttons.unlink")}</Button
+            >
+          </ListRow>
+          <div class="form-stack">
+            <Field
+              label={t("project.github.link_label")}
+              for="gh-link-inst"
+              help={t("project.github.link_hint")}
+              id="gh-link-row"
+              hidden
+            >
+              <div class="gh-pick">
+                <select id="gh-link-inst" aria-describedby="gh-link-inst-help"></select>
+                <Button variant="primary" id="gh-link-save">{t("project.github.link")}</Button>
+              </div>
+            </Field>
+            <Field
+              label={t("project.labels.credential")}
+              for="gh-cred"
+              hint={t("project.github.credential_hint")}
+              helpId="gh-cred-note"
+            >
+              <div class="gh-pick">
+                <select id="gh-cred" aria-describedby="gh-cred-note"></select>
+                <span class="btn-pair">
+                  <Button href="/credentials/">{t("project.buttons.manage")}</Button>
+                  <Button variant="primary" id="gh-cred-save">{t("common.buttons.save")}</Button>
+                </span>
+              </div>
+              <Fragment slot="help">{t("common.status.loading")}</Fragment>
+            </Field>
+          </div>
+        </Panel>
+
+        <Panel icon="terminal" title={t("project.init_script.title")} id="init-script">
+          <Fragment slot="actions">
+            <Button size="sm" id="init-history">{t("lib.init_script.buttons.history")}</Button>
+            <Button size="sm" variant="primary" id="init-save">{t("common.buttons.save")}</Button>
+          </Fragment>
+          <p class="panel-lede">{t("project.init_script.intro")}</p>
+          <div id="init-root"><p class="muted">{t("common.status.loading")}</p></div>
+        </Panel>
+
+        <Panel icon="file" title={t("project.stage_files.panel_title")}>
+          <Button slot="actions" size="sm" id="sf-open">{t("project.buttons.manage")}</Button>
+          <p class="panel-lede">
+            {t("project.stage_files.panel_note")}
+          </p>
+        </Panel>
+
+        <Panel icon="branch" title={t("project.worktrees.title")} flush>
+          <Count slot="aside" n="—" id="wt-count" />
+          <div id="wt-list"></div>
+        </Panel>
+      </div>
+    </div>
+
+    <Modal
+      id="env-modal"
+      title={t("project.environments.add")}
+      icon="server"
+      size="md"
+      closable
+      bodyClass="form-stack"
+      cancel
+      primary={{ label: t("common.buttons.save"), id: "env-save" }}
+    >
+      <Field
+        label={t("project.labels.name")}
+        for="env-name"
+        hint={t("project.env_form.name_hint")}
+        errorId="env-name-error"
+      >
+        <input id="env-name" placeholder={SAMPLE.envName} autocomplete="off" />
+      </Field>
+      <Field
+        label={t("project.env_form.display_name")}
+        for="env-display-name"
+        optional
+        hint={t("project.env_form.display_name_hint")}
+        errorId="env-display-name-error"
+      >
+        <input
+          id="env-display-name"
+          maxlength="60"
+          placeholder={t("project.env_form.display_name_placeholder")}
+          autocomplete="off"
+        />
+      </Field>
+      <Field
+        label={t("project.env_form.system")}
+        for="env-system"
+        optional
+        hint={t("project.env_form.system_hint")}
+        errorId="env-system-error"
+      >
+        <input id="env-system" placeholder={SAMPLE.system} autocomplete="off" />
+      </Field>
+      <Field
+        label={t("project.labels.provider")}
+        for="env-provider"
+        help={t("project.env_form.provider_hint")}
+        errorId="env-provider-error"
+      >
+        <select id="env-provider" aria-describedby="env-provider-help">
+          <option value="aws">{t("project.env_form.provider_aws")}</option>
+          <option value="gcp">{t("project.env_form.provider_gcp")}</option>
+          <option value="prometheus">{t("project.env_form.provider_prometheus")}</option>
+          <option value="other">{t("project.env_form.provider_other")}</option>
+        </select>
+      </Field>
+      <Field label={t("project.env_form.region")} for="env-region">
+        <input id="env-region" placeholder={SAMPLE.region} autocomplete="off" />
+      </Field>
+      <Field
+        label={t("project.env_form.account")}
+        for="env-account"
+        hint={t("project.env_form.account_hint")}
+      >
+        <input id="env-account" placeholder={SAMPLE.account} autocomplete="off" />
+      </Field>
+      <Field label={t("project.env_form.url")} for="env-url" errorId="env-url-error">
+        <input id="env-url" placeholder={SAMPLE.url} autocomplete="off" />
+      </Field>
+      <Field
+        label={t("project.env_form.selectors")}
+        for="env-selectors"
+        hint={t("project.env_form.selectors_hint")}
+        errorId="env-selectors-error"
+      >
+        <textarea id="env-selectors" rows="3" spellcheck="false" placeholder={SAMPLE.selectors}
+        ></textarea>
+      </Field>
+      <Check
+        id="env-prod"
+        label={t("project.env_form.production")}
+        hint={t("project.env_form.production_hint")}
+      />
+
+      <div id="env-cred-row" class="form-stack cred-split" hidden>
+        <Field label={t("project.labels.credential")} for="env-cred-pick" helpId="env-cred-hint">
+          <select id="env-cred-pick" aria-describedby="env-cred-hint"></select>
+          <Fragment slot="help"></Fragment>
+        </Field>
+        <div id="env-cred-new" class="form-stack" hidden>
+          <Field
+            label={t("project.env_form.credential_name")}
+            for="env-cred-name"
+            errorId="env-cred-name-error"
+          >
+            <input id="env-cred-name" placeholder={SAMPLE.credName} autocomplete="off" />
+          </Field>
+          <Field label={t("project.labels.type")} for="env-cred-kind" id="env-cred-kind-row">
+            <select id="env-cred-kind"></select>
+          </Field>
+          <div id="env-cred-fields" class="form-stack cred-fields"></div>
+        </div>
+      </div>
+
+      <FormError id="env-error" />
+    </Modal>
+
+    <Modal
+      id="cred-modal"
+      title={t("project.credentials.title")}
+      icon="link"
+      size="sm"
+      closable
+      cancel
+      primary={{ label: t("common.buttons.save"), id: "cred-save" }}
+    >
+      <p class="modal-lede">
+        {credBefore}<a href="/credentials/">{t("project.credentials.intro_link")}</a>{credAfter}
+      </p>
+      <div class="form-stack">
+        <Field label={t("project.labels.credential")} for="cred-pick" helpId="cred-hint">
+          <select id="cred-pick" aria-describedby="cred-hint"></select>
+          <Fragment slot="help"></Fragment>
+        </Field>
+
+        <div id="cred-new" class="form-stack cred-split" hidden>
+          <Field label={t("project.labels.name")} for="cred-new-name" errorId="cred-new-name-error">
+            <input id="cred-new-name" placeholder={SAMPLE.credName} autocomplete="off" />
+          </Field>
+          <Field
+            label={t("project.labels.provider")}
+            for="cred-new-provider"
+            id="cred-new-provider-row"
+          >
+            <select id="cred-new-provider"></select>
+          </Field>
+          <Field
+            label={t("project.labels.type")}
+            for="cred-new-kind"
+            id="cred-new-kind-row"
+            helpId="cred-new-help"
+          >
+            <select id="cred-new-kind" aria-describedby="cred-new-help"></select>
+            <Fragment slot="help"></Fragment>
+          </Field>
+          <div id="cred-new-fields" class="form-stack cred-fields"></div>
+          <p class="field-help">{t("project.credentials.validated_hint")}</p>
+        </div>
+
+        <FormError id="cred-error" />
+      </div>
+    </Modal>
+
+    <Modal
+      id="ing-modal"
+      title={t("project.telemetry.title")}
+      icon="zap"
+      size="lg"
+      closable
+      lede={t("project.telemetry.intro")}
+      cancel={t("common.buttons.close")}
+    >
+      <div class="ing-body">
+        <div id="ing-new" class="ing-new" hidden>
+          <Callout tone="warn" bare role="note">{t("project.telemetry.copy_now")}</Callout>
+          <CodeBlock
+            textId="ing-secret"
+            wrap
+            copy
+            label={t("project.telemetry.token_copy_label")}
+          />
+          <CodeBlock
+            textId="ing-snippet"
+            multiline
+            copy
+            label={t("project.telemetry.snippet_copy_label")}
+          />
+          <Callout tone="warn" bare id="ing-addr-warn" role="note" hidden />
+        </div>
+
+        <section aria-labelledby="ing-tokens-h">
+          <SectionHead level={4} id="ing-tokens-h" title={t("project.telemetry.tokens")}>
+            <input
+              slot="actions"
+              id="ing-name"
+              size="24"
+              maxlength="80"
+              autocomplete="off"
+              placeholder={t("project.telemetry.name_placeholder")}
+              aria-label={t("project.telemetry.name_label")}
+            />
+            <Button slot="actions" size="sm" id="ing-create"
+              >{t("project.telemetry.new_token")}</Button
+            >
+          </SectionHead>
+          <div id="ing-tokens"></div>
+        </section>
+
+        <section aria-labelledby="ing-sources-h">
+          <SectionHead level={4} id="ing-sources-h" title={t("project.telemetry.sources")} />
+          <p class="field-help ing-hint">
+            {t("project.telemetry.sources_hint")}
+          </p>
+          <div id="ing-sources"></div>
+        </section>
+        <FormError id="ing-error" />
+      </div>
+    </Modal>
+
+    <Modal
+      id="dash-modal"
+      title={t("project.dashboards.title")}
+      icon="columns"
+      size="xl"
+      closable
+      cancel
+      primary={{ label: t("common.buttons.save"), id: "dm-save" }}
+    >
+      <div class="form-stack">
+        <Field label={t("project.labels.name")} for="dm-name">
+          <input id="dm-name" type="text" placeholder={t("project.dashboards.name_placeholder")} />
+        </Field>
+        <section aria-labelledby="dm-panels-h">
+          <SectionHead level={4} id="dm-panels-h" title={t("project.dashboards.panels")}>
+            <Button slot="actions" size="sm" icon="plus" id="dm-add">
+              {t("project.dashboards.add_panel")}
+            </Button>
+          </SectionHead>
+          <div id="dm-panels" class="panel-stack"></div>
+        </section>
+        <FormError id="dm-error" />
+      </div>
+    </Modal>
+
+    <Modal id="stage-modal" title={t("project.stage_files.title")} icon="file" size="xl" closable>
+      <div id="sm-body"></div>
+    </Modal>
+  </main>
+
+  <style is:global>
+    .proj-page {
+      padding: 28px 32px 80px;
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-6);
+    }
+    .proj-page #body {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-6);
+    }
+
+    /* Each tab stacks its panels with the page's gap. */
+    .proj-panel {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-6);
+    }
+
+    /* ─── KPI rows: three StatGroups of four tiles ───────────── */
+    .kpis {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-3);
+    }
+
+    /* ─── Charts ─────────────────────────────────────────────── */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--s-4);
+    }
+    @media (max-width: 980px) {
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+    /* Both an aside in a panel header (pushed right) and a note under a form
+       control (pushed down). It was two rules that merged into exactly this. */
+    .hint {
+      margin-top: var(--s-2);
+      margin-left: auto;
+      font-size: var(--t-xs);
+      color: var(--fg-3);
+    }
+
+    /* The share of the cost, a Meter after the amount. */
+    .dim-share {
+      margin-left: var(--s-2);
+    }
+
+    /* ─── Forms ──────────────────────────────────────────────── */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--s-6);
+    }
+    @media (max-width: 980px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .form-col {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    /* A picker and the buttons that act on its choice, inside a Field. */
+    .gh-pick {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--s-3);
+    }
+    .gh-pick select {
+      flex: 1 1 200px;
+      min-width: 0;
+    }
+    /* The branch picker and its download button share a row that wraps
+       under the button on a phone. */
+    .code-download-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--s-3);
+    }
+    .code-download-row select {
+      flex: 1;
+      min-width: 140px;
+      max-width: 280px;
+    }
+    .code-download,
+    .code-new {
+      margin-bottom: var(--s-4);
+    }
+    .code-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: var(--s-3);
+    }
+    /* Holds the clone's Callout above the tabs. */
+    .clone-banner {
+      margin-bottom: var(--s-4);
+    }
+    /* Two buttons that travel together at the end of a config row. */
+    .btn-pair {
+      display: inline-flex;
+      gap: var(--s-2);
+    }
+    .gh-info {
+      font-size: var(--t-xs);
+      line-height: 1.5;
+    }
+    /* The agent picker of each stage fills its column of the template. */
+    #s-template select {
+      width: 100%;
+    }
+
+    /* ─── Init script (lib/init-script.ts) ─────────────────────── */
+    .is-status {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--s-2);
+      font-size: var(--t-sm);
+    }
+    .is-last-note {
+      margin: var(--s-1) 0 0;
+      font-size: var(--t-xs);
+    }
+    .proj-page .is-script {
+      min-height: 220px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.55;
+      tab-size: 2;
+    }
+    .proj-page .mono {
+      font-family: var(--font-mono);
+    }
+    .is-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+      gap: var(--s-6);
+    }
+    /* The add buttons under the params and the support files keep their
+       own width inside the field's column. */
+    .is-editor .field > .btn {
+      align-self: flex-start;
+    }
+    .is-params {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-2);
+    }
+    .is-param {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1.4fr) auto auto;
+      align-items: center;
+      gap: var(--s-2);
+    }
+    .is-pair {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--s-3);
+    }
+    .proj-page .is-setup {
+      min-height: 96px;
+    }
+    .is-pair.is-triple {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .is-files {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-3);
+    }
+    .is-file {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-1);
+    }
+    .is-file-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: var(--s-2);
+    }
+    .proj-page .is-file-content {
+      min-height: 120px;
+    }
+    .is-prewarm {
+      margin-top: var(--s-3);
+      padding-top: var(--s-3);
+      border-top: 1px solid var(--line-soft);
+    }
+    .is-prewarm:empty {
+      display: none;
+    }
+    .is-prewarm-line {
+      margin: var(--s-1) 0 0;
+      font-size: var(--t-sm);
+      color: var(--fg-3);
+      overflow-wrap: anywhere;
+    }
+    .is-prewarm-reason {
+      margin: var(--s-2) 0 0;
+      font-size: var(--t-sm);
+      color: var(--danger);
+    }
+    .is-starter {
+      display: flex;
+      align-items: center;
+      gap: var(--s-3);
+      flex-wrap: wrap;
+      padding: var(--s-2) var(--s-3);
+      margin-bottom: var(--s-3);
+      border: 1px dashed var(--accent-line);
+      border-radius: var(--r-sm);
+      font-size: var(--t-sm);
+    }
+    @media (max-width: 720px) {
+      .is-pair.is-triple {
+        grid-template-columns: 1fr;
+      }
+    }
+    @media (max-width: 980px) {
+      .is-grid {
+        grid-template-columns: 1fr;
+        gap: var(--s-4);
+      }
+    }
+    @media (max-width: 720px) {
+      .is-param {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto;
+      }
+      .is-param [data-p="description"] {
+        grid-column: 1 / -1;
+        grid-row: 2;
+      }
+    }
+
+    /* ─── Environments ───────────────────────────────────────── */
+    /* An environment is a list row with the blocks that hang under it
+       (testing, proposals, signals, custom metrics, dashboards) lined up
+       with the row's text. */
+    .env-detail {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-3);
+      min-width: 0;
+      padding: 0 var(--s-4) var(--s-4);
+    }
+    .env-name {
+      font-weight: 600;
+    }
+    .env-slug {
+      margin-left: var(--s-2);
+      font-family: var(--font-mono);
+      font-size: var(--t-xs);
+      color: var(--fg-3);
+    }
+    /* How Evidence tests the environment: one quiet line, edited there. */
+    .env-testing .env-meta {
+      column-gap: var(--s-4);
+    }
+    .env-testing-link {
+      font-size: var(--t-xs);
+      font-weight: 500;
+      color: var(--accent);
+    }
+    @media (pointer: coarse) {
+      .env-testing-link {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+      }
+    }
+    .env-meta {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+      color: var(--fg-3);
+      font-size: var(--t-xs);
+    }
+    .env-meta-stacked {
+      margin-top: 4px;
+    }
+    /* The credential part of a form, set off from the fields above it. */
+    .cred-split {
+      padding-top: var(--s-4);
+      border-top: 1px solid var(--line);
+    }
+    /* The provider's own Fields (fieldInputs() in lib/credentials.ts) in a
+       .form-stack; with no provider picked there are none, and the empty
+       column takes no gap in the form around it. */
+    .cred-fields:empty {
+      display: none;
+    }
+    /* Push and pull tiles sit side by side, so where a number came from has
+       to be readable off the tile itself — otherwise "reported by the app"
+       and "polled from CloudWatch" are indistinguishable and a stale
+       collector looks like a healthy one. */
+    .sig-pushed {
+      color: var(--accent);
+    }
+    /* ─── Custom metrics tray and dashboards ─────────────────── */
+    /* Sections under an environment, each set off by a rule. */
+    .cm-block,
+    .dash-block {
+      min-width: 0;
+      padding-top: var(--s-3);
+      border-top: 1px solid var(--line);
+    }
+    /* What a section under an environment is for, or what unlocks it. */
+    .env-block-lede {
+      margin-bottom: var(--s-2);
+      font-size: var(--t-xs);
+      color: var(--fg-3);
+    }
+    .cm-labels {
+      font-family: var(--font-mono);
+      font-size: var(--t-xs);
+    }
+
+    /* ─── Dashboards ─────────────────────────────────────────── */
+    /* The strip of dashboards, and the buttons that act on the open one at
+       its end; on a phone the buttons drop under the strip. */
+    .dash-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--s-2) var(--s-3);
+      margin-bottom: var(--s-3);
+    }
+    .dash-bar > .tabs {
+      flex: 0 1 auto;
+      min-width: 0;
+    }
+    .dash-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--s-2);
+      margin-left: auto;
+    }
+    /* ─── Telemetry ingest ───────────────────────────────────── */
+    /* The new token, then the tokens and the sources, one under the other. */
+    .ing-body {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-5);
+    }
+    .ing-hint {
+      margin-bottom: var(--s-2);
+    }
+    /* The token just made, the snippet that uses it and the warning, one
+       under the other. */
+    .ing-new {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-2);
+    }
+
+    /* ─── Stage files modal ─────────────────────────────── */
+    .sf-set {
+      margin-bottom: var(--s-6);
+    }
+    .sf-intro {
+      font-size: var(--t-xs);
+      color: var(--fg-3);
+      margin-bottom: var(--s-3);
+      line-height: 1.5;
+    }
+  </style>
+
+  <script>
+    import { requireAuth } from "../lib/auth";
+    import { t } from "../i18n";
+    import { api, ApiError } from "../lib/api";
+    import {
+      $,
+      bindDropZone,
+      bindTabs,
+      buttonHTML,
+      calloutHTML,
+      clearFormErrors,
+      confirmDialog,
+      emptyStateHTML,
+      esc,
+      fieldHTML,
+      icoSvg,
+      listRowsHTML,
+      bindCrosshair,
+      chartBarsHTML,
+      makeToast,
+      resetDropZone,
+      segmentedValue,
+      setBadge,
+      setChartLegend,
+      setChipsPressed,
+      setCount,
+      setFieldError,
+      setFormError,
+      setMeter,
+      setStat,
+      sparklineSVG,
+      timeChart,
+      uploadPlanHTML,
+      uploadReportHTML,
+      dateInputsValid,
+      readDateInput,
+      writeDateInput,
+    } from "../lib/ui";
+    import type { Board, BoardsResponse, Stage } from "../lib/stages";
+    import { boardOptions, readStageTemplate, stageTemplateTable } from "../lib/pickers";
+    import type { AgentType } from "../lib/pickers";
+    import { wireMdEditor } from "../lib/mdeditor";
+    import { renderPanel, type PanelData } from "../lib/charts";
+    import { bindModal } from "../lib/modal";
+    import { isoLocal } from "../lib/time";
+    import { estimatedCost } from "../lib/format";
+    import {
+      fmtDur,
+      fmtLatency,
+      fmtNum,
+      fmtPct,
+      fmtUSD,
+      presetRange,
+      toInstant,
+    } from "../lib/metrics-format";
+    import {
+      flowChartSVG,
+      flowLegend,
+      flowSummary,
+      hasFlowData,
+      type FlowPoint,
+      type SpendPoint,
+    } from "../lib/minicharts";
+    import {
+      DAY_MS,
+      fmtUsageDay,
+      usageChartSummary,
+      usageDays,
+      usageSeries,
+    } from "../lib/usage-chart";
+    import { fmtSignal, sigAge } from "../lib/signals";
+    import {
+      envListHTML,
+      type CustomMetric,
+      type CustomMetricsResponse,
+      type Dashboard,
+      type EnvCardDeps,
+      type EnvTesting,
+      type EnvDetail,
+      type Environment,
+      type Mapping,
+    } from "../lib/env-cards";
+    import type { SeriesPoint } from "../lib/signals";
+    import {
+      collectorSnippet,
+      ingestBase,
+      ingestSourcesHTML,
+      ingestTokensHTML,
+      parseCIDRs,
+      type IngestSource,
+      type IngestToken,
+    } from "../lib/ingest";
+    import {
+      applyPanelEdit,
+      blankPanel,
+      panelRowHTML,
+      type ChartCatalog,
+      type PanelSpec,
+    } from "../lib/dash-panels";
+    import {
+      HOOK_TEMPLATE,
+      parseStageRef,
+      stageEditorHTML,
+      stageSetsHTML,
+      type StageEntry,
+      type StageFiles,
+    } from "../lib/stage-files";
+    import {
+      CLOUD_PROVIDERS,
+      NEW_CRED,
+      credLabel,
+      credentialForEnv,
+      envErrorField,
+      formatSelectors,
+      grantsWith,
+      grantsWithout,
+      parseSelectors,
+    } from "../lib/env-form";
+    import { webRepoURL } from "../lib/repo-url";
+    import { apiBase } from "../lib/auth";
+    import {
+      buildTarGz,
+      formatBytes,
+      MAX_UPLOAD_BYTES,
+      pickedFromDrop,
+      pickedFromInput,
+      planUpload,
+      sendUpload,
+      UploadError,
+      type PickedFile,
+      type UploadPlan,
+      type UploadReport,
+    } from "../lib/project-upload";
+    import {
+      dimColumns,
+      dimRowsHTML,
+      topTaskColumns,
+      topTaskRowsHTML,
+      type DimensionRow,
+      type TaskRow,
+    } from "../lib/project-tables";
+    import { setStageLabels } from "../lib/init-script";
+    import { mountInitScript, type InitPanel } from "../lib/init-script-panel";
+    import {
+      checkSummary,
+      checkTone,
+      createCredential,
+      fetchProviders,
+      fieldInputs,
+      kindOptions,
+      listCredentials,
+      providerOptions,
+      readPayload,
+      type Credential as ManagedCredential,
+      type KindSpec,
+      type ProviderSpec,
+    } from "../lib/credentials";
+    import { navigate } from "astro:transitions/client";
+    import { every, onPage, replaceURL } from "../lib/page";
+
+    onPage("/project", (signal) => {
+      requireAuth();
+
+      interface Project {
+        id: string;
+        name: string;
+        repo_url: string;
+        description: string;
+        default_branch: string;
+        default_board_id?: string;
+        stage_template: Record<string, string>;
+        github_installation_id?: number;
+        source?: string;
+        clone_status?: "cloning" | "failed";
+        clone_error?: string;
+        clone_detail?: string;
+      }
+      interface Worktree {
+        task_id?: string;
+        path?: string;
+        branch?: string;
+      }
+      interface ProjectGithubCredential {
+        source: "app" | "credential" | "none";
+        credential_id?: string;
+        name?: string;
+        identity?: string;
+        state?: string;
+        installation_id?: number;
+        account?: string;
+      }
+      interface CredentialSummary {
+        id: string;
+        name: string;
+        provider: string;
+        identity?: string;
+        state?: string;
+        disabled?: boolean;
+      }
+      const CRED_STATE_LABEL = {
+        invalid: "project.github.state_invalid",
+        expired: "project.github.state_expired",
+      } as const;
+
+      function errText(e: unknown): string {
+        return e instanceof ApiError ? e.message : t("project.errors.unknown");
+      }
+
+      interface GithubInstallation {
+        installation_id: number;
+        account_login: string;
+        suspended_at?: string;
+      }
+
+      interface Dist {
+        n: number;
+        avg_ms: number;
+        p50_ms: number;
+        p90_ms: number;
+        max_ms: number;
+      }
+      interface FlowMetrics {
+        tasks_total: number;
+        tasks_open: number;
+        tasks_done: number;
+        tasks_blocked: number;
+        tasks_running: number;
+        tasks_failed: number;
+        tasks_created: number;
+        tasks_completed: number;
+        tasks_touched: number;
+        first_pass_tasks: number;
+        first_pass_rate: number;
+        human_comments: number;
+        human_intervention_rate: number;
+        by_stage: { stage: string; count: number }[];
+        throughput: FlowPoint[];
+        lead_time: Dist;
+        stage_dwell: ({ stage: string } & Dist)[];
+        wip_age: Dist;
+        reworked_tasks: number;
+        rework_rate: number;
+        kickbacks: number;
+        agent_runs: number;
+        runs_per_task: number;
+        flags_raised: number;
+        flags_resolved: number;
+        prs_opened: number;
+      }
+      interface AgentRollup {
+        sessions: number;
+        turns: number;
+        total_tokens: number;
+        cost_usd: number;
+        estimated_cost_usd?: number;
+        unpriced_sessions?: number;
+        cache_hit_ratio: number;
+        error_rate: number;
+        max_tokens_rate: number;
+        tasks_with_runs: number;
+        cost_per_task: number;
+        cost_per_completed_task: number;
+        tokens_per_task: number;
+        sessions_per_task: number;
+        compute_time_per_task: Dist;
+        wall_time_per_task: Dist;
+      }
+      interface ProjectMetrics {
+        project_id: string;
+        from: string;
+        to: string;
+        flow: FlowMetrics;
+        agent: AgentRollup;
+      }
+
+      const projectID = new URLSearchParams(window.location.search).get("id") || "";
+      const toast = makeToast();
+
+      let project: Project | null = null;
+      let initPanel: InitPanel | null = null;
+      let stages: Stage[] = [];
+      let boards: Board[] = [];
+      let agents: AgentType[] = [];
+      let spendSeries: SpendPoint[] = [];
+      let flowSeries: FlowPoint[] = [];
+      let spendMetric: "cost" | "tokens" = "cost";
+
+      const signalFormat = { latency: fmtLatency, usd: fmtUSD, num: fmtNum };
+      const fmtSig = (signal: string, value: number, unit?: string) =>
+        fmtSignal(signal, value, unit, signalFormat);
+
+      function windowQS(): string {
+        const p = new URLSearchParams();
+        const from = toInstant(readDateInput("f-from"));
+        const to = toInstant(readDateInput("f-to"));
+        if (from) p.set("from", from);
+        if (to) p.set("to", to);
+        return p.toString() ? `?${p}` : "";
+      }
+
+      let activePreset = "";
+
+      function applyPreset(key: string) {
+        activePreset = key;
+        const { from, to } = presetRange(key);
+        writeDateInput("f-from", isoLocal(from));
+        writeDateInput("f-to", isoLocal(to));
+        setChipsPressed($("f-presets"), key, "preset");
+      }
+
+      async function bootstrap() {
+        if (!projectID) {
+          showLoadError(t("project.errors.no_id"));
+          return;
+        }
+        applyPreset("30d");
+        try {
+          // /stages is the full catalog on purpose: the stage template and stage-file editor key
+          // stages by id across every board.
+          const [proj, catalog, types, boardsResp] = await Promise.all([
+            api.get<Project>(`/projects/${projectID}`),
+            api.get<Stage[]>("/stages"),
+            api.get<AgentType[]>("/types"),
+            api.get<BoardsResponse>("/boards"),
+          ]);
+          project = proj;
+          stages = catalog;
+          agents = types;
+          boards = boardsResp.boards;
+        } catch (e) {
+          showLoadError(e instanceof ApiError ? e.message : t("project.errors.load_failed"));
+          return;
+        }
+        $("body").hidden = false;
+        renderHeader();
+        renderSettings();
+        if (project.source === "upload") void loadCodeBranches();
+        else void refreshGithubCredentialRow();
+        setStageLabels(stageLabel);
+        const codeReady = !project.clone_status;
+        initPanel = mountInitScript({
+          host: $("init-root"),
+          saveBtn: $("init-save"),
+          historyBtn: $("init-history"),
+          projectID,
+          toast,
+          codeReady,
+        });
+        if (codeReady) void loadWorktrees();
+        void loadEnvironments();
+        startEnvAutoRefresh();
+        await loadMetrics();
+      }
+
+      function showLoadError(msg: string) {
+        $("load-error-msg").textContent = msg;
+        $("load-error").hidden = false;
+        $("p-title").textContent = t("project.title");
+        $("p-sub").textContent = "";
+      }
+
+      function renderHeader() {
+        if (!project) return;
+        document.title = t("project.document_title", { name: project.name });
+        $("crumb-name").textContent = project.name;
+        $("p-title").textContent = project.name;
+        const uploaded = project.source === "upload";
+        $("p-sub").textContent =
+          project.description || (uploaded ? t("projects.labels.uploaded") : project.repo_url);
+        const repoLink = $("p-repo-link") as HTMLAnchorElement;
+        const web = uploaded ? null : webRepoURL(project.repo_url);
+        repoLink.hidden = !web;
+        if (web) repoLink.href = web;
+        ($("gh-panel") as HTMLElement).hidden = uploaded;
+        ($("code-panel") as HTMLElement).hidden = !uploaded;
+        ($("s-repo-field") as HTMLElement).hidden = uploaded;
+        const tasksQS = new URLSearchParams({ q: project.name });
+        if (project.default_board_id) tasksQS.set("board", project.default_board_id);
+        ($("p-tasks-link") as HTMLAnchorElement).href = `/tasks/?${tasksQS}`;
+        renderCloneBanner();
+      }
+
+      let clonePoll: number | null = null;
+      signal.addEventListener("abort", () => {
+        if (clonePoll !== null) window.clearTimeout(clonePoll);
+      });
+
+      function renderCloneBanner() {
+        const banner = $("clone-banner");
+        const st = project?.clone_status;
+        banner.hidden = !st;
+        if (st === "cloning")
+          banner.innerHTML = calloutHTML({
+            tone: "accent",
+            icon: "i-clock",
+            body: t("project.clone.cloning"),
+          });
+        else if (st === "failed") {
+          const reason = t("project.clone.failed", {
+            reason: project?.clone_error || t("projects.errors.unknown"),
+          });
+          const detail = project?.clone_detail;
+          banner.innerHTML = calloutHTML({
+            tone: "danger",
+            icon: "i-alert",
+            body: reason,
+            detail: detail ? { summary: t("project.clone.detail"), text: detail } : undefined,
+          });
+        }
+        if (clonePoll !== null) window.clearTimeout(clonePoll);
+        clonePoll = null;
+        if (st === "cloning" && !signal.aborted)
+          clonePoll = window.setTimeout(() => void pollClone(), 3000);
+      }
+
+      async function pollClone() {
+        try {
+          const p = await api.get<Project>(`/projects/${projectID}`);
+          const wasCloning = project?.clone_status === "cloning";
+          project = p;
+          renderHeader();
+          if (wasCloning && !p.clone_status) {
+            toast(t("project.clone.ready", { name: p.name }), "ok");
+            renderSettings();
+            initPanel?.codeArrived();
+            void loadWorktrees();
+          }
+        } catch {
+          clonePoll = window.setTimeout(() => void pollClone(), 3000);
+        }
+      }
+
+      async function loadMetrics() {
+        // An invalid date would drop out of the query and load the whole history; keep the current
+        // window instead.
+        if (!dateInputsValid(["f-from", "f-to"])) return;
+        const qs = windowQS();
+        const scoped = (path: string) => {
+          const sep = qs ? "&" : "?";
+          return `${path}${qs}${sep}project_id=${encodeURIComponent(projectID)}`;
+        };
+        setBadge($("window-pill"), t("common.status.loading"), "muted", {
+          shape: "pill",
+          pulse: true,
+        });
+        try {
+          const [metrics, series, byStage, byModel, topTasks] = await Promise.all([
+            api.get<ProjectMetrics>(`/projects/${projectID}/metrics${qs}`),
+            api.get<{ points: SpendPoint[] }>(scoped("/usage/timeseries")),
+            api.get<DimensionRow[]>(scoped("/usage/by-stage")),
+            api.get<DimensionRow[]>(scoped("/usage/by-model")),
+            api.get<TaskRow[]>(scoped("/usage/top-tasks")),
+          ]);
+          spendSeries = series.points || [];
+          flowSeries = metrics.flow.throughput || [];
+          renderKPIs(metrics);
+          renderFlowChart();
+          renderSpendChart();
+          renderDwell(metrics.flow);
+          renderCensus(metrics.flow);
+          renderDimTable("t-stage", "stage", byStage);
+          renderDimTable("t-model", "model", byModel);
+          renderTopTasks(topTasks);
+          setBadge(
+            $("window-pill"),
+            t("project.filters.tasks_linked", { count: metrics.flow.tasks_total }),
+            "neutral",
+            { shape: "pill" },
+          );
+        } catch (e) {
+          setBadge($("window-pill"), t("project.filters.unavailable"), "warn", { shape: "pill" });
+          toast(t("project.filters.load_failed", { error: errText(e) }), "err");
+        }
+      }
+
+      function setKPI(id: string, value: string, sub?: string, trend?: "good" | "bad") {
+        setStat($(id), {
+          value,
+          sub,
+          tone: trend === "good" ? "ok" : trend === "bad" ? "danger" : "neutral",
+        });
+      }
+
+      function markEstimated(id: string, title: string) {
+        const el = $(id).querySelector<HTMLElement>(".stat-value");
+        if (!el) return;
+        el.classList.toggle("est", !!title);
+        if (title) el.title = title;
+        else el.removeAttribute("title");
+      }
+
+      function renderKPIs(m: ProjectMetrics) {
+        const f = m.flow;
+        const a = m.agent;
+
+        setKPI(
+          "k-open",
+          String(f.tasks_open),
+          t("project.kpis.open_detail", {
+            done: f.tasks_done,
+            blocked: f.tasks_blocked,
+            running: f.tasks_running,
+          }),
+        );
+        setKPI(
+          "k-throughput",
+          String(f.tasks_completed),
+          t("project.kpis.created_in_window", { created: f.tasks_created }),
+        );
+        setKPI(
+          "k-lead",
+          f.lead_time.n ? fmtDur(f.lead_time.p50_ms) : "—",
+          f.lead_time.n
+            ? t("project.kpis.lead_detail", { p90: fmtDur(f.lead_time.p90_ms), n: f.lead_time.n })
+            : t("project.kpis.no_completions"),
+        );
+        setKPI(
+          "k-firstpass",
+          f.tasks_completed ? fmtPct(f.first_pass_rate) : "—",
+          f.tasks_completed
+            ? t("project.kpis.first_pass_detail", {
+                clean: f.first_pass_tasks,
+                completed: f.tasks_completed,
+              })
+            : t("project.kpis.no_completions_in_window"),
+          firstPassTrend(f),
+        );
+
+        setKPI(
+          "k-rework",
+          fmtPct(f.rework_rate),
+          t("project.kpis.rework_detail", {
+            tasks: t("project.kpis.tasks_count", { count: f.reworked_tasks }),
+            kickbacks: t("project.kpis.kickbacks_count", { count: f.kickbacks }),
+          }),
+          f.rework_rate >= 0.3 ? "bad" : undefined,
+        );
+        setKPI(
+          "k-runs",
+          f.tasks_touched ? f.runs_per_task.toFixed(1) : "—",
+          t("project.kpis.runs_detail", {
+            runs: t("project.kpis.runs_count", { count: f.agent_runs }),
+            tasks: t("project.kpis.tasks_count", { count: f.tasks_touched }),
+          }),
+        );
+        setKPI(
+          "k-human",
+          f.tasks_touched ? f.human_intervention_rate.toFixed(1) : "—",
+          t("project.kpis.human_detail", { count: f.human_comments }),
+        );
+        setKPI(
+          "k-cache",
+          fmtPct(a.cache_hit_ratio),
+          t("project.kpis.error_rate", { rate: fmtPct(a.error_rate) }),
+          // Below 40% signals prompt drift or unstable tool schemas; 0 just means no runs yet.
+          a.cache_hit_ratio > 0 && a.cache_hit_ratio < 0.4 ? "bad" : undefined,
+        );
+
+        const estShare = a.cost_usd > 0 ? (a.estimated_cost_usd || 0) / a.cost_usd : 0;
+        const perTask = estimatedCost(a.cost_per_task, a.cost_per_task * estShare, fmtUSD);
+        const perDone = estimatedCost(
+          a.cost_per_completed_task,
+          a.cost_per_completed_task * estShare,
+          fmtUSD,
+        );
+        setKPI(
+          "k-cost-task",
+          perTask.text,
+          t("project.kpis.cost_total", {
+            total: estimatedCost(a.cost_usd, a.estimated_cost_usd, fmtUSD, a.unpriced_sessions)
+              .text,
+            sessions: a.sessions,
+          }),
+        );
+        markEstimated("k-cost-task", perTask.title);
+        setKPI(
+          "k-cost-done",
+          f.tasks_completed ? perDone.text : "—",
+          f.tasks_completed
+            ? t("project.kpis.cost_vs_touched", { cost: perTask.text })
+            : t("project.kpis.nothing_completed"),
+        );
+        markEstimated("k-cost-done", f.tasks_completed ? perDone.title : "");
+        setKPI(
+          "k-agent-time",
+          a.compute_time_per_task.n ? fmtDur(a.compute_time_per_task.p50_ms) : "—",
+          a.wall_time_per_task.n
+            ? t("project.kpis.wall_clock", { duration: fmtDur(a.wall_time_per_task.p50_ms) })
+            : t("project.kpis.agent_time_median"),
+        );
+        setKPI(
+          "k-tokens-task",
+          fmtNum(a.tokens_per_task),
+          t("project.kpis.tokens_total", { tokens: fmtNum(a.total_tokens) }),
+        );
+      }
+
+      function firstPassTrend(f: FlowMetrics): "good" | "bad" | undefined {
+        if (!f.tasks_completed) return undefined;
+        if (f.first_pass_rate >= 0.8) return "good";
+        if (f.first_pass_rate < 0.5) return "bad";
+        return undefined;
+      }
+
+      function renderFlowChart() {
+        const host = $("chart-flow");
+        const has = hasFlowData(flowSeries);
+        $("chart-flow-empty").hidden = has;
+        host.hidden = !has;
+        setChartLegend($("chart-flow-legend"), has ? flowLegend() : []);
+        if (!has) {
+          host.replaceChildren();
+          return;
+        }
+        host.innerHTML = flowChartSVG(flowSeries, {
+          width: host.clientWidth || 640,
+          height: host.clientHeight || 220,
+        });
+        host.setAttribute("aria-label", flowSummary(flowSeries));
+      }
+
+      let unbindSpend: () => void = () => undefined;
+      function renderSpendChart() {
+        unbindSpend();
+        unbindSpend = () => undefined;
+        const host = $("chart-spend");
+        const days = usageDays(spendSeries, {
+          from: toInstant(readDateInput("f-from")),
+          to: toInstant(readDateInput("f-to")),
+        });
+        const has = days.length > 0;
+        $("chart-spend-empty").hidden = has;
+        host.hidden = !has;
+        if (!has) {
+          host.replaceChildren();
+          return;
+        }
+        const series = [usageSeries(spendMetric)];
+        const fmt = spendMetric === "cost" ? fmtUSD : fmtNum;
+        const end = Date.parse(days[days.length - 1].t);
+        const model = timeChart(days, series, {
+          width: host.clientWidth || 640,
+          height: host.clientHeight || 220,
+          rangeMs: Math.max(DAY_MS, end - Date.parse(days[0].t)),
+          end,
+          intervalMs: DAY_MS,
+          fmtY: fmt,
+          fmtX: fmtUsageDay,
+        });
+        host.innerHTML = model.svg;
+        host.setAttribute("aria-label", usageChartSummary(days, spendMetric, fmt));
+        unbindSpend = bindCrosshair(host, model, days, series, fmt, { fmtTime: fmtUsageDay });
+      }
+
+      function stageLabel(id: string): string {
+        return stages.find((s) => s.id === id)?.label || id;
+      }
+
+      function renderDwell(f: FlowMetrics) {
+        const rows = f.stage_dwell.filter((d) => d.n > 0);
+        $("dwell-empty").hidden = rows.length > 0;
+        const max = Math.max(1, ...rows.map((d) => d.p50_ms));
+        $("dwell-bars").innerHTML = chartBarsHTML(
+          rows.map((d) => ({
+            label: stageLabel(d.stage),
+            share: (d.p50_ms / max) * 100,
+            value: fmtDur(d.p50_ms),
+            sub: t("project.charts.dwell_p90", { value: fmtDur(d.p90_ms) }),
+          })),
+        );
+      }
+
+      function renderCensus(f: FlowMetrics) {
+        const rows = f.by_stage;
+        $("census-empty").hidden = rows.length > 0;
+        const max = Math.max(1, ...rows.map((r) => r.count));
+        const wip = f.wip_age.n ? fmtDur(f.wip_age.p90_ms) : "—";
+        $("census-bars").innerHTML =
+          chartBarsHTML(
+            rows.map((r) => ({
+              label: stageLabel(r.stage),
+              share: (r.count / max) * 100,
+              value: String(r.count),
+            })),
+          ) +
+          (rows.length
+            ? `<p class="hint">${esc(t("project.charts.census_oldest", { age: wip }))}</p>`
+            : "");
+      }
+
+      function renderDimTable(tableId: string, first: "stage" | "model", rows: DimensionRow[]) {
+        const tbody = ($(tableId) as HTMLTableElement).querySelector("tbody")!;
+        tbody.innerHTML = dimRowsHTML(dimColumns(first), rows);
+      }
+
+      function renderTopTasks(rows: TaskRow[]) {
+        const tbody = ($("t-tasks") as HTMLTableElement).querySelector("tbody")!;
+        tbody.innerHTML = topTaskRowsHTML(topTaskColumns(), rows);
+      }
+
+      function renderSettings() {
+        if (!project) return;
+        ($("s-name") as HTMLInputElement).value = project.name;
+        ($("s-repo") as HTMLInputElement).value = project.repo_url;
+        ($("s-desc") as HTMLTextAreaElement).value = project.description || "";
+        ($("s-branch") as HTMLInputElement).value = project.default_branch || "main";
+        renderBoardOptions(project.default_board_id || "");
+        renderTemplate(project.stage_template || {});
+        renderGhAppRow();
+      }
+
+      function renderBoardOptions(selected: string) {
+        ($("s-board") as HTMLSelectElement).innerHTML = boardOptions(boards, selected);
+      }
+
+      const templateTable = stageTemplateTable({
+        table: $("s-template"),
+        boardSelect: $("s-board") as HTMLSelectElement,
+        catalog: () => stages,
+        agents: () => agents,
+        boards: () => boards,
+        signal,
+      });
+      function renderTemplate(template: Record<string, string>) {
+        void templateTable.render(template);
+      }
+
+      async function saveSettings() {
+        if (!project) return;
+        const body = {
+          name: ($("s-name") as HTMLInputElement).value.trim(),
+          repo_url: ($("s-repo") as HTMLInputElement).value.trim(),
+          description: ($("s-desc") as HTMLTextAreaElement).value.trim(),
+          default_branch: ($("s-branch") as HTMLInputElement).value.trim() || "main",
+          default_board_id: ($("s-board") as HTMLSelectElement).value,
+          stage_template: readStageTemplate(
+            $("s-template").querySelectorAll<HTMLSelectElement>("[data-stage]"),
+          ),
+        };
+        const missing: [string, string][] = [];
+        if (!body.name) missing.push(["s-name", t("projects.errors.name_required")]);
+        if (!body.repo_url && project.source !== "upload")
+          missing.push(["s-repo", t("projects.errors.repo_required")]);
+        clearFormErrors($("panel-settings"));
+        missing.forEach(([id, msg], i) => setFieldError($(id), msg, { focus: i === 0 }));
+        if (missing.length) return;
+        const btn = $("s-save") as HTMLButtonElement;
+        btn.disabled = true;
+        btn.textContent = t("common.status.saving");
+        try {
+          project = await api.patch<Project>(`/projects/${projectID}`, body);
+          renderHeader();
+          toast(t("project.settings.saved"), "ok");
+        } catch (e) {
+          toast(t("project.settings.save_failed", { error: errText(e) }), "err", 4500);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = t("common.buttons.save");
+        }
+      }
+
+      async function loadCodeBranches() {
+        const sel = $("code-branch") as HTMLSelectElement;
+        const keep = sel.value;
+        try {
+          const r = await api.get<{
+            default_branch: string;
+            branches: string[];
+            task_branches?: { branch: string; task_id: string; title?: string }[];
+          }>(`/projects/${projectID}/branches`);
+          const tasks = r.task_branches ?? [];
+          sel.innerHTML =
+            r.branches
+              .map(
+                (b) =>
+                  `<option value="${esc(b)}"${b === r.default_branch ? " selected" : ""}>${esc(b)}</option>`,
+              )
+              .join("") +
+            (tasks.length
+              ? `<optgroup label="${esc(t("project.code.task_branches"))}">${tasks
+                  .map(
+                    (tb) =>
+                      `<option value="${esc(tb.branch)}">${esc(
+                        tb.title
+                          ? t("project.code.task_branch", {
+                              title: tb.title,
+                              id: tb.task_id.slice(0, 6),
+                            })
+                          : t("project.code.task_branch_untitled", { id: tb.task_id.slice(0, 6) }),
+                      )}</option>`,
+                  )
+                  .join("")}</optgroup>`
+              : "");
+          if (keep && [...sel.options].some((o) => o.value === keep)) sel.value = keep;
+        } catch {
+          const b = project?.default_branch || "main";
+          sel.innerHTML = `<option value="${esc(b)}">${esc(b)}</option>`;
+        }
+        syncDownloadLink();
+        $("code-replace-note").textContent = t("project.code.replace_note", {
+          branch: project?.default_branch || "main",
+        });
+      }
+
+      function syncDownloadLink() {
+        const branch = ($("code-branch") as HTMLSelectElement).value;
+        ($("code-download") as HTMLAnchorElement).href =
+          `${apiBase()}/projects/${encodeURIComponent(projectID)}/archive?branch=${encodeURIComponent(branch)}`;
+      }
+
+      let codePlan: UploadPlan | null = null;
+      let codeZip: File | null = null;
+
+      function resetCodeUpload() {
+        codePlan = null;
+        codeZip = null;
+        resetDropZone($("code-drop"));
+        $("code-drop-title").textContent = t("project.code.drop_title");
+        ($("code-plan") as HTMLElement).hidden = true;
+        ($("code-upload") as HTMLButtonElement).disabled = true;
+      }
+
+      function renderCodePlan(name: string) {
+        const box = $("code-plan") as HTMLElement;
+        $("code-drop-title").textContent = name || t("project.code.drop_title");
+        box.innerHTML = uploadPlanHTML(codePlan, { zip: codeZip, history: "ignore" });
+        box.hidden = false;
+        ($("code-upload") as HTMLButtonElement).disabled =
+          !codeZip && !(codePlan && codePlan.count > 0);
+      }
+
+      function takeCodeFolder(picked: PickedFile[]) {
+        codeZip = null;
+        pendingArchive = null;
+        codePlan = planUpload(picked);
+        codePlan.files = codePlan.files.filter((f) => !f.path.startsWith(".git/"));
+        const first = picked[0]?.path ?? "";
+        renderCodePlan(first.includes("/") ? first.slice(0, first.indexOf("/")) : "");
+      }
+
+      function takeCodeZip(f: File) {
+        codePlan = null;
+        pendingArchive = null;
+        codeZip = f;
+        renderCodePlan(f.name);
+      }
+
+      let pendingArchive: { blob: Blob; name: string } | null = null;
+
+      async function uploadCode(mode: "" | "merge" | "replace" = "") {
+        if (!pendingArchive && !codeZip && !codePlan) return;
+        const btn = $("code-upload") as HTMLButtonElement;
+        btn.disabled = true;
+        btn.textContent = t("projects.status.packing");
+        try {
+          if (!mode || !pendingArchive) {
+            const blob = codeZip ?? (await buildTarGz(codePlan!.files));
+            pendingArchive = { blob, name: codeZip ? codeZip.name : "folder.tar.gz" };
+          }
+          const archive = pendingArchive;
+          if (archive.blob.size > MAX_UPLOAD_BYTES) {
+            pendingArchive = null;
+            toast(
+              t("projects.errors.too_big", {
+                size: formatBytes(archive.blob.size),
+                max: formatBytes(MAX_UPLOAD_BYTES),
+              }),
+              "err",
+              6000,
+            );
+            return;
+          }
+          btn.textContent = t("projects.status.uploading");
+          const path = `/projects/${projectID}/upload${mode ? `?mode=${mode}` : ""}`;
+          const res = await sendUpload<{ report: UploadReport }>(
+            path,
+            archive.blob,
+            archive.name,
+            null,
+            (sent, total) => {
+              ($("code-progress") as HTMLElement).hidden = false;
+              const pct = total > 0 ? Math.round((sent / total) * 100) : 0;
+              setMeter($("code-progress-bar"), pct);
+              $("code-progress-text").textContent =
+                pct >= 100
+                  ? t("projects.status.processing")
+                  : t("projects.upload.progress", {
+                      pct,
+                      sent: formatBytes(sent),
+                      total: formatBytes(total),
+                    });
+            },
+          );
+          const r = res.report;
+          pendingArchive = null;
+          resetCodeUpload();
+          const box = $("code-plan") as HTMLElement;
+          box.innerHTML = uploadReportHTML(r, { lead: uploadedText(r) });
+          box.hidden = false;
+          toast(
+            r.changed
+              ? t("project.code.uploaded_toast")
+              : t("project.code.unchanged", { branch: r.branch }),
+            "ok",
+          );
+          void loadCodeBranches();
+        } catch (e) {
+          if (e instanceof UploadError && e.status === 409 && showCodeRefusal(e)) return;
+          pendingArchive = null;
+          const msg =
+            e instanceof UploadError && e.message ? e.message : t("projects.errors.unknown");
+          toast(t("project.code.upload_failed", { error: msg }), "err", 6000);
+        } finally {
+          ($("code-progress") as HTMLElement).hidden = true;
+          btn.textContent = t("project.code.upload");
+          btn.disabled = !!pendingArchive || (!codeZip && !(codePlan && codePlan.count > 0));
+        }
+      }
+
+      function uploadedText(r: UploadReport): string {
+        if (!r.changed) return t("project.code.unchanged", { branch: r.branch });
+        const commit = r.commit.slice(0, 7);
+        return r.version
+          ? t("project.code.uploaded_merged", {
+              branch: r.branch,
+              version: r.version.slice(0, 7),
+              commit,
+            })
+          : t("project.code.uploaded", { branch: r.branch, commit });
+      }
+
+      function showCodeRefusal(e: UploadError): boolean {
+        const code = String(e.body.code ?? "");
+        const box = $("code-plan") as HTMLElement;
+        const replace = buttonHTML({
+          label: t("project.code.moved.replace"),
+          size: "sm",
+          attrs: { "data-code-mode": "replace" },
+        });
+        if (code === "api.projects.errors.main_moved") {
+          box.innerHTML = calloutHTML({
+            tone: "warn",
+            icon: "warn",
+            title: e.message,
+            body: t("project.code.moved.explain", {
+              branch: String(e.body.branch ?? project?.default_branch ?? "main"),
+            }),
+            actionsHTML:
+              buttonHTML({
+                label: t("project.code.moved.merge"),
+                variant: "primary",
+                size: "sm",
+                attrs: { "data-code-mode": "merge" },
+              }) + replace,
+            attrs: { role: "alert" },
+          });
+        } else if (code === "api.projects.errors.reupload_conflict") {
+          const files = Array.isArray(e.body.conflicts)
+            ? (e.body.conflicts as unknown[]).map(String)
+            : [];
+          box.innerHTML = calloutHTML({
+            tone: "warn",
+            icon: "warn",
+            title: e.message,
+            bodyHTML:
+              `<ul class="mono">${files.map((f) => `<li>${esc(f)}</li>`).join("")}</ul>` +
+              `<p>${esc(t("project.code.moved.conflict_explain"))}</p>`,
+            actionsHTML: replace,
+            attrs: { role: "alert" },
+          });
+        } else {
+          return false;
+        }
+        box.hidden = false;
+        box.querySelectorAll<HTMLButtonElement>("[data-code-mode]").forEach((b) =>
+          b.addEventListener("click", () => {
+            const mode = b.dataset.codeMode === "merge" ? "merge" : "replace";
+            void uploadCode(mode);
+          }),
+        );
+        return true;
+      }
+
+      async function deleteProject() {
+        if (!project) return;
+        const ok = await confirmDialog({
+          title: t("project.danger.confirm_title", { name: project.name }),
+          message: t("project.danger.confirm_message"),
+          confirmLabel: t("projects.confirm.delete_ok"),
+          danger: true,
+        });
+        if (!ok) return;
+        try {
+          await api.del(`/projects/${projectID}`);
+        } catch {
+          toast(t("project.danger.delete_failed"), "err");
+          return;
+        }
+        void navigate("/projects/");
+      }
+
+      async function githubInstallations(): Promise<GithubInstallation[]> {
+        try {
+          const app = await api.get<{ configured: boolean }>("/github/app");
+          if (!app.configured) return [];
+          return await api.get<GithubInstallation[]>("/github/installations");
+        } catch {
+          return [];
+        }
+      }
+
+      async function renderGhAppRow() {
+        if (!project || project.source === "upload") return;
+        if (!project.github_installation_id) {
+          await renderGhLinkRow();
+          return;
+        }
+        ($("gh-link-row") as HTMLElement).hidden = true;
+        const row = $("gh-app-row");
+        row.hidden = false;
+        let label = String(project.github_installation_id);
+        try {
+          const installs = await api.get<GithubInstallation[]>("/github/installations");
+          const inst = installs.find((i) => i.installation_id === project!.github_installation_id);
+          if (inst)
+            label = inst.suspended_at
+              ? t("project.github.suspended", { account: inst.account_login })
+              : inst.account_login;
+        } catch {
+          // Fall back to the raw id — the link itself is what matters here.
+        }
+        $("gh-app-status").innerHTML = t("project.github.linked_html", {
+          installation: esc(label),
+        });
+      }
+
+      async function renderGhLinkRow() {
+        const row = $("gh-link-row") as HTMLElement;
+        const installs = (await githubInstallations()).filter((i) => !i.suspended_at);
+        row.hidden = !installs.length;
+        if (!installs.length) return;
+        ($("gh-link-inst") as HTMLSelectElement).innerHTML = installs
+          .map(
+            (i) =>
+              `<option value="${esc(String(i.installation_id))}">${esc(i.account_login)}</option>`,
+          )
+          .join("");
+      }
+
+      async function linkGhApp() {
+        const id = Number(($("gh-link-inst") as HTMLSelectElement).value);
+        if (!id) return;
+        const btn = $("gh-link-save") as HTMLButtonElement;
+        btn.disabled = true;
+        try {
+          project = await api.patch<Project>(`/projects/${projectID}`, {
+            github_installation_id: id,
+          });
+          toast(t("project.github.app_linked"), "ok");
+          await renderGhAppRow();
+          await refreshGithubCredentialRow();
+        } catch (e) {
+          toast(t("project.github.link_failed", { error: errText(e) }), "err", 6000);
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      async function refreshGithubCredentialRow() {
+        const sel = $("gh-cred") as HTMLSelectElement;
+        const note = $("gh-cred-note");
+        note.textContent = t("common.status.loading");
+        let view: ProjectGithubCredential = { source: "none" };
+        try {
+          view = await api.get<ProjectGithubCredential>(`/projects/${projectID}/github-credential`);
+        } catch (e) {
+          note.textContent = t("project.github.read_failed", { error: errText(e) });
+          return;
+        }
+        // Listing credentials is admin-only but reading this row is not: viewers get the answer
+        // without the picker.
+        let creds: CredentialSummary[] = [];
+        let mayList = true;
+        try {
+          creds = await listCredentials();
+        } catch {
+          mayList = false;
+        }
+        const github = creds.filter((c) => c.provider === "github" && !c.disabled);
+        if (!mayList) {
+          const sel2 = $("gh-cred") as HTMLSelectElement;
+          sel2.innerHTML = `<option>${esc(view.name || t("project.labels.none"))}</option>`;
+          sel2.disabled = true;
+          ($("gh-cred-save") as HTMLButtonElement).disabled = true;
+          note.textContent =
+            view.source === "app"
+              ? t("project.github.app_decides")
+              : t("project.github.needs_admin");
+          return;
+        }
+        const selected = view.source === "credential" ? (view.credential_id ?? "") : "";
+        sel.innerHTML =
+          `<option value="">${esc(t("project.labels.none"))}</option>` +
+          github
+            .map((c) => {
+              const who = c.identity ? ` — ${c.identity}` : "";
+              const bad =
+                c.state === "invalid" || c.state === "expired"
+                  ? ` ${esc(t(CRED_STATE_LABEL[c.state]))}`
+                  : "";
+              return `<option value="${esc(c.id)}"${c.id === selected ? " selected" : ""}>${esc(c.name)}${esc(who)}${bad}</option>`;
+            })
+            .join("");
+        sel.value = selected;
+
+        switch (view.source) {
+          case "app":
+            sel.disabled = true;
+            note.textContent = t("project.github.app_outranks");
+            break;
+          case "credential":
+            sel.disabled = false;
+            note.textContent = github.length ? t("project.github.uses_credential") : "";
+            break;
+          default:
+            sel.disabled = false;
+            note.textContent = github.length
+              ? t("project.github.no_credential")
+              : t("project.github.no_credentials");
+        }
+      }
+
+      async function saveGhCredential() {
+        const sel = $("gh-cred") as HTMLSelectElement;
+        const btn = $("gh-cred-save") as HTMLButtonElement;
+        btn.disabled = true;
+        btn.textContent = t("common.status.saving");
+        try {
+          await api.put(`/projects/${projectID}/github-credential`, { credential_id: sel.value });
+          toast(sel.value ? t("project.github.linked") : t("project.github.unlinked"), "ok");
+          await refreshGithubCredentialRow();
+        } catch (e) {
+          toast(t("project.settings.save_failed", { error: errText(e) }), "err", 4500);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = t("common.buttons.save");
+        }
+      }
+
+      async function unlinkGhApp() {
+        const ok = await confirmDialog({
+          title: t("project.github.unlink_title"),
+          message: t("project.github.unlink_message"),
+          confirmLabel: t("project.confirm.unlink_app"),
+          danger: true,
+        });
+        if (!ok) return;
+        try {
+          project = await api.patch<Project>(`/projects/${projectID}`, {
+            github_installation_id: 0,
+          });
+        } catch {
+          toast(t("project.github.unlink_failed"), "err");
+          return;
+        }
+        $("gh-app-row").hidden = true;
+        toast(t("project.github.app_unlinked"), "ok");
+        await renderGhLinkRow();
+        await refreshGithubCredentialRow();
+      }
+
+      let environments: Environment[] = [];
+      const envDetail = new Map<string, EnvDetail>();
+      const dashData = new Map<string, PanelData[]>();
+      // Kept outside the DOM: the panel re-renders on a timer and state read from markup would
+      // collapse open dashboards.
+      const openDash = new Map<string, string>();
+
+      const envDeps: EnvCardDeps = {
+        detail: (id) => envDetail.get(id),
+        openDashID: (id) => openDash.get(id),
+        dashPanels: (id) => dashData.get(id)?.map((p) => renderPanel(p)),
+        fmtSignal: fmtSig,
+        sigAge: (bucket) => sigAge(bucket),
+        sparkline: (values) => sparklineSVG(values),
+        testing: (id) => testingByEnv.get(id),
+      };
+
+      let testingByEnv = new Map<string, EnvTesting>();
+
+      async function loadTesting() {
+        try {
+          const r = await api.get<{
+            environments?: Array<EnvTesting & { kind?: string; project_environment_id?: string }>;
+          }>(`/evidence/environments?project_id=${encodeURIComponent(projectID)}`);
+          testingByEnv = new Map(
+            (r.environments ?? [])
+              .filter((e) => e.kind === "project" && e.project_environment_id)
+              .map((e) => [e.project_environment_id ?? "", e]),
+          );
+        } catch {
+          // Keep what is on screen.
+        }
+      }
+
+      const emptyCustom: CustomMetricsResponse = {
+        metrics: [],
+        discovered: 0,
+        registered: 0,
+        capacity: 0,
+      };
+      let editingEnvID: string | null = null;
+      let credEnvID: string | null = null;
+
+      async function loadEnvironments() {
+        try {
+          environments =
+            (await api.get<Environment[]>(`/projects/${projectID}/environments`)) || [];
+        } catch {
+          $("env-list").innerHTML = emptyStateHTML({
+            size: "sm",
+            tone: "danger",
+            body: t("project.environments.load_failed"),
+          });
+          return;
+        }
+        renderEnvironments();
+        await Promise.all([...environments.map(loadEnvDetail), loadTesting()]);
+        renderEnvironments();
+      }
+
+      // A failed fetch keeps the last known-good detail: falling back to empty repaints tiles as
+      // "no data", which reads as broken collection.
+      async function loadEnvDetail(e: Environment) {
+        const base = `/projects/${projectID}/environments/${e.id}`;
+        const prev = envDetail.get(e.id);
+        const [mappings, series, custom, dashboards] = await Promise.all([
+          api.get<Mapping[]>(`${base}/mappings`).catch(() => prev?.mappings ?? ([] as Mapping[])),
+          api
+            .get<{ points: SeriesPoint[] }>(`${base}/series`)
+            .then((r) => r.points || [])
+            .catch(() => prev?.points ?? ([] as SeriesPoint[])),
+          api
+            .get<CustomMetricsResponse>(`${base}/custom-metrics`)
+            .catch(() => prev?.custom ?? emptyCustom),
+          api
+            .get<Dashboard[]>(`${base}/dashboards`)
+            .catch(() => prev?.dashboards ?? ([] as Dashboard[])),
+        ]);
+        envDetail.set(e.id, { mappings, points: series, custom, dashboards });
+        await loadOpenDashboard(e.id);
+      }
+
+      async function loadOpenDashboard(envID: string) {
+        const detail = envDetail.get(envID);
+        const dashboards = detail?.dashboards ?? [];
+        let id = openDash.get(envID);
+        if (id && !dashboards.some((d) => d.id === id)) {
+          openDash.delete(envID);
+          id = undefined;
+        }
+        if (!id) {
+          // Proposals are never opened by default: rendering one unasked makes it look adopted.
+          const active = dashboards.find((d) => d.status === "active");
+          if (!active) return;
+          id = active.id;
+          openDash.set(envID, id);
+        }
+        try {
+          const res = await api.get<{ panels: PanelData[] }>(
+            `/projects/${projectID}/environments/${envID}/dashboards/${id}/data`,
+          );
+          dashData.set(id, res.panels || []);
+        } catch {
+          // Keep the last good panels; an empty dashboard reads as "this says
+          // nothing", which is a different and worse statement than "the last
+          // refresh failed".
+        }
+      }
+
+      // Collector ticks every 5 min and the cloud publishes late; 1 min is fine because this reads
+      // the daemon's database, not the cloud provider's billing.
+      const ENV_REFRESH_MS = 60_000;
+
+      let envRefreshing = false;
+
+      // Unlike loadEnvironments, a failure here leaves the screen alone: a timer blip must not wipe
+      // a working panel.
+      async function refreshEnvironmentsQuietly() {
+        // Skip if a round is in flight, the tab is hidden, or a modal is open (re-rendering under
+        // an edit).
+        // `.overlay.open` is Modal.astro's open shape, same check as dirty.hasOpenModal() in
+        // lib/reactive.ts.
+        if (envRefreshing || document.visibilityState !== "visible") return;
+        if (activeTab() !== "environments") return;
+        if (document.querySelector(".overlay.open")) return;
+        envRefreshing = true;
+        try {
+          environments =
+            (await api.get<Environment[]>(`/projects/${projectID}/environments`)) || [];
+          await Promise.all([...environments.map(loadEnvDetail), loadTesting()]);
+          renderEnvironments();
+        } catch {
+          // Keep what is on screen.
+        } finally {
+          envRefreshing = false;
+        }
+      }
+
+      function startEnvAutoRefresh() {
+        every(ENV_REFRESH_MS, () => void refreshEnvironmentsQuietly(), signal);
+        document.addEventListener(
+          "visibilitychange",
+          () => {
+            if (document.visibilityState === "visible") void refreshEnvironmentsQuietly();
+          },
+          { signal },
+        );
+      }
+
+      async function approveMappings(envID: string) {
+        const e = environments.find((x) => x.id === envID);
+        const ok = await confirmDialog({
+          title: t("project.environments.approve_title", { name: e?.name ?? envID }),
+          message: t("project.environments.approve_message"),
+          confirmLabel: t("project.confirm.approve_mappings"),
+        });
+        if (!ok) return;
+        try {
+          const res = await api.post<{ activated: number }>(
+            `/projects/${projectID}/environments/${envID}/mappings/approve`,
+            {},
+          );
+          toast(t("project.environments.activated", { count: res.activated }), "ok");
+        } catch (err) {
+          toast(
+            err instanceof ApiError ? err.message : t("project.environments.approve_failed"),
+            "err",
+          );
+          return;
+        }
+        await loadEnvironments();
+      }
+
+      // Rejecting keeps the row: deleting it would let the next export rediscover the metric.
+      async function setMetricStatus(envID: string, metricID: string, status: string) {
+        try {
+          await api.patch(
+            `/projects/${projectID}/environments/${envID}/custom-metrics/${metricID}`,
+            {
+              status,
+            },
+          );
+          toast(
+            status === "approved"
+              ? t("project.environments.metric_approved")
+              : status === "rejected"
+                ? t("project.environments.metric_rejected")
+                : t("project.environments.metric_reopened"),
+            "ok",
+          );
+        } catch (err) {
+          toast(
+            err instanceof ApiError ? err.message : t("project.environments.metric_failed"),
+            "err",
+          );
+          return;
+        }
+        await loadEnvironments();
+      }
+
+      async function deleteMetric(envID: string, metricID: string) {
+        const m = envDetail.get(envID)?.custom.metrics.find((x) => x.id === metricID);
+        const ok = await confirmDialog({
+          title: t("project.environments.metric_delete_title", { name: m?.name ?? metricID }),
+          message: t("project.environments.metric_delete_message"),
+          confirmLabel: t("project.confirm.delete_metric"),
+          danger: true,
+        });
+        if (!ok) return;
+        try {
+          await api.del(`/projects/${projectID}/environments/${envID}/custom-metrics/${metricID}`);
+          toast(t("project.environments.metric_deleted"), "ok");
+        } catch (err) {
+          toast(
+            err instanceof ApiError ? err.message : t("project.environments.metric_failed"),
+            "err",
+          );
+          return;
+        }
+        await loadEnvironments();
+      }
+
+      async function openDashboard(envID: string, dashID: string) {
+        openDash.set(envID, dashID);
+        renderEnvironments();
+        await loadOpenDashboard(envID);
+        renderEnvironments();
+      }
+
+      async function approveDashboard(envID: string, dashID: string) {
+        const d = envDetail.get(envID)?.dashboards.find((x) => x.id === dashID);
+        const ok = await confirmDialog({
+          title: t("project.dashboards.publish_title", { name: d?.name ?? dashID }),
+          message: t("project.dashboards.publish_message"),
+          confirmLabel: t("project.confirm.publish_dashboard"),
+        });
+        if (!ok) return;
+        try {
+          await api.post(
+            `/projects/${projectID}/environments/${envID}/dashboards/${dashID}/approve`,
+            {},
+          );
+          toast(t("project.dashboards.published"), "ok");
+        } catch (err) {
+          toast(
+            err instanceof ApiError ? err.message : t("project.dashboards.approve_failed"),
+            "err",
+          );
+          return;
+        }
+        await loadEnvironments();
+      }
+
+      async function deleteDashboard(envID: string, dashID: string, published = false) {
+        const d = envDetail.get(envID)?.dashboards.find((x) => x.id === dashID);
+        const ok = await confirmDialog(
+          published
+            ? {
+                title: t("project.dashboards.delete_title", { name: d?.name ?? dashID }),
+                message: t("project.dashboards.delete_message"),
+                confirmLabel: t("project.confirm.delete_dashboard"),
+                danger: true,
+              }
+            : {
+                title: t("project.dashboards.discard_title", { name: d?.name ?? dashID }),
+                message: t("project.dashboards.discard_message"),
+                confirmLabel: t("project.confirm.discard_dashboard"),
+                danger: true,
+              },
+        );
+        if (!ok) return;
+        try {
+          await api.del(`/projects/${projectID}/environments/${envID}/dashboards/${dashID}`);
+          openDash.delete(envID);
+          toast(
+            published ? t("project.dashboards.deleted") : t("project.dashboards.discarded"),
+            "ok",
+          );
+        } catch (err) {
+          toast(
+            err instanceof ApiError ? err.message : t("project.dashboards.discard_failed"),
+            "err",
+          );
+          return;
+        }
+        await loadEnvironments();
+      }
+
+      let chartCatalog: ChartCatalog | null = null;
+      let editingDash: {
+        envID: string;
+        dashID: string | null;
+        name: string;
+        panels: PanelSpec[];
+      } | null = null;
+
+      async function chartTypes(): Promise<ChartCatalog> {
+        chartCatalog ??= await api.get<ChartCatalog>("/chart-types");
+        return chartCatalog;
+      }
+
+      function approvedMetrics(envID: string): CustomMetric[] {
+        return (envDetail.get(envID)?.custom.metrics ?? []).filter((m) => m.status === "approved");
+      }
+
+      async function openDashEditor(envID: string, dashID: string | null) {
+        try {
+          await chartTypes();
+        } catch {
+          toast(t("project.dashboards.catalog_failed"), "err");
+          return;
+        }
+        const existing = dashID
+          ? envDetail.get(envID)?.dashboards.find((d) => d.id === dashID)
+          : undefined;
+        let panels: PanelSpec[] = [];
+        if (dashID) {
+          // Read stored panels, not resolved ones: the resolved shape lacks the spec and saving it
+          // back would corrupt the dashboard.
+          try {
+            const full = await api.get<{ panels: PanelSpec[] }>(
+              `/projects/${projectID}/environments/${envID}/dashboards/${dashID}`,
+            );
+            panels = full.panels || [];
+          } catch {
+            toast(t("project.dashboards.load_failed"), "err");
+            return;
+          }
+        } else {
+          panels = [blankPanel(approvedMetrics(envID))].filter(Boolean) as PanelSpec[];
+        }
+        editingDash = { envID, dashID, name: existing?.name ?? "", panels };
+        $("dash-modal-title").textContent = dashID
+          ? t("project.dashboards.edit")
+          : t("project.dashboards.new");
+        ($("dm-name") as HTMLInputElement).value = editingDash.name;
+        setFormError($("dm-error"), "");
+        renderDashEditor();
+        dashModal.open($("dm-name"));
+      }
+
+      function renderDashEditor() {
+        if (!editingDash || !chartCatalog) return;
+        const metrics = approvedMetrics(editingDash.envID);
+        const catalog = chartCatalog;
+        const rows = editingDash.panels
+          .map((p, i) => panelRowHTML(p, i, metrics, catalog))
+          .join("");
+        $("dm-panels").innerHTML =
+          rows || emptyStateHTML({ size: "sm", body: t("project.dashboards.empty") });
+
+        $("dm-panels")
+          .querySelectorAll<HTMLElement>("[data-dp]")
+          .forEach((el) => {
+            const idx = Number(el.dataset.dp);
+            const field = el.dataset.dpField!;
+            el.addEventListener("change", () => {
+              const p = editingDash?.panels[idx];
+              if (!p) return;
+              const value = (el as HTMLInputElement | HTMLSelectElement).value;
+              if (applyPanelEdit(p, field, value, approvedMetrics(editingDash!.envID), catalog)) {
+                renderDashEditor();
+              }
+            });
+          });
+        $("dm-panels")
+          .querySelectorAll<HTMLElement>("[data-dp-del]")
+          .forEach((el) =>
+            el.addEventListener("click", () => {
+              editingDash!.panels.splice(Number(el.dataset.dpDel), 1);
+              renderDashEditor();
+            }),
+          );
+      }
+
+      async function saveDashboard() {
+        if (!editingDash) return;
+        const body = {
+          name: ($("dm-name") as HTMLInputElement).value.trim(),
+          panels: editingDash.panels,
+        };
+        const base = `/projects/${projectID}/environments/${editingDash.envID}/dashboards`;
+        const err = $("dm-error");
+        setFormError(err, "");
+        try {
+          if (editingDash.dashID) {
+            await api.put(`${base}/${editingDash.dashID}`, body);
+          } else {
+            const created = await api.post<{ id: string }>(base, body);
+            await api.post(`${base}/${created.id}/approve`, {});
+            openDash.set(editingDash.envID, created.id);
+          }
+        } catch (e) {
+          setFormError(
+            err,
+            e instanceof ApiError ? e.message : t("project.dashboards.save_failed"),
+          );
+          return;
+        }
+        toast(t("project.dashboards.saved"), "ok");
+        dashModal.close();
+        await loadEnvironments();
+      }
+
+      async function collectNow(envID: string, btn: HTMLButtonElement) {
+        btn.disabled = true;
+        try {
+          const res = await api.post<{ points: number; note?: string }>(
+            `/projects/${projectID}/environments/${envID}/collect`,
+            {},
+          );
+          if (res.note) {
+            toast(res.note, "err");
+          } else if (res.points === 0) {
+            toast(t("project.environments.collected_nothing"), "ok");
+          } else {
+            toast(t("project.environments.collected", { count: res.points }), "ok");
+          }
+        } catch (err) {
+          toast(
+            err instanceof ApiError ? err.message : t("project.environments.collect_failed"),
+            "err",
+          );
+        } finally {
+          btn.disabled = false;
+        }
+        await loadEnvironments();
+      }
+
+      function renderEnvironments() {
+        if (!environments.length) {
+          $("env-list").innerHTML = emptyStateHTML({
+            size: "sm",
+            body: t("project.environments.empty"),
+          });
+          return;
+        }
+        const focused = document.activeElement?.id;
+        $("env-list").innerHTML = envListHTML(environments, envDeps);
+        if (focused && $("env-list").contains(document.getElementById(focused)))
+          document.getElementById(focused)?.focus();
+
+        wire("[data-env-cred]", (b) => void openCredModal(b.dataset.envCred!));
+        wire("[data-env-ingest]", (b) => void openIngestModal(b.dataset.envIngest!));
+        wire("[data-env-edit]", (b) => openEnvModal(b.dataset.envEdit!));
+        wire("[data-env-del]", (b) => void deleteEnvironment(b.dataset.envDel!));
+        wire("[data-env-approve]", (b) => void approveMappings(b.dataset.envApprove!));
+        wire(
+          "[data-cm-approve]",
+          (b) => void setMetricStatus(b.dataset.cmApprove!, b.dataset.cmId!, "approved"),
+        );
+        wire(
+          "[data-cm-reject]",
+          (b) => void setMetricStatus(b.dataset.cmReject!, b.dataset.cmId!, "rejected"),
+        );
+        wire(
+          "[data-cm-reset]",
+          (b) => void setMetricStatus(b.dataset.cmReset!, b.dataset.cmId!, "discovered"),
+        );
+        wire("[data-cm-delete]", (b) => void deleteMetric(b.dataset.cmDelete!, b.dataset.cmId!));
+        $("env-list")
+          .querySelectorAll<HTMLElement>("[data-dash-env]")
+          .forEach((strip) =>
+            bindTabs(strip, {
+              onChange: (id, { user }) => {
+                if (user) void openDashboard(strip.dataset.dashEnv!, id);
+              },
+            }),
+          );
+        wire(
+          "[data-dash-approve]",
+          (b) => void approveDashboard(b.dataset.dashApprove!, b.dataset.dashId!),
+        );
+        wire("[data-dash-del]", (b) => void deleteDashboard(b.dataset.dashDel!, b.dataset.dashId!));
+        wire(
+          "[data-dash-remove]",
+          (b) => void deleteDashboard(b.dataset.dashRemove!, b.dataset.dashId!, true),
+        );
+        wire("[data-dash-new]", (b) => void openDashEditor(b.dataset.dashNew!, null));
+        wire(
+          "[data-dash-edit]",
+          (b) => void openDashEditor(b.dataset.dashEdit!, b.dataset.dashId!),
+        );
+        wire(
+          "[data-env-collect]",
+          (b) => void collectNow(b.dataset.envCollect!, b as HTMLButtonElement),
+        );
+      }
+
+      function wire(selector: string, fn: (el: HTMLElement) => void) {
+        wireIn("env-list", selector, fn);
+      }
+
+      function wireIn(containerID: string, selector: string, fn: (el: HTMLElement) => void) {
+        $(containerID)
+          .querySelectorAll<HTMLElement>(selector)
+          .forEach((el) => el.addEventListener("click", () => fn(el)));
+      }
+
+      function openEnvModal(id: string | null) {
+        editingEnvID = id;
+        const e = id ? environments.find((x) => x.id === id) : null;
+        $("env-modal-title").textContent = e
+          ? t("project.environments.edit_title", { name: e.name })
+          : t("project.environments.add");
+        ($("env-name") as HTMLInputElement).value = e?.name ?? "";
+        ($("env-display-name") as HTMLInputElement).value = e?.display_name ?? "";
+        ($("env-system") as HTMLInputElement).value = e?.system ?? "";
+        ($("env-provider") as HTMLSelectElement).value = e?.provider ?? "aws";
+        ($("env-region") as HTMLInputElement).value = e?.region ?? "";
+        ($("env-account") as HTMLInputElement).value = e?.account ?? "";
+        ($("env-url") as HTMLInputElement).value = e?.url ?? "";
+        ($("env-selectors") as HTMLTextAreaElement).value = formatSelectors(e?.selectors);
+        ($("env-prod") as HTMLInputElement).checked = e?.is_production ?? false;
+        clearFormErrors($("env-modal"));
+        ($("env-cred-name") as HTMLInputElement).value = "";
+        ($("env-cred-pick") as HTMLSelectElement).innerHTML = "";
+        $("env-cred-new").hidden = true;
+        envModal.open($("env-name"));
+        void ensureCredentialsLoaded().then(syncEnvCredRow);
+      }
+
+      async function ensureCredentialsLoaded(force = false) {
+        if (!force && workspaceCreds.length && credProviders.length) return;
+        const [credsResp, provs] = await Promise.all([
+          listCredentials().catch(() => [] as ManagedCredential[]),
+          credProviders.length ? Promise.resolve(credProviders) : fetchProviders(),
+        ]);
+        workspaceCreds = credsResp;
+        credProviders = provs.filter((p) => !p.connect);
+      }
+
+      function envCredProvider(): string {
+        return ($("env-provider") as HTMLSelectElement).value;
+      }
+      function envCredKind(): KindSpec | undefined {
+        const p = credProviders.find((x) => x.id === envCredProvider());
+        const id = ($("env-cred-kind") as HTMLSelectElement).value;
+        return p?.kinds.find((k) => k.id === id);
+      }
+
+      function renderEnvCredFields() {
+        $("env-cred-fields").innerHTML = fieldInputs(envCredKind(), "envcredf-");
+      }
+
+      function syncEnvCredRow() {
+        const provider = envCredProvider();
+        const row = $("env-cred-row");
+        row.hidden = !CLOUD_PROVIDERS.has(provider);
+        if (row.hidden) return;
+
+        const current = editingEnvID ? credentialForEnv(workspaceCreds, editingEnvID) : undefined;
+        const fits = workspaceCreds.filter((c) => c.provider === provider || c.id === current?.id);
+        const sel = $("env-cred-pick") as HTMLSelectElement;
+        const previous = sel.value;
+        const canCreate = credProviders.some((p) => p.id === provider);
+        sel.innerHTML =
+          `<option value="">${esc(t("project.labels.none"))}</option>` +
+          fits.map((c) => `<option value="${esc(c.id)}">${esc(credLabel(c))}</option>`).join("") +
+          (canCreate
+            ? `<option value="${NEW_CRED}">${esc(t("project.labels.new_credential"))}</option>`
+            : "");
+        sel.value = [...sel.options].some((o) => o.value === previous)
+          ? previous
+          : (current?.id ?? "");
+
+        const kindSel = $("env-cred-kind") as HTMLSelectElement;
+        const spec = credProviders.find((p) => p.id === provider);
+        kindSel.innerHTML = kindOptions(spec);
+        $("env-cred-kind-row").hidden = (spec?.kinds.length ?? 0) < 2;
+
+        const creating = sel.value === NEW_CRED;
+        $("env-cred-new").hidden = !creating;
+        if (creating) renderEnvCredFields();
+        else $("env-cred-fields").innerHTML = "";
+
+        $("env-cred-hint").textContent = creating
+          ? t("project.credentials.validated_hint")
+          : fits.length
+            ? t("project.env_form.cred_resolves")
+            : t("project.env_form.cred_none_for_provider");
+      }
+
+      // Runs after the environment is saved (a grant needs its id), so a rejected key still leaves
+      // a usable environment.
+      async function applyEnvCredential(envID: string) {
+        if ($("env-cred-row").hidden) return;
+        const picked = ($("env-cred-pick") as HTMLSelectElement).value;
+        const current = credentialForEnv(workspaceCreds, envID);
+        if (picked !== NEW_CRED && picked === (current?.id ?? "")) return;
+
+        if (picked === NEW_CRED) {
+          const name = ($("env-cred-name") as HTMLInputElement).value.trim();
+          if (!name) throw new Error(t("project.env_form.cred_name_or_none"));
+          const payload = readPayload(envCredKind(), "envcredf-");
+          if (!Object.keys(payload).length)
+            throw new Error(t("project.credentials.fields_required"));
+          const created = await createCredential({
+            name,
+            provider: envCredProvider(),
+            kind: ($("env-cred-kind") as HTMLSelectElement).value,
+            payload,
+            grants: [{ subject_type: "environment", subject_id: envID }],
+          });
+          toast(checkSummary(created), checkTone(created), 6000);
+          return;
+        }
+        await attachExisting(envID, picked);
+      }
+
+      async function saveEnvironment() {
+        const body = {
+          name: ($("env-name") as HTMLInputElement).value.trim(),
+          display_name: ($("env-display-name") as HTMLInputElement).value.trim(),
+          system: ($("env-system") as HTMLInputElement).value.trim(),
+          provider: ($("env-provider") as HTMLSelectElement).value,
+          region: ($("env-region") as HTMLInputElement).value.trim(),
+          account: ($("env-account") as HTMLInputElement).value.trim(),
+          url: ($("env-url") as HTMLInputElement).value.trim(),
+          selectors: parseSelectors(($("env-selectors") as HTMLTextAreaElement).value),
+          is_production: ($("env-prod") as HTMLInputElement).checked,
+        };
+        const err = $("env-error");
+        clearFormErrors($("env-modal"));
+        // Validate the new credential's name before saving anything, or half the form would be
+        // applied.
+        const creatingCred =
+          !$("env-cred-row").hidden && ($("env-cred-pick") as HTMLSelectElement).value === NEW_CRED;
+        if (creatingCred && !($("env-cred-name") as HTMLInputElement).value.trim()) {
+          setFieldError($("env-cred-name"), t("project.env_form.cred_name_or_none"), {
+            focus: true,
+          });
+          return;
+        }
+        const btn = $("env-save") as HTMLButtonElement;
+        btn.disabled = true;
+        try {
+          const saved = editingEnvID
+            ? await api.patch<Environment>(
+                `/projects/${projectID}/environments/${editingEnvID}`,
+                body,
+              )
+            : await api.post<Environment>(`/projects/${projectID}/environments`, body);
+          try {
+            await applyEnvCredential(saved.id);
+          } catch (credErr) {
+            await loadEnvironments();
+            await ensureCredentialsLoaded(true);
+            setFormError(
+              err,
+              t("project.environments.saved_without_credential", {
+                error: credErr instanceof Error ? credErr.message : String(credErr),
+              }),
+            );
+            return;
+          }
+          envModal.close();
+          toast(t("project.environments.saved"), "ok");
+          await ensureCredentialsLoaded(true);
+          await loadEnvironments();
+        } catch (e) {
+          const fieldID = e instanceof ApiError ? envErrorField(e.body) : undefined;
+          if (fieldID) setFieldError($(fieldID), errText(e), { focus: true });
+          else
+            setFormError(
+              err,
+              e instanceof ApiError ? e.message : t("project.environments.save_failed"),
+            );
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      async function deleteEnvironment(id: string) {
+        const e = environments.find((x) => x.id === id);
+        if (!e) return;
+        const ok = await confirmDialog({
+          title: t("project.environments.delete_title", { name: e.name }),
+          message: e.has_credential
+            ? t("project.environments.delete_message_with_credential")
+            : t("project.environments.delete_message"),
+          confirmLabel: t("project.confirm.delete_environment"),
+          danger: true,
+        });
+        if (!ok) return;
+        try {
+          await api.del(`/projects/${projectID}/environments/${id}`);
+        } catch {
+          toast(t("project.environments.delete_failed"), "err");
+          return;
+        }
+        toast(t("project.environments.deleted", { name: e.name }), "ok");
+        await loadEnvironments();
+      }
+
+      let workspaceCreds: ManagedCredential[] = [];
+      let credProviders: ProviderSpec[] = [];
+
+      function newCredProvider(): ProviderSpec | undefined {
+        const id = ($("cred-new-provider") as HTMLSelectElement).value;
+        return credProviders.find((p) => p.id === id);
+      }
+      function newCredKind(): KindSpec | undefined {
+        const id = ($("cred-new-kind") as HTMLSelectElement).value;
+        return newCredProvider()?.kinds.find((k) => k.id === id);
+      }
+
+      function renderNewCredKinds() {
+        const p = newCredProvider();
+        ($("cred-new-kind") as HTMLSelectElement).innerHTML = kindOptions(p);
+        $("cred-new-kind-row").hidden = (p?.kinds.length ?? 0) < 2;
+        $("cred-new-help").textContent = p?.help ?? "";
+        renderNewCredFields();
+      }
+
+      function renderNewCredFields() {
+        $("cred-new-fields").innerHTML = fieldInputs(newCredKind(), "credf-");
+      }
+
+      function syncCredMode() {
+        const creating = ($("cred-pick") as HTMLSelectElement).value === NEW_CRED;
+        $("cred-new").hidden = !creating;
+        $("cred-save").textContent = creating
+          ? t("project.credentials.validate_save")
+          : t("common.buttons.save");
+        if (creating && !$("cred-new-fields").innerHTML) renderNewCredKinds();
+      }
+
+      function renderCredPicker(envID: string) {
+        const e = environments.find((x) => x.id === envID);
+        const current = credentialForEnv(workspaceCreds, envID);
+        const sel = $("cred-pick") as HTMLSelectElement;
+
+        const fits = workspaceCreds.filter(
+          (c) => !e?.provider || !c.provider || c.provider === e.provider || c.id === current?.id,
+        );
+
+        sel.innerHTML =
+          `<option value="">${esc(t("project.labels.none"))}</option>` +
+          fits.map((c) => `<option value="${esc(c.id)}">${esc(credLabel(c))}</option>`).join("") +
+          (credProviders.length
+            ? `<option value="${NEW_CRED}">${esc(t("project.labels.new_credential"))}</option>`
+            : "");
+        sel.value = current?.id ?? "";
+
+        const provSel = $("cred-new-provider") as HTMLSelectElement;
+        provSel.innerHTML = providerOptions(credProviders);
+        if (e?.provider && credProviders.some((p) => p.id === e.provider))
+          provSel.value = e.provider;
+        $("cred-new-provider-row").hidden = credProviders.length < 2;
+        $("cred-new-fields").innerHTML = "";
+        ($("cred-new-name") as HTMLInputElement).value = "";
+
+        const hint = $("cred-hint");
+        if (!workspaceCreds.length) {
+          hint.textContent = t("project.credentials.none_in_workspace");
+        } else if (!fits.length) {
+          hint.textContent = t("project.credentials.none_for_provider", {
+            provider: e?.provider ?? "",
+          });
+        } else {
+          const environment = e?.name ?? t("project.credentials.this_environment");
+          hint.textContent = current
+            ? t("project.credentials.resolves", { credential: current.name, environment })
+            : t("project.credentials.nothing_granted", { environment });
+        }
+        syncCredMode();
+      }
+
+      async function openCredModal(envID: string) {
+        credEnvID = envID;
+        const e = environments.find((x) => x.id === envID);
+        $("cred-modal-title").textContent = t("project.credentials.title_named", {
+          name: e?.name ?? "",
+        });
+        clearFormErrors($("cred-modal"));
+        ($("cred-pick") as HTMLSelectElement).innerHTML =
+          `<option>${esc(t("common.status.loading"))}</option>`;
+        $("cred-new").hidden = true;
+        credModal.open();
+
+        await ensureCredentialsLoaded(true);
+        renderCredPicker(envID);
+      }
+
+      async function attachExisting(envID: string, picked: string) {
+        const current = credentialForEnv(workspaceCreds, envID);
+        // Detach first so an environment is never granted to two credentials; the resolver could
+        // not pick one.
+        if (current) {
+          await api.put(`/credentials/${current.id}/grants`, {
+            grants: grantsWithout(current, envID),
+          });
+        }
+        if (picked) {
+          const next = workspaceCreds.find((c) => c.id === picked);
+          await api.put(`/credentials/${picked}/grants`, { grants: grantsWith(next, envID) });
+        }
+        toast(picked ? t("project.credentials.attached") : t("project.credentials.detached"), "ok");
+      }
+
+      // Detach the previous credential only after the new key validates, so a rejected key never
+      // leaves the environment with nothing.
+      async function createAndAttach(envID: string) {
+        const name = ($("cred-new-name") as HTMLInputElement).value.trim();
+        if (!name) throw new Error(t("project.credentials.name_first"));
+        const provider = ($("cred-new-provider") as HTMLSelectElement).value;
+        const kind = ($("cred-new-kind") as HTMLSelectElement).value;
+        const payload = readPayload(newCredKind(), "credf-");
+        if (!Object.keys(payload).length) throw new Error(t("project.credentials.fields_required"));
+
+        const created = await createCredential({
+          name,
+          provider,
+          kind,
+          payload,
+          grants: [{ subject_type: "environment", subject_id: envID }],
+        });
+        const previous = credentialForEnv(workspaceCreds, envID);
+        if (previous && previous.id !== created.id) {
+          await api.put(`/credentials/${previous.id}/grants`, {
+            grants: grantsWithout(previous, envID),
+          });
+        }
+        toast(checkSummary(created), checkTone(created), 6000);
+      }
+
+      async function saveCredential() {
+        if (!credEnvID) return;
+        const envID = credEnvID;
+        const picked = ($("cred-pick") as HTMLSelectElement).value;
+        const err = $("cred-error");
+        clearFormErrors($("cred-modal"));
+        if (picked !== NEW_CRED && picked === (credentialForEnv(workspaceCreds, envID)?.id ?? "")) {
+          credModal.close();
+          return;
+        }
+        if (picked === NEW_CRED && !($("cred-new-name") as HTMLInputElement).value.trim()) {
+          setFieldError($("cred-new-name"), t("project.credentials.name_first"), { focus: true });
+          return;
+        }
+        const btn = $("cred-save") as HTMLButtonElement;
+        const label = btn.textContent;
+        btn.disabled = true;
+        btn.textContent =
+          picked === NEW_CRED ? t("project.credentials.checking") : t("common.status.saving");
+        try {
+          if (picked === NEW_CRED) await createAndAttach(envID);
+          else await attachExisting(envID, picked);
+          credModal.close();
+          await loadEnvironments();
+        } catch (e) {
+          setFormError(err, e instanceof Error ? e.message : t("project.credentials.save_failed"));
+        } finally {
+          btn.disabled = false;
+          btn.textContent = label;
+        }
+      }
+
+      let ingEnvID: string | null = null;
+
+      function ingBase(): string {
+        return `/projects/${projectID}/environments/${ingEnvID}`;
+      }
+
+      async function openIngestModal(envID: string) {
+        ingEnvID = envID;
+        const e = environments.find((x) => x.id === envID);
+        $("ing-modal-title").textContent = e
+          ? t("project.telemetry.title_named", { name: e.name })
+          : t("project.telemetry.title");
+        $("ing-new").hidden = true;
+        setFormError($("ing-error"), "");
+        ($("ing-name") as HTMLInputElement).value = "";
+        $("ing-tokens").innerHTML = `<div class="muted">${esc(t("common.status.loading"))}</div>`;
+        $("ing-sources").innerHTML = "";
+        ingModal.open();
+        await refreshIngest();
+      }
+
+      async function refreshIngest() {
+        if (!ingEnvID) return;
+        const [tokens, sources] = await Promise.all([
+          api.get<IngestToken[]>(`${ingBase()}/ingest-tokens`).catch(() => null),
+          api.get<IngestSource[]>(`${ingBase()}/ingest-sources`).catch(() => [] as IngestSource[]),
+        ]);
+        if (tokens === null) {
+          $("ing-tokens").innerHTML = emptyStateHTML({
+            size: "sm",
+            tone: "danger",
+            body: t("project.telemetry.load_failed"),
+          });
+          return;
+        }
+        $("ing-tokens").innerHTML = ingestTokensHTML(tokens);
+        wireIn("ing-tokens", "[data-ing-cidr]", (b) => void editIngestCIDRs(b.dataset.ingCidr!));
+        wireIn(
+          "ing-tokens",
+          "[data-ing-revoke]",
+          (b) => void revokeIngestToken(b.dataset.ingRevoke!),
+        );
+        $("ing-sources").innerHTML = ingestSourcesHTML(sources || [], tokens);
+      }
+
+      async function createIngestToken() {
+        if (!ingEnvID) return;
+        const err = $("ing-error");
+        setFormError(err, "");
+        const nameInput = $("ing-name") as HTMLInputElement;
+        const name = nameInput.value.trim();
+        if (!name) {
+          setFormError(err, t("project.telemetry.name_required"));
+          nameInput.focus();
+          return;
+        }
+        try {
+          const [res, setting] = await Promise.all([
+            api.post<{ raw: string }>(`${ingBase()}/ingest-tokens`, { name }),
+            // Unset answers 404, which means fall back to the browser's origin, not an error.
+            api.get<string>("/settings/ingest.public_url").catch(() => ""),
+          ]);
+          const where = ingestBase(
+            typeof setting === "string" ? setting : "",
+            window.location.origin,
+          );
+          $("ing-secret").textContent = res.raw;
+          $("ing-snippet").textContent = collectorSnippet(res.raw, where.base);
+          const warn = $("ing-addr-warn");
+          warn.hidden = where.fromSetting;
+          warn.textContent = where.fromSetting
+            ? ""
+            : t("project.telemetry.address_fallback", { origin: where.base });
+          nameInput.value = "";
+          $("ing-new").hidden = false;
+          await refreshIngest();
+        } catch (e) {
+          setFormError(
+            err,
+            e instanceof ApiError ? e.message : t("project.telemetry.create_failed"),
+          );
+        }
+      }
+
+      async function editIngestCIDRs(tokenID: string) {
+        if (!ingEnvID) return;
+        const current = await api
+          .get<IngestToken[]>(`${ingBase()}/ingest-tokens`)
+          .then((ts) => ts.find((tok) => tok.id === tokenID))
+          .catch(() => null);
+        const answer = await confirmDialog({
+          title: t("project.telemetry.cidr_title"),
+          icon: "zap",
+          confirmLabel: t("project.confirm.save_addresses"),
+          bodyHTML: fieldHTML({
+            label: t("project.telemetry.cidr_label"),
+            for: "ing-cidrs",
+            hint: t("project.telemetry.cidr_hint"),
+            help: t("project.telemetry.cidr_help"),
+            control: `<input id="ing-cidrs" name="cidrs" class="mono" autocomplete="off" spellcheck="false" aria-describedby="ing-cidrs-help" value="${esc((current?.allow_cidrs || []).join(", "))}" />`,
+          }),
+        });
+        if (!answer.ok) return;
+        const cidrs = parseCIDRs(String(answer.values.cidrs ?? ""));
+        try {
+          await api.patch(`${ingBase()}/ingest-tokens/${tokenID}`, { allow_cidrs: cidrs });
+          toast(
+            cidrs.length
+              ? t("project.telemetry.allowlist_updated")
+              : t("project.telemetry.any_address"),
+            "ok",
+          );
+          await refreshIngest();
+        } catch (e) {
+          toast(e instanceof ApiError ? e.message : t("project.telemetry.allowlist_failed"), "err");
+        }
+      }
+
+      async function revokeIngestToken(tokenID: string) {
+        if (!ingEnvID) return;
+        const ok = await confirmDialog({
+          title: t("project.telemetry.revoke_title"),
+          message: t("project.telemetry.revoke_message"),
+          confirmLabel: t("project.confirm.revoke_token"),
+          danger: true,
+        });
+        if (!ok) return;
+        try {
+          await api.del(`${ingBase()}/ingest-tokens/${tokenID}`);
+          toast(t("project.telemetry.revoked"), "ok");
+          await refreshIngest();
+        } catch (e) {
+          toast(e instanceof ApiError ? e.message : t("project.telemetry.revoke_failed"), "err");
+        }
+      }
+
+      async function loadWorktrees() {
+        let rows: Worktree[] = [];
+        try {
+          rows = (await api.get<Worktree[]>(`/projects/${projectID}/worktrees`)) || [];
+        } catch (e) {
+          $("wt-count").hidden = true;
+          $("wt-list").innerHTML = emptyStateHTML({
+            size: "sm",
+            body: e instanceof ApiError ? e.message : t("project.worktrees.unavailable"),
+          });
+          return;
+        }
+        setCount($("wt-count"), rows.length);
+        $("wt-list").innerHTML = rows.length
+          ? listRowsHTML(
+              rows.map((w) => ({
+                leadHTML: icoSvg("i-branch"),
+                title: w.branch || w.task_id || "—",
+                metaHTML: w.path ? `<span class="mono">${esc(w.path)}</span>` : undefined,
+              })),
+            )
+          : emptyStateHTML({ size: "sm", body: t("project.worktrees.empty") });
+      }
+
+      let smState: StageFiles | null = null;
+      let smOriginal = "";
+
+      async function openStageFiles() {
+        if (!project) return;
+        $("stage-modal-title").textContent = t("project.stage_files.title_named", {
+          project: project.name,
+        });
+        stageModal.open();
+        await loadStageFiles();
+      }
+
+      function stageFileDirty(): boolean {
+        const ta = document.getElementById("sm-text") as HTMLTextAreaElement | null;
+        return !!ta && ta.value !== smOriginal;
+      }
+
+      async function confirmDiscardStageFile() {
+        const ok = await confirmDialog({
+          title: t("project.stage_files.discard_title"),
+          message: t("project.stage_files.discard_message"),
+          confirmLabel: t("project.confirm.discard_changes"),
+          danger: true,
+        });
+        if (ok) stageModal.close(true);
+      }
+
+      async function loadStageFiles() {
+        try {
+          smState = await api.get<StageFiles>(`/projects/${projectID}/stage-files`);
+        } catch {
+          $("sm-body").innerHTML = emptyStateHTML({
+            size: "sm",
+            tone: "danger",
+            body: t("project.stage_files.load_failed"),
+          });
+          return;
+        }
+        drawStageFilesList();
+      }
+
+      function drawStageFilesList() {
+        if (!smState) return;
+        $("sm-body").innerHTML = stageSetsHTML(
+          smState,
+          stages.map((s) => s.id),
+        );
+        document.getElementById("sf-prune")?.addEventListener("click", pruneStageFiles);
+        wireIn("sm-body", "[data-sf-edit]", (b) => {
+          const { kind, stage } = parseStageRef(b.dataset.sfEdit!);
+          void openStageFileEditor(kind, stage);
+        });
+        wireIn("sm-body", "[data-sf-del]", (b) => {
+          const { kind, stage } = parseStageRef(b.dataset.sfDel!);
+          void deleteStageFile(kind, stage);
+        });
+      }
+
+      async function pruneStageFiles() {
+        if (!smState?.orphans?.length) return;
+        const ok = await confirmDialog({
+          title: t("project.stage_files.prune_title"),
+          message: t("project.stage_files.prune_message", { files: smState.orphans.join(", ") }),
+          confirmLabel: t("project.confirm.prune_files"),
+          danger: true,
+        });
+        if (!ok) return;
+        try {
+          const res = await api.post<{ stages: string[]; files: string[] }>(
+            `/projects/${projectID}/stage-files/prune`,
+            {},
+          );
+          toast(t("project.stage_files.pruned", { count: res.files.length }), "ok");
+          await loadStageFiles();
+        } catch (e) {
+          toast(e instanceof ApiError ? e.message : t("project.stage_files.prune_failed"), "err");
+        }
+      }
+
+      async function openStageFileEditor(kind: string, stage: string) {
+        if (!smState) return;
+        const set = smState.sets.find((s) => s.kind === kind);
+        const entry = set?.stages.find((e) => e.stage === stage);
+        if (!entry) return;
+        let initial = "";
+        if (entry.exists) {
+          try {
+            initial = await api.getText(`/projects/${projectID}/stage-files/${kind}/${stage}`);
+          } catch {
+            // Fall through with an empty editor — the save path surfaces errors.
+          }
+        } else if (kind === "hooks") {
+          initial = HOOK_TEMPLATE;
+        }
+        smOriginal = entry.exists ? initial : "";
+        renderStageFileEditor(kind, stage, entry, initial);
+      }
+
+      function renderStageFileEditor(
+        kind: string,
+        stage: string,
+        entry: StageEntry,
+        initial: string,
+      ) {
+        $("sm-body").innerHTML = stageEditorHTML(entry, initial);
+
+        wireMdEditor({
+          ta: $("sm-text") as HTMLTextAreaElement,
+          saveBtn: $("sf-save") as HTMLButtonElement,
+          stateEl: $("sf-state"),
+          backBtn: $("sf-back"),
+          isCreate: !entry.exists,
+          getOriginal: () => smOriginal,
+          setOriginal: (v) => {
+            smOriginal = v;
+          },
+          save: (text) => api.putText(`/projects/${projectID}/stage-files/${kind}/${stage}`, text),
+          onSaveError: () => toast(t("project.stage_files.save_failed"), "err"),
+          onSaved: () => toast(t("project.stage_files.saved", { path: entry.path }), "ok", 1800),
+          discardMessage: t("project.stage_files.edits_lost"),
+          onBack: () => loadStageFiles(),
+        });
+      }
+
+      async function deleteStageFile(kind: string, stage: string) {
+        const ok = await confirmDialog({
+          title: t("project.stage_files.delete_title", { file: `${kind}/${stage}` }),
+          message: t("project.stage_files.delete_message"),
+          confirmLabel: t("project.confirm.delete_file"),
+          danger: true,
+        });
+        if (!ok) return;
+        try {
+          await api.del(`/projects/${projectID}/stage-files/${kind}/${stage}`);
+        } catch {
+          toast(t("project.stage_files.delete_failed"), "err");
+          return;
+        }
+        toast(t("project.stage_files.deleted", { file: `${kind}/${stage}` }), "ok", 1800);
+        await loadStageFiles();
+      }
+
+      // bindModal deliberately does not handle Escape: the keydown cascade at the bottom is the
+      // page's single Esc listener.
+
+      const envModal = bindModal($("env-modal"), {
+        onClose: () => {
+          // Clear credential inputs so a filled password field doesn't stay in the hidden modal.
+          $("env-cred-fields").innerHTML = "";
+          $("env-cred-new").hidden = true;
+          editingEnvID = null;
+        },
+      });
+
+      const credModal = bindModal($("cred-modal"), {
+        onClose: () => {
+          // Clear credential inputs so a filled password field doesn't stay in the DOM for the
+          // session.
+          $("cred-new-fields").innerHTML = "";
+          $("cred-new").hidden = true;
+          credEnvID = null;
+        },
+      });
+
+      const ingModal = bindModal($("ing-modal"), {
+        onClose: () => {
+          ingEnvID = null;
+        },
+      });
+
+      const dashModal = bindModal($("dash-modal"), {
+        onClose: () => {
+          editingDash = null;
+        },
+      });
+
+      const stageModal = bindModal($("stage-modal"), {
+        beforeClose: () => {
+          if (!stageFileDirty()) return true;
+          void confirmDiscardStageFile();
+          return false;
+        },
+        onClose: () => {
+          smState = null;
+        },
+      });
+
+      const TAB_IDS = ["overview", "environments", "repo", "settings"] as const;
+      type TabID = (typeof TAB_IDS)[number];
+      // The infra cache table and the sandboxes page link to #init-script.
+      const SECTION_TAB: Record<string, TabID> = { "init-script": "repo" };
+
+      function tabFromHash(): TabID {
+        const h = location.hash.replace(/^#/, "");
+        if (Object.hasOwn(SECTION_TAB, h)) return SECTION_TAB[h];
+        return (TAB_IDS as readonly string[]).includes(h) ? (h as TabID) : "overview";
+      }
+
+      // The browser's own anchor jump ran while the tab was hidden, so scroll again once it shows.
+      function revealSection() {
+        const h = location.hash.replace(/^#/, "");
+        if (Object.hasOwn(SECTION_TAB, h))
+          document.getElementById(h)?.scrollIntoView({ block: "start" });
+      }
+
+      let tabsReady = false;
+      const tabs = bindTabs($("proj-tabs"), {
+        onChange: (id, { user }) => {
+          const tab = id as TabID;
+          if (user)
+            replaceURL(tab === "overview" ? location.pathname + location.search : `#${tab}`);
+          if (!tabsReady) return;
+          // Charts size from their container, which has no width while its tab is hidden.
+          if (tab === "overview") {
+            renderFlowChart();
+            renderSpendChart();
+          }
+          if (tab === "environments") void refreshEnvironmentsQuietly();
+        },
+      });
+      const activeTab = (): TabID => (tabs.current() as TabID | undefined) ?? "overview";
+
+      window.addEventListener(
+        "hashchange",
+        () => {
+          tabs.select(tabFromHash());
+          revealSection();
+        },
+        { signal },
+      );
+      tabs.select(tabFromHash());
+      tabsReady = true;
+      revealSection();
+
+      $("btn-refresh").addEventListener("click", () => {
+        if (activePreset) applyPreset(activePreset);
+        void loadMetrics();
+      });
+      $("s-save").addEventListener("click", () => void saveSettings());
+      $("code-branch").addEventListener("change", syncDownloadLink);
+      $("code-upload").addEventListener("click", () => {
+        pendingArchive = null;
+        void uploadCode();
+      });
+      bindDropZone($("code-drop"), {
+        onFolderPick: (files) => takeCodeFolder(pickedFromInput(files)),
+        onZip: takeCodeZip,
+        onFolderDrop: (items) => {
+          $("code-drop-title").textContent = t("projects.upload.reading");
+          pickedFromDrop(items).then(takeCodeFolder, () => {
+            resetCodeUpload();
+            toast(t("projects.toasts.read_failed"), "err", 4500);
+          });
+        },
+        signal,
+      });
+      $("p-delete").addEventListener("click", () => void deleteProject());
+
+      $("gh-cred-save").addEventListener("click", () => void saveGhCredential());
+      $("gh-app-unlink").addEventListener("click", () => void unlinkGhApp());
+      $("gh-link-save").addEventListener("click", () => void linkGhApp());
+
+      $("env-new").addEventListener("click", () => openEnvModal(null));
+      $("env-save").addEventListener("click", () => void saveEnvironment());
+      $("cred-save").addEventListener("click", () => void saveCredential());
+      $("cred-pick").addEventListener("change", syncCredMode);
+      $("env-provider").addEventListener("change", syncEnvCredRow);
+      $("env-cred-pick").addEventListener("change", syncEnvCredRow);
+      $("env-cred-kind").addEventListener("change", renderEnvCredFields);
+      $("cred-new-provider").addEventListener("change", renderNewCredKinds);
+      $("cred-new-kind").addEventListener("change", renderNewCredFields);
+
+      $("ing-create").addEventListener("click", () => void createIngestToken());
+      $("ing-name").addEventListener("keydown", (e) => {
+        if ((e as KeyboardEvent).key === "Enter") void createIngestToken();
+      });
+
+      $("dm-save").addEventListener("click", () => void saveDashboard());
+      $("dm-add").addEventListener("click", () => {
+        if (!editingDash) return;
+        const p = blankPanel(approvedMetrics(editingDash.envID));
+        if (!p) return;
+        editingDash.panels.push(p);
+        renderDashEditor();
+      });
+
+      $("sf-open").addEventListener("click", () => void openStageFiles());
+
+      document.querySelectorAll<HTMLElement>("[data-preset]").forEach((b) =>
+        b.addEventListener("click", () => {
+          applyPreset(b.dataset.preset!);
+          void loadMetrics();
+        }),
+      );
+      ["f-from", "f-to"].forEach((id) =>
+        $(id).addEventListener("change", () => {
+          activePreset = "";
+          setChipsPressed($("f-presets"), null, "preset");
+          void loadMetrics();
+        }),
+      );
+      $("spend-metric").addEventListener("change", () => {
+        spendMetric = segmentedValue($("spend-metric")) === "tokens" ? "tokens" : "cost";
+        renderSpendChart();
+      });
+
+      document.addEventListener(
+        "keydown",
+        (e) => {
+          if (e.key !== "Escape") return;
+          if (credModal.isOpen()) {
+            credModal.close();
+            return;
+          }
+          if (ingModal.isOpen()) {
+            ingModal.close();
+            return;
+          }
+          if (dashModal.isOpen()) {
+            dashModal.close();
+            return;
+          }
+          if (envModal.isOpen()) {
+            envModal.close();
+            return;
+          }
+          if (stageModal.isOpen()) stageModal.close();
+        },
+        { signal },
+      );
+
+      // Charts are drawn in viewBox pixels from the container width, so a resize needs a re-render.
+      let resizeTimer: number | undefined;
+      window.addEventListener(
+        "resize",
+        () => {
+          window.clearTimeout(resizeTimer);
+          resizeTimer = window.setTimeout(() => {
+            if (activeTab() !== "overview") return;
+            renderFlowChart();
+            renderSpendChart();
+          }, 150);
+        },
+        { signal },
+      );
+
+      void bootstrap();
+    });
+  </script>
+</Layout>

@@ -1,0 +1,332 @@
+{
+  "title": "Agentes",
+  "subtitle": "Los agentes viven en la base de datos · configuración gestionada, prompts editados en markdown.",
+  "buttons": {
+    "new_agent": "Nuevo agente",
+    "open_board": "Abrir tablero",
+    "done": "Listo",
+    "delete_agent": "Eliminar agente",
+    "revert": "Revertir",
+    "save_settings": "Guardar configuración",
+    "clean_up": "Limpiar",
+    "create_override": "Escribir uno propio",
+    "create_file": "Crear {name}",
+    "use_in_column": "Usar en {column}",
+    "copy_to_stages": "Copiar a las otras etapas",
+    "copy_to_stages_title": "Pisa lo que tienen las demás etapas de este agente con lo de esta",
+    "deploy_template": "Plantilla Deploy"
+  },
+  "kbd": {
+    "new_agent": "Nuevo agente",
+    "navigate": "Recorrer agentes",
+    "save": "Guardar archivo / configuración actual",
+    "close": "Cerrar modal / limpiar búsqueda"
+  },
+  "sidebar": {
+    "search": "Buscar agentes",
+    "navigate": "moverse",
+    "none": "No hay agentes. Hacé clic en + Nuevo agente.",
+    "load_failed": "No se pudieron cargar los agentes: {error}",
+    "no_matches": "Nada coincide con “{query}”."
+  },
+  "empty": {
+    "select": "Elegí un agente para editarlo.",
+    "create_hint": "o apretá {key} para crear uno nuevo"
+  },
+  "modal": {
+    "title": "Nuevo agente",
+    "name": "Nombre",
+    "name_hint": "minúsculas, números, - y _; así lo vas a @mencionar y no se puede cambiar",
+    "name_placeholder": "mi-agente",
+    "clone": "Clonar un agente existente",
+    "clone_hint": "apagado = agente limpio desde cero",
+    "description_hint": "se muestra en las tarjetas",
+    "description_placeholder": "¿Qué hace este agente?",
+    "default_skills": "Skills por defecto",
+    "default_skills_hint": "se aplican a cada etapa marcada; ajustalas después en la pestaña Skills",
+    "name_errors": {
+      "required": "Falta el nombre.",
+      "invalid": "Sólo minúsculas, números, guion y guion bajo, hasta 64 caracteres, sin empezar con guion.",
+      "reserved": "Ese nombre lo usa Thulu. Elegí otro.",
+      "taken": "Ya hay un agente con ese nombre."
+    },
+    "name_suggest": "Usar «{name}»",
+    "stages": "Etapas",
+    "stages_hint": "dónde corre; se cambian después en Configuración",
+    "default_skills_hint_clone": "se suman a las que ya tiene el agente que clonás, en cada una de sus etapas",
+    "default_skills_needs_stage": "marcá al menos una etapa para elegir skills"
+  },
+  "tabs": {
+    "settings": "Configuración",
+    "skills": "Skills",
+    "mcp": "MCP",
+    "prompts": "Prompts",
+    "aria": "Secciones del agente"
+  },
+  "status": {
+    "creating": "Creando…"
+  },
+  "labels": {
+    "description": "Descripción",
+    "turns": "Turnos",
+    "model": "Modelo",
+    "skills": "Skills",
+    "engine": "Motor",
+    "effort": "Esfuerzo",
+    "stage_html": "etapa <strong>{stage}</strong> <code class=\"code-inline\">{id}</code>",
+    "mode_html": "modo <strong>{mode}</strong>"
+  },
+  "settings": {
+    "turns_placeholder": "turnos",
+    "turns_label": "Turnos máximos en {stage}",
+    "mention": "Mención",
+    "mention_hint": "el agente responde cuando lo @mencionan en un comentario",
+    "chat": "Chat",
+    "chat_hint": "se puede abrir un chat con este agente desde el panel de chats",
+    "skills_mode_auto": "Auto — sigue al motor (recomendado)",
+    "skills_mode_native": "Nativo — archivos que el motor abre cuando los necesita",
+    "skills_mode_inline": "En línea — pega cada skill en el prompt",
+    "model_credentials": "Modelo y credenciales",
+    "model_credentials_hint_html": "con qué corre este agente; se aplica en la próxima corrida. Las claves y los perfiles están en <a href=\"/settings/#llm\">Configuración → Motores de IA</a>",
+    "skills_delivery": "Entrega de skills",
+    "skills_delivery_hint_html": "cómo llegan al modelo las skills concedidas. Auto sigue al motor: los motores que descubren skills las reciben como archivos y abren las que necesitan; el resto recibe todas las skills pegadas en el prompt (~12k tokens de entrada). Las skills marcadas \"Siempre en el prompt\" en /skills/ quedan en el prompt en los dos casos.",
+    "repo_requirement": "Requisito de repo",
+    "repo_requirement_hint": "las tareas que entran a una etapa asignada a este agente quedan bloqueadas si no hay un repo vinculado",
+    "works_without_repo": "Funciona sin un repo vinculado",
+    "works_without_repo_hint": "(investigación, pulido de textos, ideas — todo lo que no toca código)",
+    "valid_stages": "Etapas válidas",
+    "valid_stages_hint": "marcá las etapas en las que corre este agente y su máximo de turnos por etapa",
+    "valid_stages_hint_no_turns": "marcá las etapas en las que corre este agente; {engine} no tiene tope de turnos, así que no hay nada que fijar",
+    "orphaned": "⚠ configuración por etapa huérfana de etapas eliminadas: {stages} — sigue en disco y no tiene efecto hasta que vuelva a existir una etapa con ese id",
+    "auditor": "Auditor por etapa",
+    "auditor_hint": "marcá las etapas en las que el auditor revisa la corrida al terminar; los ajustes son opcionales (vacíos, usa los del auditor)",
+    "columns": "Columnas del tablero",
+    "modes": "Modos",
+    "modes_hint": "no son columnas: el agente corre cuando alguien lo llama. Prompts, skills y MCP se eligen por modo igual que por columna."
+  },
+  "auditor": {
+    "engine_same": "El mismo del agente ({engine})",
+    "engine_no_key": "{engine} no tiene key predeterminada: el auditor no va a arrancar y la tarea queda bloqueada hasta que agregues una.",
+    "engine_no_turns": "{engine} no tiene límite de turnos, así que Turnos no se aplica.",
+    "model_default": "— por defecto —",
+    "skills_hint": "nombres separados por coma; se suman a la skill base y a la de revisión de calidad, si el workspace las tiene",
+    "pick_stage": "Elegí al menos una etapa válida arriba."
+  },
+  "llm": {
+    "key_line_html": "Clave: perfil predeterminado de {engine} <code class=\"code-inline\">{profile}</code>",
+    "no_default_key_html": "No hay clave predeterminada para {engine}: las corridas usan la credencial del host del daemon. <a href=\"/settings/#llm\">Cargá una en Motores de IA</a>",
+    "no_default_key_blocked_html": "No hay clave predeterminada para {engine}: las corridas no van a arrancar hasta que cargues una. <a href=\"/settings/#llm\">Cargala en Motores de IA</a>",
+    "cli_default": "el de la CLI",
+    "no_key_set": "sin clave",
+    "no_key_blocked": "sin clave: no arranca",
+    "default_for": "Predeterminado de {engine} · {details}",
+    "effort_value": "esfuerzo {effort}",
+    "cannot_run": "este agente no puede correr en él",
+    "group_defaults": "Predeterminados de cada motor",
+    "group_profiles": "Perfiles",
+    "from_profile_html": "El motor, el modelo y la clave salen de <strong>{profile}</strong>. Si editás ese perfil, cambia cada agente que lo usa.",
+    "follows_default": "Sigue al perfil predeterminado de {engine}: cuando cambia, este agente cambia con él.",
+    "no_named_profiles_html": "Todavía no hay perfiles con nombre. Crealos en <a href=\"/settings/#llm\">Configuración → Motores de IA</a>.",
+    "effort_low": "bajo",
+    "effort_medium": "medio",
+    "effort_high": "alto",
+    "default_model": "predeterminado: {model}",
+    "empty_fields": "Los campos vacíos usan el perfil predeterminado del motor.",
+    "mode_label": "Origen del modelo",
+    "mode_profile": "Perfil",
+    "mode_custom": "Personalizado",
+    "source_binding_html": "del perfil <code class=\"code-inline\">{profile}</code>",
+    "source_default_html": "del perfil predeterminado de {engine} <code class=\"code-inline\">{profile}</code>",
+    "source_legacy": "guardada en el espacio de trabajo, fuera de cualquier perfil",
+    "source_host": "del host del daemon",
+    "effective_html": "<span class=\"llm-eff-label\">La configuración guardada corre con</span> {parts} y la clave {source}",
+    "effective_no_key_html": "<span class=\"llm-eff-label\">La configuración guardada usa</span> {parts}, pero no tiene clave: las corridas no van a arrancar",
+    "no_credential": "(sin credencial)",
+    "key_refused_short": "clave rechazada",
+    "key_unanswered_short": "el proveedor no respondió al verificar la clave",
+    "key_fix": "Revisala en Motores de IA"
+  },
+  "skills": {
+    "title": "Skills por etapa",
+    "intro_html": "Skills del workspace que recibe este agente en cada etapa; se escriben en <a href=\"/skills/\">Skills</a>. Con un motor que descubre skills (Claude Code), el modelo ve el nombre y la descripción de cada una y abre la que le sirve; con los demás motores, y con las skills marcadas \"Siempre en el prompt\", el texto entero va al prompt. \"Entrega de skills\", en Configuración, fuerza una forma u otra.",
+    "none": "No hay skills disponibles.",
+    "pick_stage": "Elegí al menos una etapa válida en la pestaña Configuración.",
+    "stage_group": "Skills en {stage}",
+    "system_title": "Skills del sistema",
+    "system_intro": "Thulu las suma por su cuenta: algunas a toda corrida, otras cuando la etapa tiene su servidor MCP. Destildá una para dejarla afuera de las corridas de este agente en esta etapa.",
+    "system_every_run": "Toda corrida",
+    "system_included_by": "La incluye {mcp}",
+    "system_needs": "Necesita {mcp} en esta etapa",
+    "system_run_off_warning": "octopus-run está apagada: las corridas de esta etapa no van a saber dónde están los repos y el output dir, quién commitea y abre el PR, ni qué dejar al terminar. Sin ella un agente puede mover su propia tarea o perder su reporte. Apagala sólo si el prompt de este agente ya cubre eso."
+  },
+  "mcp": {
+    "title": "Servidores MCP por etapa",
+    "intro_html": "Qué servidores MCP puede usar el agente en cada etapa. Tildar un servidor concede lo que cubre su scope; las tools que se conceden por nombre se eligen en Tools. Los servidores se registran en <a href=\"/mcps/\">MCPs</a>.",
+    "no_tools_html": "Todavía no hay servidores MCP. Registralos en <a href=\"/mcps/\">MCPs</a>.",
+    "tools": "Tools",
+    "tools_title": "Elegí qué tools de {server} puede llamar esta etapa",
+    "tools_unknown_title": "El daemon no pudo leer la lista de tools de este servidor — puede estar detenido o no estar accesible. Se concede el servidor entero.",
+    "all_tools": "todas las tools",
+    "default_unknown": "scope por defecto (desconocido)",
+    "default_unknown_title": "Concedido por nombre pelado. Este servidor no tiene un descriptor que diga qué tools concede sin scope, así que no se muestra ninguna tildada y el servidor aplica su propio default. Elegí tools, o destildá y volvé a tildar el servidor para conceder todas de forma explícita.",
+    "drawer_all": "Todas las tools",
+    "drawer_untick_hint": "Si desmarcás todas las tools, el servidor sale de esta etapa.",
+    "drawer_sub": {
+      "one": "etapa {stage} · {count} tool",
+      "other": "etapa {stage} · {count} tools"
+    },
+    "drawer_count": "{selected}/{total} elegidas",
+    "grant_bare": {
+      "read": "Tildado concede lectura.",
+      "write": "Tildado concede lectura y escritura.",
+      "admin": "Tildado concede lectura, escritura y administración.",
+      "all": "Tildado concede todas sus tools.",
+      "unknown": "Sin un descriptor no se sabe qué concede el servidor sin tools elegidas."
+    },
+    "grant_by_name": {
+      "one": "{count} tool se concede sólo por nombre.",
+      "other": "{count} tools se conceden sólo por nombre."
+    },
+    "drawer_all_scoped": "Todas, menos las que se conceden por nombre",
+    "group": {
+      "read": "Lectura",
+      "write": "Escritura",
+      "admin": "Administración",
+      "deploy": "Deploy",
+      "board": "Otros tableros",
+      "other": "Otras"
+    },
+    "group_by_name": "{group} · se conceden por nombre",
+    "group_hint": {
+      "deploy": "Mergean PRs, disparan workflows y aprueban deploys. Ningún scope las incluye: tildalas sólo en la etapa que tiene que hacerlo.",
+      "board": "Leen y cambian tareas de otros tableros del espacio de trabajo. Ningún scope las incluye: tildalas sólo si esta etapa trabaja sobre otros tableros.",
+      "other": "Ningún scope las incluye: el servidor las da sólo si se nombran una por una."
+    },
+    "deploy_template_title": "Concede thulu-github@read más run_dispatch, run_watch y run_logs: lo que necesita una etapa que despliega con GitHub Actions",
+    "grant_stage": {
+      "read": "En esta etapa concede lectura.",
+      "write": "En esta etapa concede lectura y escritura.",
+      "admin": "En esta etapa concede lectura, escritura y administración.",
+      "other": "En esta etapa concede el alcance {scope}.",
+      "extras": "Además, por nombre: {tools}.",
+      "list": {
+        "one": "En esta etapa concede {count} tool elegida a mano.",
+        "other": "En esta etapa concede {count} tools elegidas a mano."
+      }
+    },
+    "deploy_note": "run_dispatch dispara workflows de GitHub Actions: la GitHub App necesita el permiso Actions: write."
+  },
+  "prompts": {
+    "intro": "Los archivos por etapa llevan el id de la etapa, así que un prompt escrito para una etapa propia vive o muere con ella. Cada guardado queda registrado: abrí un archivo y usá Historial para leer o restaurar una versión anterior.",
+    "status_fallback": "Usa el prompt general",
+    "status_missing": "Falta: escribilo y lo usan las etapas sin prompt propio",
+    "fallback": "Prompt general",
+    "overrides": "Prompts por etapa",
+    "orphans": "Archivos huérfanos",
+    "orphans_hint": "Archivos de una etapa en la que este agente ya no corre, o que salió de todos los tableros. Ninguna corrida los carga: borralos o pasá su texto a alguna de las etapas de arriba.",
+    "status_orphan": "{path} (no se carga)",
+    "other_title": "Otros markdown",
+    "other_intro_html": "Otros archivos <code class=\"code-inline\">.md</code> del directorio del agente que no cubren las convenciones de arriba.",
+    "back": "Volver a la lista",
+    "new_suffix": "(nuevo)",
+    "history": "Historial",
+    "view": "Ver"
+  },
+  "confirm": {
+    "prune_title": "¿Limpiar la configuración de etapas huérfanas?",
+    "prune_message": "Borra la configuración de este agente para {stages} — las etiquetas y los archivos prompts/*.md y auditor/*.md que corresponden. Se descartan las ediciones sin guardar de este panel.",
+    "discard_prompt_edits": "Se van a perder las ediciones de este prompt.",
+    "delete_file_title": "¿Eliminar \"{path}\"?",
+    "delete_file_message": "Esto borra el archivo del agente.",
+    "discard_prompt_title": "¿Descartar los cambios sin guardar del prompt?",
+    "discard_prompt_message": "Se van a perder tus ediciones de este prompt.",
+    "discard_settings_title": "¿Descartar la configuración sin guardar?",
+    "discard_settings_message": "Se van a perder tus cambios en este agente.",
+    "delete_agent_title": "¿Eliminar el agente \"{name}\"?",
+    "delete_agent_message": "Sale de la lista y de los selectores, y sus prompts quedan en el historial. Las tareas que lo tenían asignado siguen nombrándolo: si después creás otro agente con este nombre, esas tareas corren con el nuevo.",
+    "delete_agent_used": {
+      "one": "Hoy lo nombra {count} tarea o plantilla de proyecto.",
+      "other": "Hoy lo nombran {count} tareas o plantillas de proyecto."
+    }
+  },
+  "toasts": {
+    "cleaned_up": "Se limpió {stages}",
+    "cleaned_up_files": {
+      "one": "Se limpió {stages}, se borró {count} archivo",
+      "other": "Se limpió {stages}, se borraron {count} archivos"
+    },
+    "cleaned_nothing": "nada",
+    "reverted": "Se revirtieron los cambios sin guardar",
+    "settings_saved": "Configuración guardada",
+    "saved": "Se guardó {path}",
+    "deleted": "Se eliminó {name}",
+    "created": "Se creó {name}",
+    "use_in_column_offer": "{name} está listo. ¿Lo ponés a trabajar en {column}?",
+    "copied": {
+      "one": "Se copió {stage} a {count} etapa más",
+      "other": "Se copió {stage} a {count} etapas más"
+    },
+    "deploy_template": "Plantilla Deploy aplicada en {stage}."
+  },
+  "errors": {
+    "cleanup_failed": "No se pudo limpiar",
+    "save_failed": "No se pudo guardar: {error}",
+    "unknown": "desconocido",
+    "delete_file_failed": "No se pudo eliminar el archivo",
+    "delete_agent_failed": "No se pudo eliminar el agente",
+    "create_failed": "No se pudo crear: {error}",
+    "use_in_column_failed": "No se pudo usar en {column}: {error}"
+  },
+  "role": {
+    "developer": "Sólo un admin cambia la configuración, las skills, los MCP y los prompts. Con tu rol podés elegir el perfil de modelo del agente.",
+    "viewer": "Tu rol es de lectura: ves la configuración del agente pero no la podés cambiar.",
+    "new_needs_admin": "Crear agentes es de admins"
+  },
+  "checklist": {
+    "title": "Qué le falta para correr",
+    "ready": "Listo para correr: tiene etapas, prompt y credencial. {assigned}.",
+    "stages_ok": "Tiene etapas",
+    "stages_todo": "No tiene ninguna etapa válida.",
+    "stages_any": "Corre en cualquier columna",
+    "stages_go": "Elegir etapas",
+    "prompt_ok": "Tiene prompt",
+    "prompt_todo": "No tiene prompt (main.md).",
+    "prompt_missing": "Sin prompt en: {stages}.",
+    "prompt_go": "Escribir el prompt",
+    "credential_ok": "Tiene credencial",
+    "credential_todo": "Su motor no tiene clave.",
+    "credential_rejected": "El proveedor rechazó su clave.",
+    "credential_go": "Configurar una clave",
+    "assigned_ok": "Está asignado",
+    "assigned_count": "Asignado en {list}",
+    "assigned_tasks": {
+      "one": "{count} tarea",
+      "other": "{count} tareas"
+    },
+    "assigned_projects": {
+      "one": "{count} plantilla de proyecto",
+      "other": "{count} plantillas de proyecto"
+    },
+    "assigned_and": "{a} y {b}",
+    "assigned_modes": "Corre cuando lo mencionan o le abren un chat",
+    "assigned_todo": "Ninguna tarea ni plantilla de proyecto lo asigna.",
+    "assigned_go": "Asignarlo en la plantilla de un proyecto",
+    "unknown": "{what} (no se pudo comprobar)",
+    "assigned_mention": "Corre cuando lo mencionan",
+    "assigned_chat": "Corre cuando le abren un chat"
+  },
+  "history": {
+    "button": "Historial",
+    "button_title": "Las configuraciones que tuvo este agente, qué cambió en cada una y cómo volver a una"
+  },
+  "optimizer": {
+    "title": "Lecturas grandes",
+    "hint_html": "Le pasa la lectura de archivos grandes a un modelo más barato para que el agente gaste menos tokens; Sugerir lo deja a criterio del agente, Obligar lo hace siempre. Ese modelo usa la credencial predeterminada del workspace para su engine, que se configura en <a href=\"/settings/#llm\">Configuración → Motores de IA</a>.",
+    "mode": "Modo",
+    "engine": "Engine",
+    "model": "Modelo",
+    "engines_missing_html": "Un engine sin credencial predeterminada que sirva no se puede elegir. <a href=\"/settings/#llm\">Cargá una en Configuración → Motores de IA</a>.",
+    "engine_required": "Elegí el engine del modelo que lee los archivos grandes.",
+    "model_required": "Indicá el modelo que lee los archivos grandes."
+  }
+}

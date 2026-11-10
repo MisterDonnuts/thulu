@@ -1,0 +1,115 @@
+---
+import LegalLayout from "../../layouts/LegalLayout.astro";
+import { SLOT, t, tParts } from "../../i18n";
+
+const idpName = tParts("legal.privacy.subprocessors.idp_name", { idp: SLOT });
+const contact = tParts("legal.privacy.contact.body", { contact: SLOT });
+const where = tParts("legal.privacy.where.body", { hosting: SLOT, region: SLOT });
+---
+
+<LegalLayout title={t("legal.privacy.title")} page="privacy">
+  <p class="legal-meta">{t("legal.version")}</p>
+  <p>{t("legal.privacy.intro")}</p>
+  <p>{t("legal.privacy.roles")}</p>
+
+  <h2>{t("legal.privacy.data.title")}</h2>
+  <ul>
+    <li>{t("legal.privacy.data.account")}</li>
+    <li>{t("legal.privacy.data.content")}</li>
+    <li>{t("legal.privacy.data.credentials")}</li>
+    <li>{t("legal.privacy.data.usage")}</li>
+    <li>{t("legal.privacy.data.audit")}</li>
+  </ul>
+
+  <h2>{t("legal.privacy.byok.title")}</h2>
+  <p>{t("legal.privacy.byok.body")}</p>
+
+  <h2>{t("legal.privacy.where.title")}</h2>
+  <p>
+    {
+      where.map((p, i) =>
+        i === 1 ? (
+          <span class="legal-unset" data-legal="hosting">
+            {t("legal.not_configured")}
+          </span>
+        ) : i === 3 ? (
+          <span class="legal-unset" data-legal="hosting_region">
+            {t("legal.not_configured")}
+          </span>
+        ) : (
+          p
+        ),
+      )
+    }
+  </p>
+
+  <h2>{t("legal.privacy.retention.title")}</h2>
+  <ul>
+    <li>{t("legal.privacy.retention.run_logs")}</li>
+    <li>{t("legal.privacy.retention.usage")}</li>
+    <li>{t("legal.privacy.retention.webhooks")}</li>
+    <li>{t("legal.privacy.retention.sessions")}</li>
+    <li>{t("legal.privacy.retention.audit")}</li>
+    <li>{t("legal.privacy.retention.rest")}</li>
+    <li>{t("legal.privacy.retention.backups")}</li>
+  </ul>
+
+  <h2>{t("legal.privacy.deletion.title")}</h2>
+  <p>{t("legal.privacy.deletion.workspace")}</p>
+  <p>{t("legal.privacy.deletion.account")}</p>
+  <p>{t("legal.privacy.deletion.residual")}</p>
+
+  <h2>{t("legal.privacy.subprocessors.title")}</h2>
+  <table class="legal-table">
+    <thead>
+      <tr>
+        <th scope="col">{t("legal.privacy.subprocessors.col_company")}</th>
+        <th scope="col">{t("legal.privacy.subprocessors.col_purpose")}</th>
+        <th scope="col">{t("legal.privacy.subprocessors.col_data")}</th>
+        <th scope="col">{t("legal.privacy.subprocessors.col_where")}</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="legal-unset" data-legal="hosting">{t("legal.not_configured")}</span></td>
+        <td>{t("legal.privacy.subprocessors.hosting_purpose")}</td>
+        <td>{t("legal.privacy.subprocessors.hosting_data")}</td>
+        <td
+          ><span class="legal-unset" data-legal="hosting_region">{t("legal.not_configured")}</span
+          ></td
+        >
+      </tr>
+      <tr>
+        <td>
+          {
+            idpName.map((p, i) =>
+              i % 2 ? <span data-legal="idp">{t("legal.idp_fallback")}</span> : p,
+            )
+          }
+        </td>
+        <td>{t("legal.privacy.subprocessors.idp_purpose")}</td>
+        <td>{t("legal.privacy.subprocessors.idp_data")}</td>
+        <td>{t("legal.privacy.subprocessors.idp_where")}</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>{t("legal.privacy.subprocessors.note")}</p>
+
+  <h2>{t("legal.privacy.rights.title")}</h2>
+  <p>{t("legal.privacy.rights.body")}</p>
+
+  <h2>{t("legal.privacy.contact.title")}</h2>
+  <p>
+    {
+      contact.map((p, i) =>
+        i % 2 ? (
+          <a class="legal-unset" data-legal="contact">
+            {t("legal.not_configured")}
+          </a>
+        ) : (
+          p
+        ),
+      )
+    }
+  </p>
+</LegalLayout>

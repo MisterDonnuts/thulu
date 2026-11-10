@@ -1,0 +1,140 @@
+{
+  "board": {
+    "edit": "Editar tablero",
+    "done": "Terminar edición",
+    "done_short": "Listo",
+    "edit_title": "Reordená, renombrá y agregá columnas",
+    "editing_hint": "Arrastrá una columna por la manija para reordenarla. Hacé doble clic en un nombre para renombrarla, o usá ⋯ para el color, el comportamiento o borrarla. Los cambios se guardan al toque."
+  },
+  "head": {
+    "move": "Mover la columna {column}",
+    "options": "Opciones de la columna {column}",
+    "options_title": "Opciones de la columna",
+    "rename": "Renombrar la columna {column}",
+    "rename_title": "Doble clic o Enter para renombrar",
+    "grip_hint": "Apretá Espacio para levantar la columna, las flechas para moverla y Espacio de nuevo para soltarla. Escape la devuelve a su lugar. {alt} con la flecha izquierda o derecha la mueve un lugar."
+  },
+  "menu": {
+    "rename": "Renombrar",
+    "color": "Color",
+    "behavior": "Comportamiento",
+    "approvals": "Aprobaciones requeridas",
+    "move_left": "Mover a la izquierda",
+    "move_right": "Mover a la derecha",
+    "add_before": "Agregar columna antes",
+    "add_after": "Agregar columna después",
+    "delete": "Borrar columna",
+    "delete_initial": "Las tareas nuevas empiezan acá. Marcá otra columna como inicio para borrar esta."
+  },
+  "summary": {
+    "initial": "Inicio",
+    "terminal": "Fin",
+    "auto_advance": "Avanza sola",
+    "open_pr": "Abre PR"
+  },
+  "colors": {
+    "slate": "Pizarra",
+    "orange": "Naranja",
+    "green": "Verde",
+    "blue": "Azul",
+    "cyan": "Celeste",
+    "purple": "Violeta",
+    "pink": "Rosa",
+    "red": "Rojo",
+    "yellow": "Amarillo",
+    "gray": "Gris"
+  },
+  "rename": {
+    "label": "Nombre de la columna",
+    "empty": "La columna necesita un nombre. Queda el anterior.",
+    "done": "La columna ahora se llama {column}"
+  },
+  "add": {
+    "button": "Agregar columna",
+    "name": "Columna nueva",
+    "placeholder": "Revisión de seguridad",
+    "hint": "Apretá Enter para agregarla o Escape para cancelar.",
+    "id_preview": "Se guarda con el id {id}",
+    "required": "Escribí un nombre para la columna.",
+    "submit": "Agregar columna",
+    "done": "Columna {column} agregada"
+  },
+  "behavior": {
+    "title": "Comportamiento de {column}",
+    "title_generic": "Comportamiento de la columna",
+    "lead": "Los cambios se guardan apenas los hacés y valen sólo para este tablero.",
+    "flow": "Dónde empiezan y terminan las tareas",
+    "agent": "Qué pasa en esta columna",
+    "wip": "Suma en",
+    "wip_desc": "Los contadores de arriba del tablero suman las tareas de las columnas marcadas acá.",
+    "saving": "Guardando…",
+    "approvals_saved": "Aprobaciones guardadas",
+    "saved": "{setting}: guardado",
+    "elsewhere": "También se configura por columna:",
+    "agents_link": "Qué agente corre acá",
+    "sandboxes_link": "Prioridad del sandbox"
+  },
+  "flags": {
+    "initial": "Las tareas empiezan acá",
+    "initial_desc": "Las tareas nuevas caen en esta columna, y una tarea con dependencias sin terminar espera acá.",
+    "terminal": "El trabajo termina acá",
+    "terminal_desc": "Las tareas de esta columna cuentan como terminadas y destraban a las que dependen de ellas.",
+    "auto_advance": "Avanzar cuando el agente termina",
+    "auto_advance_desc": "Cuando la corrida del agente termina bien, la tarea pasa sola a la columna siguiente.",
+    "push_branch": "Pushear la rama",
+    "push_branch_desc": "Una corrida que termina bien acá pushea la rama de la tarea al repositorio.",
+    "open_pr": "Abrir un pull request",
+    "open_pr_desc": "Una tarea que entra a esta columna abre su pull request.",
+    "legacy": "Toda aprobación frena la tarea",
+    "legacy_desc": "Cualquier aprobación de la tarea la retiene acá, no sólo las requeridas. Apagala para usar las aprobaciones requeridas.",
+    "no_agents": "Todavía ningún agente cubre esta columna.",
+    "agents_link": "Configurá uno en Agentes"
+  },
+  "locks": {
+    "initial_move": "Para cambiarlo, marcá otra columna como inicio.",
+    "initial_terminal": "Una columna de fin no puede ser el inicio.",
+    "last_terminal": "El tablero necesita al menos una columna de fin.",
+    "terminal_initial": "La columna de inicio no puede ser también de fin.",
+    "terminal_no_advance": "Una columna de fin no pasa la tarea a otra."
+  },
+  "wip": {
+    "none": "Nada",
+    "work": "En curso",
+    "review": "Para revisar"
+  },
+  "delete": {
+    "title": "¿Borrar la columna {column}?",
+    "empty": "La columna está vacía.",
+    "with_tasks": {
+      "one": "Hay {count} tarea en esta columna.",
+      "other": "Hay {count} tareas en esta columna."
+    },
+    "move_to": {
+      "one": "Mover {count} tarea a",
+      "other": "Mover {count} tareas a"
+    },
+    "lost": "Su comportamiento y sus aprobaciones se borran con ella. No se puede deshacer.",
+    "confirm": "Borrar columna",
+    "done": "Columna {column} borrada"
+  },
+  "move": {
+    "picked": "Levantaste {column}, posición {position} de {count}.",
+    "picked_kbd": "Levantaste {column}, posición {position} de {count}. Movela con las flechas, soltala con Espacio o cancelá con Escape.",
+    "moved": "{column} quedó en la posición {position} de {count}.",
+    "unchanged": "La columna quedó donde estaba.",
+    "cancelled": "Movimiento cancelado. La columna volvió a su lugar.",
+    "at_start": "La columna ya es la primera.",
+    "at_end": "La columna ya es la última."
+  },
+  "warnings": {
+    "initial_not_first": "Las tareas empiezan en {stage}, que no es la primera columna.",
+    "after_terminal": "{stage} está después de {terminal}, donde termina el trabajo. Las tareas terminadas nunca llegan ahí."
+  },
+  "errors": {
+    "generic": "El daemon no respondió. Revisá la conexión y probá de nuevo.",
+    "reorder": "No se pudo mover la columna: {error}",
+    "patch": "No se pudo guardar la columna: {error}",
+    "create": "No se pudo agregar la columna: {error}",
+    "remove": "No se pudo borrar la columna: {error}"
+  }
+}

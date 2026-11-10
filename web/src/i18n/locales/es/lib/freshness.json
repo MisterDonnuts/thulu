@@ -1,0 +1,6 @@
+{
+  "stale": {
+    "never": "No se puede llegar al daemon.",
+    "since": "No se puede llegar al daemon: mostrando datos de {ago}."
+  }
+}

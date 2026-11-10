@@ -1,0 +1,9 @@
+{
+  "description": "Put one product in the cart and open checkout.",
+  "params": ["product"],
+  "steps": [
+    { "kind": "goto", "url": "/products/{{product}}", "label": "Open the product" },
+    { "kind": "click", "target": "role=button[name=\"Add to cart\"]", "label": "Add it to the cart" },
+    { "kind": "goto", "url": "/checkout", "label": "Go to checkout" }
+  ]
+}

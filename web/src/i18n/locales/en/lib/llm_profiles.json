@@ -1,0 +1,97 @@
+{
+  "used_by": {
+    "none_default": "No agent runs on this engine",
+    "none_named": "No agent uses it",
+    "some": "Used by {names}",
+    "some_more": "Used by {names} and {count} more"
+  },
+  "meta": {
+    "model": "model {model}",
+    "model_default": "model: CLI default",
+    "effort": "effort {effort}",
+    "workload_identity": "workload identity",
+    "key_html": "key <code class=\"code-inline\">{hint}</code>",
+    "base": "base {url}",
+    "bearer": "bearer auth",
+    "org": "org {org}",
+    "last_used": "last used {when}",
+    "never_used": "never used",
+    "federation_html": "federation rule <code class=\"code-inline\">{rule}</code>"
+  },
+  "model": {
+    "engine_default": "{model} (engine default)",
+    "cli_default": "CLI default model"
+  },
+  "providers": {
+    "anthropic": "Anthropic API",
+    "openai": "OpenAI API",
+    "openai-compatible": "OpenAI-compatible API (DeepSeek, OpenRouter, vLLM)",
+    "bedrock": "Amazon Bedrock",
+    "vertex": "Google Vertex AI"
+  },
+  "modal": {
+    "edit": "Edit {name}",
+    "default": "Default profile for {engine}",
+    "new": "New {engine} profile"
+  },
+  "placeholders": {
+    "models": "{models}, … · empty = CLI default",
+    "model_empty": "Empty = CLI default",
+    "keep_hint": "Leave empty to keep {hint}",
+    "keep_current": "Leave empty to keep the current key",
+    "prefix": "{prefix}…",
+    "paste": "Paste credential"
+  },
+  "errors": {
+    "name_required": "Give the profile a name.",
+    "region_required": "Set the region the models run in.",
+    "project_required": "Set the Google Cloud project.",
+    "aws_pair": "The access key ID and the secret access key go together.",
+    "key_required": "Paste the key this profile runs with.",
+    "base_url_required": "An OpenAI-compatible provider has no default address: fill in the base URL.",
+    "prefix": "{kind} starts with {prefix}",
+    "prefix_generic": "This credential starts with {prefix}",
+    "federation_prefix": "The {field} starts with {prefix}.",
+    "federation_org": "The organization ID is the UUID on the Organization page of the Claude Console."
+  },
+  "effort": {
+    "low": "low",
+    "medium": "medium",
+    "high": "high"
+  },
+  "no_default": {
+    "blocked": "No default profile: runs on {engine} will not start until you add a key.",
+    "blocked_waiting": {
+      "one": "No default profile: runs on {engine} will not start until you add a key ({count} agent waits on this engine).",
+      "other": "No default profile: runs on {engine} will not start until you add a key ({count} agents wait on this engine)."
+    },
+    "host": "No default profile: runs on {engine} use the daemon host's own credential.",
+    "host_waiting": {
+      "one": "No default profile: runs on {engine} use the daemon host's own credential ({count} agent on this engine).",
+      "other": "No default profile: runs on {engine} use the daemon host's own credential ({count} agents on this engine)."
+    }
+  },
+  "key": {
+    "valid": "Valid",
+    "invalid": "Invalid",
+    "unreachable": "No answer",
+    "unchecked": "Not checked",
+    "refused": "Refused on a run",
+    "refused_when": "The provider refused a run's call with this key (HTTP {status}) {when}.",
+    "refused_note": "The provider refused a run's call with this key (HTTP {status}).",
+    "note": {
+      "no_upstream": "Not checked: the daemon does not know the provider's address.",
+      "not_checkable": "Not checked: this kind of key (a subscription token, a cloud credential) does not answer the model list.",
+      "endpoint_refused": "Not checked: the profile's address is not allowed.",
+      "no_answer": "Could not reach {host}. Try Re-check later.",
+      "no_answer_unnamed": "The provider did not answer. Try Re-check later.",
+      "rejected": "The provider rejected the key (HTTP {status}).",
+      "unexpected": "The provider answered HTTP {status}, so the key could not be confirmed."
+    }
+  },
+  "labels": {
+    "federation_rule": "federation rule ID",
+    "federation_service_account": "service account ID",
+    "federation_workspace": "workspace ID"
+  }
+}

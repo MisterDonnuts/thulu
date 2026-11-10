@@ -1,0 +1,61 @@
+{
+  "errors": {
+    "subject": "{subject}",
+    "bad_signature": "la firma no verifica contra la clave de releases de Thulu",
+    "not_digest_ref": "{ref}: no es una referencia por digest",
+    "no_image_signature": "{ref}: no se encontró firma ({tag})",
+    "read_signature_manifest": "{ref}: no se pudo leer el manifiesto de la firma",
+    "key_unexpected_pem": "clave de releases: bloque PEM inesperado {type:%q}",
+    "release_key": "clave de releases",
+    "key_not_p256": "clave de releases: se esperaba una clave pública ECDSA P-256",
+    "key_none_found": "clave de releases: no se encontró ninguna clave pública PEM",
+    "signature_not_base64": "la firma no está en base64",
+    "manifest_decode": "manifiesto de release",
+    "manifest_trailing_data": "manifiesto de release: sobran datos al final",
+    "manifest_invalid": "manifiesto de release {version}: {problems}",
+    "no_cosign": "para verificar un build preview hace falta cosign (https://docs.sigstore.dev/cosign/system_config/installation/) en el PATH",
+    "preview_manifest_rejected": "manifiesto preview: {output}",
+    "preview_claims_other": "un manifiesto firmado por el workflow de preview dice ser del canal {channel:%q}, versión {version}",
+    "cosign_rejected": "{ref}: {output}",
+    "source_off": "la búsqueda de releases está apagada ({env}=off)",
+    "file_source_not_absolute": "{env}={value:%q}: una fuente file:// necesita una ruta absoluta",
+    "source_invalid": "{env}={value:%q}: se espera github, off o una URL http(s) sin credenciales ni query",
+    "asset_too_large": "{file} de {version} pesa más de {limit} bytes",
+    "no_sigstore_bundle": "la preview {version} no tiene bundle de Sigstore ({file})",
+    "no_kms_signature": "{version} no tiene firma de KMS ({file})",
+    "release_key_on_preview": "{version}: un manifiesto firmado con la clave de releases en el canal preview",
+    "manifest_version_mismatch": "se pidió {asked}, pero el manifiesto firmado es de {signed}",
+    "http_get_failed": "GET {url}: {status}",
+    "list_github_releases": "no se pudieron listar las releases de {repo}",
+    "bad_asset_name": "nombre de asset {file:%q}",
+    "bad_version": "versión {version:%q}",
+    "release_lookup": "release {version}",
+    "asset_download": "{file} de {version}",
+    "asset_missing": "la release {version} no tiene {file}",
+    "mirror_index": "{base}/{file}"
+  },
+  "manifest": {
+    "schema_unsupported": "el schema {schema} no está soportado (este binario lee el {supported}): usá un thulu más nuevo",
+    "version_not_release": "la versión {version:%q} no es una versión de release",
+    "stable_prerelease": "canal stable con una versión prerelease {version}",
+    "channel_unknown": "canal {channel:%q} desconocido",
+    "commit_not_sha": "el commit {commit:%q} no es un sha de git completo",
+    "published_at_missing": "falta published_at",
+    "octopus_image_missing": "images: falta octopus",
+    "image_not_digest": "images.{name}: {ref:%q} no es una referencia por digest",
+    "third_party_not_pinned": "third_party.{name}: {ref:%q} no está fijada por digest",
+    "chart_not_pinned": "chart: se espera una referencia oci:// y un digest sha256",
+    "artifact_not_pinned": "{field}: se espera un nombre de archivo simple y un sha256 en hex",
+    "upgrade_from_missing": "falta upgrade_from",
+    "upgrade_from_invalid": "upgrade_from: {err}",
+    "rollback_not_older": "rollback_to {rollback:%q} no es anterior a {version}",
+    "requires_not_env": "requires: {name:%q} no es un nombre de variable de entorno",
+    "advisory_incomplete": "advisory sin id o sin rango afectado"
+  },
+  "labels": {
+    "unparseable_url": "(URL ilegible)"
+  },
+  "log": {
+    "remove_temp_failed": "no se pudo borrar {path}"
+  }
+}

@@ -1,0 +1,595 @@
+{
+  "title": "Evidence",
+  "subtitle": "What has to work in your app, recorded once by an agent and replayed on every environment.",
+  "summary": {
+    "passing": "passing",
+    "failing": "failing",
+    "blocked": "blocked"
+  },
+  "tabs": {
+    "aria": "Evidence sections",
+    "cases": "Cases",
+    "runs": "Runs",
+    "environments": "Environments",
+    "tasks": "From tasks"
+  },
+  "actions": {
+    "menu_aria": "Case actions",
+    "more_aria": "More actions for {key}",
+    "new_case": "New case",
+    "record": "Record with agent",
+    "record_again": "Record again",
+    "run_all": "Run all on…",
+    "run_on": "Run on…"
+  },
+  "status": {
+    "draft": "Needs recording",
+    "ready": "Not run yet",
+    "queued": "Waiting",
+    "running": "Running",
+    "pass": "Passed",
+    "fail": "Failed",
+    "blocked": "Blocked",
+    "error": "Couldn't run",
+    "canceled": "Canceled"
+  },
+  "status_hint": {
+    "draft": "No agent has recorded it yet, so it can't run.",
+    "ready": "Recorded, waiting for its first run.",
+    "queued": "Waiting for a free runner.",
+    "running": "Running right now.",
+    "pass": "Every check passed on the last run.",
+    "fail": "A check failed on the last run.",
+    "blocked": "A step failed before a check could run.",
+    "error": "The run never got to test anything. Open it to see why.",
+    "canceled": "Someone canceled the run."
+  },
+  "batch_status": {
+    "queued": "Waiting",
+    "running": "Running",
+    "done": "Done",
+    "canceled": "Canceled",
+    "error": "Couldn't run",
+    "all_passed": "All passed",
+    "blocked": "Some blocked",
+    "problems": "Something failed"
+  },
+  "case_form": {
+    "new_title": "New case",
+    "edit_title": "Edit {key}",
+    "title": "Title",
+    "title_placeholder": "Checkout applies a discount code",
+    "title_required": "Give the case a title.",
+    "description": "What has to work",
+    "description_hint": "in your words, as you would tell a colleague",
+    "description_placeholder": "A shopper with a valid code sees the discount before paying.",
+    "steps": "Steps",
+    "steps_hint": "one per line, optional",
+    "steps_placeholder": "1. Add a product to the cart\n2. Type SAVE10 in the discount box\n3. Press Apply",
+    "expected": "Expected result",
+    "expected_placeholder": "The total drops by 10% and the code shows as applied.",
+    "no_project": "No project",
+    "tags": "Tags",
+    "tags_hint": "separated by commas",
+    "tags_placeholder": "checkout, smoke",
+    "saved": "{key} saved.",
+    "created": "{key} created. Next, have an agent record it."
+  },
+  "cases": {
+    "all": "All",
+    "env_result_aria": "{env}: {status}, {when}",
+    "filter_status": "Filter by status",
+    "more_envs": {
+      "one": "+{count} more environment",
+      "other": "+{count} more environments"
+    },
+    "no_matches": "No cases match these filters.",
+    "no_video_yet": "No video yet",
+    "not_recorded": "Not recorded yet",
+    "not_run_here": "Not run here",
+    "view_aria": "Layout",
+    "view_grid": "Cards",
+    "view_list": "List",
+    "status_on": "{status} on {env}"
+  },
+  "columns": {
+    "actions": "Actions",
+    "case": "Case",
+    "key": "Key",
+    "priority": "Priority",
+    "project": "Project",
+    "result": "Latest result"
+  },
+  "counts": {
+    "passed": {
+      "one": "{count} passed",
+      "other": "{count} passed"
+    },
+    "failed": {
+      "one": "{count} failed",
+      "other": "{count} failed"
+    },
+    "blocked": {
+      "one": "{count} blocked",
+      "other": "{count} blocked"
+    },
+    "errored": {
+      "one": "{count} couldn't run",
+      "other": "{count} couldn't run"
+    },
+    "canceled": {
+      "one": "{count} canceled",
+      "other": "{count} canceled"
+    },
+    "pending": {
+      "one": "{count} to go",
+      "other": "{count} to go"
+    },
+    "none": "No runs"
+  },
+  "delete": {
+    "title": "Delete {key}?",
+    "message": "“{title}” goes away with all its runs, videos and captures. This can't be undone.",
+    "done": "{key} deleted.",
+    "confirm": "Delete case"
+  },
+  "deploy": {
+    "label": "After each deploy of {repo} to {environment}"
+  },
+  "detail": {
+    "all_envs": "All",
+    "capture_aria": "Capture {n} of {total}",
+    "capture_count": "{n} of {total}",
+    "capture_next": "Next capture",
+    "capture_open": "Open full size",
+    "capture_prev": "Previous capture",
+    "captures": "Captures",
+    "captures_count": {
+      "one": "Captures ({count})",
+      "other": "Captures ({count})"
+    },
+    "checks": "Checks",
+    "checks_passed": "{passed} of {total} checks passed",
+    "col_actions": "Actions",
+    "col_check": "Check",
+    "col_duration": "Took",
+    "col_env": "Environment",
+    "col_expected": "Expected",
+    "col_how": "How",
+    "col_observed": "What happened",
+    "col_result": "Result",
+    "col_trigger": "Started by",
+    "col_when": "When",
+    "download_take": "Download recording (JSON)",
+    "draft_title": "Nobody has recorded this case yet",
+    "draft_body": "An agent opens the app on the environment you pick, follows the steps and films them once. After that the case runs by itself, without the agent.",
+    "draft_no_env": "First add an environment in the Environments tab: that is where the agent records.",
+    "env_filter": "Show results from",
+    "expected": "Expected result",
+    "failures": "What went wrong",
+    "history": "History",
+    "in_progress": "This run is in progress. The video shows up when it finishes.",
+    "latest_run": "Latest run",
+    "measured": "Measured",
+    "never_ran": "Recorded but not run yet. Run it on an environment to get a video.",
+    "no_checks": "This run has no checks.",
+    "no_history": "No runs yet.",
+    "no_runs": "No runs yet.",
+    "no_video": "This run left no video.",
+    "observed_by_agent": "Seen by the agent",
+    "on_env": "on {env}",
+    "priority": "{priority} priority",
+    "recording": "Recording",
+    "report": "Full report",
+    "show": "Show",
+    "showing": "Showing",
+    "step": "Step {step}",
+    "steps": "Steps",
+    "take_agent": "Recorded by an agent {when}.",
+    "take_none": "Not recorded yet.",
+    "take_ready": "Recorded {when}.",
+    "take_task": "Copied from a task {when}.",
+    "take_upload": "Uploaded {when}.",
+    "took": "took {duration}",
+    "video_aria": "Video of the latest run of {key}",
+    "what": "What has to work"
+  },
+  "empty": {
+    "title": "Start your library of cases",
+    "step1_title": "Write what has to work",
+    "step1_body": "In plain words: what a person does and what they should see. No code.",
+    "step2_title": "An agent records it once",
+    "step2_body": "It opens your app on an environment, follows the steps and films them with checks.",
+    "step3_title": "It runs by itself",
+    "step3_body": "After every deploy, on a schedule or when you press Run. Each run leaves a video and a pass or fail.",
+    "cta": "Write your first case"
+  },
+  "env_form": {
+    "new_title": "New environment",
+    "edit_title": "Edit {name}",
+    "name": "Name",
+    "name_placeholder": "Staging",
+    "name_required": "Give it a name.",
+    "base_url": "Address",
+    "base_url_placeholder": "https://staging.example.com",
+    "url_invalid": "Write a full address that starts with http:// or https://.",
+    "hosts": "Other sites it may open",
+    "hosts_hint": "one per line: login provider, CDN",
+    "hosts_placeholder": "auth.example.com",
+    "logins": "Test logins",
+    "logins_hint": "Accounts the agent and the runs type in when the app asks for them. Use test accounts only: once saved, nobody can read a value back.",
+    "login_add": "Add test login",
+    "login_drop": "Remove",
+    "login_name": "Name",
+    "login_name_placeholder": "ADMIN_PASSWORD",
+    "login_value": "Value",
+    "login_value_placeholder": "Value",
+    "login_new_value": "New value",
+    "login_new_value_aria": "New value for {name}",
+    "login_remove": "Remove",
+    "login_removing": "Removed when you save",
+    "login_replace": "Replace",
+    "login_set": "••• set",
+    "login_undo": "Undo",
+    "login_invalid": "Each test login needs a name (capital letters, digits and _) and a value.",
+    "schedule": "Schedule",
+    "repeat": "Repeat",
+    "time": "At",
+    "minute": "Minute",
+    "cron": "Cron",
+    "cron_hint": "minute hour day month weekday",
+    "cron_invalid": "Write five fields separated by spaces, like 0 9 * * 1-5.",
+    "timezone": "Time zone",
+    "preview": "Runs: {label}",
+    "preview_off": "Runs only when someone starts it or after a deploy.",
+    "deploy": "After a deploy",
+    "deploy_on": "Run every recorded case after a successful deploy on GitHub",
+    "hook": "From your CI",
+    "hook_after_save": "Save the environment to get its id. The command will read:",
+    "hook_hint": "Any pipeline can start the runs with this command. Keep an API key in OCTOPUS_API_KEY.",
+    "hook_copy_label": "the CI command",
+    "hook_key_link": "Create an API key (opens in a new tab)",
+    "created": "{name} added.",
+    "saved": "{name} saved.",
+    "kind": "Where it runs",
+    "kind_project": "An environment of a project",
+    "kind_project_hint": "Runs this project's cases and the ones without a project, and shows on the project page.",
+    "kind_standalone": "Another site",
+    "kind_standalone_hint": "Any address. Every case can run here.",
+    "slug": "Short name",
+    "slug_hint": "lowercase, set once",
+    "slug_invalid": "Use lowercase letters, digits, dots, dashes or _, starting with a letter or digit (40 at most).",
+    "production": "This is production",
+    "production_hint": "Only workspace admins can change a production environment, and runs never pick it by default.",
+    "production_on_project": "Mark it as production on the project page.",
+    "production_on_project_ask": "Only workspace admins can mark it as production, on the project page.",
+    "sandbox_title": "Sandbox of {project}",
+    "sandbox_lead": "The Sandbox starts fresh for every batch from the project's init script. Here you set the other sites it may open and the test logins.",
+    "deploy_info": "Listens to deploys of {repo} to the GitHub environment {environment}.",
+    "deploy_new": "Listens to deploys of the project's repository to the GitHub environment with this short name.",
+    "delete_on_project": "This environment belongs to its project. Delete it there.",
+    "delete_on_project_link": "Open the project page",
+    "schedule_project": "Cases of",
+    "schedule_project_all": "Every project",
+    "schedule_tag": "With the tag",
+    "schedule_tag_hint": "empty runs them all",
+    "hook_id_placeholder": "ENVIRONMENT_ID"
+  },
+  "envs": {
+    "delete_aria": "Delete {name}",
+    "delete_title": "Delete {name}?",
+    "delete_message": "Its schedule and its runs after deploys stop. This can't be undone.",
+    "deleted": "{name} deleted.",
+    "empty_title": "No environments yet",
+    "empty_body": "An environment is a copy of your app the cases run against, like staging or production. Add one to record and run cases.",
+    "intro": "Where your cases run, and when they run by themselves.",
+    "logins_count": {
+      "one": "{count} test login",
+      "other": "{count} test logins"
+    },
+    "no_logins": "No test logins",
+    "manual_only": "Runs only when someone starts it",
+    "never_ran": "Nothing has run here yet.",
+    "new": "New environment",
+    "run_here": "Run all here",
+    "view": "View",
+    "label_with_project": "{env} · {project}",
+    "no_url": "No address yet",
+    "open_project": "Open project",
+    "other": "Other sites",
+    "other_hint": "Sites outside your projects. Every case can run here.",
+    "production": "Production",
+    "production_note": "Only workspace admins can change a production environment.",
+    "project_empty": "This project has no environment yet.",
+    "schedule_scope": {
+      "all": {
+        "one": "Runs the recorded case of every project.",
+        "other": "Runs the {count} recorded cases of every project."
+      },
+      "project": {
+        "one": "Runs the recorded case of {project}.",
+        "other": "Runs the {count} recorded cases of {project}."
+      },
+      "tag": {
+        "one": "Runs the recorded case tagged {tag}.",
+        "other": "Runs the {count} recorded cases tagged {tag}."
+      },
+      "project_tag": {
+        "one": "Runs the recorded case of {project} tagged {tag}.",
+        "other": "Runs the {count} recorded cases of {project} tagged {tag}."
+      }
+    },
+    "schedule_scope_none": {
+      "all": "There are no recorded cases yet: the schedule will run nothing until you record one.",
+      "project": "{project} has no recorded cases: the schedule will run nothing until it has one.",
+      "tag": "No recorded case is tagged {tag}: the schedule will run nothing. Check the tag.",
+      "project_tag": "No recorded case of {project} is tagged {tag}: the schedule will run nothing. Check the tag."
+    },
+    "delete_confirm": "Delete environment"
+  },
+  "errors": {
+    "add_to_library": "Couldn't add it to the library.",
+    "cancel": "Couldn't cancel.",
+    "case_gone": "{key} no longer exists.",
+    "delete_case": "Couldn't delete the case.",
+    "delete_env": "Couldn't delete the environment.",
+    "load_case": "Couldn't load the case.",
+    "load_cases": "Couldn't load the cases.",
+    "load_envs": "Couldn't load the environments.",
+    "load_runs": "Couldn't load the runs.",
+    "record": "Couldn't start the recording.",
+    "refresh": "Refresh failed: {error}",
+    "run": "Couldn't start the runs.",
+    "save_case": "Couldn't save the case.",
+    "save_env": "Couldn't save the environment.",
+    "save_logins": "The environment is saved, but the test logins aren't: {error}"
+  },
+  "filters": {
+    "all_projects": "All projects",
+    "all_tags": "All tags",
+    "aria": "Filters",
+    "clear": "Clear filters",
+    "project": "Project",
+    "search": "Search",
+    "search_placeholder": "Key, title or words in the case",
+    "tag": "Tag",
+    "env": "Environment",
+    "any_env": "Any environment",
+    "all_on": "All on {env}",
+    "priority": "Priority",
+    "any_priority": "Any priority",
+    "add_tag": "Add a tag",
+    "remove_tag": "Remove the tag {tag}",
+    "tags_aria": "Tags picked",
+    "tags_all": "Shows the cases with all these tags.",
+    "sort": "Order",
+    "sort_newest": "Newest first",
+    "sort_priority": "Priority",
+    "sort_status": "Status"
+  },
+  "kbd": {
+    "close": "Close, or clear the search",
+    "new_case": "New case"
+  },
+  "pickers": {
+    "no_envs": "There is no environment yet. Add one first: it is where cases record and run.",
+    "none_for_case": "No environment runs this case. Add one to its project or add another site."
+  },
+  "record": {
+    "title": "Record with agent",
+    "env": "Where to record",
+    "agent": "Agent",
+    "agent_auto": "Pick one for me",
+    "agent_hint": "one with the chat stage; the recording gives it the browser",
+    "lead": "An agent opens the app, follows the steps of {key} · {title} and films them. You can watch and guide it in the chat.",
+    "lead_again": "An agent records {key} · {title} again and replaces its current recording.",
+    "note": "When the agent saves, the case runs once on the same environment so you see whether it passes.",
+    "start": "Start recording",
+    "starting": "Starting…",
+    "started": "The agent is recording {key} on {env}. Follow it in the chat.",
+    "agent_no_key": "{name} (no model credential)",
+    "auto_picks": "{name} will record.",
+    "no_agent": "No agent has the chat stage, which recording needs.",
+    "go_agents": "Open Agents",
+    "no_credential": "{name} has no model credential.",
+    "go_credentials": "Open AI engines",
+    "agent_no_prompt": "{name} (no chat prompt)",
+    "no_prompt": "{name} has no prompt for the Chat stage, and the recording starts with a chat.",
+    "go_prompts": "Add the prompt"
+  },
+  "redirect": {
+    "title": "QA moved to Evidence",
+    "moved": "QA moved to Evidence.",
+    "link": "Go to Evidence"
+  },
+  "run": {
+    "title": "Run on an environment",
+    "env": "Run on",
+    "lead_case": "Runs {key} · {title} without an agent and leaves a video.",
+    "lead_list": {
+      "one": "Runs the recorded case in the list.",
+      "other": "Runs the {count} recorded cases in the list."
+    },
+    "lead_list_skipped": {
+      "one": "1 recorded case in the list doesn't run on this environment and stays out.",
+      "other": "{count} recorded cases in the list don't run on this environment and stay out."
+    },
+    "lead_list_drafts": {
+      "one": "1 case still needs recording and is skipped.",
+      "other": "{count} cases still need recording and are skipped."
+    },
+    "lead_env": "Runs every recorded case on the environment you pick.",
+    "nothing": "Nothing to run on {env}: no recorded case matches.",
+    "start": "Run",
+    "starting": "Starting…",
+    "started": {
+      "one": "1 run started on {env}.",
+      "other": "{count} runs started on {env}."
+    },
+    "branch": "Branch",
+    "branch_hint": "The Sandbox starts from this branch.",
+    "branch_required": "Write the branch to start from."
+  },
+  "runs": {
+    "all_envs": "All environments",
+    "env_filter": "Environment",
+    "live": "Updating live",
+    "cancel": "Cancel",
+    "cancel_title": "Cancel these runs?",
+    "cancel_message": "Runs that haven't started are canceled. The one running now finishes.",
+    "cancel_confirm": "Cancel runs",
+    "canceling": "Canceling…",
+    "canceled": "Canceled.",
+    "checks_short": "{passed}/{total} checks",
+    "empty_title": "Nothing has run yet",
+    "empty_body": "Runs show up here when someone starts them, on a schedule, after a deploy or from your CI.",
+    "no_runs": "This batch has no runs.",
+    "open": "Open",
+    "watch": "Watch",
+    "unknown_env": "Deleted environment"
+  },
+  "saving": "Saving…",
+  "schedule": {
+    "off": "Off",
+    "hourly": "Every hour",
+    "daily": "Every day at…",
+    "weekdays": "Weekdays at…",
+    "custom": "Custom (cron)",
+    "label_off": "Off",
+    "label_hourly": "Every hour",
+    "label_hourly_at": "Every hour at :{minute}",
+    "label_daily": "Every day at {time} ({tz})",
+    "label_weekdays": "Weekdays at {time} ({tz})",
+    "label_custom": "{cron} ({tz})"
+  },
+  "tasks": {
+    "intro": "The test cases written inside tasks. Add the ones worth keeping to the library so they run on every environment.",
+    "aria": {
+      "status_totals": "Status totals",
+      "filter_by_status": "Filter by status"
+    },
+    "filters": {
+      "board": "Board",
+      "all_boards": "All boards",
+      "search_placeholder": "Key, title or task",
+      "uncovered_only": "Uncovered only"
+    },
+    "panel": "Test cases",
+    "columns": {
+      "title": "Title",
+      "status": "Status",
+      "covered": "Covered",
+      "last_run": "Last run",
+      "runs": "Runs"
+    },
+    "showing": "Showing {shown} of {total} · {covered} covered",
+    "covered_note": "{covered} of {total} covered",
+    "no_matches": "No test cases match these filters.",
+    "none_yet": "No test cases yet. Add them from a task's drawer.",
+    "load_failed": "Couldn't load test cases.",
+    "adding": "Adding…",
+    "added": "Added to the library as {key}. An agent still has to record it.",
+    "added_recorded": "Added to the library as {key}, with its recording."
+  },
+  "trigger": {
+    "manual": "Run by hand",
+    "manual_by": "Run by {who}",
+    "schedule": "On schedule",
+    "deploy": "After a deploy",
+    "deploy_ref": "After deploy {ref}",
+    "api": "From CI",
+    "recording": "First run after a recording",
+    "recording_by": "First run after {who} recorded it"
+  },
+  "can": {
+    "viewer": "Your role can look but not change anything here.",
+    "production": "Only workspace admins can change production.",
+    "admin_only": "Only workspace admins can do this.",
+    "delete_on_project": "Delete it on its project page.",
+    "sandbox_fixed": "The Sandbox comes with the project and stays.",
+    "sandbox_no_record": "The Sandbox lasts one batch. Record on an environment with an address.",
+    "no_url": "It has no address yet.",
+    "no_init_script": "The project has no init script, so the Sandbox can't start.",
+    "no_preview_port": "The init script doesn't say which port the app listens on.",
+    "sandbox_unavailable": "The Sandbox can't start right now.",
+    "repo_not_github": "Runs after a deploy work only with GitHub repositories.",
+    "unknown": "You can't do this here."
+  },
+  "picker": {
+    "label": "Project",
+    "option": {
+      "one": "{project} ({count} case)",
+      "other": "{project} ({count} cases)"
+    },
+    "with_unassigned": {
+      "one": "Also shows 1 case without a project.",
+      "other": "Also shows {count} cases without a project."
+    },
+    "no_project": "Without a project",
+    "cases_count": {
+      "one": "{count} case",
+      "other": "{count} cases"
+    }
+  },
+  "link": {
+    "action": "Move to a project",
+    "action_aria": "Move {name} to a project",
+    "title": "Move to a project environment",
+    "lead": "{name} becomes the environment you pick and keeps its runs, test logins and schedule.",
+    "target": "Project environment",
+    "hint": "Only environments that have not run yet.",
+    "option_ran": "{env} (already has runs)",
+    "none": "Every project environment already has runs. Add a new one on the project page first.",
+    "save": "Move",
+    "done": "{name} moved."
+  },
+  "sandbox": {
+    "name": "Sandbox",
+    "badge": "On demand",
+    "about": "A fresh copy of {project} for every batch, started from the branch you pick. It goes away when the batch ends.",
+    "default_branch": "Starts from {branch} unless you pick another branch",
+    "port": "App on port {port}",
+    "run": "Run on a branch",
+    "option_sub": "Fresh copy from {branch}",
+    "write_script": "Write the init script",
+    "edit_script": "Fix the init script",
+    "ask_admin_write": "Ask a workspace admin to add it.",
+    "ask_admin_fix": "Ask a workspace admin to fix it.",
+    "starting": "Starting the Sandbox",
+    "steps_aria": "Starting the Sandbox",
+    "phase_room": "Getting a machine",
+    "phase_source": "Getting the code",
+    "phase_setup": "Running the init script",
+    "phase_start": "Starting the app",
+    "failed_short": "Didn't start",
+    "failed_title": "The Sandbox didn't start, so no case ran.",
+    "failed_unknown": "The Sandbox stopped before the app answered.",
+    "failed_note": "Check the init script, then try again.",
+    "failed_note_ask": "Ask a workspace admin to check the init script, then try again.",
+    "failed_note_branch": "Check that the branch exists, then try again.",
+    "failed_note_busy": "Every sandbox was busy. Try again in a few minutes.",
+    "failed_note_octopus": "The problem is on Thulu's side. Try again, and if it fails again, tell whoever runs Thulu.",
+    "show_log": "Show what the init script printed",
+    "show_details": "Show details",
+    "retry": "Try again",
+    "retried": "Trying again on {env}.",
+    "source_title": "Code from the branch {branch}",
+    "not_run": "Not run",
+    "not_run_count": {
+      "one": "1 case not run",
+      "other": "{count} cases not run"
+    },
+    "queued": {
+      "one": "1 run waits for the Sandbox to start from {branch}.",
+      "other": "{count} runs wait for the Sandbox to start from {branch}."
+    }
+  },
+  "cause": {
+    "browser_image": "Thulu could not pull the browser image; tell whoever runs this installation.",
+    "runner_start": "Thulu could not start the runner; tell whoever runs this installation.",
+    "runner_exit": "The runner stopped before it finished. Try running it again; if it happens again, tell whoever runs this installation.",
+    "deadline": "The batch ran past its time limit and was stopped.",
+    "daemon_restarted": "Thulu restarted while this batch ran. Run it again.",
+    "runner_lost": "The runner stopped before this run finished. Run it again."
+  }
+}

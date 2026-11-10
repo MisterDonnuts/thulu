@@ -1,0 +1,72 @@
+{
+  "openapi": {
+    "title": "OpenAPI spec",
+    "intro": "The full REST API is described in OpenAPI 3.1 format. Import it into Postman, Insomnia, or any HTTP client.",
+    "copy_url": "Copy URL",
+    "url_copied": "URL copied"
+  },
+  "ingest": {
+    "title": "Telemetry address",
+    "intro": "Where an application reaches this Thulu from the outside. Agents wiring up telemetry read it from here, so they never have to guess — and the address they can see is rarely the one a deployed application can reach. Leave it empty until you know the answer: unset is a better answer than a wrong one.",
+    "placeholder": "https://thulu.example.com",
+    "hint_set": "Applications will send to {url}",
+    "hint_unset": "Not set — agents are told the address is unknown.",
+    "install_wide": "The telemetry address applies to every workspace on this install.",
+    "saved": "Telemetry address saved",
+    "cleared": "Telemetry address cleared",
+    "save_failed": "Couldn't save the address",
+    "label": "Address"
+  },
+  "keys": {
+    "title": "API key",
+    "intro": "API keys allow programmatic access. Keys are shown only once at creation. A key belongs to this workspace and reaches no other, and it can do only what you tick below.",
+    "name_placeholder": "Key name (e.g. CI/CD)",
+    "role_title": "How much authority the key has",
+    "expires_placeholder": "Expires (days)",
+    "expires_aria": "Expires in days",
+    "generate": "Generate key",
+    "copy_warning": "Copy this key now — it will not be shown again.",
+    "empty": "No API keys yet.",
+    "load_failed": "Could not load keys.",
+    "revoked": "revoked",
+    "expired": "expired",
+    "task_scoped": "task-scoped",
+    "revoke": "Revoke",
+    "revoke_title": "Revoke key \"{name}\"?",
+    "revoke_message": "This cannot be undone.",
+    "revoked_toast": "Key revoked",
+    "revoke_failed": "Failed to revoke key",
+    "default_name": "API Key",
+    "no_permissions_picked": "Pick what the key may do, or choose a preset.",
+    "generated": "Key generated — copy it now!",
+    "refused": "The daemon refused the key: {error}",
+    "generate_failed": "Failed to generate key.",
+    "new_key_name": "the new key",
+    "rotate": "Rotate",
+    "rotate_title": "A new key with the same name, role and permissions; the current one keeps working for a while",
+    "rotate_grace": "The current key keeps working:",
+    "rotate_confirm": "Rotate now",
+    "rotated": "Key rotated: copy the new one now!",
+    "rotate_refused": "The daemon refused the rotation: {error}",
+    "rotate_failed": "Could not rotate the key.",
+    "replaced": "replaced",
+    "name_label": "Name"
+  },
+  "run_keys": {
+    "title": "Keys of running runs",
+    "intro": "Each agent run and chat gets its own key, which it revokes when it ends. A key still listed after its run ended is one to revoke.",
+    "empty": "No run holds a key right now.",
+    "load_failed": "Could not load the run keys.",
+    "chat": "Chat",
+    "revoke_title": "Revoke this run key?",
+    "revoke_message": "The run loses access to the API at once; it fails at its next call."
+  },
+  "presets": {
+    "label": "Preset",
+    "read_only": "Read-only",
+    "ci": "CI",
+    "agent": "Agent",
+    "full": "Everything",
+    "perms_aria": "Key permissions"
+  }
+}

@@ -1,0 +1,10 @@
+name: octopus-token-optimizer
+description: How to use octopus-delegate to hand off reading large files to a cheaper model that returns only the answer. When it pays off, when you have to read the exact range, how to call the CLI and what to verify before editing. Use before reading a large file whole (over 24 KB), when asking something that spans 3 or more files, when summarizing a large diff or log, or when the Token optimizer denied a read.
+type: knowledge
+enforcement: on_demand
+requires: []
+# Bump on every change: the daemon syncs this skill at boot only when version exceeds the stored
+# one.
+# when: token_optimizer limits it to runs whose Token optimizer is not off.
+version: 3
+when: token_optimizer

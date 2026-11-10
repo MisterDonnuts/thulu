@@ -1,0 +1,37 @@
+{
+  "errors": {
+    "init_schema": "set up the runner tables",
+    "workspace_required": "a runner belongs to a workspace",
+    "name_invalid": "a runner needs a name of up to 64 characters",
+    "create_registration": "create the runner registration token",
+    "registration_invalid": "the registration token is unknown, used or expired",
+    "register": "register the runner",
+    "credential_invalid": "the runner credential is unknown or revoked",
+    "authenticate": "check the runner credential",
+    "list": "list the runners",
+    "get": "read the runner",
+    "not_found": "no runner {id} in this workspace",
+    "revoke": "revoke the runner",
+    "enqueue": "queue the run for the runner",
+    "claim": "hand a run to the runner",
+    "job_not_held": "run {id} is not running on this runner",
+    "heartbeat": "renew the run's lease",
+    "finish": "record how the run ended",
+    "cancel": "stop the run",
+    "expire": "end the runs nobody answered for",
+    "list_jobs": "list the ended runs",
+    "reap": "mark the run processed",
+    "get_job": "read the run",
+    "job_not_found": "no run {id}",
+    "pack_outputs": "pack the run's output",
+    "extract_outputs": "unpack the run's output",
+    "outputs_not_gzip": "the run's output is not gzip",
+    "outputs_not_tar": "the run's output is not a tar archive",
+    "outputs_too_large": "the run's output is over {max} bytes",
+    "decode_job": "read the stored run {id}",
+    "stat_output": "read {path} in the run's output"
+  },
+  "log": {
+    "seen_failed": "record when runner {runner} was last seen"
+  }
+}

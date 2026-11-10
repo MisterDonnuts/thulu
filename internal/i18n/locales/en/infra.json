@@ -1,0 +1,26 @@
+{
+  "errors": {
+    "statfs": "measure the filesystem holding {path}",
+    "statfs_unsupported": "measuring filesystems is not supported on this platform ({path})",
+    "docker_info": "read the Docker engine's info",
+    "docker_list": "list Docker containers",
+    "docker_df": "read Docker disk usage",
+    "kube_namespaces": "list namespaces",
+    "kube_pods": "list pods",
+    "kube_nodes": "list nodes",
+    "kube_quotas": "list resource quotas",
+    "kube_pvcs": "list persistent volume claims",
+    "kube_metrics": "read live usage from metrics.k8s.io (is metrics-server installed, and may the daemon read it?)",
+    "pg_size": "read the database size and connections",
+    "pg_tables": "read table sizes",
+    "setting": "read the setting {key}",
+    "sandboxes_held": "count the sandboxes holding a slot",
+    "usage_today": "read today's LLM usage"
+  },
+  "log": {
+    "started": "infrastructure inspector sampling every {interval} (disk usage every {slow})",
+    "stats_body": "container {id} stats",
+    "rows_read": "read an infrastructure query",
+    "rows_close": "close an infrastructure query"
+  }
+}

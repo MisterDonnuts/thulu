@@ -1,0 +1,1402 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Button from "../components/Button.astro";
+import Badge from "../components/Badge.astro";
+import Callout from "../components/Callout.astro";
+import Count from "../components/Count.astro";
+import EmptyRow from "../components/EmptyRow.astro";
+import Field from "../components/Field.astro";
+import InlineStatus from "../components/InlineStatus.astro";
+import Modal from "../components/Modal.astro";
+import PageHead from "../components/PageHead.astro";
+import Panel from "../components/Panel.astro";
+import Table from "../components/Table.astro";
+import Tabs from "../components/Tabs.astro";
+import { t } from "../i18n";
+import { runColumns } from "../lib/automation-editor";
+---
+
+<Layout title={t("automations.title")}>
+  <main class="page" style="--page-max: 1400px">
+    <PageHead title={t("automations.title")} subtitle={t("automations.subtitle")} subMax={620}>
+      <Fragment slot="actions">
+        <Count pill n={t("automations.header.recipes", { count: 0 })} id="stat-total" />
+        <Count pill n={t("automations.header.enabled", { count: 0 })} dot id="stat-on" />
+        <Button id="btn-new" variant="primary" size="md" icon="plus"
+          >{t("automations.buttons.new")}</Button
+        >
+      </Fragment>
+    </PageHead>
+
+    <Callout tone="warn" icon="warn" id="unavailable" hidden>
+      {t("automations.empty.unavailable")}
+    </Callout>
+
+    <div class="split" id="split">
+      <Panel icon="clock" title={t("automations.panels.recipes")} flush class="list-panel">
+        <div id="automation-list" class="row-list">
+          <EmptyRow as="div" loading />
+        </div>
+      </Panel>
+
+      <Panel id="detail" as="div" flush hidden>
+        <Fragment slot="title">
+          <input
+            id="d-name"
+            class="d-name"
+            type="text"
+            placeholder={t("automations.detail.name_placeholder")}
+            aria-label={t("automations.detail.name_aria")}
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <div class="detail-meta">
+            <Badge id="d-trigger">{t("automations.trigger.manual")}</Badge>
+            <Badge id="d-state">{t("automations.state.enabled")}</Badge>
+            <span class="muted small" id="d-schedule"></span>
+          </div>
+        </Fragment>
+        <Fragment slot="actions">
+          <Button id="btn-run" size="md" icon="play">{t("automations.buttons.run_now")}</Button>
+          <Button id="btn-run-test" size="md" icon="play" hidden
+            >{t("automations.buttons.run_test")}</Button
+          >
+          <Button id="btn-toggle" size="md" icon="power"
+            ><span id="btn-toggle-label">{t("automations.buttons.disable")}</span></Button
+          >
+          <Button
+            id="btn-delete"
+            iconOnly
+            icon="trash"
+            variant="danger"
+            label={t("automations.buttons.delete_automation")}
+            title={t("common.buttons.delete")}
+          />
+        </Fragment>
+        <Tabs
+          id="detail-tabs"
+          idPrefix="detail-"
+          label={t("automations.tabs.aria")}
+          active="recipe"
+          panels
+          items={[
+            { id: "recipe", label: t("automations.tabs.recipe") },
+            { id: "runs", label: t("automations.tabs.runs") },
+          ]}
+        />
+
+        <div
+          class="tab-body"
+          id="detail-panel-recipe"
+          role="tabpanel"
+          aria-labelledby="detail-tab-recipe"
+        >
+          <div class="guide" id="guide">
+            <div class="guide-row">
+              <Field label={t("automations.guide.trigger")} for="g-kind" size="sm">
+                <select id="g-kind">
+                  <option value="schedule">{t("automations.guide.kind.schedule")}</option>
+                  <option value="event">{t("automations.guide.kind.event")}</option>
+                  <option value="metric">{t("automations.guide.kind.metric")}</option>
+                  <option value="manual">{t("automations.guide.kind.manual")}</option>
+                </select>
+              </Field>
+              <div id="g-fields" class="guide-fields"></div>
+              <span class="guide-hint" id="g-locked" hidden>{t("automations.guide.locked")}</span>
+            </div>
+            <div class="guide-row guide-pickers">
+              <span class="guide-hint">{t("automations.guide.insert")}</span>
+              <select
+                id="p-board"
+                class="select-sm picker"
+                aria-label={t("automations.guide.pick_board")}
+              >
+                <option value="">{t("automations.guide.pick_board")}</option>
+              </select>
+              <select
+                id="p-stage"
+                class="select-sm picker"
+                aria-label={t("automations.guide.pick_stage")}
+              >
+                <option value="">{t("automations.guide.pick_stage")}</option>
+              </select>
+              <select
+                id="p-agent"
+                class="select-sm picker"
+                aria-label={t("automations.guide.pick_agent")}
+              >
+                <option value="">{t("automations.guide.pick_agent")}</option>
+              </select>
+              <select
+                id="p-project"
+                class="select-sm picker"
+                aria-label={t("automations.guide.pick_project")}
+              >
+                <option value="">{t("automations.guide.pick_project")}</option>
+              </select>
+              <select
+                id="p-env"
+                class="select-sm picker"
+                aria-label={t("automations.guide.pick_env")}
+              >
+                <option value="">{t("automations.guide.pick_env")}</option>
+              </select>
+            </div>
+          </div>
+          <textarea
+            id="spec-editor"
+            class="spec-editor"
+            spellcheck="false"
+            autocomplete="off"
+            autocapitalize="off"></textarea>
+          <div class="editor-foot">
+            <InlineStatus id="validate-out" class="validate-out" text="—" />
+            <div class="editor-buttons">
+              <Button id="btn-validate" size="md" icon="check"
+                >{t("automations.buttons.validate")}</Button
+              >
+              <Button id="btn-save" variant="primary" size="md" icon="check"
+                >{t("common.buttons.save")}</Button
+              >
+            </div>
+          </div>
+        </div>
+
+        <div id="detail-panel-runs" role="tabpanel" aria-labelledby="detail-tab-runs" hidden>
+          <Table cols={runColumns()} expandable stack bodyId="run-list">
+            <EmptyRow cols={7}>{t("automations.empty.runs")}</EmptyRow>
+          </Table>
+        </div>
+      </Panel>
+    </div>
+
+    <Modal
+      id="new-modal"
+      title={t("automations.modal.title")}
+      size="lg"
+      closable
+      lede={t("automations.modal.intro")}
+    >
+      <div id="template-list" class="row-list"></div>
+    </Modal>
+
+    <Modal
+      id="test-modal"
+      title={t("automations.test.title")}
+      size="lg"
+      closable
+      lede={t("automations.test.intro")}
+      cancel
+      primary={{ label: t("automations.test.run"), id: "btn-test-go", icon: "play" }}
+    >
+      <Field label={t("automations.test.payload")} for="test-payload" errorId="test-error">
+        <textarea
+          id="test-payload"
+          class="spec-editor test-payload"
+          spellcheck="false"
+          autocomplete="off"
+          autocapitalize="off"></textarea>
+      </Field>
+    </Modal>
+  </main>
+
+  <style is:global>
+    .split {
+      display: grid;
+      grid-template-columns: 320px minmax(0, 1fr);
+      gap: var(--s-4);
+      align-items: start;
+    }
+    @media (max-width: 1000px) {
+      .split {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .d-name {
+      font-size: var(--t-lg);
+      font-weight: 600;
+      font-family: inherit;
+      color: var(--fg);
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: var(--r-sm);
+      padding: 2px 6px;
+      margin-left: -6px;
+      width: 100%;
+      min-width: 0;
+      max-width: 46ch;
+    }
+    .d-name:hover {
+      border-color: var(--line);
+    }
+    .d-name:focus {
+      outline: none;
+      border-color: var(--accent-line);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+      background: var(--surface-2);
+    }
+    .detail-meta {
+      margin-top: 5px;
+      display: flex;
+      gap: var(--s-2);
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .detail-meta .small {
+      font-size: var(--t-xs);
+      font-family: var(--font-mono);
+    }
+
+    .tab-body {
+      padding: var(--s-4);
+    }
+    /* A textarea like any other (its edge, its focus ring, red when the
+       value is refused), set in the code font for YAML and JSON. */
+    .spec-editor {
+      width: 100%;
+      min-height: 420px;
+      resize: vertical;
+      font-family: var(--font-mono);
+      font-size: var(--t-sm);
+      line-height: var(--lh-loose);
+      tab-size: 2;
+    }
+    .editor-foot {
+      margin-top: var(--s-3);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--s-4);
+      flex-wrap: wrap;
+    }
+    .editor-buttons {
+      display: inline-flex;
+      gap: var(--s-2);
+    }
+    /* The validation result takes the room the buttons leave; its second
+       line (the next runs) starts on a line of its own. */
+    .validate-out {
+      flex: 1;
+      min-width: 0;
+      white-space: pre-line;
+    }
+
+    /* minmax(0, 1fr): a row is as wide as the box, never as wide as the
+       longest event name in its select. */
+    .guide {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--s-2);
+      margin-bottom: var(--s-3);
+      padding: var(--s-3);
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+    }
+    .guide-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--s-2) var(--s-3);
+      align-items: flex-end;
+    }
+    .guide-fields {
+      display: contents;
+    }
+    /* A duration or a threshold is a few characters. The event and the
+       filter are fields with grow: they share what the row leaves. */
+    .guide-short {
+      width: calc(9ch + 2 * var(--s-3));
+    }
+    .picker {
+      min-width: 0;
+    }
+    .guide-pickers .picker {
+      max-width: 18ch;
+    }
+    .guide-hint {
+      font-size: var(--t-xs);
+      color: var(--fg-3);
+      align-self: center;
+    }
+    .test-payload {
+      min-height: 280px;
+    }
+    .step-summary {
+      margin-top: 3px;
+      font-size: var(--t-sm);
+      color: var(--fg-2);
+    }
+    .step-summary a {
+      color: var(--accent);
+    }
+
+    /* A click anywhere on a run opens it, not only on its caret. */
+    .run-row {
+      cursor: pointer;
+    }
+    /* An open run's detail: the detail row of the table gives the padding. */
+    .steps {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .step {
+      display: grid;
+      grid-template-columns: 90px 1fr;
+      gap: var(--s-3);
+      padding: var(--s-2) 0;
+      border-bottom: 1px dashed var(--line);
+      font-size: var(--t-sm);
+    }
+    .step:last-child {
+      border-bottom: none;
+    }
+    .step-id {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--fg-2);
+      overflow-wrap: anywhere;
+    }
+    /* A log or a payload sits a little under the line it belongs to. */
+    .step-log {
+      margin-top: var(--s-1);
+    }
+    /* The run's own error opens its detail, apart from the payload under it. */
+    .run-log {
+      margin-bottom: var(--s-2);
+    }
+    .run-payload {
+      padding-bottom: var(--s-2);
+    }
+    .run-batch {
+      font-size: var(--t-sm);
+      color: var(--fg-2);
+    }
+  </style>
+
+  <script>
+    import { startPoller, dirty, setText } from "../lib/reactive";
+    import { requireAuth } from "../lib/auth";
+    import { api, ApiError } from "../lib/api";
+    import { registerCreate, takeNewParam } from "../lib/create";
+    import {
+      $,
+      bindTabs,
+      codeBlockHTML,
+      confirmDialog,
+      disclosureHTML,
+      emptyRowHTML,
+      esc,
+      fieldHTML,
+      listRowHTML,
+      makeToast,
+      setBadge,
+      setCount,
+      setFieldError,
+      setInlineStatus,
+      tableRowHTML,
+      type CodeTone,
+    } from "../lib/ui";
+    import { bindModal } from "../lib/modal";
+    import { confirmDiscard } from "../lib/mdeditor";
+    import { ago, fmtDate, fmtDateMinute, runDuration } from "../lib/time";
+    import { runStatusBadge, stepStatusBadge } from "../lib/badges";
+    import { TEMPLATES } from "../lib/automation-templates";
+    import {
+      batchCount,
+      effectiveTz,
+      emptyTrigger,
+      insertAt,
+      isJSONOutput,
+      parsePayload,
+      readTrigger,
+      runColumns,
+      renderTrigger,
+      samplePayload,
+      shouldLockGuide,
+      stepSummary,
+      syncBurst,
+      withTimezone,
+      withTrigger,
+      type ParsedTrigger,
+      type TriggerForm,
+      type TriggerKind,
+    } from "../lib/automation-editor";
+    import type { BoardsResponse } from "../lib/stages";
+    import { t } from "../i18n";
+    import { onPage } from "../lib/page";
+
+    onPage("/automations", (signal) => {
+      requireAuth();
+
+      interface Automation {
+        id: string;
+        name: string;
+        description?: string;
+        enabled: boolean;
+        spec: string;
+        trigger_kind: string;
+        trigger_event?: string;
+        cron?: string;
+        tz?: string;
+        next_run_at?: string;
+        last_run_at?: string;
+        last_status?: string;
+        parsed?: ParsedSpec;
+      }
+      interface ParsedSpec {
+        trigger?: ParsedTrigger;
+        policy?: { debounce?: string };
+      }
+      interface RunStep {
+        id: string;
+        seq: number;
+        step_id: string;
+        kind: string;
+        status: string;
+        started_at: string;
+        finished_at?: string;
+        output?: string;
+        error?: string;
+      }
+      interface Run {
+        id: string;
+        status: string;
+        trigger: string;
+        reason?: string;
+        started_at: string;
+        finished_at?: string;
+        error?: string;
+        agent_runs: number;
+        items_emitted: number;
+        payload?: string;
+        steps?: RunStep[];
+      }
+
+      const toast = makeToast();
+
+      // Trigger kinds the daemon defines in internal/automation; unknown kinds show as sent.
+      const TRIGGER_LABEL: Record<string, string> = {
+        schedule: "automations.trigger.schedule",
+        event: "automations.trigger.event",
+        metric: "automations.trigger.metric",
+        manual: "automations.trigger.manual",
+        test: "automations.trigger.test",
+      };
+      function triggerLabel(kind: string): string {
+        const key = TRIGGER_LABEL[kind];
+        return key ? t(key) : kind;
+      }
+
+      let automations: Automation[] = [];
+      let selectedID: string | null = null;
+      // While set, the poller must not overwrite the draft with the stored spec.
+      let editorDirty = false;
+      // A template draft has no id, so selected() finds nothing; without this flag the next poll
+      // hides the pane and the draft vanishes.
+      let draft = false;
+      let openRuns = new Set<string>();
+
+      function selected(): Automation | undefined {
+        return automations.find((a) => a.id === selectedID);
+      }
+
+      function renderList() {
+        const list = $("automation-list");
+        if (automations.length === 0) {
+          list.innerHTML = emptyRowHTML(t("automations.empty.automations"), { as: "div" });
+          return;
+        }
+        list.innerHTML = automations
+          .map((a) => {
+            const when =
+              a.enabled && a.next_run_at
+                ? t("automations.labels.next", { when: fmtDateMinute(a.next_run_at) })
+                : a.trigger_kind === "event"
+                  ? a.trigger_event || t("automations.trigger.event")
+                  : a.enabled
+                    ? triggerLabel(a.trigger_kind)
+                    : t("automations.state.suspended");
+            const last = a.last_run_at
+              ? t("automations.labels.last", { ago: ago(a.last_run_at) })
+              : "";
+            return listRowHTML({
+              as: "button",
+              title: a.name,
+              metaHTML: `<span class="mono">${esc(when)} ${esc(last)}</span>`,
+              asideHTML: a.last_status ? runStatusBadge(a.last_status) : undefined,
+              current: a.id === selectedID,
+              dim: !a.enabled,
+              attrs: { "data-id": a.id },
+            });
+          })
+          .join("");
+        list.querySelectorAll<HTMLButtonElement>("button[data-id]").forEach((btn) => {
+          btn.addEventListener("click", () => void select(btn.dataset.id!));
+        });
+      }
+
+      function renderStats() {
+        setCount($("stat-total"), t("automations.header.recipes", { count: automations.length }), {
+          pill: true,
+        });
+        const on = automations.filter((a) => a.enabled).length;
+        setCount($("stat-on"), t("automations.header.enabled", { count: on }), {
+          pill: true,
+          dot: on > 0 ? "ok" : true,
+        });
+      }
+
+      async function select(id: string) {
+        if (selectedID === id) return;
+        if (editorDirty && !(await confirmDiscard(t("automations.confirm.discard")))) return;
+        // Re-check: the selection may have changed while the discard dialog was open.
+        if (selectedID === id) return;
+        selectedID = id;
+        editorDirty = false;
+        draft = false;
+        openRuns = new Set();
+        renderList();
+        renderDetail();
+        loadRuns();
+      }
+
+      function renderDetail() {
+        const a = selected();
+        const detail = $("detail")!;
+        if (!a) {
+          if (!draft) detail.hidden = true;
+          return;
+        }
+        detail.hidden = false;
+        draftActions(false);
+        showName(a.name);
+        setText($("d-trigger"), triggerLabel(a.trigger_kind));
+        $("d-trigger")!.hidden = false;
+        setBadge(
+          $("d-state"),
+          a.enabled ? t("automations.state.enabled") : t("automations.state.suspended"),
+          a.enabled ? "ok" : "muted",
+        );
+        // The daemon fires a cron with no tz in UTC, so always show the effective zone.
+        const sched = a.cron
+          ? t("automations.labels.schedule_tz", { cron: a.cron, tz: effectiveTz(a.tz) }) +
+            (a.enabled && a.next_run_at
+              ? " · " + t("automations.labels.next", { when: fmtDateMinute(a.next_run_at) })
+              : "")
+          : a.trigger_event || "";
+        setText($("d-schedule"), sched);
+        setText(
+          $("btn-toggle-label"),
+          a.enabled ? t("automations.buttons.disable") : t("automations.buttons.enable"),
+        );
+        ($("btn-run-test") as HTMLElement).hidden =
+          a.trigger_kind !== "event" && a.trigger_kind !== "metric";
+        if (!editorDirty) {
+          const editor = $("spec-editor") as HTMLTextAreaElement;
+          if (editor.value !== a.spec) {
+            editor.value = a.spec;
+            if (a.parsed?.trigger) fillGuide(readTrigger(a.parsed.trigger));
+          }
+        }
+      }
+
+      function draftActions(isDraft: boolean) {
+        for (const id of ["btn-run", "btn-run-test", "btn-toggle", "btn-delete"]) {
+          ($(id) as HTMLButtonElement).disabled = isDraft;
+        }
+      }
+
+      let runs: Run[] = [];
+      const RUN_COLS = runColumns();
+
+      async function loadRuns() {
+        const a = selected();
+        if (!a) return;
+        try {
+          const res = await api.get<{ runs: Run[] }>(
+            `/automations/${encodeURIComponent(a.id)}/runs?limit=50`,
+          );
+          // The runs list route carries no steps or payload; keep the fetched ones or each poll
+          // blanks an expanded run.
+          const known = new Map(runs.map((r) => [r.id, r]));
+          runs = (res.runs || []).map((r) => ({
+            ...r,
+            steps: r.steps ?? known.get(r.id)?.steps,
+            payload: r.payload ?? known.get(r.id)?.payload,
+          }));
+          renderRuns();
+          for (const id of openRuns) {
+            const r = runs.find((x) => x.id === id);
+            if (r && (!r.steps || r.status === "running")) loadRunDetail(id);
+          }
+        } catch {}
+      }
+
+      function renderRuns() {
+        const body = $("run-list") as HTMLElement;
+        if (runs.length === 0) {
+          body.innerHTML = emptyRowHTML(t("automations.empty.runs"), { cols: 7 });
+          return;
+        }
+        body.innerHTML = runs
+          .map((r) =>
+            tableRowHTML(
+              RUN_COLS,
+              {
+                id: r.id,
+                cls: "run-row",
+                expanded: openRuns.has(r.id),
+                detailHTML: openRuns.has(r.id) ? stepsHTML(r) : undefined,
+                cells: [
+                  {
+                    text: t("automations.runs.started_ago", { ago: ago(r.started_at) }),
+                    attrs: { title: fmtDate(r.started_at) },
+                  },
+                  triggerLabel(r.trigger),
+                  { html: runStatusBadge(r.status), sub: r.reason || undefined },
+                  Number(r.agent_runs) || 0,
+                  runDuration(r.started_at, r.finished_at),
+                  r.status === "running"
+                    ? {
+                        actions: [
+                          {
+                            label: t("common.buttons.cancel"),
+                            cls: "btn-cancel",
+                            attrs: { "data-run": r.id },
+                          },
+                        ],
+                      }
+                    : "",
+                ],
+              },
+              { expandable: true, stack: true },
+            ),
+          )
+          .join("");
+        body.querySelectorAll<HTMLElement>(".run-row").forEach((tr) => {
+          tr.addEventListener("click", (ev) => {
+            if ((ev.target as HTMLElement).closest(".btn-cancel")) return;
+            const id = tr.dataset.row!;
+            if (openRuns.has(id)) openRuns.delete(id);
+            else {
+              openRuns.add(id);
+              loadRunDetail(id);
+            }
+            renderRuns();
+          });
+        });
+        body.querySelectorAll<HTMLButtonElement>(".btn-cancel").forEach((btn) => {
+          btn.addEventListener("click", async (ev) => {
+            ev.stopPropagation();
+            const a = selected();
+            if (!a) return;
+            try {
+              await api.post(
+                `/automations/${encodeURIComponent(a.id)}/runs/${encodeURIComponent(btn.dataset.run!)}/cancel`,
+              );
+              toast(t("automations.toasts.run_canceled"), "ok");
+              loadRuns();
+            } catch (e) {
+              toast(t("automations.toasts.cancel_failed", { error: String(e) }), "err");
+            }
+          });
+        });
+      }
+
+      function stepsHTML(r: Run): string {
+        const parts: string[] = [];
+        if (r.error) parts.push(logHTML(r.error, "danger", "run-log"));
+        parts.push(payloadHTML(r));
+        if (!r.steps) {
+          parts.push(
+            `<ul class="steps"><li class="step"><span class="muted">${t("common.status.loading")}</span></li></ul>`,
+          );
+          return parts.join("");
+        }
+        if (r.steps.length === 0) {
+          parts.push(
+            `<ul class="steps"><li class="step"><span class="muted">${esc(t("automations.runs.no_steps"))}</span></li></ul>`,
+          );
+          return parts.join("");
+        }
+        parts.push(
+          `<ul class="steps">${r.steps
+            .map(
+              (s) => `<li class="step">
+                <span>${stepStatusBadge(s.status)}</span>
+                <span>
+                  <span class="step-id">${esc(s.step_id)} · ${esc(s.kind)}</span>
+                  ${s.error ? logHTML(s.error, "danger") : ""}
+                  ${stepOutputHTML(s)}
+                </span>
+              </li>`,
+            )
+            .join("")}</ul>`,
+        );
+        return parts.join("");
+      }
+
+      function payloadHTML(r: Run): string {
+        const payload = parsePayload(r.payload);
+        if (!payload || Object.keys(payload).length === 0) return "";
+        const count = batchCount(payload);
+        const batched =
+          count > 1
+            ? `<div class="run-batch">${esc(t("automations.runs.batched", { count }))}</div>`
+            : "";
+        const data = disclosureHTML({
+          variant: "code",
+          summary: t("automations.runs.trigger_data"),
+          bodyHTML: logHTML(JSON.stringify(payload, null, 2)),
+        });
+        return `<div class="run-payload">${batched}${data}</div>`;
+      }
+
+      function stepOutputHTML(s: RunStep): string {
+        if (!s.output) return "";
+        const sum = stepSummary(s);
+        const text = sum
+          ? `<div class="step-summary">${
+              sum.href ? `<a href="${esc(sum.href)}">${esc(sum.text)}</a>` : esc(sum.text)
+            }</div>`
+          : "";
+        if (!isJSONOutput(s.output)) return text + logHTML(s.output);
+        const raw = disclosureHTML({
+          variant: "code",
+          summary: t("automations.runs.raw_output"),
+          bodyHTML: logHTML(s.output),
+          open: !sum,
+        });
+        return text + raw;
+      }
+
+      function logHTML(text: string, tone: CodeTone = "neutral", cls = "step-log"): string {
+        return codeBlockHTML({ text, multiline: true, maxHeight: "sm", tone, cls });
+      }
+
+      async function loadRunDetail(runID: string) {
+        const a = selected();
+        if (!a) return;
+        try {
+          const full = await api.get<Run>(
+            `/automations/${encodeURIComponent(a.id)}/runs/${encodeURIComponent(runID)}`,
+          );
+          const i = runs.findIndex((r) => r.id === runID);
+          if (i >= 0) runs[i] = { ...full, steps: full.steps ?? [] };
+          renderRuns();
+        } catch {}
+      }
+
+      // The daemon derives the name from the spec's `name:` line and save takes only the spec, so
+      // the header field edits that line.
+
+      const nameField = $("d-name") as HTMLInputElement;
+      const nameLine = /^name:[ \t]*(.*)$/m;
+
+      function specName(spec: string): string {
+        const m = spec.match(nameLine);
+        if (!m) return "";
+        const raw = m[1].trim();
+        if (
+          (raw.startsWith('"') && raw.endsWith('"') && raw.length > 1) ||
+          (raw.startsWith("'") && raw.endsWith("'") && raw.length > 1)
+        ) {
+          return raw.slice(1, -1);
+        }
+        return raw;
+      }
+
+      // Values outside the safe set (`: `, leading `#`, quotes) break a YAML plain scalar; emit
+      // them double-quoted.
+      function yamlScalar(v: string): string {
+        return /^[A-Za-z0-9][\w .()\/-]*$/.test(v) ? v : JSON.stringify(v);
+      }
+
+      function withSpecName(spec: string, name: string): string {
+        const line = `name: ${yamlScalar(name)}`;
+        if (nameLine.test(spec)) return spec.replace(nameLine, line);
+        return `${line}\n${spec}`;
+      }
+
+      function showName(name: string) {
+        if (document.activeElement !== nameField) nameField.value = name;
+      }
+
+      let validateTimer: number | undefined;
+      function revalidateSoon() {
+        window.clearTimeout(validateTimer);
+        validateTimer = window.setTimeout(() => void validate(), 400);
+      }
+
+      async function validate(): Promise<boolean> {
+        const out = $("validate-out")!;
+        const spec = ($("spec-editor") as HTMLTextAreaElement).value;
+        try {
+          const res = await api.post<{
+            valid: boolean;
+            error?: string;
+            name?: string;
+            trigger?: string;
+            next_runs?: string[];
+            parsed?: ParsedSpec;
+          }>("/automations/validate", { spec });
+          // With no parsed trigger the form locks so it can't write over YAML it never read, unless
+          // the YAML still holds the block it last wrote.
+          if (!$("guide")!.contains(document.activeElement)) {
+            lockGuide(shouldLockGuide(Boolean(res.parsed?.trigger), spec, lastWritten));
+          }
+          if (res.parsed?.trigger) fillGuide(readTrigger(res.parsed.trigger));
+          if (draft && res.trigger) {
+            setText($("d-trigger"), triggerLabel(res.trigger));
+            $("d-trigger")!.hidden = false;
+          }
+          if (!res.valid) {
+            setInlineStatus(out, "danger", res.error || t("automations.validate.invalid"));
+            return false;
+          }
+          setInlineStatus(
+            out,
+            "ok",
+            `${res.name} · ${triggerLabel(res.trigger ?? "")}` +
+              (res.next_runs?.length
+                ? "\n" +
+                  t("automations.validate.next_runs", {
+                    runs: res.next_runs.map((r) => fmtDateMinute(r)).join(" · "),
+                  })
+                : ""),
+          );
+          return true;
+        } catch (e) {
+          setInlineStatus(out, "danger", String(e));
+          return false;
+        }
+      }
+
+      async function save() {
+        const spec = ($("spec-editor") as HTMLTextAreaElement).value;
+        const a = selected();
+        try {
+          if (a) {
+            const updated = await api.put<Automation>(`/automations/${encodeURIComponent(a.id)}`, {
+              spec,
+            });
+            const i = automations.findIndex((x) => x.id === a.id);
+            if (i >= 0) automations[i] = updated;
+          } else {
+            const created = await api.post<Automation>("/automations", { spec });
+            automations.unshift(created);
+            selectedID = created.id;
+          }
+          editorDirty = false;
+          draft = false;
+          toast(t("automations.toasts.saved"), "ok");
+          renderList();
+          renderStats();
+          renderDetail();
+          loadRuns();
+          validate();
+        } catch (e) {
+          const msg = e instanceof ApiError ? e.message : String(e);
+          setInlineStatus($("validate-out")!, "danger", msg);
+          toast(t("automations.toasts.save_failed", { error: msg }), "err");
+        }
+      }
+
+      async function runNow(payload?: Record<string, unknown>) {
+        const a = selected();
+        if (!a) return;
+        try {
+          const run = await api.post<Run>(
+            `/automations/${encodeURIComponent(a.id)}/run`,
+            payload ? { payload } : undefined,
+          );
+          toast(
+            run.status === "skipped"
+              ? t("automations.toasts.skipped", { reason: run.reason ?? "" })
+              : t("automations.toasts.run_started"),
+            "ok",
+          );
+          showTab("runs");
+          openRuns.add(run.id);
+          await loadRuns();
+          loadRunDetail(run.id);
+        } catch (e) {
+          toast(t("automations.toasts.run_failed", { error: String(e) }), "err");
+        }
+      }
+
+      async function toggle() {
+        const a = selected();
+        if (!a) return;
+        try {
+          const updated = await api.put<Automation>(
+            `/automations/${encodeURIComponent(a.id)}/enabled`,
+            { enabled: !a.enabled },
+          );
+          const i = automations.findIndex((x) => x.id === a.id);
+          if (i >= 0) automations[i] = updated;
+          renderList();
+          renderStats();
+          renderDetail();
+        } catch (e) {
+          toast(t("automations.toasts.toggle_failed", { error: String(e) }), "err");
+        }
+      }
+
+      async function remove() {
+        const a = selected();
+        if (!a) return;
+        const ok = await confirmDialog({
+          title: t("automations.confirm.delete_title"),
+          message: t("automations.confirm.delete_message", { name: a.name }),
+          confirmLabel: t("common.buttons.delete"),
+          danger: true,
+        });
+        if (!ok) return;
+        try {
+          await api.del(`/automations/${encodeURIComponent(a.id)}`);
+          automations = automations.filter((x) => x.id !== a.id);
+          selectedID = automations[0]?.id ?? null;
+          editorDirty = false;
+          draft = false;
+          toast(t("automations.toasts.deleted"), "ok");
+          renderList();
+          renderStats();
+          renderDetail();
+          if (selectedID) loadRuns();
+        } catch (e) {
+          toast(t("automations.toasts.delete_failed", { error: String(e) }), "err");
+        }
+      }
+
+      // The poller sleeps on background tabs, so opening Runs must fetch the history itself.
+      const detailTabs = bindTabs($("detail-tabs"), {
+        onChange: (id) => {
+          if (id === "runs") loadRuns();
+        },
+      });
+      function showTab(name: "recipe" | "runs") {
+        if (detailTabs.current() !== name) detailTabs.select(name);
+        else if (name === "runs") loadRuns();
+      }
+
+      let events: Record<string, string> = {};
+      let guide: TriggerForm = emptyTrigger();
+      let envOptions: [string, string][] = [];
+      const kindSelect = $("g-kind") as HTMLSelectElement;
+      const editorEl = $("spec-editor") as HTMLTextAreaElement;
+
+      function browserTz(): string {
+        try {
+          return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+        } catch {
+          return "UTC";
+        }
+      }
+
+      function fillGuide(f: TriggerForm) {
+        if ($("guide")!.contains(document.activeElement)) return;
+        guide = f;
+        kindSelect.value = f.kind;
+        renderGuideFields();
+      }
+
+      let guideLocked = false;
+      function lockGuide(locked: boolean) {
+        guideLocked = locked;
+        ($("g-locked") as HTMLElement).hidden = !locked;
+        kindSelect.disabled = locked;
+        $("g-fields")!
+          .querySelectorAll<HTMLInputElement | HTMLSelectElement>("[data-f]")
+          .forEach((el) => (el.disabled = locked));
+      }
+
+      interface GuideField {
+        key: keyof TriggerForm;
+        label: string;
+        optional?: boolean;
+        grow?: boolean;
+        cls?: string;
+        placeholder?: string;
+        options?: [string, string][];
+      }
+
+      function guideFields(kind: TriggerKind): GuideField[] {
+        switch (kind) {
+          case "schedule":
+            return [
+              // i18n-ignore a cron expression, not a message
+              { key: "schedule", label: t("automations.guide.cron"), placeholder: "0 9 * * 1-5" },
+              { key: "tz", label: t("automations.guide.tz"), placeholder: "UTC" },
+            ];
+          case "event":
+            return [
+              {
+                key: "event",
+                label: t("automations.guide.event"),
+                grow: true,
+                options: Object.keys(events)
+                  .sort()
+                  .map((k) => [k, `${k} · ${events[k]}`]),
+              },
+              {
+                key: "filter",
+                label: t("automations.guide.filter"),
+                optional: true,
+                grow: true,
+                // i18n-ignore an expression, not a message
+                placeholder: "!trigger.payload.sender_is_bot",
+              },
+            ];
+          case "metric":
+            return [
+              {
+                key: "environment",
+                label: t("automations.guide.environment"),
+                options: envOptions,
+              },
+              { key: "metric", label: t("automations.guide.metric"), placeholder: "error_rate" },
+              {
+                key: "window",
+                label: t("automations.guide.window"),
+                cls: "guide-short",
+                placeholder: "15m",
+              },
+              {
+                key: "agg",
+                label: t("automations.guide.agg"),
+                options: ["avg", "max", "min", "sum", "last"].map((v) => [v, v]),
+              },
+              {
+                key: "op",
+                label: t("automations.guide.op"),
+                options: [">", ">=", "<", "<="].map((v) => [v, v]),
+              },
+              { key: "threshold", label: t("automations.guide.threshold"), cls: "guide-short" },
+              {
+                key: "every",
+                label: t("automations.guide.every"),
+                cls: "guide-short",
+                placeholder: "5m",
+              },
+            ];
+          default:
+            return [];
+        }
+      }
+
+      function renderGuideFields() {
+        const box = $("g-fields")!;
+        box.innerHTML = guideFields(guide.kind)
+          .map((f) => {
+            const v = guide[f.key];
+            const id = `g-f-${f.key}`;
+            const field = (control: string) =>
+              fieldHTML({
+                label: f.label,
+                for: id,
+                optional: f.optional,
+                size: "sm",
+                grow: f.grow,
+                cls: f.cls,
+                control,
+              });
+            if (f.options) {
+              const opts = [...f.options];
+              if (v && !opts.some(([val]) => val === v)) opts.unshift([v, v]);
+              const html = opts
+                .map(
+                  ([val, text]) =>
+                    `<option value="${esc(val)}"${val === v ? " selected" : ""}>${esc(text)}</option>`,
+                )
+                .join("");
+              return field(
+                `<select id="${id}" data-f="${f.key}"><option value="">${esc(t("automations.guide.choose"))}</option>${html}</select>`,
+              );
+            }
+            return field(
+              `<input id="${id}" data-f="${f.key}" value="${esc(v)}" placeholder="${esc(f.placeholder ?? "")}" spellcheck="false" autocomplete="off">`,
+            );
+          })
+          .join("");
+        box.querySelectorAll<HTMLInputElement | HTMLSelectElement>("[data-f]").forEach((el) => {
+          el.disabled = guideLocked;
+          el.addEventListener(el.tagName === "SELECT" ? "change" : "input", () => {
+            guide = { ...guide, [el.dataset.f as keyof TriggerForm]: el.value };
+            writeGuide();
+          });
+        });
+      }
+
+      let lastWritten = "";
+      function writeGuide() {
+        lastWritten = renderTrigger(guide);
+        const next = withTrigger(editorEl.value, guide);
+        if (next === editorEl.value) return;
+        editorEl.value = next;
+        editorDirty = true;
+        revalidateSoon();
+      }
+
+      kindSelect.addEventListener("change", () => {
+        const kind = kindSelect.value as TriggerKind;
+        guide = emptyTrigger(kind);
+        if (kind === "schedule") {
+          // i18n-ignore a cron expression, not a message
+          guide.schedule = "0 9 * * 1-5";
+          guide.tz = browserTz();
+        }
+        if (kind === "metric") {
+          guide.window = "15m";
+          guide.agg = "avg";
+          guide.op = ">";
+        }
+        renderGuideFields();
+        writeGuide();
+      });
+
+      // Pickers insert at the last remembered cursor: the textarea has lost focus by the time a
+      // select changes.
+      let cursor = { start: 0, end: 0 };
+      const rememberCursor = () => {
+        cursor = { start: editorEl.selectionStart, end: editorEl.selectionEnd };
+      };
+      for (const ev of ["keyup", "click", "select", "blur"]) {
+        editorEl.addEventListener(ev, rememberCursor);
+      }
+
+      function fillPicker(id: string, options: [string, string][]) {
+        const sel = $(id) as HTMLSelectElement;
+        const first = sel.options[0];
+        sel.replaceChildren(first);
+        for (const [value, label] of options) {
+          const o = document.createElement("option");
+          o.value = value;
+          o.textContent = label;
+          sel.append(o);
+        }
+      }
+
+      let sampleBoard: { id: string; stages: string[] } | undefined;
+
+      async function loadStages(board: string): Promise<string[]> {
+        if (!board) return [];
+        const stages = await api
+          .get<{ id: string; label: string }[]>(`/boards/${encodeURIComponent(board)}/stages`)
+          .catch(() => [] as { id: string; label: string }[]);
+        fillPicker(
+          "p-stage",
+          stages.map((st) => [st.id, st.label ? `${st.label} (${st.id})` : st.id]),
+        );
+        return stages.map((st) => st.id);
+      }
+
+      async function loadPickers() {
+        const [boards, agents, projects] = await Promise.all([
+          api.get<BoardsResponse>("/boards").catch(() => null),
+          api.get<{ name: string }[]>("/types").catch(() => [] as { name: string }[]),
+          api
+            .get<{ id: string; name: string }[]>("/projects")
+            .catch(() => [] as { id: string; name: string }[]),
+        ]);
+        if (boards) {
+          fillPicker(
+            "p-board",
+            (boards.boards || []).map((b) => [b.id, b.label || b.id]),
+          );
+          void loadStages(boards.default).then((stages) => {
+            sampleBoard = { id: boards.default, stages };
+          });
+        }
+        fillPicker(
+          "p-agent",
+          (agents || []).map((a) => [a.name, a.name]),
+        );
+        fillPicker(
+          "p-project",
+          (projects || []).map((p) => [p.id, p.name]),
+        );
+        const lists = await Promise.all(
+          (projects || []).map((p) =>
+            api
+              .get<{ id: string; name: string }[]>(
+                `/projects/${encodeURIComponent(p.id)}/environments`,
+              )
+              .then((envs) => envs.map((e): [string, string] => [e.id, `${p.name} / ${e.name}`]))
+              .catch(() => [] as [string, string][]),
+          ),
+        );
+        envOptions = lists.flat();
+        fillPicker("p-env", envOptions);
+        if (guide.kind === "metric") renderGuideFields();
+      }
+
+      function insertValue(v: string) {
+        const out = insertAt(editorEl.value, cursor.start, cursor.end, v);
+        editorEl.value = out.text;
+        editorEl.focus();
+        editorEl.setSelectionRange(out.cursor, out.cursor);
+        cursor = { start: out.cursor, end: out.cursor };
+        editorDirty = true;
+        revalidateSoon();
+      }
+
+      for (const id of ["p-board", "p-stage", "p-agent", "p-project", "p-env"]) {
+        const sel = $(id) as HTMLSelectElement;
+        sel.addEventListener("change", () => {
+          const v = sel.value;
+          if (!v) return;
+          if (id === "p-board") loadStages(v);
+          insertValue(v);
+          sel.value = "";
+        });
+      }
+
+      const testModal = bindModal($("test-modal"));
+
+      function openTest() {
+        const a = selected();
+        if (!a) return;
+        const sample = samplePayload({
+          trigger: a.parsed?.trigger,
+          debounce: a.parsed?.policy?.debounce,
+          board: sampleBoard,
+        });
+        const payload = $("test-payload") as HTMLTextAreaElement;
+        payload.value = JSON.stringify(sample ?? {}, null, 2);
+        setFieldError(payload, "");
+        testModal.open(payload);
+      }
+
+      async function runTest() {
+        const box = $("test-payload") as HTMLTextAreaElement;
+        let payload: unknown;
+        try {
+          payload = JSON.parse(box.value);
+        } catch {
+          setFieldError(box, t("automations.test.bad_json"), { focus: true });
+          return;
+        }
+        if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+          setFieldError(box, t("automations.test.not_object"), { focus: true });
+          return;
+        }
+        testModal.close();
+        await runNow(syncBurst(payload as Record<string, unknown>));
+      }
+
+      function renderTemplates() {
+        const ul = $("template-list");
+        ul.innerHTML = TEMPLATES.map((tpl, i) =>
+          listRowHTML({
+            as: "button",
+            boxed: true,
+            title: tpl.title,
+            meta: tpl.blurb,
+            attrs: { "data-i": i },
+          }),
+        ).join("");
+        ul.querySelectorAll<HTMLButtonElement>("button").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const tpl = TEMPLATES[Number(btn.dataset.i)];
+            selectedID = null;
+            editorDirty = true;
+            draft = true;
+            runs = [];
+            openRuns = new Set();
+            ($("detail") as HTMLElement).hidden = false;
+            showName(specName(tpl.spec));
+            $("d-trigger")!.hidden = true;
+            setBadge($("d-state"), t("automations.state.unsaved"));
+            setText($("d-schedule"), "");
+            draftActions(true);
+            ($("spec-editor") as HTMLTextAreaElement).value = withTimezone(tpl.spec, browserTz());
+            renderRuns();
+            renderList();
+            showTab("recipe");
+            closeModal();
+            validate();
+            ($("spec-editor") as HTMLTextAreaElement).focus();
+          });
+        });
+      }
+
+      const newModal = bindModal($("new-modal"));
+      const openModal = () => newModal.open();
+      const closeModal = newModal.close;
+      // Esc is handled by closeTopModal() at the end of lib/keyboard.ts's cascade.
+
+      $("btn-new")!.addEventListener("click", openModal);
+      registerCreate("automation", openModal);
+      $("btn-validate")!.addEventListener("click", () => validate());
+      $("btn-save")!.addEventListener("click", save);
+      $("btn-run")!.addEventListener("click", () => runNow());
+      $("btn-run-test")!.addEventListener("click", openTest);
+      $("btn-test-go")!.addEventListener("click", runTest);
+      $("btn-toggle")!.addEventListener("click", toggle);
+      $("btn-delete")!.addEventListener("click", remove);
+      $("spec-editor")!.addEventListener("input", () => {
+        editorDirty = true;
+        showName(specName(($("spec-editor") as HTMLTextAreaElement).value));
+      });
+      nameField.addEventListener("input", () => {
+        const editor = $("spec-editor") as HTMLTextAreaElement;
+        editor.value = withSpecName(editor.value, nameField.value.trim());
+        editorDirty = true;
+        revalidateSoon();
+      });
+
+      async function refresh() {
+        try {
+          const res = await api.get<{
+            automations: Automation[];
+            events?: Record<string, string>;
+          }>("/automations");
+          automations = res.automations || [];
+          if (res.events && Object.keys(events).length === 0) {
+            events = res.events;
+            if (guide.kind === "event") renderGuideFields();
+          }
+          if (selectedID && !automations.some((a) => a.id === selectedID) && !editorDirty) {
+            selectedID = null;
+          }
+          if (!selectedID && !editorDirty && !draft && automations.length > 0) {
+            selectedID = automations[0].id;
+            renderList();
+            renderDetail();
+            loadRuns();
+            renderStats();
+            return;
+          }
+          renderList();
+          renderStats();
+          renderDetail();
+        } catch (e) {
+          if (e instanceof ApiError && e.status === 503) {
+            ($("split") as HTMLElement).hidden = true;
+            ($("unavailable") as HTMLElement).hidden = false;
+            ($("btn-new") as HTMLButtonElement).disabled = true;
+            return;
+          }
+        }
+      }
+
+      renderTemplates();
+      renderGuideFields();
+      loadPickers();
+      refresh();
+      if (takeNewParam()) openModal();
+      startPoller({
+        interval: 5000,
+        firstDelay: 5000,
+        fetch: async () => {
+          await refresh();
+          if (selectedID) await loadRuns();
+        },
+        skipWhen: () => dirty.hasOpenModal(),
+      });
+    });
+  </script>
+</Layout>

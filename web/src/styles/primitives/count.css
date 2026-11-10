@@ -1,0 +1,56 @@
+.count {
+  color: var(--fg-2);
+  font-size: var(--t-xs);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.count-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-1);
+  min-width: var(--count-h);
+  height: var(--count-h);
+  padding: 0 var(--s-2);
+  border-radius: var(--r-pill);
+  background: var(--color-fill-chip);
+  color: var(--fg-2);
+  font-size: var(--t-xs);
+  font-weight: 500;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.count-pill strong {
+  color: var(--fg);
+  font-weight: 600;
+}
+[aria-pressed="true"] > .count {
+  color: inherit;
+}
+.count-sm {
+  min-width: var(--badge-h-sm);
+  height: var(--badge-h-sm);
+  padding: 0 var(--s-1);
+  font-size: var(--t-2xs);
+  font-weight: 600;
+}
+
+.count-accent {
+  background: var(--accent);
+  color: var(--on-brand);
+}
+.count-warn {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+.count-danger {
+  background: var(--danger-soft);
+  color: var(--color-danger-strong);
+}
+.count-accent strong,
+.count-warn strong,
+.count-danger strong {
+  color: inherit;
+}

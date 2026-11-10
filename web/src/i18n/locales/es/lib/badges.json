@@ -1,0 +1,39 @@
+{
+  "sandbox": {
+    "ready": "Listo",
+    "starting": "Arrancando",
+    "idle": "Inactivo",
+    "evicted": "Desalojado",
+    "failed": "Falló"
+  },
+  "mcp_status": {
+    "running": "En marcha",
+    "restarting": "Reiniciando",
+    "paused": "En pausa",
+    "starting": "Arrancando",
+    "created": "Creado",
+    "exited": "Detenido",
+    "dead": "Caído",
+    "missing": "Sin contenedor",
+    "unknown": "Desconocido",
+    "configured": "Configurado",
+    "external": "Externo"
+  },
+  "mcp_health": {
+    "healthy": "Responde",
+    "starting": "Arrancando",
+    "unhealthy": "No responde",
+    "unchecked": "Sin comprobar"
+  },
+  "run": {
+    "success": "correcta",
+    "running": "corriendo",
+    "skipped": "salteada",
+    "failed": "falló",
+    "timeout": "se pasó de tiempo",
+    "canceled": "cancelada"
+  },
+  "step": {
+    "ok": "ok"
+  }
+}

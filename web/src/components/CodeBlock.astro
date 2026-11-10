@@ -1,0 +1,45 @@
+---
+// Markup must match codeBlockHTML() in lib/ui/code.ts.
+import Button from "./Button.astro";
+import { t } from "../i18n";
+import { codeBlockClasses, codeCopyAttrs, codeTextAttrs } from "../lib/ui/code";
+import type { CodeMaxHeight, CodeTone } from "../lib/ui/code";
+
+interface Props {
+  text?: string;
+  multiline?: boolean;
+  wrap?: boolean;
+  maxHeight?: CodeMaxHeight;
+  tone?: CodeTone;
+  copy?: boolean;
+  label?: string;
+  textId?: string;
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  text = "",
+  multiline = false,
+  wrap,
+  maxHeight,
+  tone = "neutral",
+  copy = false,
+  label,
+  textId,
+  class: extra,
+  ...rest
+} = Astro.props;
+const look = { multiline, wrap, maxHeight, tone };
+const Tag = multiline ? "pre" : "code";
+---
+
+<div class={codeBlockClasses({ ...look, cls: extra })} {...rest}>
+  <Tag {...codeTextAttrs(look, textId)}>{text}</Tag>
+  {
+    copy && (
+      <Button size="sm" class="code-block-copy" {...codeCopyAttrs(label)}>
+        {t("common.buttons.copy")}
+      </Button>
+    )
+  }
+</div>

@@ -1,0 +1,433 @@
+{
+  "tools": {
+    "task_list": {
+      "description": "Lista las tareas de TU tablero: el flujo al que pertenece la tarea de esta corrida. Devuelve el array completo de tareas (id, title, stage, status, project_ids, stage_assignments, branch_name, tags, timestamps). Usala ANTES de task_get cuando no sabés el id. Los otros tableros son otra tool (board_tasks_list), así un agente puede quedar limitado a su propio flujo."
+    },
+    "task_get": {
+      "description": "Trae una tarea con su payload completo (body, comments, questions, approvals, flags, worktree_paths, pr_urls, current_run_id, …). Más pesada que task_list.",
+      "params": {
+        "id": "Id de la tarea."
+      }
+    },
+    "board_current": {
+      "description": "Dónde estoy: el tablero (flujo) donde vive la tarea de esta corrida, sus columnas en el orden del flujo y la columna donde está la tarea ahora. Las tareas que creás con task_create caen en ESTE tablero. Llamala antes de crear tareas, así el `stage` que pasás es una columna que este tablero tiene de verdad."
+    },
+    "boards_list": {
+      "description": "Lista todos los tableros de la instancia (id, label, cuál es el default, cantidad de tareas). Es acceso de LECTURA entre tableros: a un agente que sólo debe ver su propio flujo directamente no se le concede esta tool. Ningún scope la otorga; hay que nombrarla en la lista de tools del agente. Pasá include_stages para traer las columnas de cada tablero en la misma llamada.",
+      "params": {
+        "include_stages": "Devolver también las columnas de cada tablero en el orden del flujo."
+      }
+    },
+    "board_tasks_list": {
+      "description": "Lista las tareas de OTRO tablero, por id. task_list ya cubre tu propio tablero; esta es la lectura deliberada entre tableros, que se concede sólo nombrándola en la lista de tools del agente. Un id de tablero desconocido falla con un error claro en vez de devolver una lista vacía.",
+      "params": {
+        "board_id": "Id del tablero; ver boards_list."
+      }
+    },
+    "task_create": {
+      "description": "Crea una tarea nueva EN TU PROPIO TABLERO: el flujo al que pertenece la tarea de esta corrida (ver board_current). No hay board_id: esta tool no puede escribir en otro flujo, para eso está task_create_on_board. `title` es obligatorio. `project_ids` vincula repos para que las asignaciones por etapa tomen los defaults de stage_template del proyecto. `stage` es opcional: si lo pasás, la tarea va directo a esa columna (y el dispatcher arranca el agente asignado); antes se valida contra las columnas de tu tablero. `stage_assignments` pisa el mapa de agentes por etapa; los valores son nombres de tipos de agente (p. ej. 'developer'). Devuelve la tarea creada, con board_id incluido, para que confirmes dónde cayó.",
+      "params": {
+        "title": "Obligatorio. Título legible.",
+        "body": "Descripción en markdown.",
+        "project_ids": "Proyectos vinculados. Vacío para tareas sin repo.",
+        "stage": "Columna inicial; tiene que existir en tu tablero (board_current las lista). Omitilo para usar la primera columna del tablero.",
+        "stage_assignments": "Agente por etapa que reemplaza al default, p. ej. {\"in_progress\":\"developer\"}."
+      }
+    },
+    "task_create_on_board": {
+      "description": "Crea una tarea en un tablero EXPLÍCITO: la escritura deliberada entre tableros. Mismos campos que task_create más board_id, y `stage` se valida contra las columnas de ese tablero antes de crear nada. Para tu propio flujo usá task_create. Tiene un nombre aparte justamente para poder negarla: ningún scope la concede, un agente la tiene sólo si su lista de tools MCP lo dice.",
+      "params": {
+        "board_id": "Id del tablero de destino; ver boards_list.",
+        "title": "Obligatorio. Título legible.",
+        "body": "Descripción en markdown.",
+        "project_ids": "Proyectos vinculados. Vacío para tareas sin repo.",
+        "stage": "Columna inicial en el tablero de destino. Omitilo para usar su primera columna.",
+        "stage_assignments": "Agente por etapa que reemplaza al default, p. ej. {\"in_progress\":\"developer\"}."
+      }
+    },
+    "task_move_to_board": {
+      "description": "Mueve una tarea EXISTENTE a otro tablero. La etapa de destino tiene que ser una columna de ese tablero (por defecto, la primera): una tarea estacionada en una columna que su tablero no tiene no se ve en ningún lado. Caer en una etapa con un agente asignado lo lanza, igual que arrastrar la tarjeta. task_update a propósito no puede cambiar el tablero; esta es la única forma.",
+      "params": {
+        "id": "Tarea a mover.",
+        "board_id": "Id del tablero de destino; ver boards_list.",
+        "stage": "Columna de destino. Por defecto, la primera columna del tablero."
+      }
+    },
+    "subtask_create": {
+      "description": "Desprende una subtarea de una tarea padre. La subtarea tiene su propio flujo de etapas y sus propias asignaciones de agentes, pero comparte el contenedor sandbox y la copia de trabajo (worktrees) del padre. La jerarquía tiene un solo nivel: no podés crear una subtarea de una subtarea. Hereda los proyectos y los stage_assignments del padre salvo que los pises. `depends_on` (ids de subtareas hermanas) declara un orden estricto entre subtareas. Devuelve la subtarea creada.",
+      "params": {
+        "parent_id": "Id de la tarea padre.",
+        "title": "Obligatorio. Título legible.",
+        "body": "Descripción en markdown: objetivo, DoD, alcance.",
+        "stage": "Etapa en la que arranca: el id de una columna del tablero (ver board_current). Por defecto, la etapa inicial del tablero.",
+        "stage_assignments": "Agentes por etapa que reemplazan a los default, p. ej. {\"in_progress\":\"devops\"}. Por defecto, el mapa del padre.",
+        "depends_on": "Ids de tareas de las que esta subtarea depende de forma estricta (en general, subtareas hermanas)."
+      }
+    },
+    "task_sections_get": {
+      "description": "Vista parseada de las secciones estructuradas del body de una tarea (## Goal, ## Definition of Done, ## Test Cases, …) con sus ítems de checklist (índice desde 1, texto, si está tildado). Usala antes de tildar ítems, así apuntás al índice correcto. Los casos de prueba viven en sus propias filas (task_test_cases), no en una sección ## Test Cases.",
+      "params": {
+        "id": "Id de la tarea."
+      }
+    },
+    "task_section_set": {
+      "description": "Crea o reemplaza UNA sección estructurada del body de la tarea sin tocar el resto. Slugs canónicos (se insertan en este orden): goal, context, definition-of-done, test-cases, out-of-scope, risks, notes; sus encabezados se ponen solos. Cualquier otro slug necesita un `title` explícito y se agrega al final. El contenido es markdown; escribí el DoD como líneas de checklist `- [ ]` para poder tildarlas después. Usala para escribir el plan de una tarea dentro de la tarea misma. Los casos de prueba ya NO van acá: agregalos con task_test_case_add, que le da a cada uno una key, un estado y sus corridas (no por la sección test-cases).",
+      "params": {
+        "id": "Id de la tarea.",
+        "slug": "Dirección de la sección, p. ej. 'goal', 'definition-of-done', 'test-cases'.",
+        "content": "Contenido markdown de la sección (sin la línea del encabezado).",
+        "title": "Texto del encabezado. Sólo hace falta para slugs no canónicos."
+      }
+    },
+    "task_checklist_check": {
+      "description": "Tilda o destilda UN ítem de checklist dentro de una sección (DoD…). `index` empieza en 1 dentro de esa sección: confirmalo antes con task_sections_get. Pasá una `note` corta con la evidencia del tilde ('verificado: ver reporte R3', 'cubierto por TestExportPDF'); se agrega a la línea del ítem para que la evidencia viaje con la tarea. Tildá sólo ítems que verificaste vos. Un caso de prueba no es un ítem de checklist: registralo con task_test_case_run (o task_test_case_update); no ## Test Cases en el body.",
+      "params": {
+        "id": "Id de la tarea.",
+        "slug": "Slug de la sección, p. ej. 'definition-of-done'.",
+        "index": "Posición del ítem dentro de la sección, empezando en 1.",
+        "note": "Nota corta de evidencia que se agrega al ítem."
+      }
+    },
+    "task_attach": {
+      "description": "Sube un archivo (captura, PDF, log) como adjunto de la tarea para que aparezca en la tarea en el dashboard. Es la forma DURADERA de entregar evidencia visual en Kubernetes: los archivos escritos en el output-dir de la corrida NO se recolectan, así que una captura sólo sobrevive si la subís por acá en vivo. Pasá los bytes en base64 en `content_base64` (p. ej. el base64 que devuelve una captura inline de mcp__thulu-browser__screenshot { inline: true }). Poné `mime_type` (image/png, image/jpeg, application/pdf) para que el dashboard muestre las imágenes inline. Usá un `filename` descriptivo como etiqueta, p. ej. 'before-reports-page.png', 'after-export-pdf.png', 'export-output.pdf'. Máximo 50 MB por archivo.",
+      "params": {
+        "id": "Id de la tarea.",
+        "filename": "Nombre de archivo descriptivo CON extensión; también es la etiqueta que muestra la UI.",
+        "content_base64": "Los bytes del archivo, en base64.",
+        "mime_type": "Tipo MIME, p. ej. image/png · image/jpeg · application/pdf. Por defecto image/png.",
+        "comment_id": "Adjuntar el archivo a este comentario en vez de a la tarea: aparece debajo de ese comentario. Omitilo para dejarlo en la tarea. El comentario tiene que ser de la misma tarea."
+      }
+    },
+    "task_attachments": {
+      "description": "Lista todos los archivos de una tarea: pegados en el body, publicados con un comentario o entregados por un agente. Devuelve id, filename, mime_type, size, author y comment_id (vacío cuando el archivo cuelga de la tarea misma). Para embeber uno en markdown: ![<filename>](/task-attachments/<id>); el filename es lo que le dice al dashboard si mostrar una imagen o un reproductor de video.",
+      "params": {
+        "id": "Id de la tarea."
+      }
+    },
+    "task_attachment_delete": {
+      "description": "Borra un adjunto: la fila y el archivo. Donde estuviera embebido (el body de la tarea, un comentario) va a quedar un link roto.",
+      "params": {
+        "attachment_id": "Id del adjunto."
+      }
+    },
+    "task_update": {
+      "description": "Modifica una tarea. Pasá sólo los campos que querés cambiar. Cambiar `stage` dispara el dispatcher (lanza o relanza el agente de la etapa nueva). Las aprobaciones pendientes de la etapa que la tarea deja frenan todo movimiento hacia adelante. No muevas la tarea de tu propia corrida: Thulu la mueve cuando terminás, si la etapa avanza sola. Esta tool no puede mover una tarea a otro tablero: usá task_move_to_board, así esa capacidad se puede conceder por separado."
+    },
+    "task_delete": {
+      "description": "Borra una tarea y sus worktrees. Irreversible. Confirmalo con el usuario antes de usarla sobre algo que tenga trabajo en curso."
+    },
+    "task_clone": {
+      "description": "Clona una tarea en la etapa inicial de su tablero con el mismo título/body/proyectos/asignaciones/tags. Sin comentarios, flags, branches ni estado de ejecución. El título lleva el prefijo 'Copy of '."
+    },
+    "task_relaunch": {
+      "description": "Vuelve a lanzar el agente de la etapa actual de la tarea. Usala cuando una corrida murió por max_turns. `turns` es opcional: por defecto, el doble del presupuesto por etapa que tiene hoy el agente.",
+      "params": {
+        "turns": "Presupuesto de turnos, opcional."
+      }
+    },
+    "task_list_dependencies": {
+      "description": "Lista las dependencias de una tarea: `blocked_by` (tareas que esta espera) y `blocking` (tareas que esperan a esta). Cada una trae id/title/stage de la otra tarea y el tipo (hard|soft). También devuelve `is_blocked`: true cuando algún bloqueante hard no llegó a una etapa terminal de su tablero.",
+      "params": {
+        "id": "Id de la tarea."
+      }
+    },
+    "task_add_dependency": {
+      "description": "Declara que `id` depende de `depends_on_task_id`. El tipo por defecto es 'hard': la tarea no puede salir de la etapa inicial de su tablero hasta que el bloqueante llega a una etapa terminal del suyo. Usá 'soft' para dependencias informativas que no frenan nada (p. ej. 'el frontend puede arrancar contra mocks'). Rechaza autodependencias, ciclos, duplicados y dependencias hard en una tarea que ya salió de su etapa inicial.",
+      "params": {
+        "id": "La tarea que depende.",
+        "depends_on_task_id": "La tarea bloqueante.",
+        "kind": "Por defecto 'hard'."
+      }
+    },
+    "task_remove_dependency": {
+      "description": "Saca la dependencia `id → depends_on_task_id`. Si no existía, no hace nada. Usala para desbloquear una tarea cuyo bloqueante resultó no tener que ver, o para bajar una dependencia hard a soft (sacarla y agregarla como soft)."
+    },
+    "task_add_comment": {
+      "description": "Publica un comentario en una tarea. El daemon lo firma con tu nombre de agente, a partir de tu credencial. Un comentario de un agente lanza a los otros agentes que @menciona, hasta 3 turnos de agente seguidos por hilo desde la última vez que escribió una persona; pasado ese tope el hilo lo avisa y no se lanza nadie hasta que conteste una persona. El body se muestra como markdown, así que un adjunto embebido como ![<filename>](/task-attachments/<id>) aparece inline: una imagen como imagen, un .mp4 o .webm como reproductor.",
+      "params": {
+        "body": "Markdown del comentario.",
+        "parent_id": "Responder en un hilo: el id de cualquier comentario del hilo (la respuesta se suma al hilo de ese comentario). Omitilo para abrir un hilo nuevo. Si te @mencionaron en un hilo, pasá su id (THREAD_ID) para que tu respuesta caiga ahí.",
+        "attachment_ids": "Adjuntos (ya subidos con task_attach) que pertenecen a este comentario. Aparecen debajo, y los que además embebiste en el body se muestran inline en vez de dos veces."
+      }
+    },
+    "task_add_report": {
+      "description": "Archiva un reporte en la pestaña Reports de la tarea: evidencia extensa, como los chequeos, capturas y logs de una corrida de pruebas. El hilo de comentarios sigue siendo una conversación; un reporte no notifica a nadie ni lanza agentes. El body se muestra como markdown (256 KB como máximo), así que los adjuntos subidos con task_attach aparecen inline si los embebés como ![<filename>](/task-attachments/<id>). Devuelve el reporte con su id, que task_test_case_run recibe como report_id.",
+      "params": {
+        "id": "Id de la tarea.",
+        "title": "Una línea que se muestra en el encabezado del reporte (200 caracteres como máximo).",
+        "body": "Markdown del reporte."
+      }
+    },
+    "task_ask": {
+      "description": "Pediles a las personas de esta tarea una decisión que no podés tomar vos: elegir entre enfoques, un requisito que falta, un acceso que no tenés. La pregunta cae en el hilo de la tarea con sus opciones, y la contesta ahí una persona del workspace con rol Developer o superior. Preguntá antes del trabajo caro, y juntá todas tus dudas en una sola llamada (hasta 4 preguntas) en vez de preguntar de a una. Si hay un default razonable, poné blocking: false y decí en `default` qué vas a hacer; seguís trabajando con eso, y una respuesta que llega mientras corrés te alcanza (una posterior queda en el hilo para la próxima corrida). Usá kind: blocker sólo cuando no podés seguir de ninguna manera: falta una credencial o un acceso, o el pedido se contradice. Después de una pregunta bloqueante, TERMINÁ TU TURNO en el acto con una línea de resumen: la corrida queda estacionada y se retoma con la respuesta como tu próximo mensaje. No esperes, no consultes y no sigas trabajando.",
+      "params": {
+        "kind": "question: necesitás una decisión pero el pedido se entiende sin ella. blocker: no podés seguir de ninguna manera (falta una credencial o un acceso, o el pedido se contradice).",
+        "blocking": "Por defecto true: terminás tu turno y la corrida se retoma con la respuesta. false: seguís con `default` y nada espera la respuesta.",
+        "context": "Qué estabas haciendo y por qué preguntás, en dos o tres oraciones. Es lo primero que lee quien contesta.",
+        "questions": "De 1 a 4 preguntas, que se contestan juntas. Juntá tus dudas acá en vez de volver a preguntar después.",
+        "questions_header": "Una etiqueta corta que se muestra como chip sobre la pregunta, 12 caracteres como máximo (\"Base\", \"Auth\").",
+        "questions_question": "La pregunta en sí, lo bastante completa para contestarla sin leer nada más.",
+        "questions_options": "De 0 a 6 opciones; ninguna quiere decir respuesta libre. Poné primero la que recomendás y decilo en su descripción.",
+        "options_label": "Lo que la persona clickea, y cómo la respuesta nombra la opción. Única dentro de la pregunta.",
+        "options_description": "Qué implica elegirla: costo, riesgo, qué vas a hacer.",
+        "questions_multi_select": "true deja elegir varias opciones. Por defecto false.",
+        "questions_allow_other": "Por defecto true: además de las opciones, la persona puede escribir una respuesta propia.",
+        "default": "Qué vas a hacer si nadie contesta. Obligatorio cuando blocking es false.",
+        "needs_credential": "true cuando la respuesta es un acceso que no tenés (un token, una clave, una contraseña). El formulario le avisa a la persona que no lo pegue en el hilo, que lee todo el que está en la tarea, y le deja el link a Credenciales."
+      }
+    },
+    "task_request_approval": {
+      "description": "Suma una aprobación que esta tarea necesita antes de avanzar desde su etapa actual, p. ej. \"toqué la UI de checkout, que lo mire diseño\". Aparece en la tarea y frena todo movimiento hacia adelante hasta que una persona la aprueba o la saltea. Sólo podés sumar aprobaciones: aprobar, saltear o borrar una es cosa de personas. No termines tu turno por esto; seguí trabajando, el gate se aplica cuando la tarea intenta salir de la etapa.",
+      "params": {
+        "label": "Quién tiene que revisar, como lo diría el equipo (\"Diseño\", \"QA\", \"Seguridad\").",
+        "reason": "Qué cambió y qué mirar, para que quien revisa no tenga que reconstruirlo.",
+        "key": "Id corto y estable, opcional (design, qa), del tipo de key que usa una etapa en sus aprobaciones requeridas."
+      }
+    },
+    "task_test_cases": {
+      "description": "Lista los casos de prueba de una tarea en orden, cada uno con key (TC-1…), title, description, steps, expected, priority, status (pending | pass | fail | blocked | skipped), covered y sus corridas de la más nueva a la más vieja (veredicto, observed, ids de adjuntos de video/toma/captura, id del reporte; las corridas viejas traen un id de comentario en su lugar). Leela antes de probar una tarea y antes de registrar nada, así trabajás contra las keys que existen.",
+      "params": {
+        "id": "Id de la tarea."
+      }
+    },
+    "task_test_case_add": {
+      "description": "Agrega casos de prueba a una tarea, siempre como un array `cases`, uno o varios. Cada caso necesita un `title`; si omitís `key`, se asigna TC-<máx+1>. `description`, `steps` y `expected` son markdown (steps suele ser una lista numerada). Los casos nuevos arrancan pending, sin cubrir, y van al final. Usala para escribir los casos de prueba del plan, en vez de una sección ## Test Cases en el body. Devuelve los casos creados.",
+      "params": {
+        "id": "Id de la tarea.",
+        "cases_title": "Obligatorio. 200 caracteres como máximo.",
+        "cases_key": "Key explícita opcional, p. ej. 'TC-4'. Tiene que ser única en la tarea.",
+        "cases_description": "Contexto, precondiciones, datos (markdown).",
+        "cases_steps": "Cómo ejercitarlo (markdown).",
+        "cases_expected": "El resultado esperado (markdown)."
+      }
+    },
+    "task_test_case_update": {
+      "description": "Modifica un caso de prueba; cambian sólo los campos que pasás. `case` es la key (TC-3) o el id. Poner `status` o `covered` a mano es para lo que no tiene una corrida detrás (un caso salteado a propósito, uno verificado fuera de una grabación); para registrar una prueba que ejecutaste usá task_test_case_run, que pone las dos cosas por vos.",
+      "params": {
+        "id": "Id de la tarea.",
+        "case": "Key del caso (p. ej. 'TC-3') o id.",
+        "position": "Orden dentro de la tarea."
+      }
+    },
+    "task_test_case_delete": {
+      "description": "Borra un caso de prueba y todas las corridas registradas contra él. `case` es la key (TC-3) o el id. Los adjuntos a los que apuntaban sus corridas quedan en la tarea.",
+      "params": {
+        "id": "Id de la tarea.",
+        "case": "Key del caso (p. ej. 'TC-3') o id."
+      }
+    },
+    "task_test_case_run": {
+      "description": "Registra una ejecución de un caso de prueba con su evidencia. El `verdict` (pass | fail | blocked) pasa a ser el estado del caso y lo marca como cubierto. `case` es la key (TC-3) o el id. Los ids de evidencia tienen que ser de la misma tarea: primero subí los archivos con task_attach y después pasá sus ids acá. NO la llames para un caso que ya registró evidence_publish de thulu-browser: cada paso de verificación cuyo `case` coincide con una key de la tarea se vuelve una corrida por sí solo, con el video, la toma, las capturas y el reporte que publicó en la pestaña Reports; registrarlo de nuevo acá contaría dos veces la misma ejecución.",
+      "params": {
+        "id": "Id de la tarea.",
+        "case": "Key del caso (p. ej. 'TC-3') o id.",
+        "observed": "Lo que se vio, en una o dos líneas.",
+        "note": "Nota más larga en markdown.",
+        "video_attachment_id": "Id del adjunto con la grabación.",
+        "take_attachment_id": "Id del adjunto con la toma reproducible (JSON).",
+        "report_id": "Id del reporte de la pestaña Reports de la tarea que tiene la evidencia.",
+        "comment_id": "Id del comentario de un reporte publicado como comentario. Las corridas pasan report_id.",
+        "capture_attachment_ids": "Ids de los adjuntos con las capturas tomadas durante la corrida."
+      }
+    },
+    "agent_list": {
+      "description": "Lista los contenedores de agentes activos y los que terminaron hace poco. Devuelve id, type, project, instance, status (running/exited), uptime, exit_code."
+    },
+    "agent_get": {
+      "description": "Trae el estado completo de un contenedor de agente por su id corto.",
+      "params": {
+        "id": "Id corto del contenedor."
+      }
+    },
+    "agent_stop": {
+      "description": "Detiene un contenedor de agente en ejecución (de forma ordenada). El dispatcher no lo reinicia solo. Usala para cortar un agente desbocado.",
+      "params": {
+        "id": "Id corto del contenedor."
+      }
+    },
+    "agent_type_list": {
+      "description": "Lista todos los tipos de agente definidos en agents/: name, type, model, valid_stages, description. Son las plantillas, no los contenedores en ejecución (para esos, agent_list)."
+    },
+    "agent_type_get_settings": {
+      "description": "Lee la configuración de un tipo de agente: name, description, valid_stages, model, effort, works_without_repo, turns_by_stage, skills_by_stage, mcp_by_stage, más el bloque del auditor.",
+      "params": {
+        "name": "Nombre del tipo de agente (directorio dentro de agents/)."
+      }
+    },
+    "agent_type_list_prompts": {
+      "description": "Lista los archivos de prompt de un tipo de agente: main + los prompts por etapa, más el set del auditor. Te dice qué archivos de prompt existen en disco y cuáles caerían en main.md/default.md."
+    },
+    "agent_type_list_files": {
+      "description": "Lista los archivos markdown editables dentro del directorio de un tipo de agente (prompts/*.md, auditor/*.md). Usala ANTES de agent_type_read_file."
+    },
+    "agent_type_read_file": {
+      "description": "Lee un archivo editable dentro del directorio de un tipo de agente. La ruta es relativa al directorio del agente, p. ej. 'prompts/main.md', 'prompts/in_progress.md'.",
+      "params": {
+        "path": "Ruta relativa dentro del directorio del agente."
+      }
+    },
+    "agent_type_update_settings": {
+      "description": "Actualiza la configuración de un tipo de agente (la escribe en las labels de su docker-compose.yml). Pasá SÓLO los campos que querés cambiar; el resto se conserva. Después de esto, los agentes que arranquen con este tipo toman la config nueva; los contenedores que ya corren no se reinician solos.",
+      "params": {
+        "model": "p. ej. 'opus', 'sonnet', 'haiku'.",
+        "effort": "'low' | 'medium' | 'high'.",
+        "system_skills_off": "Por etapa, las skills del sistema (octopus-*) que este agente no recibe ahí, p. ej. {\"review\": [\"octopus-browser-evidence\"]}. Si no lo pasás, se conserva la lista actual; {} vuelve a prender todas las skills del sistema."
+      }
+    },
+    "agent_type_write_file": {
+      "description": "Sobrescribe un archivo markdown editable dentro del directorio de un tipo de agente. La ruta es relativa (p. ej. 'prompts/main.md'). El contenido nuevo completo va en `content`: no hay soporte para patch/diff. Usá antes agent_type_read_file para conservar lo que quieras mantener.",
+      "params": {
+        "content": "Contenido nuevo completo."
+      }
+    },
+    "agent_type_create": {
+      "description": "Crea un tipo de agente nuevo. Con `template` clona ese agente existente; sin template arranca del esqueleto mínimo incluido, sin etapas válidas hasta que las configures.",
+      "params": {
+        "name": "Nombre del agente nuevo.",
+        "template": "Agente existente a clonar. Omitilo para arrancar del esqueleto."
+      }
+    },
+    "agent_type_delete": {
+      "description": "Borra un tipo de agente (elimina su directorio). Confirmalo con el usuario. Las tareas activas que tengan este agente asignado en una etapa no van a poder despacharse."
+    },
+    "project_list": {
+      "description": "Lista todos los proyectos vinculados: id, name, repo_url, default_branch, description, stage_template, ruta en disco."
+    },
+    "project_get": {
+      "description": "Trae el registro completo de un proyecto."
+    },
+    "project_create": {
+      "description": "Registra un proyecto nuevo. `name` y `repo_url` son obligatorios. `stage_template` es un mapa de agentes por etapa que se aplica por defecto a las tareas nuevas vinculadas a este proyecto.",
+      "params": {
+        "repo_url": "URL de git o ruta local.",
+        "default_branch": "Por defecto 'main'."
+      }
+    },
+    "project_update": {
+      "description": "Modifica un proyecto. Cambian sólo los campos que pasás."
+    },
+    "project_delete": {
+      "description": "Borra un proyecto (NO elimina sus worktrees en disco ni el repo de origen). Las tareas vinculadas pierden el vínculo."
+    },
+    "skills_list": {
+      "description": "Lista todas las skills disponibles en skills/. Las skills son bloques de conocimiento que se pueden configurar para que los agentes los carguen por etapa (con skills_by_stage)."
+    },
+    "tools_list": {
+      "description": "Lista todos los servicios de tools MCP registrados en tools/. Sirve para completar mcp_by_stage en los tipos de agente."
+    },
+    "stages_list": {
+      "description": "Lista las definiciones canónicas de etapas (id + label) que usa el tablero. Es el mismo set contra el que se valida el valid_stages de cada agente."
+    },
+    "environment_list": {
+      "description": "Entornos desplegados de un proyecto (dev/staging/prod): provider, región, selectores, agrupamiento `system` y si tienen una credencial cloud configurada. Sacá el environment_id de acá antes de proponer cualquier mapping."
+    },
+    "environment_mapping_list": {
+      "description": "Mappings de métricas actuales de un entorno, con su estado (proposed | active | disabled | not_applicable). Revisalo antes de proponer, así reemplazás a propósito en vez de duplicar."
+    },
+    "environment_mapping_propose": {
+      "description": "Propone de dónde sale cada señal del dashboard en esta cuenta. Las propuestas son INERTES: no se recolecta nada hasta que una persona las aprueba, así que proponé con libertad pero decí de qué no estás seguro. Pasá todo el set coherente en una sola llamada. Cada mapping: {service, signal, project_id?, source}. Señales válidas: latency_p50, latency_p95, error_rate, throughput, cpu, memory, saturation, restarts, cost_daily. Para una señal que esta arquitectura no puede producir (una Lambda no tiene CPU), mandá {service, signal, not_applicable: true, note: 'por qué'} en vez de omitirla: un tile vacío no se distingue de un colector roto. `source` tiene la forma del provider: copiá el bloque `suggested` de discover_resources de thulu-cloud en vez de inventarlo, y conservá su `unit`.",
+      "params": {
+        "mappings": "[{service, signal, project_id?, source:{...}}]",
+        "task_id": "Mandalo SIEMPRE. El daemon le suma a la tarea una aprobación de revisión vinculada a estas propuestas, así aprobarlas la cierra en un solo paso. No la pidas además con task_request_approval ni en flags.yaml: quedaría duplicada.",
+        "flag_id": "Rara vez hace falta: el id de una aprobación de revisión que ya existe, para vincularla en lugar de la que suma el daemon."
+      }
+    },
+    "custom_metric_list": {
+      "description": "Métricas custom de un entorno: todo lo que la aplicación mandó por OTLP y no cubre ninguna señal fija. Una métrica se registra sola la primera vez que aparece, con estado `discovered`, y sólo se puede graficar cuando una persona la aprueba. Leé acá `kind` (counter | gauge) y `labels` antes de proponer cualquier panel sobre ella."
+    },
+    "custom_metric_series": {
+      "description": "Puntos guardados de una métrica custom en una ventana (por defecto, las últimas 24 h), con sus labels. Usala para ver qué contiene de verdad una métrica antes de armar un panel con ella, o cuando un panel se ve mal.",
+      "params": {
+        "from": "RFC3339. Opcional.",
+        "to": "RFC3339. Opcional."
+      }
+    },
+    "chart_types_list": {
+      "description": "El catálogo de gráficos y sus contratos: cada tipo de gráfico, cuántas series admite, si necesita group_by, qué tipos de métrica acepta y qué agregaciones se permiten para cada tipo (sumar un gauge y tomar el último valor de un counter se rechazan los dos). Leelo antes de dashboard_propose: el catálogo es cerrado y un panel que no cumple un contrato se rechaza."
+    },
+    "dashboard_list": {
+      "description": "Dashboards de un entorno con su estado (proposed | active | archived) y sus paneles."
+    },
+    "dashboard_get": {
+      "description": "El registro completo de un dashboard, con sus paneles."
+    },
+    "dashboard_data": {
+      "description": "Resuelve un dashboard en números: cada panel con sus series, buckets y valores, agregados en el server. Es lo que dibuja la página, así que también sirve para comprobar que un dashboard dice lo que quisiste decir.",
+      "params": {
+        "range_hours": "Reemplaza la ventana propia de cada panel."
+      }
+    },
+    "dashboard_propose": {
+      "description": "Propone un dashboard de paneles de métricas custom. INERTE hasta que una persona lo aprueba, la misma compuerta que environment_mapping_propose. Llamá antes a chart_types_list y custom_metric_list: cada serie nombra una métrica aprobada y una agregación que su tipo permite, y un rechazo nombra el panel, el slot y la regla que rompió. Pasá task_id para que la propuesta le sume sola a la tarea la aprobación de revisión.",
+      "params": {
+        "panels_type": "line | area | bar | stat | table",
+        "panels_series_metric": "Nombre de una métrica aprobada.",
+        "panels_series_agg": "sum | avg | max | min | last",
+        "panels_series_where": "Filtro por labels que se aplica antes de agregar.",
+        "panels_series_label": "Texto de la leyenda, en vez del default.",
+        "panels_group_by": "Label por la que se divide. Obligatoria en area, bar y table; prohibida en stat.",
+        "panels_range_hours": "Por defecto 24.",
+        "panels_width": "1 = media fila, 2 = fila completa.",
+        "task_id": "Mandalo SIEMPRE: el daemon le suma a la tarea una aprobación de revisión vinculada a la propuesta, así aprobarla la cierra en un solo paso."
+      }
+    }
+  },
+  "errors": {
+    "no_credential": "esta llamada no trajo ninguna credencial de Thulu: la key del agente viaja en el handshake MCP (X-API-Key) y este server no tiene una propia",
+    "daemon_http": "Thulu {method} {path} → HTTP {status}: {msg}",
+    "no_task_context": "esta sesión MCP no tiene contexto de tarea (falta ?task= en la URL del SSE), así que no hay un tablero actual. Usá las tools *_on_board con un board_id explícito.",
+    "task_without_board": "la tarea {task} no tiene board_id: el daemon es anterior a los tableros",
+    "unknown_board": "tablero desconocido '{board}'. Tableros de esta instancia: {boards}",
+    "stage_not_on_board": "la etapa '{stage}' no existe en el tablero '{board}'. Sus columnas son: {columns}",
+    "board_without_columns": "el tablero '{board}' no tiene columnas a las que mover la tarea",
+    "mappings_empty": "mappings tiene que ser un array no vacío",
+    "panels_empty": "panels tiene que ser un array no vacío",
+    "cases_empty": "cases tiene que ser un array no vacío",
+    "run_tool_without_task": "{tool} funciona sólo dentro de una corrida de tarea: esta sesión MCP no trae tarea (falta ?task= en la URL del SSE)",
+    "ask_kind": "kind tiene que ser 'question' o 'blocker', llegó '{kind}'",
+    "ask_bool": "{field} tiene que ser true o false",
+    "ask_string": "{field} tiene que ser un string",
+    "ask_required": "{field} es obligatorio y no puede estar vacío",
+    "ask_default_required": "default es obligatorio cuando blocking es false: decí qué vas a hacer si nadie contesta",
+    "ask_questions_count": "questions lleva de {min} a {max} ítems, llegaron {count}. Poné las que más importan en una sola llamada.",
+    "ask_header_long": "{field} '{header}' pasa de {max} caracteres: es un chip, dejalo en una o dos palabras",
+    "ask_options_count": "{field} lleva como máximo {max} opciones, llegaron {count}",
+    "ask_option_duplicate": "{field} repite la etiqueta '{label}': la respuesta nombra la opción por su etiqueta, así que tienen que ser únicas",
+    "task_create_board_id": "task_create no recibe board_id: siempre escribe en el tablero de esta corrida. Para crear en otro flujo usá task_create_on_board.",
+    "subtask_create_board_id": "subtask_create no recibe board_id: una subtarea siempre corre en el tablero de su padre.",
+    "task_update_board_id": "task_update no puede cambiar el tablero de una tarea: usá task_move_to_board, que valida la columna de destino y se concede por separado.",
+    "content_base64_invalid": "content_base64 está vacío o no es base64 válido",
+    "unknown_tool": "tool desconocida '{name}'",
+    "tool_not_allowed": "la tool '{name}' no está en la lista de tools permitidas de esta sesión",
+    "tool_cross_board": "la tool '{name}' sale del tablero de esta corrida y ningún scope concede eso, ni siquiera write. Hay que nombrarla en la lista de tools MCP del agente (thulu.mcp.default.<stage>: octopus-api@…+{name}).",
+    "tool_scope_required": "la tool '{name}' requiere el scope '{required}' y esta sesión tiene '{scope}'",
+    "tool_without_handler": "la tool '{name}' no tiene handler (bug del server)",
+    "missing_arguments": "{tool}: faltan argumentos obligatorios: {args}",
+    "tool_failed": "error en {tool}: {err}",
+    "session_not_found": "no se encontró la sesión",
+    "handshake_no_key": "una sesión MCP necesita la key del run en el handshake (X-API-Key o Authorization: Bearer)",
+    "message_key_mismatch": "este mensaje no trae la key con la que se abrió su sesión",
+    "list_only_session": "esta sesión se abrió sin credencial: puede listar las tools, no llamarlas"
+  },
+  "text": {
+    "mappings_proposed_note": "Las propuestas no hacen nada hasta que una persona las aprueba en la página del proyecto. Con task_id, la tarea ya muestra la aprobación de revisión pendiente.",
+    "dashboard_proposed_note": "Propuesto, todavía no visible. Una persona lo aprueba en la página del proyecto; eso también cierra la aprobación de revisión de la tarea.",
+    "board_current_note": "task_create y task_list actúan sobre este tablero. Llegar a otro tablero necesita boards_list / board_tasks_list / task_create_on_board, que se conceden por agente y por etapa.",
+    "ask_blocking_fallback": "Pregunta publicada. Terminá tu turno ahora con una línea de resumen; la corrida se retoma con la respuesta.",
+    "ask_nonblocking_fallback": "Pregunta publicada. Seguí con tu default; una respuesta que llegue mientras corrés te va a alcanzar, una posterior queda en el hilo.",
+    "ask_reference": "id de la pregunta: {question} · hilo: {comment}",
+    "approval_requested_note": "La tarea no puede avanzar desde esta etapa hasta que una persona apruebe o saltee esto. No podés aprobarlo vos; seguí trabajando."
+  },
+  "labels": {
+    "none": "(ninguno)"
+  },
+  "log": {
+    "unknown_scope": "[octopus-api] scope desconocido '{scope}', se usa 'read'",
+    "listening": "servidor MCP octopus-api escuchando en :{port}",
+    "octopus_api": "  OCTOPUS_API:  {url}",
+    "tools": "  Tools:        {total} (read: {read}, write: {write}, entre tableros: {cross_board}, sólo se conceden por nombre)",
+    "sse_endpoint": "  Endpoint SSE: GET  /sse?scope=read|write[&tools=a,b][&task=<id>][&catalog=1]",
+    "health": "  Health:       GET  /health",
+    "shutting_down": "\nllegó {signal}, apagando"
+  }
+}

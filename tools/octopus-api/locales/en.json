@@ -1,0 +1,433 @@
+{
+  "tools": {
+    "task_list": {
+      "description": "List the tasks on YOUR board — the flow this run's task belongs to. Returns the full task array (id, title, stage, status, project_ids, stage_assignments, branch_name, tags, timestamps). Use this BEFORE task_get when you don't know the id. Other boards are a separate tool (board_tasks_list), so an agent can be kept to its own flow."
+    },
+    "task_get": {
+      "description": "Fetch a single task with its full payload (body, comments, questions, approvals, flags, worktree_paths, pr_urls, current_run_id, …). Heavier than task_list.",
+      "params": {
+        "id": "Task id."
+      }
+    },
+    "board_current": {
+      "description": "Where am I: the board (flow) this run's task lives on, its columns in flow order, and the column the task currently sits in. Tasks you create with task_create land on THIS board. Call it before creating tasks so the `stage` you pass is a column this board actually has."
+    },
+    "boards_list": {
+      "description": "List every board on the instance (id, label, which one is the default, task counts). This is cross-board READ access — an agent that should only see its own flow is simply not granted this tool — no scope hands it out, it must be named in the agent's tool list. Pass include_stages to get each board's columns in the same call.",
+      "params": {
+        "include_stages": "Also return each board's columns in flow order."
+      }
+    },
+    "board_tasks_list": {
+      "description": "List the tasks of ANOTHER board, by id. task_list already covers your own board; this is the deliberate cross-board read, granted only by name in the agent's tool list. Unknown board ids fail loudly rather than returning an empty list.",
+      "params": {
+        "board_id": "Board id — see boards_list."
+      }
+    },
+    "task_create": {
+      "description": "Create a new task ON YOUR OWN BOARD — the flow this run's task belongs to (see board_current). There is no board_id: this tool cannot write to another flow, that is task_create_on_board. `title` is required. `project_ids` links repos so stage assignments can pull stage_template defaults from the project. `stage` is optional — when set, the task is placed directly in that column (and the dispatcher boots the assigned agent for it); it is validated against your board's columns first. `stage_assignments` overrides the per-stage agent map; values are agent type names (e.g. 'developer'). Returns the created task, board_id included, so you can confirm where it landed.",
+      "params": {
+        "title": "Required. Human title.",
+        "body": "Markdown description.",
+        "project_ids": "Linked projects. Empty for repo-less tasks.",
+        "stage": "Initial column, and it must exist on your board (board_current lists them). Omit to use the board's first column.",
+        "stage_assignments": "Per-stage agent name overrides, e.g. {\"in_progress\":\"developer\"}."
+      }
+    },
+    "task_create_on_board": {
+      "description": "Create a task on an EXPLICIT board — the deliberate cross-board write. Same fields as task_create plus board_id, and `stage` is checked against that board's columns before anything is created. Use task_create for your own flow. This is a separate name precisely so it can be withheld: no scope grants it, an agent only has it when its MCP tool list says so.",
+      "params": {
+        "board_id": "Destination board id — see boards_list.",
+        "title": "Required. Human title.",
+        "body": "Markdown description.",
+        "project_ids": "Linked projects. Empty for repo-less tasks.",
+        "stage": "Initial column on the destination board. Omit for its first column.",
+        "stage_assignments": "Per-stage agent name overrides, e.g. {\"in_progress\":\"developer\"}."
+      }
+    },
+    "task_move_to_board": {
+      "description": "Move an EXISTING task to another board. The destination stage must be a column of that board (defaults to its first) — a task parked in a column its own board doesn't have renders nowhere. Landing on a stage that has an agent assigned launches it, exactly like dragging the card. task_update deliberately cannot change the board; this is the only way.",
+      "params": {
+        "id": "Task to move.",
+        "board_id": "Destination board id — see boards_list.",
+        "stage": "Destination column. Defaults to the board's first column."
+      }
+    },
+    "subtask_create": {
+      "description": "Carve a subtask off a parent task. The subtask gets its own stage flow and agent assignments but shares the parent's sandbox container and working copy (worktrees). Hierarchy is one level deep — you cannot create a subtask of a subtask. Inherits the parent's projects and stage_assignments unless overridden. `depends_on` (sibling subtask ids) declares hard ordering between subtasks. Returns the created subtask.",
+      "params": {
+        "parent_id": "The parent task id.",
+        "title": "Required. Human title.",
+        "body": "Markdown description — goal, DoD, scope.",
+        "stage": "Stage it starts in: the id of a board column (see board_current). Default: the board's initial stage.",
+        "stage_assignments": "Per-stage agent overrides, e.g. {\"in_progress\":\"devops\"}. Defaults to the parent's map.",
+        "depends_on": "Task ids this subtask hard-depends on (typically sibling subtasks)."
+      }
+    },
+    "task_sections_get": {
+      "description": "Parsed view of a task body's structured sections (## Goal, ## Definition of Done, ## Test Cases, …) with their checklist items (1-based index, text, checked state). Use this before checking items off so you address the right index. Test cases live in their own rows (task_test_cases), not in a ## Test Cases section.",
+      "params": {
+        "id": "Task id."
+      }
+    },
+    "task_section_set": {
+      "description": "Create or replace ONE structured section of the task body without touching the rest. Canonical slugs (inserted in this order): goal, context, definition-of-done, test-cases, out-of-scope, risks, notes — their headings are set automatically. Any other slug needs an explicit `title` and is appended at the end. Content is markdown; write the DoD as `- [ ]` checklist lines so it can be checked off later. Use it to write the plan for a task into the task itself. Test cases do NOT go here any more: add them with task_test_case_add, which gives each one a key, a status and its runs (not through the test-cases section).",
+      "params": {
+        "id": "Task id.",
+        "slug": "Section address, e.g. 'goal', 'definition-of-done', 'test-cases'.",
+        "content": "Markdown content of the section (no heading line).",
+        "title": "Heading text. Only needed for non-canonical slugs."
+      }
+    },
+    "task_checklist_check": {
+      "description": "Check or uncheck ONE checklist item inside a section (DoD…). `index` is 1-based within that section — confirm it with task_sections_get first. Pass a short `note` with the evidence for the tick ('verified: see report R3', 'covered by TestExportPDF'); it is appended to the item line so the evidence travels with the task. Only check items you actually verified yourself. A test case is not a checklist item: record it with task_test_case_run (or task_test_case_update); not ## Test Cases in the body.",
+      "params": {
+        "id": "Task id.",
+        "slug": "Section slug, e.g. 'definition-of-done'.",
+        "index": "1-based item position within the section.",
+        "note": "Short evidence note appended to the item."
+      }
+    },
+    "task_attach": {
+      "description": "Upload a file (screenshot, PDF, log) as a task attachment so it shows on the task in the dashboard. This is the DURABLE way to deliver visual evidence under Kubernetes — files written to the run's output-dir are NOT collected, so a screenshot only survives if you push it through here live. Pass the bytes base64-encoded in `content_base64` (e.g. the base64 an inline screenshot from mcp__thulu-browser__screenshot { inline: true } returns). Set `mime_type` (image/png, image/jpeg, application/pdf) so the dashboard renders images inline. Use a descriptive `filename` as the label — e.g. 'before-reports-page.png', 'after-export-pdf.png', 'export-output.pdf'. Max 50 MB per file.",
+      "params": {
+        "id": "Task id.",
+        "filename": "Descriptive filename WITH extension; doubles as the label shown in the UI.",
+        "content_base64": "The file bytes, base64-encoded.",
+        "mime_type": "MIME type, e.g. image/png · image/jpeg · application/pdf. Default image/png.",
+        "comment_id": "Attach the file to this comment instead of to the task itself — it then shows under that comment. Omit to leave it on the task. The comment must be on the same task."
+      }
+    },
+    "task_attachments": {
+      "description": "List every file on a task — pasted into the body, posted with a comment, or delivered by an agent. Returns id, filename, mime_type, size, author and comment_id (empty when the file hangs off the task itself). Embed one in markdown as ![<filename>](/task-attachments/<id>) — the filename is what tells the dashboard whether to render an image or a video player.",
+      "params": {
+        "id": "Task id."
+      }
+    },
+    "task_attachment_delete": {
+      "description": "Delete one attachment: the row and the file behind it. Anywhere it was embedded (the task body, a comment) will show a broken link afterwards.",
+      "params": {
+        "attachment_id": "Attachment id."
+      }
+    },
+    "task_update": {
+      "description": "Patch a task. Provide only the fields you want to change. Changing `stage` triggers the dispatcher (launches/relaunches the agent for the new stage). Pending approvals of the stage the task leaves hold every forward move. Do not move the task of your own run: Thulu moves it when you finish, if the stage advances on its own. This tool cannot move a task to another board — use task_move_to_board, so that capability can be granted separately."
+    },
+    "task_delete": {
+      "description": "Delete a task and its worktrees. Irreversible. Confirm with the user before calling this on anything that has work in flight."
+    },
+    "task_clone": {
+      "description": "Clone a task into its board's initial stage with the same title/body/projects/assignments/tags. No comments, flags, branches or runtime state. Title is prefixed 'Copy of '."
+    },
+    "task_relaunch": {
+      "description": "Re-fire the agent for the task's current stage. Use after a run dies on max_turns. `turns` is optional — defaults to double the agent's current per-stage budget.",
+      "params": {
+        "turns": "Optional turn budget."
+      }
+    },
+    "task_list_dependencies": {
+      "description": "List the dependency edges of a task: `blocked_by` (tasks this one waits on) and `blocking` (tasks that wait on this one). Each edge carries the other task's id/title/stage plus the edge kind (hard|soft). Also returns `is_blocked` — true when any hard blocker hasn't reached a terminal stage of its board.",
+      "params": {
+        "id": "Task id."
+      }
+    },
+    "task_add_dependency": {
+      "description": "Declare that `id` depends on `depends_on_task_id`. Default kind is 'hard': the task cannot leave its board's initial stage until the blocker reaches a terminal stage of its own board. Use 'soft' for informational deps that hold nothing (e.g. 'frontend can start against mocks'). Refuses self-deps, cycles, duplicates, and hard deps on a task that already left its initial stage.",
+      "params": {
+        "id": "The dependent task.",
+        "depends_on_task_id": "The blocker.",
+        "kind": "Default 'hard'."
+      }
+    },
+    "task_remove_dependency": {
+      "description": "Drop the dependency edge `id → depends_on_task_id`. No-op if it didn't exist. Use to unblock a task whose blocker turned out to be unrelated, or to downgrade a hard dep to soft (remove + add as soft)."
+    },
+    "task_add_comment": {
+      "description": "Post a comment on a task. The daemon signs it with your agent name, from your credential. A comment from an agent launches the other agents it @mentions, up to 3 agent turns in a row per thread since a person last wrote in it; past that the thread says so and nobody is launched until a person replies. The body renders as markdown, so an attachment embedded as ![<filename>](/task-attachments/<id>) shows inline — an image as an image, an .mp4 or .webm as a player.",
+      "params": {
+        "body": "Comment markdown.",
+        "parent_id": "Reply in a thread: the id of any comment in it (the reply joins that comment's thread). Omit to start a new thread. When you were @mentioned in a thread, pass its id (THREAD_ID) so your answer lands there.",
+        "attachment_ids": "Attachments (already uploaded with task_attach) that belong to this comment. They show under it, and the ones you also embedded in the body render inline instead of twice."
+      }
+    },
+    "task_add_report": {
+      "description": "File a report in the task's Reports tab: long-form evidence such as a test run's checks, captures and logs. The comment thread stays a conversation; a report notifies no one and launches no agent. The body renders as markdown (256 KB at most), so attachments uploaded with task_attach show inline when embedded as ![<filename>](/task-attachments/<id>). Returns the report with its id, which task_test_case_run takes as report_id.",
+      "params": {
+        "id": "Task id.",
+        "title": "One line shown on the report's header (200 characters at most).",
+        "body": "Report markdown."
+      }
+    },
+    "task_ask": {
+      "description": "Ask the people on this task for a decision you cannot make yourself: a choice between approaches, a missing requirement, access you lack. The question lands in the task's thread with its options, and a person with the Developer role or above in the workspace answers it there. Ask before the expensive work, and put every doubt you have into one call (up to 4 questions) instead of asking one at a time. When a reasonable default exists, set blocking: false and say in `default` what you will do; you keep working on that, and an answer that arrives while you run reaches you (a later one stays in the thread for the next run). Use kind: blocker only when you cannot continue at all: a missing credential or access, a contradiction in the request. After a blocking ask, END YOUR TURN right away with a one-line summary: the run parks and resumes with the answer as your next message. Do not wait, poll or keep working.",
+      "params": {
+        "kind": "question: you need a decision but the request makes sense without it. blocker: you cannot continue at all (a missing credential or access, a contradiction in the request).",
+        "blocking": "Default true: you end your turn and the run resumes with the answer. false: you go on with `default`, and nothing waits for the answer.",
+        "context": "What you were doing and why you are asking, in two or three sentences. The person answering reads this first.",
+        "questions": "1 to 4 questions, answered together. Batch your doubts here instead of asking again later.",
+        "questions_header": "A short tag shown as a chip over the question, 12 characters at most (\"Database\", \"Auth\").",
+        "questions_question": "The question itself, complete enough to answer without reading anything else.",
+        "questions_options": "0 to 6 choices; none means a free-text answer. Put the one you recommend first and say so in its description.",
+        "options_label": "What the person clicks, and how the answer names the choice. Unique within the question.",
+        "options_description": "What choosing it implies: cost, risk, what you will do.",
+        "questions_multi_select": "true lets the person pick several options. Default false.",
+        "questions_allow_other": "Default true: besides the options, the person can write an answer of their own.",
+        "default": "What you will do if nobody answers. Required when blocking is false.",
+        "needs_credential": "true when the answer is an access you lack (a token, a key, a password). The form then tells the person not to paste it in the thread, which everyone on the task reads, and links to Credentials."
+      }
+    },
+    "task_request_approval": {
+      "description": "Add an approval this task needs before it moves forward out of its current stage, e.g. \"I changed the checkout UI, design should look at it\". It shows on the task and blocks every forward move until a person approves or waives it. You can only add approvals: approving, waiving or deleting one is for people. Do not end your turn for it; keep working, the gate applies when the task tries to leave the stage.",
+      "params": {
+        "label": "Who should review, as the team would say it (\"Design\", \"QA\", \"Security\").",
+        "reason": "What changed and what to look at, so the reviewer does not have to reconstruct it.",
+        "key": "Optional short stable id (design, qa), the kind of key a stage uses in its required approvals."
+      }
+    },
+    "task_test_cases": {
+      "description": "List a task's test cases in order, each with key (TC-1…), title, description, steps, expected, priority, status (pending | pass | fail | blocked | skipped), covered, and its runs newest first (verdict, observed, video/take/capture attachment ids, report id; older runs carry a comment id instead). Read this before testing a task and before recording anything, so you work against the keys that exist.",
+      "params": {
+        "id": "Task id."
+      }
+    },
+    "task_test_case_add": {
+      "description": "Add test cases to a task — always as a `cases` array, one or many. Each case needs a `title`; `key` is assigned as TC-<max+1> when omitted. `description`, `steps` and `expected` are markdown (steps usually a numbered list). New cases start pending, not covered, and go last. Use this to write the plan's test cases, instead of a ## Test Cases section in the body. Returns the created cases.",
+      "params": {
+        "id": "Task id.",
+        "cases_title": "Required. At most 200 chars.",
+        "cases_key": "Optional explicit key, e.g. 'TC-4'. Must be unique on the task.",
+        "cases_description": "Context, preconditions, data (markdown).",
+        "cases_steps": "How to exercise it (markdown).",
+        "cases_expected": "The expected result (markdown)."
+      }
+    },
+    "task_test_case_update": {
+      "description": "Patch one test case; only the fields you pass change. `case` is the key (TC-3) or the id. Setting `status` or `covered` by hand is for what has no run behind it (a case skipped on purpose, one verified outside a recording) — to record a test you executed use task_test_case_run, which sets both for you.",
+      "params": {
+        "id": "Task id.",
+        "case": "Case key (e.g. 'TC-3') or id.",
+        "position": "Order within the task."
+      }
+    },
+    "task_test_case_delete": {
+      "description": "Delete one test case and every run recorded against it. `case` is the key (TC-3) or the id. The attachments its runs pointed at stay on the task.",
+      "params": {
+        "id": "Task id.",
+        "case": "Case key (e.g. 'TC-3') or id."
+      }
+    },
+    "task_test_case_run": {
+      "description": "Record one execution of a test case with its evidence. The `verdict` (pass | fail | blocked) becomes the case's status and marks it covered. `case` is the key (TC-3) or the id. Evidence ids must belong to the same task: upload files with task_attach first, then pass their ids here. Do NOT call this for a case thulu-browser's evidence_publish already recorded: every verify step whose `case` equals a key of the task becomes a run by itself, with the video, take, captures and the report it posted to the Reports tab — recording it again here would count the same execution twice.",
+      "params": {
+        "id": "Task id.",
+        "case": "Case key (e.g. 'TC-3') or id.",
+        "observed": "What was seen, one or two lines.",
+        "note": "Longer markdown note.",
+        "video_attachment_id": "Attachment id of the recording.",
+        "take_attachment_id": "Attachment id of the replayable take (JSON).",
+        "report_id": "Id of the report in the task's Reports tab that holds the evidence.",
+        "comment_id": "Comment id of a report posted as a comment. Runs pass report_id.",
+        "capture_attachment_ids": "Attachment ids of screenshots taken during the run."
+      }
+    },
+    "agent_list": {
+      "description": "List active and recently-exited agent containers. Returns id, type, project, instance, status (running/exited), uptime, exit_code."
+    },
+    "agent_get": {
+      "description": "Fetch one agent container's full state by short id.",
+      "params": {
+        "id": "Short container id."
+      }
+    },
+    "agent_stop": {
+      "description": "Stop a running agent container (graceful). The dispatcher will not auto-restart it. Use to abort a runaway agent.",
+      "params": {
+        "id": "Short container id."
+      }
+    },
+    "agent_type_list": {
+      "description": "List every agent type defined under agents/ — name, type, model, valid_stages, description. These are the templates, not running containers (use agent_list for those)."
+    },
+    "agent_type_get_settings": {
+      "description": "Read an agent type's settings: name, description, valid_stages, model, effort, works_without_repo, turns_by_stage, skills_by_stage, mcp_by_stage, plus the auditor block.",
+      "params": {
+        "name": "Agent type name (directory under agents/)."
+      }
+    },
+    "agent_type_list_prompts": {
+      "description": "List the prompt files an agent type owns: main + per-stage prompts plus the auditor set. Tells you which prompt files exist on disk and which would fall back to main.md/default.md."
+    },
+    "agent_type_list_files": {
+      "description": "List the editable markdown files inside an agent type's directory (prompts/*.md, auditor/*.md). Use BEFORE agent_type_read_file."
+    },
+    "agent_type_read_file": {
+      "description": "Read one editable file inside an agent type's directory. Path is relative to the agent dir, e.g. 'prompts/main.md', 'prompts/in_progress.md'.",
+      "params": {
+        "path": "Relative path under the agent dir."
+      }
+    },
+    "agent_type_update_settings": {
+      "description": "Update an agent type's settings (writes back to its docker-compose.yml labels). Provide ONLY the fields you want to change — the rest are preserved. After this, agents booted from this type pick up the new config; running containers are not restarted automatically.",
+      "params": {
+        "model": "e.g. 'opus', 'sonnet', 'haiku'.",
+        "effort": "'low' | 'medium' | 'high'.",
+        "system_skills_off": "Per stage, the system skills (octopus-*) this agent does not receive there, e.g. {\"review\": [\"octopus-browser-evidence\"]}. Leave it out to keep the current list; {} turns every system skill back on."
+      }
+    },
+    "agent_type_write_file": {
+      "description": "Overwrite an editable markdown file inside an agent type's directory. Path is relative (e.g. 'prompts/main.md'). The full new contents go in `content` — no patch/diff support. Use agent_type_read_file first to preserve what you want to keep.",
+      "params": {
+        "content": "Full new contents."
+      }
+    },
+    "agent_type_create": {
+      "description": "Create a new agent type. With `template` it clones that existing agent; without one it starts from the built-in minimal scaffold, with no valid stages until you set them.",
+      "params": {
+        "name": "New agent name.",
+        "template": "Existing agent to clone. Omit to start from the scaffold."
+      }
+    },
+    "agent_type_delete": {
+      "description": "Delete an agent type (removes its directory). Confirm with the user. Active tasks assigned to this agent on a stage will fail to dispatch."
+    },
+    "project_list": {
+      "description": "List every linked project: id, name, repo_url, default_branch, description, stage_template, path on disk."
+    },
+    "project_get": {
+      "description": "Fetch one project's full record."
+    },
+    "project_create": {
+      "description": "Register a new project. `name` and `repo_url` are required. `stage_template` is a default per-stage agent map applied to new tasks linked to this project.",
+      "params": {
+        "repo_url": "git URL or local path.",
+        "default_branch": "Default 'main'."
+      }
+    },
+    "project_update": {
+      "description": "Patch a project. Only provided fields change."
+    },
+    "project_delete": {
+      "description": "Delete a project (does NOT remove its on-disk worktrees or the source repo). Tasks linked to it lose the link."
+    },
+    "skills_list": {
+      "description": "List every skill available under skills/. Skills are knowledge blocks agents can be configured to load per-stage (via skills_by_stage)."
+    },
+    "tools_list": {
+      "description": "List every MCP tool service registered under tools/. Used to populate mcp_by_stage on agent types."
+    },
+    "stages_list": {
+      "description": "List the canonical stage definitions (id + label) the board uses. Same set every agent's valid_stages is validated against."
+    },
+    "environment_list": {
+      "description": "Deployed environments of a project (dev/staging/prod): provider, region, selectors, `system` grouping and whether a cloud credential is configured. Get the environment_id here before proposing any mapping."
+    },
+    "environment_mapping_list": {
+      "description": "Current metric mappings of an environment, with their status (proposed | active | disabled | not_applicable). Check this before proposing, so you replace deliberately instead of duplicating."
+    },
+    "environment_mapping_propose": {
+      "description": "Propose where each dashboard signal comes from in this account. Proposals are INERT: nothing is collected until a human approves them, so propose freely but say what you are unsure about. Pass the whole coherent set in one call. Each mapping: {service, signal, project_id?, source}. Valid signals: latency_p50, latency_p95, error_rate, throughput, cpu, memory, saturation, restarts, cost_daily. For a signal this architecture cannot produce (a Lambda has no CPU), send {service, signal, not_applicable: true, note: 'why'} rather than omitting it: a blank tile is indistinguishable from a broken collector. `source` is provider-shaped — copy the `suggested` block from thulu-cloud's discover_resources rather than inventing it, and keep its `unit`.",
+      "params": {
+        "mappings": "[{service, signal, project_id?, source:{...}}]",
+        "task_id": "ALWAYS send this. The daemon adds a review approval to the task, linked to these proposals, so approving them closes it in one action. Do not also request it with task_request_approval or in flags.yaml: it would be duplicated.",
+        "flag_id": "Rarely needed: the id of an existing review approval to link instead of the one the daemon adds."
+      }
+    },
+    "custom_metric_list": {
+      "description": "Custom metrics of an environment: everything the application sent over OTLP that no fixed signal covers. A metric registers itself on first sight with status `discovered` and can only be charted once a human approves it. Read `kind` (counter | gauge) and `labels` here before proposing any panel over it."
+    },
+    "custom_metric_series": {
+      "description": "Stored points of one custom metric over a window (last 24h by default), with their labels. Use it to see what a metric actually contains before building a panel on it, or when a panel looks wrong.",
+      "params": {
+        "from": "RFC3339. Optional.",
+        "to": "RFC3339. Optional."
+      }
+    },
+    "chart_types_list": {
+      "description": "The chart catalog and its contracts: every chart type, how many series it takes, whether it needs a group_by, which metric kinds it accepts and which aggregations are allowed per kind (summing a gauge and taking the last value of a counter are both rejected). Read this before dashboard_propose — the catalog is closed and a panel that does not fit a contract is refused."
+    },
+    "dashboard_list": {
+      "description": "Dashboards of an environment with their status (proposed | active | archived) and their panels."
+    },
+    "dashboard_get": {
+      "description": "One dashboard's full record, panels included."
+    },
+    "dashboard_data": {
+      "description": "Resolve a dashboard into numbers: every panel with its series, buckets and values, aggregated server-side. This is what the page draws, so it is also how to check that a dashboard says what you meant.",
+      "params": {
+        "range_hours": "Overrides every panel's own window."
+      }
+    },
+    "dashboard_propose": {
+      "description": "Propose a dashboard of custom-metric panels. INERT until a human approves it, same gate as environment_mapping_propose. Call chart_types_list and custom_metric_list first: every series names an approved metric and an aggregation its kind allows, and a rejection names the panel, the slot and the rule it broke. Pass task_id so the proposal adds the review approval to the task by itself.",
+      "params": {
+        "panels_type": "line | area | bar | stat | table",
+        "panels_series_metric": "Approved metric name.",
+        "panels_series_agg": "sum | avg | max | min | last",
+        "panels_series_where": "Label filter applied before aggregating.",
+        "panels_series_label": "Legend override.",
+        "panels_group_by": "Label to split by. Required by area, bar and table; forbidden on stat.",
+        "panels_range_hours": "Default 24.",
+        "panels_width": "1 = half row, 2 = full row.",
+        "task_id": "ALWAYS send this: the daemon adds a review approval to the task, linked to the proposal, so approving closes it in one action."
+      }
+    }
+  },
+  "errors": {
+    "no_credential": "no Thulu credential was forwarded with this call — the agent's key rides on the MCP handshake (X-API-Key); this server holds none of its own",
+    "daemon_http": "Thulu {method} {path} → HTTP {status}: {msg}",
+    "no_task_context": "no task context on this MCP session (?task= missing from the SSE URL), so there is no current board. Use the *_on_board tools with an explicit board_id.",
+    "task_without_board": "task {task} carries no board_id — daemon predates boards",
+    "unknown_board": "unknown board '{board}'. Boards on this instance: {boards}",
+    "stage_not_on_board": "stage '{stage}' does not exist on board '{board}'. Its columns are: {columns}",
+    "board_without_columns": "board '{board}' has no columns to move into",
+    "mappings_empty": "mappings must be a non-empty array",
+    "panels_empty": "panels must be a non-empty array",
+    "cases_empty": "cases must be a non-empty array",
+    "run_tool_without_task": "{tool} works only inside a task run: this MCP session carries no task (?task= missing from the SSE URL)",
+    "ask_kind": "kind must be 'question' or 'blocker', got '{kind}'",
+    "ask_bool": "{field} must be true or false",
+    "ask_string": "{field} must be a string",
+    "ask_required": "{field} is required and cannot be empty",
+    "ask_default_required": "default is required when blocking is false: say what you will do if nobody answers",
+    "ask_questions_count": "questions takes {min} to {max} items, got {count}. Put the ones that matter most into one call.",
+    "ask_header_long": "{field} '{header}' is longer than {max} characters: it is a chip, keep it to a word or two",
+    "ask_options_count": "{field} takes at most {max} options, got {count}",
+    "ask_option_duplicate": "{field} repeats the label '{label}': the answer names the choice by its label, so labels must be unique",
+    "task_create_board_id": "task_create takes no board_id: it always writes to this run's own board. To create on another flow use task_create_on_board.",
+    "subtask_create_board_id": "subtask_create takes no board_id: a subtask always runs its parent's board.",
+    "task_update_board_id": "task_update cannot change a task's board — use task_move_to_board, which validates the destination column and is granted separately.",
+    "content_base64_invalid": "content_base64 is empty or not valid base64",
+    "unknown_tool": "unknown tool '{name}'",
+    "tool_not_allowed": "tool '{name}' is not in this session's allowed tool list",
+    "tool_cross_board": "tool '{name}' reaches outside this run's board, and no scope grants that — not even write. It has to be named in the agent's MCP tool list (thulu.mcp.default.<stage>: octopus-api@…+{name}).",
+    "tool_scope_required": "tool '{name}' requires scope '{required}', this session has '{scope}'",
+    "tool_without_handler": "tool '{name}' has no handler (server bug)",
+    "missing_arguments": "{tool}: missing required argument(s): {args}",
+    "tool_failed": "{tool} error: {err}",
+    "session_not_found": "session not found",
+    "handshake_no_key": "an MCP session needs the run's key on the handshake (X-API-Key or Authorization: Bearer)",
+    "message_key_mismatch": "this message does not carry the key its session was opened with",
+    "list_only_session": "this session was opened without a credential: it can list tools, not call them"
+  },
+  "text": {
+    "mappings_proposed_note": "Proposals are inert until a human approves them on the project page. With task_id, the task already shows the pending review approval.",
+    "dashboard_proposed_note": "Proposed, not visible yet. A human approves it on the project page; that also closes the task's review approval.",
+    "board_current_note": "task_create and task_list act on this board. Reaching another board needs boards_list / board_tasks_list / task_create_on_board, which are granted per agent and per stage.",
+    "ask_blocking_fallback": "Question posted. End your turn now with a one-line summary; the run resumes with the answer.",
+    "ask_nonblocking_fallback": "Question posted. Go on with your default; an answer that arrives while you run will reach you, a later one stays in the thread.",
+    "ask_reference": "question id: {question} · thread: {comment}",
+    "approval_requested_note": "The task cannot move forward out of this stage until a person approves or waives this. You cannot approve it yourself; keep working."
+  },
+  "labels": {
+    "none": "(none)"
+  },
+  "log": {
+    "unknown_scope": "[octopus-api] unknown scope '{scope}', defaulting to 'read'",
+    "listening": "octopus-api MCP server listening on :{port}",
+    "octopus_api": "  OCTOPUS_API:  {url}",
+    "tools": "  Tools:        {total} (read: {read}, write: {write}, cross-board: {cross_board} — grantable only by name)",
+    "sse_endpoint": "  SSE endpoint: GET  /sse?scope=read|write[&tools=a,b][&task=<id>][&catalog=1]",
+    "health": "  Health:       GET  /health",
+    "shutting_down": "\n{signal} received, shutting down"
+  }
+}

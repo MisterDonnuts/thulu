@@ -1,0 +1,583 @@
+/* Aliases resolve on :root, so a theme switch belongs on <html> (data-theme), never on a subtree. */
+
+:root {
+  color-scheme: dark;
+
+  --color-bg: #1a1a1a;
+  --color-surface: #1f1f1f;
+  --color-surface-hover: #252525;
+  --color-surface-raised: #2d2d2d;
+  --color-surface-strong: #313131;
+  --color-fill-chip: var(--color-surface-raised);
+  --color-surface-glass: rgba(26, 26, 26, 0.78);
+  --color-well: rgba(0, 0, 0, 0.25);
+  --color-well-strong: rgba(0, 0, 0, 0.35);
+  --color-tint-1: rgba(255, 255, 255, 0.02);
+  --color-tint-2: rgba(255, 255, 255, 0.04);
+  --color-tint-3: rgba(255, 255, 255, 0.06);
+  --color-tint-4: rgba(255, 255, 255, 0.14);
+  --color-shade: rgba(0, 0, 0, 0.18);
+  --color-scrim: rgba(10, 10, 10, 0.55);
+  --color-scrim-strong: rgba(10, 10, 10, 0.6);
+  --color-media-bg: #000;
+  --color-paper: #fff;
+  --color-on-media: #fff;
+
+  --color-text: #e8e8e7;
+  --color-text-secondary: #b3b3b1;
+  --color-text-muted: #888885; /* 4.9:1 on bg, 4.6 on surface, under 4.5 above that */
+  --color-text-faint: #5d5d5b; /* under 3:1: disabled text and decoration only */
+  --color-text-disabled: #404040;
+  --color-text-on-accent: #0c0c0c;
+  --mix-data-ink: 65%;
+
+  --color-border: rgba(255, 255, 255, 0.06);
+  --color-border-strong: rgba(255, 255, 255, 0.1);
+  --color-border-subtle: rgba(255, 255, 255, 0.04);
+  --color-border-hover: rgba(255, 255, 255, 0.16);
+  /* 3.1:1 on surface-raised, 3.4:1 on a panel: the 3:1 WCAG 1.4.11 requires for control outlines. */
+  --color-border-control: rgba(255, 255, 255, 0.36);
+  --color-field: var(--color-surface-raised);
+  --color-field-border: var(--color-border-control);
+  --color-field-focus-border: var(--color-accent-border);
+
+  --color-accent: #88b4ff;
+  --color-accent-hover: #9bbff5;
+  --color-accent-faint: rgba(136, 180, 255, 0.05);
+  --color-accent-soft: rgba(136, 180, 255, 0.1);
+  --color-accent-border: rgba(136, 180, 255, 0.24);
+  --color-kbd-on-accent-fg: rgba(12, 12, 12, 0.65);
+  --color-kbd-on-accent-border: rgba(0, 0, 0, 0.2);
+
+  --color-success: #6ab97e;
+  --color-success-bg: rgba(106, 185, 126, 0.1);
+  --color-success-border: rgba(106, 185, 126, 0.24);
+  --color-warning: #d99c5a;
+  --color-warning-bg: rgba(217, 156, 90, 0.1);
+  --color-warning-border: rgba(217, 156, 90, 0.26);
+  --color-danger: #d76b6b;
+  --color-danger-strong: #f08a8a;
+  --color-danger-bg: rgba(215, 107, 107, 0.1);
+  --color-danger-border: rgba(215, 107, 107, 0.28);
+  --color-info: #93a8c3;
+  --color-special: #c8b6f5;
+  --color-special-solid: #b9a3f0;
+  --color-special-bg: rgba(185, 163, 240, 0.12);
+  --color-special-border: rgba(187, 134, 252, 0.3);
+  --color-notice: #f5c842;
+  --color-notice-bg: rgba(245, 200, 66, 0.12);
+  --color-notice-border: rgba(245, 200, 66, 0.3);
+
+  --glow-success: 0 0 6px rgba(106, 185, 126, 0.55);
+  --glow-warning: 0 0 6px rgba(217, 156, 90, 0.6);
+  --glow-danger: 0 0 6px rgba(215, 107, 107, 0.5);
+  --glow-accent: 0 0 6px rgba(136, 180, 255, 0.5);
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-2: 0 4px 12px -4px rgba(0, 0, 0, 0.4);
+  --shadow-popover: 0 12px 36px -8px rgba(0, 0, 0, 0.55);
+  --shadow-popover-lg: 0 18px 48px -12px rgba(0, 0, 0, 0.6);
+  --shadow-toast: 0 12px 36px -10px rgba(0, 0, 0, 0.55);
+  --shadow-drag: 0 16px 38px -8px rgba(0, 0, 0, 0.6);
+  --shadow-modal: 0 30px 80px rgba(0, 0, 0, 0.55);
+  --shadow-drawer-start: 12px 0 32px rgba(0, 0, 0, 0.4);
+  --shadow-drawer-end: -20px 0 60px -16px rgba(0, 0, 0, 0.5);
+  --shadow-on-media: 0 2px 6px rgba(0, 0, 0, 0.7);
+
+  --color-scrollbar: var(--color-border-strong);
+  --color-scrollbar-hover: rgba(255, 255, 255, 0.18);
+
+  --brand-logo: #f2f1ff;
+  --brand-iris: #8b8fff;
+  --brand-pupil: #1c1a4a;
+
+  --tag-gray-bg: rgba(155, 155, 150, 0.2);
+  --tag-gray-fg: #d4d4d2;
+  --tag-brown-bg: rgba(154, 109, 90, 0.32);
+  --tag-brown-fg: #d4a991;
+  --tag-orange-bg: rgba(217, 143, 75, 0.28);
+  --tag-orange-fg: #e8b483;
+  --tag-yellow-bg: rgba(208, 176, 80, 0.24);
+  --tag-yellow-fg: #e8d089;
+  --tag-green-bg: rgba(94, 160, 107, 0.28);
+  --tag-green-fg: #95cba0;
+  --tag-blue-bg: rgba(115, 153, 205, 0.28);
+  --tag-blue-fg: #a6c4e8;
+  --tag-purple-bg: rgba(160, 128, 206, 0.28);
+  --tag-purple-fg: #c8b3e8;
+  --tag-pink-bg: rgba(206, 128, 170, 0.26);
+  --tag-pink-fg: #e8b3d4;
+  --tag-red-bg: rgba(206, 108, 108, 0.28);
+  --tag-red-fg: #e8a3a3;
+
+  /* Order matters: the first four stay distinct under common color blindness, so two series never come down to red vs green. */
+  --viz-1: #88b4ff;
+  --viz-2: #6ab97e;
+  --viz-3: #d99c5a;
+  --viz-4: #c58af0;
+  --viz-5: #5fc3c9;
+  --viz-6: #d76b6b;
+  --viz-7: #b6c25f;
+  --viz-8: #8f9bb3;
+  --viz-grid: rgba(255, 255, 255, 0.04);
+}
+
+/* The data-theme="light" block and the prefers-color-scheme block must stay identical; scripts/theme.test.mjs fails if they drift. */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --color-bg: #f7f7f5;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f0f0ee;
+  --color-surface-raised: #ffffff;
+  --color-surface-strong: #ebebe9;
+  --color-fill-chip: var(--color-surface-strong);
+  --color-surface-glass: rgba(247, 247, 245, 0.82);
+  --color-well: rgba(0, 0, 0, 0.035);
+  --color-well-strong: rgba(0, 0, 0, 0.07);
+  --color-tint-1: rgba(0, 0, 0, 0.02);
+  --color-tint-2: rgba(0, 0, 0, 0.035);
+  --color-tint-3: rgba(0, 0, 0, 0.05);
+  --color-tint-4: rgba(0, 0, 0, 0.1);
+  --color-shade: rgba(0, 0, 0, 0.12);
+  --color-scrim: rgba(24, 24, 22, 0.32);
+  --color-scrim-strong: rgba(24, 24, 22, 0.4);
+  --color-media-bg: #000;
+  --color-paper: #fff;
+  --color-on-media: #fff;
+
+  --color-text: #1d1d1c;
+  --color-text-secondary: #464644;
+  --color-text-muted: #646461;
+  --color-text-faint: #a3a3a0;
+  --color-text-disabled: #c6c6c3;
+  --color-text-on-accent: #ffffff;
+  --mix-data-ink: 45%;
+
+  --color-border: rgba(0, 0, 0, 0.08);
+  --color-border-strong: rgba(0, 0, 0, 0.12);
+  --color-border-subtle: rgba(0, 0, 0, 0.05);
+  --color-border-hover: rgba(0, 0, 0, 0.2);
+  --color-border-control: rgba(0, 0, 0, 0.42);
+  --color-field: #ffffff;
+  --color-field-border: var(--color-border-control);
+  --color-field-focus-border: var(--color-accent);
+
+  --color-accent: #2563c9;
+  --color-accent-hover: #1d55b0;
+  --color-accent-faint: rgba(37, 99, 201, 0.05);
+  --color-accent-soft: rgba(37, 99, 201, 0.1);
+  --color-accent-border: rgba(37, 99, 201, 0.32);
+  --color-kbd-on-accent-fg: rgba(255, 255, 255, 0.85);
+  --color-kbd-on-accent-border: rgba(255, 255, 255, 0.3);
+
+  --color-success: #23743c;
+  --color-success-bg: rgba(35, 116, 60, 0.09);
+  --color-success-border: rgba(35, 116, 60, 0.28);
+  --color-warning: #9a5410;
+  --color-warning-bg: rgba(196, 116, 30, 0.1);
+  --color-warning-border: rgba(154, 84, 16, 0.3);
+  --color-danger: #be3434;
+  --color-danger-strong: #a82c2c;
+  --color-danger-bg: rgba(190, 52, 52, 0.08);
+  --color-danger-border: rgba(190, 52, 52, 0.3);
+  --color-info: #4b6789;
+  --color-special: #6c45c4;
+  --color-special-solid: #7a52d6;
+  --color-special-bg: rgba(122, 82, 214, 0.09);
+  --color-special-border: rgba(122, 82, 214, 0.3);
+  --color-notice: #806200;
+  --color-notice-bg: rgba(214, 168, 0, 0.14);
+  --color-notice-border: rgba(160, 122, 0, 0.35);
+
+  --glow-success: none;
+  --glow-warning: none;
+  --glow-danger: none;
+  --glow-accent: none;
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-2: 0 4px 12px -4px rgba(0, 0, 0, 0.14);
+  --shadow-popover: 0 12px 32px -8px rgba(0, 0, 0, 0.16), 0 2px 6px -2px rgba(0, 0, 0, 0.06);
+  --shadow-popover-lg: 0 18px 48px -12px rgba(0, 0, 0, 0.2), 0 2px 6px -2px rgba(0, 0, 0, 0.06);
+  --shadow-toast: 0 12px 32px -10px rgba(0, 0, 0, 0.2);
+  --shadow-drag: 0 16px 38px -8px rgba(0, 0, 0, 0.22);
+  --shadow-modal: 0 24px 64px -12px rgba(0, 0, 0, 0.24);
+  --shadow-drawer-start: 12px 0 32px rgba(0, 0, 0, 0.1);
+  --shadow-drawer-end: -20px 0 60px -16px rgba(0, 0, 0, 0.18);
+  --shadow-on-media: 0 2px 6px rgba(0, 0, 0, 0.7);
+
+  --color-scrollbar: rgba(0, 0, 0, 0.14);
+  --color-scrollbar-hover: rgba(0, 0, 0, 0.26);
+
+  --brand-logo: #1c1a4a;
+  --brand-iris: #8b8fff;
+  --brand-pupil: #1c1a4a;
+
+  --tag-gray-bg: rgba(120, 120, 115, 0.13);
+  --tag-gray-fg: #4a4a47;
+  --tag-brown-bg: rgba(154, 109, 90, 0.16);
+  --tag-brown-fg: #774630;
+  --tag-orange-bg: rgba(217, 130, 50, 0.16);
+  --tag-orange-fg: #8a4a0e;
+  --tag-yellow-bg: rgba(214, 172, 30, 0.2);
+  --tag-yellow-fg: #725800;
+  --tag-green-bg: rgba(70, 150, 90, 0.15);
+  --tag-green-fg: #23663a;
+  --tag-blue-bg: rgba(70, 120, 200, 0.13);
+  --tag-blue-fg: #2b5a9a;
+  --tag-purple-bg: rgba(140, 100, 210, 0.14);
+  --tag-purple-fg: #6440a8;
+  --tag-pink-bg: rgba(200, 90, 150, 0.13);
+  --tag-pink-fg: #93356b;
+  --tag-red-bg: rgba(210, 80, 80, 0.13);
+  --tag-red-fg: #9e3030;
+
+  --viz-1: #2563c9;
+  --viz-2: #2b8549;
+  --viz-3: #c06a1b;
+  --viz-4: #9257d1;
+  --viz-5: #1a8f98;
+  --viz-6: #c94a4a;
+  --viz-7: #7a861d;
+  --viz-8: #66738f;
+  --viz-grid: rgba(0, 0, 0, 0.07);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+
+    --color-bg: #f7f7f5;
+    --color-surface: #ffffff;
+    --color-surface-hover: #f0f0ee;
+    --color-surface-raised: #ffffff;
+    --color-surface-strong: #ebebe9;
+    --color-fill-chip: var(--color-surface-strong);
+    --color-surface-glass: rgba(247, 247, 245, 0.82);
+    --color-well: rgba(0, 0, 0, 0.035);
+    --color-well-strong: rgba(0, 0, 0, 0.07);
+    --color-tint-1: rgba(0, 0, 0, 0.02);
+    --color-tint-2: rgba(0, 0, 0, 0.035);
+    --color-tint-3: rgba(0, 0, 0, 0.05);
+    --color-tint-4: rgba(0, 0, 0, 0.1);
+    --color-shade: rgba(0, 0, 0, 0.12);
+    --color-scrim: rgba(24, 24, 22, 0.32);
+    --color-scrim-strong: rgba(24, 24, 22, 0.4);
+    --color-media-bg: #000;
+    --color-paper: #fff;
+    --color-on-media: #fff;
+
+    --color-text: #1d1d1c;
+    --color-text-secondary: #464644;
+    --color-text-muted: #646461;
+    --color-text-faint: #a3a3a0;
+    --color-text-disabled: #c6c6c3;
+    --color-text-on-accent: #ffffff;
+    --mix-data-ink: 45%;
+
+    --color-border: rgba(0, 0, 0, 0.08);
+    --color-border-strong: rgba(0, 0, 0, 0.12);
+    --color-border-subtle: rgba(0, 0, 0, 0.05);
+    --color-border-hover: rgba(0, 0, 0, 0.2);
+    --color-border-control: rgba(0, 0, 0, 0.42);
+    --color-field: #ffffff;
+    --color-field-border: var(--color-border-control);
+    --color-field-focus-border: var(--color-accent);
+
+    --color-accent: #2563c9;
+    --color-accent-hover: #1d55b0;
+    --color-accent-faint: rgba(37, 99, 201, 0.05);
+    --color-accent-soft: rgba(37, 99, 201, 0.1);
+    --color-accent-border: rgba(37, 99, 201, 0.32);
+    --color-kbd-on-accent-fg: rgba(255, 255, 255, 0.85);
+    --color-kbd-on-accent-border: rgba(255, 255, 255, 0.3);
+
+    --color-success: #23743c;
+    --color-success-bg: rgba(35, 116, 60, 0.09);
+    --color-success-border: rgba(35, 116, 60, 0.28);
+    --color-warning: #9a5410;
+    --color-warning-bg: rgba(196, 116, 30, 0.1);
+    --color-warning-border: rgba(154, 84, 16, 0.3);
+    --color-danger: #be3434;
+    --color-danger-strong: #a82c2c;
+    --color-danger-bg: rgba(190, 52, 52, 0.08);
+    --color-danger-border: rgba(190, 52, 52, 0.3);
+    --color-info: #4b6789;
+    --color-special: #6c45c4;
+    --color-special-solid: #7a52d6;
+    --color-special-bg: rgba(122, 82, 214, 0.09);
+    --color-special-border: rgba(122, 82, 214, 0.3);
+    --color-notice: #806200;
+    --color-notice-bg: rgba(214, 168, 0, 0.14);
+    --color-notice-border: rgba(160, 122, 0, 0.35);
+
+    --glow-success: none;
+    --glow-warning: none;
+    --glow-danger: none;
+    --glow-accent: none;
+
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.06);
+    --shadow-2: 0 4px 12px -4px rgba(0, 0, 0, 0.14);
+    --shadow-popover: 0 12px 32px -8px rgba(0, 0, 0, 0.16), 0 2px 6px -2px rgba(0, 0, 0, 0.06);
+    --shadow-popover-lg: 0 18px 48px -12px rgba(0, 0, 0, 0.2), 0 2px 6px -2px rgba(0, 0, 0, 0.06);
+    --shadow-toast: 0 12px 32px -10px rgba(0, 0, 0, 0.2);
+    --shadow-drag: 0 16px 38px -8px rgba(0, 0, 0, 0.22);
+    --shadow-modal: 0 24px 64px -12px rgba(0, 0, 0, 0.24);
+    --shadow-drawer-start: 12px 0 32px rgba(0, 0, 0, 0.1);
+    --shadow-drawer-end: -20px 0 60px -16px rgba(0, 0, 0, 0.18);
+    --shadow-on-media: 0 2px 6px rgba(0, 0, 0, 0.7);
+
+    --color-scrollbar: rgba(0, 0, 0, 0.14);
+    --color-scrollbar-hover: rgba(0, 0, 0, 0.26);
+
+    --brand-logo: #1c1a4a;
+    --brand-iris: #8b8fff;
+    --brand-pupil: #1c1a4a;
+
+    --tag-gray-bg: rgba(120, 120, 115, 0.13);
+    --tag-gray-fg: #4a4a47;
+    --tag-brown-bg: rgba(154, 109, 90, 0.16);
+    --tag-brown-fg: #774630;
+    --tag-orange-bg: rgba(217, 130, 50, 0.16);
+    --tag-orange-fg: #8a4a0e;
+    --tag-yellow-bg: rgba(214, 172, 30, 0.2);
+    --tag-yellow-fg: #725800;
+    --tag-green-bg: rgba(70, 150, 90, 0.15);
+    --tag-green-fg: #23663a;
+    --tag-blue-bg: rgba(70, 120, 200, 0.13);
+    --tag-blue-fg: #2b5a9a;
+    --tag-purple-bg: rgba(140, 100, 210, 0.14);
+    --tag-purple-fg: #6440a8;
+    --tag-pink-bg: rgba(200, 90, 150, 0.13);
+    --tag-pink-fg: #93356b;
+    --tag-red-bg: rgba(210, 80, 80, 0.13);
+    --tag-red-fg: #9e3030;
+
+    --viz-1: #2563c9;
+    --viz-2: #2b8549;
+    --viz-3: #c06a1b;
+    --viz-4: #9257d1;
+    --viz-5: #1a8f98;
+    --viz-6: #c94a4a;
+    --viz-7: #7a861d;
+    --viz-8: #66738f;
+    --viz-grid: rgba(0, 0, 0, 0.07);
+  }
+}
+
+:root {
+  --t-2xs: 10px;
+  --t-xs: 11px;
+  --t-sm: 12px;
+  --t-base: 13px;
+  --t-md: 14px;
+  --t-lg: 16px;
+  --t-xl: 20px;
+  --t-2xl: 28px;
+  --t-3xl: 36px;
+
+  --lh-tight: 1.2;
+  --lh-snug: 1.4;
+  --lh-loose: 1.6;
+
+  --tracking-tight: -0.012em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.02em;
+
+  --measure-prose: 52ch;
+
+  --modal-w-sm: 520px;
+  --modal-w-md: 560px;
+  --modal-w-lg: 680px;
+  --modal-w-xl: 760px;
+  --modal-w-viewer: 1100px;
+  --modal-h-viewer: min(86vh, 900px);
+  --drawer-w-sm: 400px;
+  --drawer-w-md: 460px;
+  --drawer-w-lg: 780px;
+  --drawer-grip: 20px;
+  --drawer-grip-mark-h: 64px;
+  --drawer-grip-mark-w: 2px;
+  --scrim-blur: 4px;
+  --catalog-page-max: 1400px;
+  --catalog-side-w: 280px;
+  --catalog-side-w-sm: 240px;
+  --catalog-side-h-phone: 40vh;
+  --md-editor-min-h: 60vh;
+  --history-list-min: 180px;
+  --history-list-max: 260px;
+  --history-list-h: 200px;
+  --history-box-h: 520px;
+
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-lg: 8px;
+  --r-pill: 999px;
+
+  --s-1: 4px;
+  --s-2: 6px;
+  --s-3: 8px;
+  --s-4: 12px;
+  --s-5: 16px;
+  --s-6: 20px;
+  --s-7: 24px;
+  --s-8: 32px;
+  --s-9: 48px;
+
+  --control-h-xs: 20px;
+  --control-h-sm: 26px;
+  --control-h: 28px;
+  --control-h-lg: 32px;
+  --control-pad-x: 10px;
+  --control-pad-x-md: 14px;
+  --key-h: 18px;
+  --key-h-sm: 16px;
+  --tap-min: 44px;
+
+  --badge-h: 20px;
+  --badge-h-sm: 16px;
+  --count-h: 18px;
+  --badge-ico: 12px;
+  --dot-size: 6px;
+  --tab-h: 40px;
+  --tab-h-vertical: 36px;
+  --tab-line: 2px;
+  --field-label-w: 110px;
+  --prop-label-w: 88px;
+  /* Fits the longest label ("Bloqueada por": 14px glyph + 6px gap + 76px text) on one line. */
+  --prop-sheet-label-w: 104px;
+  --prop-value-h: 28px;
+  --field-grow: 200px;
+
+  --filter-field-min: 140px;
+  --filter-field-grow: 240px;
+
+  --check-box: 16px;
+  --check-box-touch: 20px;
+  --check-grid-min: 160px;
+  --check-grid-min-wide: 240px;
+  --check-list-max: 232px;
+
+  --stat-min: 140px;
+  --stat-icon-box: 36px;
+  --stat-spark-h: 18px;
+
+  --chart-h-sm: 140px;
+  --chart-h-md: 180px;
+  --chart-h-lg: 220px;
+  --chart-h-xl: 260px;
+  --chart-line-w: 1.75px;
+  --chart-spark-w: 1.5px;
+  --chart-wash: 0.12;
+  --chart-band: 0.55;
+  --chart-key-w: 12px;
+  --chart-key-line: 2px;
+  --chart-key-square: 10px;
+  --chart-tip-min-w: 120px;
+  --chart-tip-gap: 10px;
+  --chart-point-w: 4px;
+  --chart-bars-label-w: 130px;
+  --chart-bars-value-w: 92px;
+  --chart-panel-min: 420px;
+
+  --menu-w: 220px;
+  --menu-w-rich: 320px;
+  --menu-w-max: 300px;
+  --menu-w-rich-max: 400px;
+  --picker-w-sm: 200px;
+  --picker-w-md: 260px;
+  --picker-w-lg: 340px;
+  --popover-max-h: 360px;
+
+  --dur-instant: 80ms;
+  --dur-fast: 140ms;
+  --dur-normal: 200ms;
+  --dur-slow: 320ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --z-sticky: 10;
+  --z-dropdown: 20;
+  --z-popover: 30;
+  --z-drawer: 40;
+  --z-modal: 50;
+  --z-toast: 60;
+  --z-tooltip: 70;
+
+  /* Bundled fonts must allow redistribution with the app: Fontshare's licence (General Sans) forbids it. */
+  --font-sans: "Inter Variable", "Inter", -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --icon-stroke: 1.5px;
+  --icon-sm: 14px;
+  --icon-md: 16px;
+  --icon-lg: 20px;
+  --icon-xl: 24px;
+
+  --header-h: 49px;
+}
+
+:root {
+  --surface-0: var(--color-bg);
+  --surface-1: var(--color-surface);
+  --surface-2: var(--color-surface-hover);
+  --surface-3: var(--color-surface-raised);
+  --surface-4: var(--color-surface-strong);
+
+  --line: var(--color-border);
+  --line-strong: var(--color-border-strong);
+  --line-soft: var(--color-border-subtle);
+
+  --fg: var(--color-text);
+  --fg-2: var(--color-text-secondary);
+  --fg-3: var(--color-text-muted);
+  --fg-4: var(--color-text-faint);
+  --fg-5: var(--color-text-disabled);
+  --on-brand: var(--color-text-on-accent);
+
+  --accent: var(--color-accent);
+  --accent-soft: var(--color-accent-soft);
+  --accent-line: var(--color-accent-border);
+
+  --ok: var(--color-success);
+  --ok-soft: var(--color-success-bg);
+  --ok-line: var(--color-success-border);
+  --warn: var(--color-warning);
+  --warn-soft: var(--color-warning-bg);
+  --warn-line: var(--color-warning-border);
+  --danger: var(--color-danger);
+  --danger-soft: var(--color-danger-bg);
+  --danger-line: var(--color-danger-border);
+  --info: var(--color-info);
+
+  --bg: var(--color-bg);
+  --card: var(--color-surface);
+  --card-hover: var(--color-surface-hover);
+  --border: var(--color-border);
+  --text: var(--color-text);
+  --text-2: var(--color-text-secondary);
+  --text-3: var(--color-text-muted);
+  --blue: var(--color-accent);
+  --green: var(--color-success);
+  --red: var(--color-danger);
+  --orange: var(--color-warning);
+  --purple: var(--color-special-solid);
+  --radius: var(--r-lg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-instant: 0ms;
+    --dur-fast: 0ms;
+    --dur-normal: 0ms;
+    --dur-slow: 0ms;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

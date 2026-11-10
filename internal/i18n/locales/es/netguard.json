@@ -1,0 +1,25 @@
+{
+  "errors": {
+    "blocked": "la política de salida bloquea ese destino",
+    "unresolved": "el host no resuelve",
+    "invalid_address": "{cause}: dirección inválida",
+    "embedded": "{cause} (dentro de {ip})",
+    "metadata_endpoint": "{cause}: {ip} es un endpoint de metadatos de la nube",
+    "reserved_address": "{cause}: {ip} es una dirección reservada o link-local",
+    "private_address": "{cause}: {ip} es una dirección privada (permitila con OCTOPUS_EGRESS_ALLOW_PRIVATE_CIDRS)",
+    "local_address": "{cause}: {ip} es una dirección de este host (permitila con OCTOPUS_EGRESS_ALLOW_PRIVATE_CIDRS)",
+    "dial_address_unparsable": "{cause}: {err}",
+    "resolve_failed": "{cause}: resolver {host}: {err}",
+    "resolve_empty": "{cause}: resolver {host}: no hay direcciones",
+    "host_blocked": "{host}",
+    "url_invalid": "URL inválida",
+    "url_scheme": "la URL tiene que ser http o https, no {scheme:%q}",
+    "url_no_host": "la URL no tiene host"
+  },
+  "log": {
+    "guard_disabled": "ATENCIÓN: OCTOPUS_EGRESS_GUARD=off; los pasos http de las automatizaciones y los webhooks pueden llegar a loopback, a redes privadas y al endpoint de metadatos de la nube. Sólo para desarrollo.",
+    "bad_allow_entry": "ATENCIÓN: la entrada #{index} de OCTOPUS_EGRESS_ALLOW_PRIVATE_CIDRS no es un CIDR ni una IP; se ignora",
+    "bad_public_ip_entry": "ATENCIÓN: la entrada #{index} de OCTOPUS_PUBLIC_IPS no es un CIDR ni una IP; se ignora",
+    "interfaces_failed": "ATENCIÓN: no se pueden listar las interfaces de red; siguen bloqueadas las direcciones del host conocidas hasta ahora: {err}"
+  }
+}

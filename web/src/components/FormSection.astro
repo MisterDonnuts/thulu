@@ -1,0 +1,18 @@
+---
+// Markup must match formSectionHTML() in lib/ui/form.ts.
+import { formSectionClasses } from "../lib/ui/form";
+
+interface Props {
+  legend?: string;
+  ruled?: boolean;
+  group?: boolean;
+  class?: string;
+  [key: string]: unknown;
+}
+const { legend, ruled = false, group = false, class: extra, ...rest } = Astro.props;
+---
+
+<fieldset class={formSectionClasses({ ruled, group, cls: extra })} {...rest}>
+  <legend class="form-section-legend"><slot name="legend">{legend}</slot></legend>
+  <div class="form-section-body"><slot /></div>
+</fieldset>

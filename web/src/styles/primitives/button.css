@@ -1,0 +1,199 @@
+/* Button.astro and buttonHTML() both take classes from buttonClasses() in lib/ui/button.ts: a variant exists in all three or none. */
+
+.btn,
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--fg-2);
+  font-family: inherit;
+  font-size: var(--t-sm);
+  font-weight: 500;
+  line-height: var(--lh-snug);
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+  user-select: none;
+}
+.btn {
+  min-height: var(--control-h-lg);
+  padding: var(--s-2) var(--control-pad-x);
+}
+/* Popup triggers only: a disclosure like the sidebar toggle is usually expanded and would look stuck down. */
+.btn:hover,
+.icon-btn:hover,
+.btn:where([aria-haspopup][aria-expanded="true"]),
+.icon-btn:where([aria-haspopup][aria-expanded="true"]) {
+  background: var(--surface-2);
+  color: var(--fg);
+  border-color: var(--line-strong);
+}
+.btn:active,
+.icon-btn:active {
+  transform: translateY(1px);
+}
+.btn:where([aria-pressed="true"]),
+.icon-btn:where([aria-pressed="true"]) {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent-line);
+}
+.btn.is-busy .ico,
+.icon-btn.is-busy .ico {
+  animation: octopus-spin 0.9s linear infinite;
+}
+
+.btn-sm {
+  min-height: var(--control-h-sm);
+  padding: var(--s-1) var(--s-3);
+  gap: var(--s-1);
+  font-size: var(--t-xs);
+  border-radius: var(--r-sm);
+}
+.btn-md {
+  padding: var(--s-3) var(--control-pad-x-md);
+  font-size: var(--t-md);
+}
+
+.icon-btn {
+  width: var(--control-h);
+  height: var(--control-h);
+  padding: 0;
+  color: var(--fg-3);
+}
+.icon-btn-lg {
+  width: var(--control-h-lg);
+  height: var(--control-h-lg);
+}
+.icon-btn-sm {
+  width: var(--control-h-sm);
+  height: var(--control-h-sm);
+  border-radius: var(--r-sm);
+}
+/* The ::before keeps a 24px target around the 20px box (WCAG 2.5.8). */
+.icon-btn-xs {
+  position: relative;
+  width: var(--control-h-xs);
+  height: var(--control-h-xs);
+  border-radius: var(--r-sm);
+}
+.icon-btn-xs::before {
+  content: "";
+  position: absolute;
+  inset: calc(var(--s-1) / -2);
+}
+.icon-btn-xs .ico {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+.icon-btn-ghost {
+  border-color: transparent;
+}
+.icon-btn-ghost:hover,
+.icon-btn-ghost:where([aria-haspopup][aria-expanded="true"]) {
+  border-color: transparent;
+}
+.icon-btn-danger:hover {
+  color: var(--danger);
+  background: var(--danger-soft);
+  border-color: var(--danger-line);
+}
+
+/* Variants must come after the icon-only block so .btn-primary also paints an icon-only primary. */
+.btn-primary {
+  background: var(--accent);
+  color: var(--on-brand);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+.btn-primary:hover,
+.btn-primary:where([aria-haspopup][aria-expanded="true"]) {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+  color: var(--on-brand);
+}
+
+.btn-ghost {
+  border-color: transparent;
+}
+.btn-ghost:hover {
+  border-color: var(--line);
+}
+
+.btn-danger {
+  color: var(--danger);
+  border-color: var(--danger-line);
+}
+.btn-danger:hover {
+  background: var(--danger-soft);
+  border-color: var(--danger-line);
+  color: var(--danger);
+}
+.modal .btn-danger,
+.modal .btn-danger:hover {
+  color: var(--color-danger-strong);
+}
+
+.btn-link {
+  display: inline;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--accent);
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.btn-link:hover {
+  background: none;
+  color: var(--color-accent-hover);
+  text-decoration: none;
+}
+.btn-link:active {
+  transform: none;
+}
+
+@media (pointer: coarse) {
+  .btn,
+  .icon-btn {
+    position: relative;
+  }
+  .btn::before,
+  .icon-btn::before {
+    content: "";
+    position: absolute;
+    inset: min(0px, calc((100% - var(--tap-min)) / 2));
+  }
+}
+
+.btn[disabled],
+.icon-btn[disabled],
+.btn[aria-disabled="true"],
+.icon-btn[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.btn[disabled],
+.icon-btn[disabled],
+a.btn[aria-disabled="true"],
+a.icon-btn[aria-disabled="true"] {
+  pointer-events: none;
+}
+.btn-primary[disabled],
+.btn-primary[aria-disabled="true"] {
+  background: var(--surface-2);
+  border-color: var(--line);
+  color: var(--fg-3);
+  opacity: 1;
+}

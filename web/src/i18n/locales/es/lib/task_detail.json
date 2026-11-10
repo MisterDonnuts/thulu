@@ -1,0 +1,110 @@
+{
+  "run": {
+    "done": "Hecha",
+    "running": "Corriendo",
+    "queued": "En cola",
+    "needs_answer": "Espera una respuesta",
+    "needs_approval": "Espera una aprobación",
+    "failed": "Falló",
+    "out_of_turns": "Sin turnos",
+    "blocked_auditor": "Frenada por el auditor",
+    "not_started": "No arrancó",
+    "credential_blocked": "Credencial vencida",
+    "no_agent": "Sin agente",
+    "stopped": "Frenada",
+    "resume_failed": "No se pudo retomar"
+  },
+  "priority": {
+    "urgent": "Urgente",
+    "high": "Alta",
+    "medium": "Media",
+    "low": "Baja"
+  },
+  "attention": {
+    "question_by": "{agent} hizo una pregunta",
+    "question": "Un agente hizo una pregunta",
+    "blocker_by": "{agent} está trabado y te necesita",
+    "blocker": "Un agente está trabado y te necesita",
+    "answer": "Responder",
+    "approval_one": "Espera tu aprobación: {label}",
+    "approval_many": {
+      "one": "{count} aprobación esperando",
+      "other": "{count} aprobaciones esperando"
+    },
+    "review": "Revisar",
+    "test_one": "Caso de prueba fallando: {title}",
+    "test_many": {
+      "one": "{count} caso de prueba fallando",
+      "other": "{count} casos de prueba fallando"
+    },
+    "open_case": "Abrir el caso",
+    "blocked_one": "Bloqueada por {title}",
+    "blocked_many": {
+      "one": "Bloqueada por {title} y {count} más",
+      "other": "Bloqueada por {title} y {count} más"
+    },
+    "open": "Abrir",
+    "subtasks_done": {
+      "one": "Su {count} subtarea está hecha",
+      "other": "Las {count} subtareas están hechas"
+    },
+    "kid_question_one": "La subtarea {title} espera una respuesta",
+    "kid_question_many": {
+      "one": "{count} subtarea espera una respuesta",
+      "other": "{count} subtareas esperan una respuesta"
+    },
+    "kid_failed_one": "La subtarea {title} falló",
+    "kid_failed_many": {
+      "one": "{count} subtarea falló",
+      "other": "{count} subtareas fallaron"
+    },
+    "kid_waits": "{title} espera a {blocker}",
+    "kid_blocked_one": "La subtarea {title} está bloqueada",
+    "kid_blocked_many": {
+      "one": "{count} subtarea está bloqueada",
+      "other": "{count} subtareas están bloqueadas"
+    },
+    "question_working_by": "{agent} preguntó y sigue trabajando",
+    "question_working": "Un agente preguntó y sigue trabajando",
+    "changes_one": "Pidieron cambios: {label}",
+    "changes_many": {
+      "one": "{count} aprobación con cambios pedidos",
+      "other": "{count} aprobaciones con cambios pedidos"
+    }
+  },
+  "move_to": "Mover a {stage}",
+  "agent": {
+    "none_in": "Ninguno en {stage}. Después: {agent} en {next}.",
+    "next": "Después: {agent} en {stage}"
+  },
+  "tabs": {
+    "approvals": "Aprobaciones",
+    "approvals_pending": {
+      "one": "Aprobaciones, {count} pendiente",
+      "other": "Aprobaciones, {count} pendientes"
+    },
+    "reports": "Reportes",
+    "reports_count": {
+      "one": "Reportes, {count} reporte",
+      "other": "Reportes, {count} reportes"
+    }
+  },
+  "runs_line": "{runs}, {tokens}",
+  "runs_line_cost": "{runs}, {tokens}, {cost}",
+  "runs": {
+    "one": "{count} corrida",
+    "other": "{count} corridas"
+  },
+  "tokens_m": "{n}M tokens",
+  "tokens_k": "{n}k tokens",
+  "tokens": {
+    "one": "{count} token",
+    "other": "{count} tokens"
+  },
+  "cause": {
+    "credentials": "Abrir Credenciales",
+    "ai_engines": "Abrir Motores de IA",
+    "pick_agent": "Elegir agente",
+    "quota": "Ver la cuota"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "errors": {
+    "no_output_mount": "no output mount found"
+  },
+  "log": {
+    "synced_existing_agent": "synced existing agent: {name} ({id}) output={output}",
+    "event_stream_error": "event stream error: {err} — reconnecting in 5s",
+    "inspect_failed": "inspect failed for {container}: {err}",
+    "agent_started": "agent started: {name} ({id})",
+    "agent_exited": "agent exited: {name} ({id}) reason={reason}",
+    "parse_start_time": "[watcher] cannot parse container start time {started_at:%q}",
+    "backfill_labels": "[watcher] backfill labels for {id}",
+    "obsidian_create_failed": "obsidian: cannot create {dir}: {err}",
+    "obsidian_write_failed": "[watcher] obsidian: cannot write {file} in {dir}",
+    "obsidian_initialized": "obsidian: initialized vault at {dir}"
+  }
+}

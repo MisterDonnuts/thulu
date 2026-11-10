@@ -1,0 +1,10 @@
+{
+  "errors": {
+    "invalid_value": "{field} tiene que ser uno de: {allowed}",
+    "too_large": "una preferencia ocupa como mucho 4 KB",
+    "unknown_key": "no hay ninguna preferencia llamada {key}"
+  },
+  "labels": {
+    "saving": "guardar tus preferencias"
+  }
+}

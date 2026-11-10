@@ -1,0 +1,165 @@
+{
+  "buttons": {
+    "history": "History",
+    "back": "Back to the editor"
+  },
+  "saved": "Saved as revision {revision}",
+  "discard": "Your changes to the init script are not saved. Leave them?",
+  "errors": {
+    "script_empty": "The script is empty.",
+    "script_too_large": "The script is larger than {max} bytes.",
+    "param_name": "Param name \"{name}\" must be uppercase letters, digits and _ and start with a letter.",
+    "param_reserved": "Param name \"{name}\" is reserved: OCTOPUS_* is set by the runner.",
+    "param_duplicate": "Param \"{name}\" is declared twice.",
+    "ports": "Not a port (1-65535): {ports}",
+    "timeout": "The ready timeout must be between 1 and {max} seconds.",
+    "workdir": "The workdir must be a path inside the repo: relative and without ..",
+    "setup_too_large": "The setup script is larger than {max} bytes.",
+    "tools": "Write tools as name=version, e.g. go=1.25.1: {tools}",
+    "too_many_tools": "At most {max} tools.",
+    "cache_path": "Cache paths must be relative to the workdir, without .., and not .git: {paths}",
+    "too_many_cache": "At most {max} lock files and {max} cache directories.",
+    "file_path_empty": "A support file has no path.",
+    "file_path": "Support file path \"{path}\" must be relative, without .., ./, // or a trailing /, without control characters, and at most {max} bytes.",
+    "file_duplicate": "Support file \"{path}\" is listed twice.",
+    "file_nul": "Support file \"{path}\" has NUL bytes; only text files are taken.",
+    "file_too_large": "Support file \"{path}\" is larger than {max} bytes.",
+    "too_many_files": "At most {max} support files.",
+    "files_too_large": "The support files add up to more than {max} bytes."
+  },
+  "author": {
+    "agent": "agent",
+    "unknown": "unknown",
+    "agent_badge": "Agent",
+    "agent_run": "{agent} in {stage} · task #{task}",
+    "agent_run_html": "{agent} in {stage} · {task}",
+    "task": "task #{task}"
+  },
+  "status": {
+    "none": "No init script yet. Write the steps that bring the project up, or let an agent save what worked for it.",
+    "note": "Note: {note}",
+    "revision_html": "Revision {revision} · {author} · {date}"
+  },
+  "params": {
+    "name": "Name",
+    "name_placeholder": "NAME",
+    "default": "Default",
+    "description": "Description",
+    "required": "Required",
+    "remove": "Remove param",
+    "none": "No params.",
+    "add": "Add param"
+  },
+  "fields": {
+    "script": "Script",
+    "script_hint": "bash, runs from the workdir; params arrive as env vars",
+    "params": "Params",
+    "params_hint": "agents pass values with init_run",
+    "ports": "Ports",
+    "ports_hint": "where the app listens, comma-separated",
+    "ready": "Ready command",
+    "ready_hint": "exit 0 means the project is up",
+    "ready_placeholder": "curl -fsS http://localhost:3000/",
+    "timeout": "Ready timeout (s)",
+    "workdir": "Workdir",
+    "note": "Note",
+    "note_hint": "shown in the history",
+    "note_placeholder": "What changed and why",
+    "setup": "Setup",
+    "setup_hint": "bash, runs before the script; skipped when its output is already there",
+    "setup_placeholder": "npm ci",
+    "tools": "Tools",
+    "tools_hint": "installed with mise; empty uses the repo's mise.toml or .tool-versions",
+    "tools_placeholder": "go=1.25.1, node=22",
+    "cache_key": "Lock files",
+    "cache_key_hint": "when their content changes, setup runs again",
+    "cache_key_placeholder": "package-lock.json",
+    "cache_paths": "Cache directories",
+    "cache_paths_hint": "what setup fills and a snapshot keeps",
+    "cache_paths_placeholder": "node_modules",
+    "files": "Support files",
+    "files_hint": "kept in Thulu, not in the repo; the script reads them from $OCTOPUS_INIT_FILES, and changing one runs setup again"
+  },
+  "files": {
+    "path": "Path",
+    "path_placeholder": "create-table.mjs",
+    "content": "Content",
+    "remove": "Remove file",
+    "none": "No support files.",
+    "add": "Add file"
+  },
+  "history": {
+    "title": "Revisions of the init script",
+    "none": "No revisions yet.",
+    "pick": "Pick a revision to read it.",
+    "row": "Revision {revision}",
+    "restored_from": "restored from revision {revision}",
+    "ports": "Ports: {ports}",
+    "ready": "Ready: {command}",
+    "params": "Params: {params}",
+    "workdir": "Workdir: {workdir}",
+    "restore": "Restore this revision",
+    "confirm_title": "Restore revision {revision}?",
+    "confirm_message": "It is saved again as the newest revision. The current script stays in the history.",
+    "restored": "Revision {revision} restored as revision {now}",
+    "setup": "Setup: {lines} lines",
+    "tools": "Tools: {tools}",
+    "cache_key": "Lock files: {files}",
+    "cache_paths": "Cache directories: {paths}",
+    "files": {
+      "one": "{count} support file: {files}",
+      "other": "{count} support files: {files}"
+    }
+  },
+  "install": {
+    "title": "Install phase",
+    "hint": "Dependencies are installed once per lock file version, then restored from a snapshot."
+  },
+  "prewarm": {
+    "title": "Snapshot",
+    "hint": "built from the default branch every 10 minutes when the lock files change",
+    "unavailable": "Snapshots need the sandbox runtime, which this install does not run.",
+    "not_eligible": "Fill in setup and cache directories, and save, to keep a snapshot of the install.",
+    "snapshot": "Last snapshot: key {key} · {date} · {size}",
+    "no_snapshot": "No snapshot yet.",
+    "running": "A prewarm is running.",
+    "last": "Last prewarm: {state} · {date}",
+    "run": "Prewarm now",
+    "started": "Prewarm started",
+    "save_first": "Save the script first: the prewarm uses the saved revision.",
+    "state": {
+      "running": "running",
+      "ok": "done",
+      "failed": "failed",
+      "skipped": "skipped, no sandbox free",
+      "pruned": "replaced by a newer snapshot"
+    },
+    "detail": "Technical detail",
+    "reason": {
+      "image": "The sandbox image is not on this machine. An operator has to build or load it before prewarms can run.",
+      "sandbox": "The sandbox is missing something snapshots need (a tool or the cache folder). An operator has to fix the sandbox setup.",
+      "tools": "Installing the declared tools failed. Check the names and versions under Tools.",
+      "setup": "The setup script failed on the default branch. The detail shows its output.",
+      "no_paths": "Setup ran, but none of the cache folders exist afterwards. Check the paths under Cache folders.",
+      "timeout": "The prewarm took too long and was stopped. A faster setup, or fewer cache folders, gets it under the limit.",
+      "lost": "The prewarm process was killed before it finished, usually for running out of memory.",
+      "too_large": "The default branch is too large to prewarm.",
+      "unknown": "The prewarm failed. The detail has the error the sandbox gave."
+    }
+  },
+  "warnings": {
+    "lockfile_missing": "Not at the top of the default branch: {files}. Setup reruns when these files change, so a missing one never triggers it."
+  },
+  "starter": {
+    "found": "This repo looks like {stack} ({file}).",
+    "use": "Start from a template",
+    "run_comment": "Start the app. Change this line to the command your project uses.",
+    "stacks": {
+      "npm": "Node.js with npm",
+      "pnpm": "Node.js with pnpm",
+      "yarn": "Node.js with Yarn",
+      "go": "Go",
+      "pip": "Python with pip"
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "errors": {
+    "no_logs": "no se encontraron logs para esta corrida",
+    "not_started": "el agente de esta corrida todavía no arrancó",
+    "consumer_disconnected": "se desconectó quien leía los logs"
+  },
+  "log": {
+    "seek_failed": "posicionarse en el archivo de log {path}",
+    "reopen_failed": "reabrir el stream de logs del pod"
+  }
+}

@@ -1,0 +1,115 @@
+{
+  "not_configured": "not configured",
+  "idp_fallback": "the provider shown on the sign-in page",
+  "operator": "Run by {entity}. Contact: {contact}",
+  "version": "Last updated October 3, 2026",
+  "links": {
+    "nav": "Legal",
+    "terms": "Terms",
+    "privacy": "Privacy",
+    "source": "Source (AGPL)",
+    "back": "Back to Thulu"
+  },
+  "terms": {
+    "title": "Terms of service",
+    "intro": "These terms cover your use of this Thulu service, run by the operator named above. Signing in means you accept them.",
+    "beta": {
+      "title": "Beta service",
+      "body": "The service is in beta. Features change or go away without notice, the service can be unavailable, and data can be lost. Keep your own copy of anything you cannot afford to lose: your repositories stay at your Git host and Thulu works on clones of them. There is no uptime commitment during the beta."
+    },
+    "accounts": {
+      "title": "Accounts and workspaces",
+      "body": "You sign in through your identity provider ({idp}); Thulu stores no password. A workspace belongs to its owner, who decides who joins and with what role, can hand it to another member and can delete it. Members are responsible for what they, and the API keys they create, do in the workspace."
+    },
+    "byok": {
+      "title": "Your AI provider key",
+      "body": "Agents run with the AI provider key you add to your workspace. Your use of that provider falls under your own agreement with it, and its charges go to your account there. The operator stores the key encrypted and uses it only for your workspace's agent runs."
+    },
+    "use": {
+      "title": "Acceptable use",
+      "no_law": "Do not use the service to break the law or anyone's rights.",
+      "no_reach": "Do not try to reach other workspaces' data, get around limits or credentials, or attack the service or the servers it runs on.",
+      "no_systems": "Do not point agents at repositories or systems you have no right to change.",
+      "suspend": "The operator may suspend a workspace that breaks these rules and will tell its owner why."
+    },
+    "content": {
+      "title": "Your content",
+      "body": "Code, tasks, comments and files you put into the service stay yours. The operator processes them only to run the service for you, as the privacy page describes."
+    },
+    "ending": {
+      "title": "Ending your use",
+      "body": "You can delete a workspace you own, or your whole account, at any time from Settings, Account; the privacy page lists what that erases. The operator may end the beta, telling workspace owners by email first where possible."
+    },
+    "warranty": {
+      "title": "No warranty",
+      "body": "The service is provided as is, without warranties of any kind, to the extent the law allows. The operator is not liable for indirect losses, lost data or lost profits arising from the beta."
+    },
+    "changes": {
+      "title": "Changes",
+      "body": "These terms can change while the service is in beta. The date at the top names the current version; using the service after a change means you accept it."
+    },
+    "contact": {
+      "title": "Contact",
+      "body": "Questions about these terms go to {contact}."
+    }
+  },
+  "privacy": {
+    "title": "Privacy",
+    "intro": "This page says what this Thulu service stores about you and your workspace, where, for how long, and how to erase it. The operator named above runs the service.",
+    "roles": "For what a workspace holds, its owner decides what goes in and the operator processes it on the owner's behalf.",
+    "data": {
+      "title": "What is stored",
+      "account": "Account: your email, display name, the identifier your identity provider assigns you, and your role in each workspace. No password: you sign in at the identity provider.",
+      "content": "Workspace content: clones of the repositories you connect, the working copies agents edit, tasks, comments, chats, attachments and what agents write during a run.",
+      "credentials": "Credentials: your AI provider key and Git tokens, each encrypted with AES-256-GCM. API keys are kept only as a hash.",
+      "usage": "Usage: tokens and estimated cost per agent run, to show spend and apply limits.",
+      "audit": "Security log: who did what and when, with the IP address and browser of the request."
+    },
+    "byok": {
+      "title": "Your AI provider key",
+      "body": "Agents send prompts and code to the AI provider whose key you added, under your own agreement with that provider. The operator does not route that traffic through an account of its own, so that provider works for you, not for the operator. You can replace or delete the key at any time from Settings."
+    },
+    "where": {
+      "title": "Where it is kept",
+      "body": "On servers rented from {hosting}, in {region}. Workspaces share one database and every request is limited to the workspace it acts in. Thulu encrypts the credentials listed above one by one; the rest of the database and the working copies rely on the encryption of the server's disks."
+    },
+    "retention": {
+      "title": "How long it is kept",
+      "run_logs": "Agent run logs and outputs: 30 days by default.",
+      "usage": "Usage records per run: 90 days by default; a daily total per project stays.",
+      "webhooks": "Webhook delivery logs: 30 days by default.",
+      "sessions": "Expired sessions: removed automatically.",
+      "audit": "Security log: until the operator's retention setting removes it.",
+      "rest": "Everything else: until you delete it, the workspace or your account.",
+      "backups": "Backups: the newest snapshots stay on the server and are replaced as new ones are taken."
+    },
+    "deletion": {
+      "title": "Deleting your data",
+      "workspace": "A workspace owner can delete the workspace from Settings, Account by typing its slug. That erases its tasks, projects and clones, chats, credentials, webhooks, API keys and memberships.",
+      "account": "You can delete your account from Settings, Account by typing your email. Workspaces you own alone are erased as above; a workspace you own that other people use has to be handed to another member, or deleted, first. Your memberships, sessions and identity provider links are deleted, and API keys you created in other workspaces stop working.",
+      "residual": "What stays: security log entries about your actions until they age out, your name as the author of comments in workspaces you did not own, and backups taken before the deletion until they are replaced."
+    },
+    "subprocessors": {
+      "title": "Subprocessors",
+      "col_company": "Company",
+      "col_purpose": "What for",
+      "col_data": "Data",
+      "col_where": "Where",
+      "hosting_purpose": "Servers and storage",
+      "hosting_data": "Everything the service stores",
+      "idp_name": "Your identity provider ({idp})",
+      "idp_purpose": "Signing you in",
+      "idp_data": "Email, name and the identifier it assigns",
+      "idp_where": "Under its own terms",
+      "note": "Your AI provider and your Git host are your own choices, under your own agreements with them. A new subprocessor is listed here before it receives any data."
+    },
+    "rights": {
+      "title": "Your rights",
+      "body": "You can ask for a copy of your data, for its correction or for its deletion by writing to the contact below. Workspaces and your account you can delete yourself from the dashboard."
+    },
+    "contact": {
+      "title": "Contact",
+      "body": "Write to {contact} about your data or this page."
+    }
+  }
+}

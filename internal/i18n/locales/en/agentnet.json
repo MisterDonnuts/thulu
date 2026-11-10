@@ -1,0 +1,8 @@
+{
+  "errors": {
+    "inspect_network": "agentnet: inspect network {name}",
+    "create_network": "agentnet: create network {name} (bridge {bridge:%q}): {cause} — set {network_env} to another name, {bridge_env}=auto to let Docker name the interface, or {network_env}=bridge for the legacy default bridge",
+    "list_peer": "agentnet: list peer {peer}",
+    "connect_peer": "agentnet: connect peer {peer} to {network}"
+  }
+}

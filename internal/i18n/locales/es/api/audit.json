@@ -1,0 +1,10 @@
+{
+  "errors": {
+    "disabled": "el log de auditoría no está activado",
+    "export_requires_ee": "exportar la auditoría requiere una licencia de Enterprise Edition",
+    "verify_operator_only": "la cadena de auditoría abarca todos los workspaces; verificala con una credencial de admin de {env}"
+  },
+  "log": {
+    "export_failed": "falló el stream de exportación para {query}: {err}"
+  }
+}

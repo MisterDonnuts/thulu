@@ -1,0 +1,56 @@
+{
+  "title": "Iniciar sesión",
+  "subtitle": "Seguí con tu proveedor de identidad.",
+  "pending": {
+    "page_title": "Esperando acceso",
+    "title": "Tu cuenta está esperando acceso",
+    "subtitle": "Iniciaste sesión, pero todavía no sos miembro de ningún espacio de trabajo.",
+    "text": "Pedile a un administrador que te agregue a un espacio de trabajo. Cuando lo haga, cerrá sesión y volvé a entrar.",
+    "sign_out": "Cerrar sesión",
+    "first_text": "Sos la primera persona en entrar a esta instalación, y su primer workspace todavía es del dueño provisorio que creó el asistente de instalación. Corré esto en una terminal donde OCTOPUS_API_KEY tenga la key que imprimió el asistente y volvé a entrar:",
+    "first_workspace_hint": "El comando lee el id del workspace de $OCTOPUS_OPERATOR_WORKSPACE. Exportala antes: el valor está en OCTOPUS_OPERATOR_WORKSPACE de deploy/.env (Docker) o en extraEnv de los values de Helm (Kubernetes).",
+    "command_name": "el comando"
+  },
+  "sso": {
+    "continue_with": "Continuar con {provider}"
+  },
+  "notices": {
+    "first_user": "La primera persona que inicie sesión queda como owner del espacio de trabajo.",
+    "dev_link": "Esta instalación no tiene inicio de sesión. Abrí el dashboard con el link que imprime el daemon al arrancar, o corré {cmd} en la máquina donde corre.",
+    "no_provider": "No hay ningún proveedor de identidad configurado, así que todavía no hay forma de iniciar sesión. Configurá {issuer}, {client_id} y {client_secret} en el daemon y reinicialo."
+  },
+  "errors": {
+    "config_rejected": "El daemon rechazó el pedido de configuración. Revisá sus logs.",
+    "unreachable": "No se puede llegar al daemon de Thulu."
+  },
+  "reasons": {
+    "state_expired": "El inicio de sesión tardó demasiado. Probá de nuevo.",
+    "session_missing": "El inicio de sesión empezó en otro navegador o pestaña, o tardó demasiado. Empezalo de nuevo acá.",
+    "email_unverified": "Verificá tu email en {provider} y volvé a entrar.",
+    "email_unverified_generic": "Verificá tu email en tu proveedor de identidad y volvé a entrar."
+  },
+  "beta": {
+    "saas": "El alta es por invitación.",
+    "allowlist": "Acá el alta es por invitación.",
+    "waitlist": "Anotate en la lista de espera"
+  },
+  "invite": {
+    "for": "Te invitaron a {workspace}. Entrá con {email}.",
+    "awaiting": "Ese email todavía no tiene acceso. Cuando entres vas a poder pedirlo.",
+    "gone": "Esta invitación ya se usó o la cancelaron. Entrá para ver a qué tenés acceso."
+  },
+  "not_invited": {
+    "page_title": "Sin acceso todavía",
+    "title": "Todavía no tenés acceso",
+    "text": "{email} todavía no está en la lista de acceso.",
+    "invited": "{workspaces} te invitó. El acceso lo da quien opera Thulu, y la invitación te espera hasta entonces.",
+    "invited_many": "{workspaces} te invitaron. El acceso lo da quien opera Thulu, y las invitaciones te esperan hasta entonces.",
+    "request": "Pedir acceso",
+    "request_hint": "Pedir acceso le avisa a quien opera esta instalación. Cuando te lo dé, entrás con este mismo email.",
+    "waitlist_hint": "Si nadie de esta instalación te conoce:",
+    "requesting": "Enviando…",
+    "requested": "Pedido enviado. Cuando tengas acceso, volvé a entrar con {email}.",
+    "request_failed": "No se pudo enviar el pedido: {error}",
+    "other_account": "Probar con otra cuenta"
+  }
+}

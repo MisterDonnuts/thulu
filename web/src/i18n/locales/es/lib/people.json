@@ -1,0 +1,21 @@
+{
+  "device": {
+    "api_client": "Cliente de la API",
+    "browser_on_os": "{browser} en {os}",
+    "unknown": "Dispositivo desconocido"
+  },
+  "browser": {
+    "edge": "Edge",
+    "opera": "Opera",
+    "chrome": "Chrome",
+    "firefox": "Firefox",
+    "safari": "Safari"
+  },
+  "os": {
+    "macos": "macOS",
+    "windows": "Windows",
+    "android": "Android",
+    "ios": "iOS",
+    "linux": "Linux"
+  }
+}

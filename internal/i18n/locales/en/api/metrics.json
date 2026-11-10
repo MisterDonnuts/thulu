@@ -1,0 +1,8 @@
+{
+  "errors": {
+    "custom_metric_not_found": "custom metric not found"
+  },
+  "log": {
+    "top_task_titles": "read the titles of the most expensive tasks"
+  }
+}

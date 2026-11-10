@@ -1,0 +1,33 @@
+{
+  "errors": {
+    "bundle": "paquete de deploy",
+    "bundle_too_large": "paquete de deploy: pesa más de {max} bytes",
+    "bundle_entry_read": "paquete de deploy: {name:%q}",
+    "bundle_entry_truncated": "paquete de deploy: {name:%q} está truncado",
+    "bundle_empty": "el paquete de deploy está vacío",
+    "bundle_not_regular": "paquete de deploy: {name:%q} no es un archivo común (tipo {type:%q})",
+    "bundle_bad_path": "paquete de deploy: se rechaza la ruta {name:%q}",
+    "bundle_duplicate": "paquete de deploy: {name:%q} aparece dos veces",
+    "bundle_too_many_files": "paquete de deploy: tiene más de {max} archivos",
+    "bundle_entry_too_large": "paquete de deploy: {name:%q} pesa {size} bytes",
+    "read_file": "leer {path}",
+    "parse_file": "interpretar {path}",
+    "write_file": "escribir {path}",
+    "invalid_path": "{path:%q} no es una ruta de archivo de deploy",
+    "tree": "archivos de deploy",
+    "open_dir": "abrir deploy/",
+    "read_deploy_file": "leer deploy/{path}",
+    "edited_by_hand": {
+      "one": "{count} archivo de deploy editado a mano",
+      "other": "{count} archivos de deploy editados a mano"
+    },
+    "stat_deploy_file": "consultar deploy/{path}",
+    "not_regular": "deploy/{path} no es un archivo común",
+    "create_deploy_dir": "crear deploy/{path}",
+    "write_deploy_file": "escribir deploy/{path}"
+  },
+  "labels": {
+    "diff_header": "--- {name} (en disco)\n+++ {name} (release)\n",
+    "diff_too_long": "(los archivos difieren; son demasiado largos para mostrar el diff acá)\n"
+  }
+}

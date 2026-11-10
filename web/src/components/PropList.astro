@@ -1,0 +1,12 @@
+---
+import { propListClasses, type PropListLayout } from "../lib/ui/prop";
+
+interface Props {
+  layout?: PropListLayout;
+  class?: string;
+  [key: string]: unknown;
+}
+const { layout = "rows", class: extra, ...rest } = Astro.props;
+---
+
+<div class={propListClasses({ layout, cls: extra })} {...rest}><slot /></div>

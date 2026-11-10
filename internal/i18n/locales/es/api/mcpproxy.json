@@ -1,0 +1,17 @@
+{
+  "errors": {
+    "credential_failed": "no se pudo leer la credencial del servidor MCP {server}",
+    "credential_refused": "el servidor MCP {server} necesita una credencial que esta corrida no puede usar ({reason}): {detail}",
+    "credentials_unavailable": "el servidor MCP {server} se autentica con una credencial guardada y el gestor de credenciales no está configurado",
+    "run_key_required": "el proxy MCP sólo atiende corridas de agentes: llamalo con la key de la corrida",
+    "run_without_reach": "no se encuentra la tarea de esta corrida, así que no se le puede resolver ninguna credencial",
+    "server_not_granted": "el servidor MCP {server} no está concedido a esta corrida",
+    "sse_get_only": "el servidor MCP {server} habla SSE: abrí el stream con GET y posteá al endpoint que anuncia",
+    "unavailable": "el proxy MCP no está configurado en este daemon",
+    "unknown_server": "no hay un servidor MCP {server} en esta ruta"
+  },
+  "log": {
+    "read_grant_failed": "mcp proxy: falló la lectura del permiso MCP de la corrida {run}, se usa la definición del agente",
+    "read_registration_failed": "mcp proxy: falló la lectura del registro {server}, se usa la tabla de reenvío"
+  }
+}

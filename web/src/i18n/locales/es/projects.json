@@ -1,0 +1,173 @@
+{
+  "title": "Proyectos",
+  "subtitle": "Repos clonados y carpetas subidas · un worktree por tarea activa.",
+  "buttons": {
+    "new_project": "Nuevo proyecto",
+    "open_board": "Abrir tablero",
+    "connect_github": "Conectar GitHub",
+    "install_other_org": "Instalar en otra organización",
+    "new_credential": "Nueva credencial…",
+    "save_credential": "Guardar credencial",
+    "delete_project": "Eliminar proyecto",
+    "open_project": "Abrir proyecto",
+    "create_first": "Creá tu primer proyecto",
+    "back_to_task": "Volver a la tarea"
+  },
+  "toolbar": {
+    "search": "Buscar proyectos",
+    "count": {
+      "one": "{count} proyecto",
+      "other": "{count} proyectos"
+    },
+    "filtered": "{shown} de {total}"
+  },
+  "empty": {
+    "none": "Todavía no hay proyectos",
+    "no_match": "Ningún proyecto coincide con “{query}”"
+  },
+  "modal": {
+    "title": "Nuevo proyecto",
+    "name": "Nombre",
+    "name_placeholder": "Mi proyecto",
+    "repo_access": "Acceso al repositorio",
+    "repo_access_hint": "los secretos viven en la página de credenciales, nunca en el proyecto",
+    "repo_url": "URL del repositorio",
+    "description": "Descripción",
+    "description_hint": "resumen corto que el agente lee al iniciar",
+    "description_placeholder": "Sitio web público (Next.js). Textos de marketing, landing pages, tests A/B.",
+    "default_branch": "Rama por defecto",
+    "default_branch_placeholder": "Vacío: la que usa el repositorio",
+    "default_board": "Tablero por defecto",
+    "default_board_hint": "Dónde arrancan las tareas de este proyecto que crean la API o los agentes sin nombrar un tablero. Una tarea creada desde el tablero arranca en el tablero abierto.",
+    "stage_template": "Plantilla de etapas",
+    "stage_template_hint": "agente por defecto en cada etapa",
+    "column_stage": "Etapa",
+    "column_default_agent": "Agente por defecto",
+    "source": "Origen del código",
+    "more_options": "Más opciones"
+  },
+  "auth": {
+    "github_app": "GitHub App",
+    "github_org": "Organización de GitHub",
+    "repository": "Repositorio",
+    "pick_repo": "Elegí un repositorio…",
+    "loading_repos": "Cargando repositorios…",
+    "repos_failed": "No se pudieron cargar los repositorios",
+    "app_info": "Los repositorios que habilita la instalación de la App. Al elegir uno se completa la URL de abajo y el proyecto queda vinculado a la instalación: los tokens se emiten por operación y no se guarda nada de larga duración.",
+    "install_hint": "Instalá la App en tu organización para elegir repos sin tokens.",
+    "saved_credential": "Credencial guardada",
+    "credential_aria": "Credencial de GitHub",
+    "pick_credential": "— elegí una credencial —",
+    "credential_name": "Nombre",
+    "credential_name_placeholder": "GitHub — deploys",
+    "token": "Token de acceso personal",
+    "token_placeholder": "ghp_…  o  github_pat_…",
+    "token_info_html": "Se valida contra api.github.com y se guarda en la página de credenciales, donde se puede rotar, deshabilitar o habilitar para otros proyectos. Los tokens clásicos necesitan <code>repo</code>, y además <code>workflow</code> para disparar Actions.",
+    "public_repo": "Repo público",
+    "public_repo_hint": "clonar sin credenciales"
+  },
+  "labels": {
+    "defaults": {
+      "one": "{count} por defecto",
+      "other": "{count} por defecto"
+    },
+    "suspended": "(suspendida)",
+    "private": "(privado)",
+    "state_invalid": "(inválida)",
+    "state_expired": "(vencida)",
+    "uploaded": "Subido a Thulu",
+    "cloning": "Clonando",
+    "clone_failed": "Falló el clon",
+    "clone_failed_reason": "Falló el clon: {reason}."
+  },
+  "status": {
+    "validating": "Validando…",
+    "packing": "Empaquetando…",
+    "uploading": "Subiendo…",
+    "processing": "Guardando el código…"
+  },
+  "toasts": {
+    "token_rejected": "GitHub rechazó ese token. Quedó guardado, pero no va a poder clonar",
+    "credential_saved": "Se guardó {name}",
+    "credential_saved_identity": "Se guardó {name} — {identity}",
+    "install_failed": "No se pudo iniciar la instalación de GitHub: {error}",
+    "github_connected": "GitHub conectado. Elegí un repositorio",
+    "github_authorized": "Autorización de GitHub completa",
+    "install_requested": "Instalación solicitada. Falta que la apruebe el admin de tu organización en GitHub",
+    "github_failed": "Falló la conexión con GitHub ({reason})",
+    "created": "Se creó {name}",
+    "delete_failed": "No se pudo eliminar el proyecto",
+    "deleted": "Se eliminó {name}",
+    "read_failed": "No se pudo leer la carpeta. Probá con Elegir carpeta.",
+    "cloning": "{name} se está clonando; la tarjeta avisa cuando esté listo",
+    "link_task_failed": "El proyecto se creó, pero no se pudo vincular a la tarea: {error}"
+  },
+  "errors": {
+    "unknown": "desconocido",
+    "no_install_url": "no llegó ninguna URL de instalación",
+    "credential_save_failed": "No se pudo guardar la credencial: {error}",
+    "save_failed": "No se pudo guardar: {error}",
+    "name_required": "El proyecto necesita un nombre",
+    "pick_folder": "Elegí una carpeta o un .zip con el código",
+    "too_big": "La subida pesa {size}; el límite es {max}. Dejá afuera los builds o los archivos pesados y probá de nuevo.",
+    "pick_credential": "Elegí una credencial o creá una, o elegí “Repo público”",
+    "repo_required": "El proyecto necesita la URL del repositorio",
+    "credential_name_required": "La credencial necesita un nombre",
+    "token_required": "Pegá el token que guarda la credencial"
+  },
+  "confirm": {
+    "delete_title": "¿Eliminar \"{name}\"?",
+    "delete_message": "Borra el clon local y todos los worktrees. Las tareas vinculadas se quedan sin proyecto.",
+    "delete_ok": "Eliminar proyecto"
+  },
+  "kbd": {
+    "close_modal": "Cerrar el modal / limpiar la búsqueda"
+  },
+  "github_reasons": {
+    "state": "el link de instalación venció, ya se usó o se abrió en otro navegador; empezá de nuevo desde Thulu",
+    "fetch": "Thulu no pudo leer la instalación desde GitHub",
+    "store": "Thulu no pudo guardar la instalación",
+    "params": "GitHub no devolvió ninguna instalación",
+    "claimed": "esa instalación ya está conectada a otro workspace; pedile al operador que la mueva",
+    "installer": "tu usuario de GitHub no ve esa instalación",
+    "authorize": "GitHub no mandó la autorización que esta instalación necesita; la App tiene que pedir autorización del usuario durante la instalación",
+    "oauth": "GitHub rechazó el código de autorización",
+    "unclaimed": "la instalación no está conectada a ningún workspace; instalala desde Thulu"
+  },
+  "source": {
+    "git_title": "Repositorio Git",
+    "git_desc": "Clonar desde GitHub u otro remote",
+    "upload_title": "Subir carpeta",
+    "upload_desc": "Desde tu computadora, sin GitHub"
+  },
+  "upload": {
+    "drop_title": "Arrastrá la carpeta del proyecto acá",
+    "drop_sub": "o elegila desde tu computadora. También sirve un .zip.",
+    "pick_folder": "Elegir carpeta",
+    "pick_zip": "Elegir .zip",
+    "rules": "node_modules, .venv y otras carpetas de dependencias quedan afuera, igual que los archivos que parecen secretos (.env, claves privadas). Con su .git el proyecto conserva el historial; sin él, la carpeta es el primer commit de main.",
+    "reading": "Leyendo la carpeta…",
+    "files": {
+      "one": "{count} archivo",
+      "other": "{count} archivos"
+    },
+    "with_history": "Con historial de git",
+    "nothing_left": "No quedan archivos para subir después de sacar las carpetas de dependencias y los secretos.",
+    "excluded": {
+      "one": "{count} archivo afuera por parecer un secreto",
+      "other": "{count} archivos afuera por parecer secretos"
+    },
+    "skipped": {
+      "one": "{count} carpeta afuera",
+      "other": "{count} carpetas afuera"
+    },
+    "and_more": "y {count} más",
+    "zip_note": "Thulu ordena los archivos del zip cuando llega.",
+    "progress": "{pct}% · {sent} de {total}",
+    "created_title": "{name} está listo",
+    "created_history": "Se conservó el historial. {branch} está en {commit}.",
+    "created_fresh": "Repositorio nuevo. La carpeta es el primer commit de {branch} ({commit}).",
+    "history_ignored": "El .git de la subida no tenía commits, así que el proyecto arranca un historial nuevo.",
+    "progress_label": "Progreso de la subida"
+  }
+}

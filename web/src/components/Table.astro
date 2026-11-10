@@ -1,0 +1,90 @@
+---
+import EmptyRow from "./EmptyRow.astro";
+import {
+  tableClasses,
+  tableDetailLabel,
+  tableHeadAttrs,
+  tableSpan,
+  type TableColumn,
+} from "../lib/ui/table";
+
+interface Props {
+  cols: TableColumn[];
+  compact?: boolean;
+  top?: boolean;
+  stack?: boolean;
+  noHead?: boolean;
+  expandable?: boolean;
+  empty?: string;
+  loading?: boolean;
+  label?: string;
+  bodyId?: string;
+  bare?: boolean;
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  cols,
+  compact = false,
+  top = false,
+  stack = false,
+  noHead = false,
+  expandable = false,
+  empty,
+  loading = false,
+  label,
+  bodyId,
+  bare = false,
+  class: extra,
+  ...rest
+} = Astro.props;
+const cls = tableClasses({ compact, top, stack, noHead, expandable, cls: extra });
+const span = tableSpan(cols, { expandable });
+const hasBody = Astro.slots.has("default");
+const showEmpty = !hasBody && (empty !== undefined || loading);
+const Wrap = bare ? Fragment : "div";
+---
+
+<Wrap {...bare ? {} : { class: "table-wrap" }}>
+  <table class={cls} aria-label={label} {...rest}>
+    <thead>
+      <tr>
+        {
+          expandable && (
+            <th scope="col" class="cell-caret">
+              <span class="visually-hidden">{tableDetailLabel()}</span>
+            </th>
+          )
+        }
+        {
+          cols.map((c) => (
+            <th {...tableHeadAttrs(c)}>
+              {c.sort !== undefined ? (
+                <button type="button">
+                  {c.hideLabel ? <span class="visually-hidden">{c.label}</span> : c.label}
+                </button>
+              ) : c.hideLabel ? (
+                <span class="visually-hidden">{c.label}</span>
+              ) : (
+                c.label
+              )}
+            </th>
+          ))
+        }
+      </tr>
+    </thead>
+    <tbody id={bodyId}>
+      {
+        hasBody ? (
+          <slot />
+        ) : showEmpty && empty !== undefined ? (
+          <EmptyRow cols={span} loading={loading}>
+            {empty}
+          </EmptyRow>
+        ) : (
+          showEmpty && <EmptyRow cols={span} loading={loading} />
+        )
+      }
+    </tbody>
+  </table>
+</Wrap>

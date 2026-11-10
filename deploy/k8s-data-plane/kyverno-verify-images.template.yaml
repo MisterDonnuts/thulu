@@ -1,0 +1,50 @@
+# Signing side is .github/workflows/octopus-release.yml; SIGNING_SUBJECT must match it.
+# Kyverno must reach the registry, REKOR_URL and tuf-repo-cdn.sigstore.dev, or failurePolicy: Fail
+# denies every image.
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: octopus-verify-image-signatures
+  annotations:
+    policies.kyverno.io/title: Verify Thulu image signatures
+    policies.kyverno.io/severity: high
+spec:
+  validationFailureAction: Enforce
+  background: false
+  failurePolicy: Fail
+  webhookTimeoutSeconds: 30
+  rules:
+    - name: verify-octopus-signed
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      verifyImages:
+        - imageReferences:
+            - "${IMAGE_REGISTRY}/octopus:*"
+            - "${IMAGE_REGISTRY}/octopus@*"
+            - "${IMAGE_REGISTRY}/octopus-*"
+          mutateDigest: true
+          verifyDigest: true
+          required: true
+          attestors:
+            - count: 1
+              entries:
+                - keyless:
+                    subject: "${SIGNING_SUBJECT}"
+                    issuer: "https://token.actions.githubusercontent.com"
+                    rekor:
+                      url: "${REKOR_URL}"
+                # Same key as deploy/octopus-release.pub (checked by `thulu update`); rotate both
+                # together. Air-gapped clusters depend on this entry.
+                - keys:
+                    publicKeys: |-
+                      -----BEGIN PUBLIC KEY-----
+                      MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE9JHJX8TIxbHcnDB7Ub5eEQTU5ey2
+                      nrAyap5TlylCe0Z7wOj87b08g3hPQoaG1je8uIIugWVYOpeFpLDGeYLPFg==
+                      -----END PUBLIC KEY-----
+                    rekor:
+                      ignoreTlog: true
+                    ctlog:
+                      ignoreSCT: true

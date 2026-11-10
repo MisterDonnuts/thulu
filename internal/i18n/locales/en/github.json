@@ -1,0 +1,25 @@
+{
+  "errors": {
+    "token_required": "token required",
+    "open_pr_fields_required": "owner, repo, head, base and title are required",
+    "find_pr_fields_required": "owner, repo and head are required",
+    "read_pulls_response": "read pulls response body",
+    "decode_pulls_response": "decode pulls response",
+    "read_pulls_list": "read pulls list body",
+    "decode_pulls_list": "decode pulls list",
+    "pulls_api": "github pulls API: {message}",
+    "pr_already_exists": "pull request already exists for this head",
+    "merge_fields_required": "owner, repo and a pull request number are required, and the merge method must be merge, squash or rebase",
+    "review_fields_required": "owner, repo, a run id, at least one environment id and a state (approved or rejected) are required",
+    "read_response": "read GitHub response body",
+    "decode_response": "decode GitHub response",
+    "api": "GitHub answered {status}: {message}"
+  },
+  "log": {
+    "parse_pulls_error_failed": "github pulls API: cannot parse error response (HTTP {status})",
+    "parse_error_failed": "GitHub API: cannot parse error response (HTTP {status})",
+    "reviews_read_failed": "read the reviews of {repo}#{number}",
+    "check_runs_read_failed": "read the check runs of {repo}",
+    "actions_read_failed": "read the GitHub Actions runs of {repo}"
+  }
+}

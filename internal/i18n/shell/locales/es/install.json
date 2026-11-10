@@ -1,0 +1,42 @@
+{
+  "errors": {
+    "bad_archive": "{asset} no trae el binario octopus adentro",
+    "checksum_mismatch": "el checksum no coincide; no se instala",
+    "dir_not_writable": "no tenés permiso de escritura en {dir}, y este instalador no usa sudo. Elegí un directorio tuyo, por ejemplo OCTOPUS_INSTALL_DIR=$HOME/.local/bin",
+    "mirror_needs_version": "OCTOPUS_RELEASE_BASE_URL necesita OCTOPUS_VERSION (el mirror no puede responder \"latest\")",
+    "mkdir_failed": "no se puede crear {dir}",
+    "no_asset": "la release {tag} no tiene un asset llamado {asset} (o falló la descarga)",
+    "no_checksum": "la release {tag} no publica checksum para {asset}",
+    "no_checksum_entry": "{sums} no tiene una entrada para {asset}; no se instala",
+    "no_release_id": "la release de {repo} no trajo id",
+    "no_releases": "no se encontró ninguna release en {repo}: todavía no se publicó ninguna, o el repositorio es privado.\nPara un repositorio privado seteá GITHUB_TOKEN (por ejemplo GITHUB_TOKEN=$(gh auth token)).",
+    "no_sha_tool": "no hay sha256sum ni shasum en esta máquina, así que no se puede verificar el checksum",
+    "no_signed_checksums": "la release {tag} no publica checksums firmados ({sums} + {bundle})",
+    "no_tag_name": "la release de {repo} no trajo tag_name",
+    "release_not_found": "{repo} no tiene la release {tag}",
+    "required": "hace falta {tool} y no está en el PATH",
+    "signature_failed": "falló la verificación de la firma de {sums}: no la firmó el workflow de release de {repo}; no se instala",
+    "signature_required": "OCTOPUS_REQUIRE_SIGNATURE=1 pero cosign no está instalado",
+    "unsupported_arch": "arquitectura {arch} no soportada: las releases se compilan para amd64 y arm64",
+    "unsupported_os": "sistema operativo {os} no soportado: las releases se compilan para linux y darwin",
+    "unverified_refused": "{reason}; no se instala (seteá OCTOPUS_INSECURE_SKIP_VERIFY=1 para instalar sin verificar)",
+    "version_needs_value": "--version necesita una release, por ejemplo --version 1.0.0",
+    "write_failed": "no se puede escribir {path} (seteá OCTOPUS_INSTALL_DIR a un directorio tuyo)"
+  },
+  "cli": {
+    "error": "error: {message}",
+    "header": "Thulu {tag} ({platform})",
+    "installing_unverified": "  ! {reason}; se instala igual porque OCTOPUS_INSECURE_SKIP_VERIFY=1",
+    "downloading": "  descargando {asset}",
+    "signature_ok": "  firma ok ({sums} firmado por el workflow de release de {repo})",
+    "no_cosign": "  ! no se encontró cosign: sólo se verifica el checksum, no quién publicó la release (instalá cosign para verificar la firma)",
+    "checksum_ok": "  checksum ok",
+    "installed": "  instalado en {path}",
+    "not_on_path": "\n  ! {dir} no está en tu PATH, así que `thulu` todavía no se va a encontrar. Agregalo con:\n      {command}\n    o correlo con la ruta completa: {path}",
+    "next_steps": "\nSiguiente: configurá y arrancá Thulu (fuera de un checkout escribe los archivos de deploy en ~/.octopus):\n  {command}",
+    "usage": "Instala el CLI thulu desde una release de GitHub.\n\n  curl -fsSL {url} | sh\n  curl -fsSL {url} | sh -s -- --version 1.0.0\n\nOpciones:\n  --version VERSIÓN  instala esa release en vez de la última (igual que OCTOPUS_VERSION)\n  -h, --help         muestra esta ayuda\n\nVariables de entorno:\n  OCTOPUS_INSTALL_DIR=DIR         dónde va el binario (por defecto: un directorio del PATH donde puedas escribir, si no ~/.local/bin)\n  OCTOPUS_NO_INIT=1               no ofrece correr `thulu init` al final\n  GITHUB_TOKEN=TOKEN              sólo para un repositorio privado (si no, todo se baja de github.com)\n  OCTOPUS_RELEASE_BASE_URL=URL    baja de un mirror con la forma <URL>/v<versión>/<asset>\n  OCTOPUS_REQUIRE_SIGNATURE=1     falla si cosign no está instalado\n  OCTOPUS_INSECURE_SKIP_VERIFY=1  instala aunque un chequeo no se pueda correr (nunca si uno falla)",
+    "already_installed": "  {tag} ya está instalado en {path}; no hay nada que hacer",
+    "shadowed": "\n  ! {other} aparece antes que {path} en tu PATH, así que `thulu` corre ese. Borralo, o corré {path}",
+    "init_prompt": "\n¿Configurarlo ahora? (thulu init) [S/n]"
+  }
+}

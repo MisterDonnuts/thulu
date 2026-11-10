@@ -1,0 +1,43 @@
+{
+  "status": {
+    "loading": "Loading…",
+    "daemon_offline": "Daemon offline",
+    "saving": "Saving…"
+  },
+  "kbd": {
+    "shortcuts": "Keyboard shortcuts",
+    "shortcuts_hint": "Keyboard shortcuts (?)",
+    "show_help": "Show this help",
+    "close_modal": "Close any modal",
+    "esc": "Esc",
+    "focus_search": "Focus search",
+    "palette": "Search tasks, projects, agents, boards and pages",
+    "navigation": "Navigation",
+    "ctrl": "Ctrl",
+    "alt": "Alt",
+    "option": "Option",
+    "enter": "Enter"
+  },
+  "nav": {
+    "tasks": "Tasks",
+    "projects": "Projects",
+    "agents": "Agents",
+    "dashboard": "Dashboard",
+    "inbox": "Inbox",
+    "evidence": "Evidence",
+    "settings": "Settings"
+  },
+  "buttons": {
+    "back": "Back",
+    "cancel": "Cancel",
+    "close": "Close",
+    "copy": "Copy",
+    "create": "Create",
+    "delete": "Delete",
+    "discard": "Discard",
+    "edit": "Edit",
+    "refresh": "Refresh",
+    "remove": "Remove",
+    "save": "Save"
+  }
+}

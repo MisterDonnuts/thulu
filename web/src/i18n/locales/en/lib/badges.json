@@ -1,0 +1,39 @@
+{
+  "sandbox": {
+    "ready": "Ready",
+    "starting": "Starting",
+    "idle": "Idle",
+    "evicted": "Evicted",
+    "failed": "Failed"
+  },
+  "mcp_status": {
+    "running": "Running",
+    "restarting": "Restarting",
+    "paused": "Paused",
+    "starting": "Starting",
+    "created": "Created",
+    "exited": "Stopped",
+    "dead": "Dead",
+    "missing": "No container",
+    "unknown": "Unknown",
+    "configured": "Configured",
+    "external": "External"
+  },
+  "mcp_health": {
+    "healthy": "Responding",
+    "starting": "Starting",
+    "unhealthy": "Not responding",
+    "unchecked": "Not checked"
+  },
+  "run": {
+    "success": "success",
+    "running": "running",
+    "skipped": "skipped",
+    "failed": "failed",
+    "timeout": "timed out",
+    "canceled": "canceled"
+  },
+  "step": {
+    "ok": "ok"
+  }
+}

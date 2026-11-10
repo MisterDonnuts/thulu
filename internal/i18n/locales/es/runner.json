@@ -1,0 +1,37 @@
+{
+  "errors": {
+    "init_schema": "crear las tablas del runner",
+    "workspace_required": "un runner pertenece a un workspace",
+    "name_invalid": "un runner necesita un nombre de hasta 64 caracteres",
+    "create_registration": "crear el token de registro del runner",
+    "registration_invalid": "el token de registro no existe, ya se usó o venció",
+    "register": "registrar el runner",
+    "credential_invalid": "la credencial del runner no existe o fue revocada",
+    "authenticate": "verificar la credencial del runner",
+    "list": "listar los runners",
+    "get": "leer el runner",
+    "not_found": "no hay un runner {id} en este workspace",
+    "revoke": "revocar el runner",
+    "enqueue": "encolar la corrida para el runner",
+    "claim": "entregarle una corrida al runner",
+    "job_not_held": "la corrida {id} no está corriendo en este runner",
+    "heartbeat": "renovar el lease de la corrida",
+    "finish": "registrar cómo terminó la corrida",
+    "cancel": "frenar la corrida",
+    "expire": "cerrar las corridas que nadie atendió",
+    "list_jobs": "listar las corridas terminadas",
+    "reap": "marcar la corrida como procesada",
+    "get_job": "leer la corrida",
+    "job_not_found": "no existe la corrida {id}",
+    "pack_outputs": "empaquetar la salida de la corrida",
+    "extract_outputs": "desempaquetar la salida de la corrida",
+    "outputs_not_gzip": "la salida de la corrida no es gzip",
+    "outputs_not_tar": "la salida de la corrida no es un tar",
+    "outputs_too_large": "la salida de la corrida pasa de {max} bytes",
+    "decode_job": "leer la corrida guardada {id}",
+    "stat_output": "leer {path} en la salida de la corrida"
+  },
+  "log": {
+    "seen_failed": "registrar cuándo se vio por última vez al runner {runner}"
+  }
+}

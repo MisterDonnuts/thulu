@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Buy a license or talk to sales
+    url: https://thulu.dev/contact/
+    about: Plans, prices and pilots. GitHub issues are for bugs and product questions.
+  - name: Report a security vulnerability
+    url: https://github.com/MisterDonnuts/thulu/security/advisories/new
+    about: Please report vulnerabilities privately, not in a public issue. See SECURITY.md.

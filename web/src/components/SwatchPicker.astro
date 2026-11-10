@@ -1,0 +1,60 @@
+---
+import Icon from "./Icon.astro";
+import {
+  swatchAttrs,
+  swatchPickerAttrs,
+  swatchPickerClasses,
+  swatchTabStop,
+  type SwatchItem,
+  type SwatchKind,
+  type SwatchRole,
+} from "../lib/ui/swatch";
+
+interface Props {
+  label: string;
+  items: SwatchItem[];
+  selected?: string;
+  kind?: SwatchKind;
+  role?: SwatchRole;
+  boxed?: boolean;
+  keepOpen?: boolean;
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  label,
+  items,
+  selected,
+  kind = "color",
+  role = "radio",
+  boxed = false,
+  keepOpen = false,
+  class: extra,
+  ...rest
+} = Astro.props;
+const stop = swatchTabStop(items, selected);
+const swatches = items.map((item, i) => ({
+  item,
+  attrs: swatchAttrs(item, {
+    kind,
+    role,
+    checked: item.value === selected,
+    tabStop: i === stop,
+    keepOpen,
+  }),
+}));
+---
+
+<div
+  class={swatchPickerClasses({ kind, boxed, cls: extra })}
+  {...swatchPickerAttrs(role, label)}
+  {...rest}
+>
+  {
+    swatches.map(({ item, attrs }) => (
+      <button {...attrs} {...item.attrs}>
+        {kind === "glyph" && item.icon && <Icon name={item.icon} />}
+      </button>
+    ))
+  }
+</div>

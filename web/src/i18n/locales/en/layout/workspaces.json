@@ -1,0 +1,20 @@
+{
+  "switch": "Switch workspace",
+  "heading": "Your workspaces",
+  "switch_failed": "Could not switch workspace",
+  "current": "{name}, switch workspace",
+  "invite": "Invite people",
+  "create": "Create workspace",
+  "create_unavailable": "Not available on your account",
+  "create_body": "A workspace has its own boards, agents, credentials and members. Nobody else sees it until you invite them.",
+  "name_label": "Name",
+  "name_placeholder": "Acme",
+  "name_required": "Give the workspace a name.",
+  "creating": "Creating…",
+  "create_failed": "Could not create the workspace",
+  "create_cap": {
+    "one": "You already own {count} workspace, the most one account can own here.",
+    "other": "You already own {count} workspaces, the most one account can own here."
+  },
+  "create_reserved": "Only the people who run this install create workspaces here. Ask them for one."
+}

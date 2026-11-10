@@ -1,0 +1,11 @@
+{
+  "errors": {
+    "not_a_pull_request": "the URL recorded for this project is not a pull request on the configured GitHub",
+    "project_other_workspace": "the project belongs to another workspace",
+    "no_credential": "no GitHub credential can read this project's pull requests",
+    "load_failed": "could not load the pull request"
+  },
+  "log": {
+    "token_failed": "resolve the GitHub token to read the pull requests of project {project}"
+  }
+}

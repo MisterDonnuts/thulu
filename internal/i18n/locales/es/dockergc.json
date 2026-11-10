@@ -1,0 +1,44 @@
+{
+  "errors": {
+    "list_containers": "listar contenedores",
+    "list_images": "listar imágenes",
+    "list_volumes": "listar volúmenes",
+    "list_networks": "listar redes",
+    "inspect_container": "inspeccionar {id}",
+    "remove_container": "borrar el contenedor {name}",
+    "remove_image": "borrar la imagen {image}",
+    "remove_volume": "borrar el volumen {name}",
+    "remove_network": "borrar la red {name}"
+  },
+  "reasons": {
+    "in_use": "en uso por {containers}",
+    "configured": "configurada",
+    "rollback_until": "imagen de rollback hasta el {date}",
+    "newer_than_running": "más nueva que la {version} que está corriendo (puede que una actualización la esté instalando)",
+    "uninstall": "desinstalación",
+    "untagged_build": "build de Thulu sin tag",
+    "rollback_ended": "la ventana de rollback terminó el {date}",
+    "older_version": "versión anterior",
+    "newer_than_kept": "creada después de la versión que usa esta instalación (una actualización, u otra instalación en este Docker)",
+    "unclaimed": "no está configurada ni en uso",
+    "nothing_to_compare": "no hay nada configurado con qué compararla",
+    "build_cache": "caché de build",
+    "data": "datos",
+    "data_role": "datos ({role})",
+    "stale_base": "más vieja que el FROM que fijan los Dockerfiles",
+    "kind_node": "imagen de nodo de kind, sin ningún clúster de kind corriendo",
+    "sandbox_cache": "caché de dependencias del workspace {workspace}",
+    "engine_cache": "motores instalados en el primer uso, para {scope}",
+    "personal_login": "la sesión propia de {engine} de una persona"
+  },
+  "container_kinds": {
+    "agent": "agente",
+    "sandbox": "sandbox",
+    "chat": "chat",
+    "build": "resto de build",
+    "mcp": "mcp",
+    "stack": "stack",
+    "browser": "browser por run",
+    "login": "comando de sesión personal"
+  }
+}

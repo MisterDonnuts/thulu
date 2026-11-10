@@ -1,0 +1,47 @@
+{
+  "errors": {
+    "disabled": "las automatizaciones no están activadas en esta instalación",
+    "not_found": "no existe la automatización",
+    "run_not_found": "no existe la corrida",
+    "spec_required": "falta la spec",
+    "workspace_undetermined": "no se puede saber a qué workspace pertenece esta automatización",
+    "task_without_workspace": "automatización: tarea sin workspace",
+    "unknown_board": "no existe el tablero {board:%q}",
+    "project_not_found": "no existe el proyecto {id}",
+    "task_not_found": "no existe la tarea {id}",
+    "enter_stage_failed": "la tarea se creó pero no pudo entrar en la etapa {stage:%q}",
+    "agent_not_found": "no existe el agente {agent:%q}",
+    "agent_cannot_answer": "el agente {agent:%q} no tiene prompt para responder menciones (ni prompts/mention.md ni prompts/main.md); cargalo en la página Agentes",
+    "agent_no_mention_stage": "el agente {agent:%q} no atiende menciones: no declara la etapa mention en thulu.stages",
+    "mcp_not_wired": "el servidor MCP {server:%q} no está conectado en esta instalación (conocidos: {known})",
+    "mcp_http_unsupported": "el servidor MCP {server:%q} habla Streamable HTTP; los pasos de una automatización sólo llegan a servidores SSE",
+    "mcp_credential_unsupported": "el servidor MCP {server:%q} se autentica con una credencial del workspace; los pasos de una automatización todavía no pueden usar credenciales",
+    "no_sandbox_manager": "esta instalación no tiene gestor de sandboxes",
+    "sandbox_queue_full": "la cola de sandboxes está llena (posición {position})",
+    "env_metrics_disabled": "las métricas de entorno no están activadas en esta instalación",
+    "metric_not_found": "no hay ninguna métrica {metric:%q} en el entorno {environment}",
+    "environment_not_found": "no existe el entorno {environment:%q} en este workspace",
+    "no_credential_store": "esta instalación no tiene almacén de credenciales",
+    "credential_disabled": "la credencial {name:%q} está desactivada",
+    "credential_no_token": "la credencial {name:%q} no tiene un único campo de token ({fields})",
+    "credential_not_found": "no hay ninguna credencial llamada {name:%q} en este workspace",
+    "no_auth_store": "no hay almacén de autenticación",
+    "stage_gated": "la tarea se creó pero quedó antes de la etapa {stage:%q}: espera aprobación ({approvals})",
+    "environment_not_found": "no hay un entorno {environment:%q} en este workspace (environment lleva el ID del entorno, no su nombre)",
+    "unknown_stage": "el tablero {board:%q} no tiene la etapa {stage:%q}",
+    "ref_templated": "{field} no admite templates {{ }}: la corrida buscaría {value:%q} tal cual; poné un ID que exista"
+  },
+  "audit": {
+    "task_created": "Tarea creada por una automatización: {title}",
+    "created": "Automatización creada: {name}",
+    "updated": "Automatización actualizada: {name}",
+    "resumed": "Automatización reanudada: {name}",
+    "suspended": "Automatización pausada: {name}",
+    "deleted": "Automatización borrada: {name}",
+    "run_by_hand": "Automatización corrida a mano: {name}"
+  },
+  "log": {
+    "publish_failed": "publicar {kind}: {err}",
+    "discover_agents_failed": "descubrir agentes: {err}"
+  }
+}

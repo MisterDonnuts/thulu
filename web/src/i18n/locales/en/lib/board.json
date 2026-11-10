@@ -1,0 +1,30 @@
+{
+  "empty": {
+    "stage": "Nothing in {stage}",
+    "filtered": "No matches"
+  },
+  "buttons": {
+    "new_task": "New task"
+  },
+  "labels": {
+    "untyped": "Untyped"
+  },
+  "stats": {
+    "open": "open",
+    "in_progress": "in progress",
+    "to_review": "to review"
+  },
+  "columns": {
+    "fold": "Fold {column}",
+    "fold_hint": "Fold the column into a strip",
+    "unfold": {
+      "one": "Show {column}, {count} task",
+      "other": "Show {column}, {count} tasks"
+    }
+  },
+  "filters": {
+    "type_all": "Type: All",
+    "type_one": "Type: {type}",
+    "type_many": "Type: {count}"
+  }
+}

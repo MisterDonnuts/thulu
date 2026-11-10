@@ -1,0 +1,17 @@
+{
+  "errors": {
+    "key_not_found": "ajustes: no existe la clave",
+    "create_table": "crear la tabla de ajustes",
+    "seed_defaults": "cargar los valores por defecto",
+    "seed_key": "cargar {key:%q}",
+    "metrics_interval_too_short": "el intervalo tiene que ser 0 (apagado) o al menos 60 segundos, llegó {got}",
+    "ingest_url_unparsable": "ingest.public_url tiene que empezar con http:// o https:// (llegó {value:%q}: {cause})",
+    "ingest_url_scheme": "ingest.public_url tiene que empezar con http:// o https:// (llegó {value:%q})",
+    "ingest_url_no_host": "ingest.public_url no tiene host (llegó {value:%q})",
+    "ingest_url_not_base": "ingest.public_url tiene que ser una URL base, sin query ni fragmento (llegó {value:%q})",
+    "sandbox_max_too_low": "sandbox.max tiene que ser >= 1",
+    "not_retention_window": "ajustes: {key} no es una ventana de retención",
+    "workspace_required": "ajustes: un ajuste de workspace necesita un workspace",
+    "not_workspace_key": "ajustes: {key} no es un ajuste que un workspace pueda elegir"
+  }
+}

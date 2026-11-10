@@ -1,0 +1,35 @@
+{
+  "title": "Audit log",
+  "all_events": "All events",
+  "kind_aria": "Event kind",
+  "columns": {
+    "time": "Time",
+    "event": "Event",
+    "actor": "Actor",
+    "resource": "Resource",
+    "summary": "Summary"
+  },
+  "empty": "No audit entries found.",
+  "load_more": "Load more",
+  "load_failed": "Could not load audit log.",
+  "load_more_failed": "Could not load more entries.",
+  "export": {
+    "csv": "Export CSV",
+    "csv_title": "Export filtered audit log as CSV",
+    "json": "Export NDJSON",
+    "json_title": "Export the filtered log as NDJSON: one JSON object per line",
+    "needs_ee": "Audit export requires an Enterprise Edition license",
+    "failed_status": "Export failed — HTTP {status}",
+    "done": "Audit log exported ({format})",
+    "failed": "Audit export failed",
+    "ce_note_html": "Exporting the log needs an Enterprise license: set <code>OCTOPUS_LICENSE_KEY</code> in the daemon's environment and restart it. On Community the log is kept and shown here the same."
+  },
+  "chain": {
+    "not_verified": "The log is one hash chain; verify it to see how many entries it covers and its head hash.",
+    "verify": "Verify",
+    "verify_title": "Recompute every entry's hash (reads the whole log)",
+    "verifying": "Verifying…",
+    "verify_failed": "Could not verify the chain.",
+    "goto": "Go to the entry"
+  }
+}

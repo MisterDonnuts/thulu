@@ -1,0 +1,37 @@
+{
+  "errors": {
+    "session_only": "only a signed-in person can do this from their own session; API keys and the no-login session cannot",
+    "workspace_id_required": "workspace_id required",
+    "not_a_member": "you are not a member of that workspace",
+    "transfer_owner_only": "only the workspace owner can transfer it",
+    "transfer_user_required": "user_id required: the member who becomes the owner",
+    "transfer_to_self": "you already own this workspace",
+    "transfer_target_not_member": "ownership can only go to a member of the workspace; add them first",
+    "delete_confirm_required": "confirmation required: send {\"confirm\":\"<your account email>\"}",
+    "owns_shared_workspaces": {
+      "one": "you own a workspace other people use ({workspaces}); transfer it to another member or delete it before deleting your account",
+      "other": "you own {count} workspaces other people use ({workspaces}); transfer each one to another member or delete it before deleting your account"
+    },
+    "still_owns_workspaces": "the account still owns a workspace; transfer or delete it first",
+    "purge_unavailable": "this install cannot erase workspaces, so an account that owns one cannot be deleted here",
+    "purge_failed": "erasing workspace {workspace} failed; your account was not deleted, try again"
+  },
+  "audit": {
+    "workspace_switched": "Switched into this workspace",
+    "ownership_transferred": "Ownership of {workspace} transferred to {user}",
+    "workspace_deleted": "Workspace permanently erased with its owner's account: {workspace}",
+    "account_deleted": {
+      "one": "Account deleted with the workspace it owned ({keys} API keys revoked elsewhere)",
+      "other": "Account deleted with the {count} workspaces it owned ({keys} API keys revoked elsewhere)"
+    }
+  },
+  "log": {
+    "set_last_workspace": "account: remember last workspace for user {user}",
+    "transfer_failed": "account: transfer workspace {workspace}: {err}",
+    "transfer_bump_version": "account: bump token version after transfer for user {user}",
+    "purge_failed": "account: purge workspace {workspace}: {err}",
+    "delete_failed": "account: delete user {user}: {err}",
+    "last_workspace": "account: read last workspace for user {user}",
+    "transfer_reissue": "account: re-issue the session after transfer for user {user}"
+  }
+}

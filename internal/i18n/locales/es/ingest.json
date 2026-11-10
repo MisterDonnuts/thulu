@@ -1,0 +1,25 @@
+{
+  "errors": {
+    "token_not_found": "no existe el token de ingesta",
+    "schema": "esquema de ingesta",
+    "environment_required": "falta el id del entorno",
+    "unreadable_allowlist": "el token {id} tiene una lista de IPs permitidas ilegible",
+    "invalid_cidr": "no es una dirección IP ni un rango CIDR: {value:%q}",
+    "unknown_signal": "señal OTLP desconocida {kind:%q}",
+    "otlp_json": "otlp json",
+    "otlp_protobuf": "otlp protobuf",
+    "parse_traces": "leer las trazas",
+    "parse_metrics": "leer las métricas",
+    "rate_limited": "superaste el límite de requests",
+    "payload_too_large": "el payload es demasiado grande",
+    "process_failed": "no se pudo procesar el payload"
+  },
+  "log": {
+    "dropped_custom_series": "warn: ingest: se descartaron {count} series custom por superar el tope en memoria (¿una etiqueta con valores sin límite?)",
+    "decode_failed": "ingest: decodificar {kind} del entorno {env}",
+    "final_source_flush": "ingest: volcado final de fuentes",
+    "source_flush": "ingest: volcado de fuentes",
+    "final_rollup_flush": "ingest: volcado final de agregados",
+    "rollup_flush": "ingest: volcado de agregados"
+  }
+}

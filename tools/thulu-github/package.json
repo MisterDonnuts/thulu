@@ -1,0 +1,18 @@
+{
+  "name": "thulu-github",
+  "version": "0.1.0",
+  "description": "MCP GitHub tool — read/write PRs, reviews, and GitHub Actions over MCP, with per-project token resolution.",
+  "license": "AGPL-3.0-only",
+  "private": true,
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test --test-timeout=30000"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "@octokit/rest": "^21.0.2",
+    "express": "^4.21.1"
+  }
+}

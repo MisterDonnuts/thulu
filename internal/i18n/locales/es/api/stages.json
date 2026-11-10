@@ -1,0 +1,30 @@
+{
+  "audit": {
+    "pruned_agent_config": "se limpió config de etapas huérfanas: {stages}",
+    "pruned_project_files": "se limpiaron archivos de etapas huérfanas: {files}",
+    "stage_created": "etapa creada: {stage} (tablero {board})",
+    "stage_deleted": "etapa borrada: {stage} del tablero {board} ({count} tarea(s) movidas a {dest})",
+    "stage_updated": "etapa actualizada: {stage} (tablero {board})",
+    "stages_reordered": "se reordenaron las etapas del tablero {board}"
+  },
+  "errors": {
+    "cannot_delete_initial": "no se puede borrar la etapa inicial: primero marcá otra etapa como inicial",
+    "invalid_destination_stage": "move_to {dest:%q} no es una etapa de destino válida",
+    "order_duplicate": "id de etapa repetido {stage:%q} en order",
+    "order_incomplete": "order tiene que listar las {want} etapas, llegaron {got}",
+    "order_unknown": "id de etapa desconocido {stage:%q} en order",
+    "registry_read_only": "el registro de etapas es de sólo lectura en este despliegue",
+    "stage_exists_or_missing_id": "la etapa {stage:%q} ya existe o falta el id",
+    "stage_holds_tasks": "la etapa {stage:%q} todavía tiene {count} tarea(s): pasá ?move_to=<stage> para moverlas",
+    "stage_not_on_board": "la etapa {stage:%q} no está en el tablero {board:%q}"
+  },
+  "log": {
+    "drop_priority_failed": "borrado de etapa: quitar la prioridad {stage}: {err}",
+    "move_task_failed": "borrado de etapa: mover la tarea {task}: {err}",
+    "read_priorities_failed": "borrado de etapa: leer prioridades: {err}",
+    "add_priority_failed": "alta de etapa: agregar las prioridades del sandbox: {err}"
+  },
+  "timeline": {
+    "moved_stage_deleted": "{from} → {to} (se borró la etapa {from})"
+  }
+}

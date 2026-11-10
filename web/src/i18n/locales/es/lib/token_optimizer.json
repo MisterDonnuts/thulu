@@ -1,0 +1,18 @@
+{
+  "levels": {
+    "off": "Apagado",
+    "suggest": "Sugerir",
+    "enforce": "Obligar"
+  },
+  "mode": {
+    "enforce_unavailable": "Obligar sólo funciona en agentes que corren en Claude Code.",
+    "runs_as_suggest": "Este agente no corre en Claude Code, así que Obligar funciona como Sugerir."
+  },
+  "reasons": {
+    "no_default_profile": "no hay credencial predeterminada para este engine",
+    "unsupported_credential": "su credencial predeterminada no puede correrlo",
+    "unknown": "no disponible"
+  },
+  "engine_unavailable": "{engine} ({reason})",
+  "pick_engine": "Elegí un engine"
+}

@@ -1,0 +1,231 @@
+# Thulu — standalone stack (published image, no reverse proxy).
+#
+# This is the stack `thulu init` picks when the binary was installed from a
+# release instead of a checkout. There is no source tree here to compile, so
+# every image comes from the registry and no service has a `build:` key.
+#
+# How it differs from docker-compose.yml:
+#   - No Caddy. The daemon's own port is published instead of 80/443, so this
+#     stack owns no domain and issues no certificate. Put it behind whatever
+#     proxy you already run, or leave it on loopback.
+#   - Postgres is published on 127.0.0.1:5433, because `thulu init` creates
+#     the first workspace before the daemon boots and `thulu update` takes a
+#     pg_dump from the host. Neither can reach a database that only answers
+#     inside the compose network.
+#
+# Images: the daemon is ${OCTOPUS_IMAGE}, or
+# ${OCTOPUS_IMAGE_REGISTRY}/octopus:${OCTOPUS_VERSION}; each MCP server is
+# ${OCTOPUS_IMAGE_REGISTRY}/octopus-mcp-<name>:${OCTOPUS_VERSION}. `octopus
+# init` pins OCTOPUS_VERSION to its own release. An air-gapped install mirrors
+# the images and sets OCTOPUS_IMAGE_REGISTRY to the mirror.
+#
+# MCP servers start per profile: COMPOSE_PROFILES in deploy/.env lists them.
+#
+# Usage:
+#   thulu init                                             # writes deploy/.env and starts this
+#   docker compose -f deploy/docker-compose.standalone.yml logs -f
+#
+# Pulling from a private ghcr.io needs a login first:
+#   echo $GITHUB_TOKEN | docker login ghcr.io -u <you> --password-stdin
+
+# Log rotation for every service. Docker's json-file driver otherwise keeps a
+# container's whole output for as long as the container exists, and the
+# daemon's log alone grows without bound on a busy install.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+# Hardening shared by every MCP server; see docker-compose.yml.
+x-mcp-server: &mcp-server
+  logging: *default-logging
+  restart: unless-stopped
+  user: "1000:1000"
+  read_only: true
+  tmpfs:
+    - /tmp
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  networks:
+    - agents
+  healthcheck:
+    test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+    interval: 30s
+    timeout: 5s
+    retries: 3
+    start_period: 10s
+
+services:
+  octopus:
+    logging: *default-logging
+    # No `latest` fallback: a stack that silently tracks whatever was pushed
+    # last is how an install gets migrated by a release nobody chose.
+    image: ${OCTOPUS_IMAGE:-${OCTOPUS_IMAGE_REGISTRY:-ghcr.io/misterdonnuts}/octopus:${OCTOPUS_VERSION:?set OCTOPUS_VERSION (or OCTOPUS_IMAGE) in deploy/.env}}
+    restart: unless-stopped
+    # Everything `thulu init` wrote. The keys enumerated under `environment:`
+    # below are the ones this file pins on purpose; the rest — dev mode, the
+    # license key, the operator workspace, the OIDC settings, the MCP URLs —
+    # arrive here.
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      OCTOPUS_JWT_SECRET: ${OCTOPUS_JWT_SECRET:?set OCTOPUS_JWT_SECRET in deploy/.env (thulu init generates one)}
+      OCTOPUS_LOG_FORMAT: json
+      # Update checks (docs/upgrade-guide.md): the daemon only reports what
+      # is available; `thulu update` installs it.
+      OCTOPUS_UPDATE_SOURCE: ${OCTOPUS_UPDATE_SOURCE:-github}
+      OCTOPUS_UPDATE_CHANNELS: ${OCTOPUS_UPDATE_CHANNELS:-stable}
+      OCTOPUS_UPDATE_INTERVAL: ${OCTOPUS_UPDATE_INTERVAL:-12h}
+      OCTOPUS_UPDATE_GITHUB_TOKEN: ${OCTOPUS_UPDATE_GITHUB_TOKEN:-}
+      # Nothing sits in front of this stack, so by default no peer may set
+      # X-Forwarded-For. "private" would hand that to every agent container
+      # on the agents network. Behind your own reverse proxy, list its
+      # address as the daemon sees it (usually the bridge gateway).
+      OCTOPUS_TRUSTED_PROXIES: ${OCTOPUS_TRUSTED_PROXIES:-}
+      OCTOPUS_DATABASE_URL: ${OCTOPUS_DATABASE_URL:-postgres://octopus:${OCTOPUS_PG_PASSWORD}@pg:5432/octopus?sslmode=disable}
+      DOCKER_HOST: unix:///var/run/docker.sock
+      # Agents join the agents network and reach the daemon and the MCP
+      # servers there by service name.
+      OCTOPUS_AGENT_NETWORK: ${OCTOPUS_AGENT_NETWORK:-octopus-agents}
+      OCTOPUS_AGENT_BASE_URL: http://octopus:8585
+      # The images agents and sandboxes run, at this stack's release. Each
+      # engine has its own (octopus-agent-<engine>); `thulu apply` pins them
+      # by digest in .env, and OCTOPUS_AGENT_IMAGE there runs one image of
+      # your own for every engine.
+      OCTOPUS_AGENT_CLAUDE_CODE_IMAGE: ${OCTOPUS_AGENT_CLAUDE_CODE_IMAGE:-${OCTOPUS_IMAGE_REGISTRY:-ghcr.io/misterdonnuts}/octopus-agent-claude-code:${OCTOPUS_VERSION:?set OCTOPUS_VERSION in deploy/.env}}
+      OCTOPUS_AGENT_CODEX_IMAGE: ${OCTOPUS_AGENT_CODEX_IMAGE:-${OCTOPUS_IMAGE_REGISTRY:-ghcr.io/misterdonnuts}/octopus-agent-codex:${OCTOPUS_VERSION:?set OCTOPUS_VERSION in deploy/.env}}
+      OCTOPUS_AGENT_OPENCODE_IMAGE: ${OCTOPUS_AGENT_OPENCODE_IMAGE:-${OCTOPUS_IMAGE_REGISTRY:-ghcr.io/misterdonnuts}/octopus-agent-opencode:${OCTOPUS_VERSION:?set OCTOPUS_VERSION in deploy/.env}}
+      OCTOPUS_SANDBOX_IMAGE: ${OCTOPUS_SANDBOX_IMAGE:-${OCTOPUS_IMAGE_REGISTRY:-ghcr.io/misterdonnuts}/octopus-runtime:${OCTOPUS_VERSION:?set OCTOPUS_VERSION in deploy/.env}}
+      # Model calls go through the daemon's LLM gateway, which holds the
+      # workspace's key (or signs for Bedrock / Vertex); agents only get a
+      # token that dies with the run. `off` in .env puts the key in the agent.
+      OCTOPUS_LLM_GATEWAY: ${OCTOPUS_LLM_GATEWAY:-on}
+    volumes:
+      - octopus-data:/data
+      # Root-equivalent on the host, whatever the mount flags say.
+      - /var/run/docker.sock:/var/run/docker.sock
+    # The image runs as an unprivileged user and the socket is mode 660, so the
+    # daemon needs to be in the group that owns it or every Docker call comes
+    # back "permission denied" and the container restart-loops. The number
+    # differs per host, 999 on most Linux, so `thulu init`
+    # reads it from inside a container and writes it to deploy/.env. No
+    # default: group 0 would be the root group.
+    group_add:
+      - "${OCTOPUS_DOCKER_GID:?set OCTOPUS_DOCKER_GID in deploy/.env to the group of /var/run/docker.sock (thulu init detects it)}"
+    ports:
+      # OCTOPUS_BIND is the whole network posture of this stack. It defaults to
+      # loopback because nothing terminates TLS in front of the daemon here,
+      # and because a no-login install published on 0.0.0.0 hands owner access
+      # to the LAN. `thulu init` writes 127.0.0.1 whenever auth is disabled.
+      - "${OCTOPUS_BIND:-127.0.0.1}:8585:8585"
+    depends_on:
+      pg:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8585/health/live"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - octopus-net
+      - agents
+
+  pg:
+    logging: *default-logging
+    image: ${OCTOPUS_PG_IMAGE:-postgres:16-alpine}
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${OCTOPUS_PG_USER:-octopus}
+      POSTGRES_PASSWORD: ${OCTOPUS_PG_PASSWORD:?set OCTOPUS_PG_PASSWORD in deploy/.env (thulu init generates one)}
+      POSTGRES_DB: ${OCTOPUS_PG_DB:-octopus}
+    volumes:
+      - octopus-pg:/var/lib/postgresql/data
+    ports:
+      # Loopback only, and on 5433 so it does not collide with a Postgres the
+      # host already runs on 5432.
+      - "127.0.0.1:${OCTOPUS_PG_HOST_PORT:-5433}:5432"
+    networks:
+      - octopus-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${OCTOPUS_PG_USER:-octopus} -d ${OCTOPUS_PG_DB:-octopus}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── MCP servers (one profile each; see COMPOSE_PROFILES) ────────────────────
+
+  octopus-api:
+    <<: *mcp-server
+    profiles: ["octopus-api"]
+    image: ${OCTOPUS_MCP_OCTOPUS_API_IMAGE:-${OCTOPUS_IMAGE_REGISTRY:-ghcr.io/misterdonnuts}/octopus-mcp-octopus-api:${OCTOPUS_VERSION:?set OCTOPUS_VERSION in deploy/.env}}
+    environment:
+      OCTOPUS_API: http://octopus:8585
+      HOME: /tmp
+
+  thulu-github:
+    <<: *mcp-server
+    profiles: ["thulu-github"]
+    image: ${OCTOPUS_MCP_GITHUB_IMAGE:-${OCTOPUS_IMAGE_REGISTRY:-ghcr.io/misterdonnuts}/octopus-mcp-github:${OCTOPUS_VERSION:?set OCTOPUS_VERSION in deploy/.env}}
+    environment:
+      OCTOPUS_API: http://octopus:8585
+      HOME: /tmp
+      # GitHub Enterprise Server; empty = api.github.com.
+      GITHUB_API_URL: ${OCTOPUS_GITHUB_API_URL:-}
+
+  thulu-browser:
+    <<: *mcp-server
+    profiles: ["thulu-browser"]
+    image: ${OCTOPUS_MCP_BROWSER_IMAGE:-${OCTOPUS_IMAGE_REGISTRY:-ghcr.io/misterdonnuts}/octopus-mcp-browser:${OCTOPUS_VERSION:?set OCTOPUS_VERSION in deploy/.env}}
+    shm_size: 1gb
+    # The browser tools read and write scripts and screenshots under
+    # /agents-shared (their documented contract). Here it is scratch, like /tmp:
+    # a screenshot reaches the task by upload through the daemon API.
+    tmpfs:
+      - /tmp
+      - /agents-shared
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      OCTOPUS_API: http://octopus:8585
+      # The sessions of a run on a runner open localhost on this host, where
+      # its agent serves the app (lib/host-proxy.js). Empty turns it off.
+      HOST_GATEWAY: ${OCTOPUS_BROWSER_HOST_GATEWAY-host.docker.internal}
+      HOME: /tmp
+
+  thulu-cloud:
+    <<: *mcp-server
+    profiles: ["thulu-cloud"]
+    image: ${OCTOPUS_MCP_CLOUD_IMAGE:-${OCTOPUS_IMAGE_REGISTRY:-ghcr.io/misterdonnuts}/octopus-mcp-cloud:${OCTOPUS_VERSION:?set OCTOPUS_VERSION in deploy/.env}}
+    environment:
+      OCTOPUS_API: http://octopus:8585
+      HOME: /tmp
+
+  # Read-only Figma. The token comes from the workspace's Figma credential,
+  # resolved through the daemon with the calling run's key.
+  thulu-figma:
+    <<: *mcp-server
+    profiles: ["thulu-figma"]
+    image: ${OCTOPUS_MCP_FIGMA_IMAGE:-${OCTOPUS_IMAGE_REGISTRY:-ghcr.io/misterdonnuts}/octopus-mcp-figma:${OCTOPUS_VERSION:?set OCTOPUS_VERSION in deploy/.env}}
+    environment:
+      OCTOPUS_API: http://octopus:8585
+      HOME: /tmp
+
+volumes:
+  octopus-data:
+    driver: local
+  octopus-pg:
+    driver: local
+
+networks:
+  octopus-net:
+    driver: bridge
+  # Shared by the daemon, the MCP servers and the agent containers the daemon
+  # launches (OCTOPUS_AGENT_NETWORK). Postgres is not on it.
+  agents:
+    name: ${OCTOPUS_AGENT_NETWORK:-octopus-agents}
+    driver: bridge

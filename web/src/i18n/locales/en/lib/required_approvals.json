@@ -1,0 +1,28 @@
+{
+  "summary": {
+    "one": "Required approvals · {count}",
+    "other": "Required approvals · {count}"
+  },
+  "intro": "Every task entering this stage gets one approval per row, and cannot move forward until each is approved or waived. Any Developer can decide; the label says whose call it is.",
+  "label_placeholder": "Label, e.g. Design",
+  "key_placeholder": "key",
+  "key_title": "Identifier, lowercase [a-z0-9_]. Left empty, it comes from the label",
+  "reset": "Reset on new commits",
+  "reset_title": "An agent run that leaves new commits in this stage puts the approval back to pending",
+  "types": "Only for:",
+  "types_title": "Task types this approval applies to. None ticked = every task",
+  "add": "+ Add approval",
+  "on_changes_label": "On \"request changes\"",
+  "on_changes_title": "What happens when someone requests changes on one of these approvals",
+  "on_changes": {
+    "resume": "resume the agent with the feedback",
+    "kick_back": "move the task back",
+    "stay": "stay here, a person decides"
+  },
+  "kick_back_to": "to",
+  "errors": {
+    "label": "Approval \"{key}\" needs a label",
+    "key": "Approval key \"{key}\" must be lowercase [a-z0-9_], up to 32 characters",
+    "duplicate": "Two approvals share the key \"{key}\""
+  }
+}

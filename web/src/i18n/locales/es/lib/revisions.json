@@ -1,0 +1,19 @@
+{
+  "back": "Volver",
+  "title": "Historial de {path}",
+  "pick": "Elegí una versión para leerla.",
+  "none": "Todavía no hay versiones guardadas.",
+  "unknown_actor": "desconocido",
+  "action": {
+    "created": "Creado",
+    "updated": "Editado",
+    "deleted": "Borrado",
+    "restored": "Restaurado"
+  },
+  "restore": "Restaurar esta versión",
+  "undo_delete": "Deshacer este borrado",
+  "deleted_body": "Esta versión borró el archivo.",
+  "confirm_title": "¿Restaurar {path}?",
+  "confirm_message": "El archivo vuelve a esta versión. El texto actual queda en el historial, así que podés volver a él.",
+  "restored": "Se restauró {path}"
+}

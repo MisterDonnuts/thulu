@@ -1,0 +1,5 @@
+{
+  "log": {
+    "invalid_base_url": "ignoring invalid {name} (want an absolute https URL without credentials)"
+  }
+}

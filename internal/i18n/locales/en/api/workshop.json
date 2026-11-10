@@ -1,0 +1,11 @@
+{
+  "errors": {
+    "items_or_bundle": "send either catalog items or a bundle",
+    "no_store": "the Workshop needs the database catalog",
+    "export_nothing": "name at least one agent or skill to export"
+  },
+  "audit": {
+    "imported": "agents and skills imported: {count} written",
+    "installed": "installed from the Workshop: {count} written"
+  }
+}

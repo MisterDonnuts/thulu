@@ -1,0 +1,8 @@
+{
+  "errors": {
+    "materialize": "materialize deployment files into {root}",
+    "create_dir": "create {path}",
+    "read_embedded": "read embedded {name}",
+    "write_file": "write {path}"
+  }
+}

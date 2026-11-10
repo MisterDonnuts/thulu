@@ -1,0 +1,42 @@
+{
+  "errors": {
+    "bad_archive": "{asset} has no octopus binary inside",
+    "checksum_mismatch": "checksum mismatch; refusing to install",
+    "dir_not_writable": "you cannot write to {dir}, and this installer does not use sudo. Choose a directory you own, e.g. OCTOPUS_INSTALL_DIR=$HOME/.local/bin",
+    "mirror_needs_version": "OCTOPUS_RELEASE_BASE_URL needs OCTOPUS_VERSION (the mirror cannot answer \"latest\")",
+    "mkdir_failed": "cannot create {dir}",
+    "no_asset": "release {tag} has no asset named {asset} (or the download failed)",
+    "no_checksum": "release {tag} publishes no checksum for {asset}",
+    "no_checksum_entry": "{sums} has no entry for {asset}; refusing to install",
+    "no_release_id": "the release payload from {repo} carried no id",
+    "no_releases": "cannot find a release in {repo}: none is published yet, or the repository is private.\nFor a private repository set GITHUB_TOKEN (for example GITHUB_TOKEN=$(gh auth token)).",
+    "no_sha_tool": "no sha256sum or shasum on this machine, so the checksum cannot be checked",
+    "no_signed_checksums": "release {tag} publishes no signed checksums ({sums} + {bundle})",
+    "no_tag_name": "the release payload from {repo} carried no tag_name",
+    "release_not_found": "{repo} has no release {tag}",
+    "required": "{tool} is required and was not found on PATH",
+    "signature_failed": "signature check failed for {sums}: it was not signed by {repo}'s release workflow; refusing to install",
+    "signature_required": "OCTOPUS_REQUIRE_SIGNATURE=1 but cosign is not installed",
+    "unsupported_arch": "unsupported architecture {arch}: releases are built for amd64 and arm64",
+    "unsupported_os": "unsupported OS {os}: releases are built for linux and darwin",
+    "unverified_refused": "{reason}; refusing to install (set OCTOPUS_INSECURE_SKIP_VERIFY=1 to install unverified)",
+    "version_needs_value": "--version needs a release, e.g. --version 1.0.0",
+    "write_failed": "cannot write {path} (set OCTOPUS_INSTALL_DIR to a directory you own)"
+  },
+  "cli": {
+    "error": "error: {message}",
+    "header": "Thulu {tag} ({platform})",
+    "installing_unverified": "  ! {reason}; installing anyway because OCTOPUS_INSECURE_SKIP_VERIFY=1",
+    "downloading": "  downloading {asset}",
+    "signature_ok": "  signature ok ({sums} signed by {repo}'s release workflow)",
+    "no_cosign": "  ! cosign not found: only the checksum is verified, not who published the release (install cosign to check the signature)",
+    "checksum_ok": "  checksum ok",
+    "installed": "  installed {path}",
+    "not_on_path": "\n  ! {dir} is not on your PATH, so `thulu` will not resolve yet. Add it with:\n      {command}\n    or run it by its full path: {path}",
+    "next_steps": "\nNext, configure and start Thulu (outside a checkout it writes the deployment files to ~/.octopus):\n  {command}",
+    "usage": "Installs the thulu CLI from a GitHub release.\n\n  curl -fsSL {url} | sh\n  curl -fsSL {url} | sh -s -- --version 1.0.0\n\nOptions:\n  --version VERSION  install that release instead of the latest (same as OCTOPUS_VERSION)\n  -h, --help         show this help\n\nEnvironment:\n  OCTOPUS_INSTALL_DIR=DIR         where the binary goes (default: a writable directory on PATH, else ~/.local/bin)\n  OCTOPUS_NO_INIT=1               do not offer to run `thulu init` at the end\n  GITHUB_TOKEN=TOKEN              only for a private repository (otherwise downloads come from github.com)\n  OCTOPUS_RELEASE_BASE_URL=URL    download from a mirror laid out as <URL>/v<version>/<asset>\n  OCTOPUS_REQUIRE_SIGNATURE=1     fail when cosign is not installed\n  OCTOPUS_INSECURE_SKIP_VERIFY=1  install when a check cannot run (never when one fails)",
+    "already_installed": "  {tag} is already installed at {path}; nothing to do",
+    "shadowed": "\n  ! {other} comes before {path} on your PATH, so `thulu` runs that one. Remove it, or run {path}",
+    "init_prompt": "\nConfigure it now? (thulu init) [Y/n]"
+  }
+}

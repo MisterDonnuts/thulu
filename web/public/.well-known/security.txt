@@ -1,0 +1,7 @@
+# Thulu security contact (RFC 9116). Served by every Thulu daemon at
+# /.well-known/security.txt; it reaches the Thulu maintainers, not the
+# operator of this particular install.
+Contact: https://github.com/MisterDonnuts/thulu/security/advisories/new
+Expires: 2027-09-23T00:00:00Z
+Preferred-Languages: en, es
+Policy: https://github.com/MisterDonnuts/thulu/blob/main/SECURITY.md

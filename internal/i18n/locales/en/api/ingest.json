@@ -1,0 +1,10 @@
+{
+  "errors": {
+    "unavailable": "telemetry ingest is not configured on this instance",
+    "token_not_found": "token not found",
+    "token_not_found_or_revoked": "token not found or already revoked"
+  },
+  "hints": {
+    "secret_shown_once": "This is the only time the secret is shown. Store it now."
+  }
+}

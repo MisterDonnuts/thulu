@@ -1,0 +1,62 @@
+{
+  "add": {
+    "title": "Add webhook",
+    "submit": "Add webhook"
+  },
+  "labels": {
+    "endpoint_url": "Endpoint URL",
+    "events": "Events",
+    "all_events": "All events",
+    "all_events_help": "Every event below, and any added later (*)."
+  },
+  "placeholders": {
+    "endpoint_url": "https://example.com/hooks/thulu"
+  },
+  "endpoints": {
+    "secret_name": "the signing secret",
+    "title": "Endpoints"
+  },
+  "row": {
+    "legacy_signing": "derived-key signing",
+    "test": "Test",
+    "test_title": "Send test delivery",
+    "rotate": "Rotate secret",
+    "rotate_title": "Replace the signing secret",
+    "delete_aria": "Delete webhook",
+    "deliveries": "Deliveries",
+    "deliveries_title": "The latest delivery attempts to this endpoint"
+  },
+  "deliveries": {
+    "empty": "No deliveries yet.",
+    "load_failed": "Could not load the deliveries.",
+    "when": "When",
+    "event": "Event",
+    "result": "Result",
+    "duration": "Time",
+    "retry": "Retry",
+    "retried": "Delivery queued again",
+    "retry_failed": "Could not queue the delivery again",
+    "attempt": "Attempt",
+    "state": "State",
+    "actions": "Actions"
+  },
+  "confirm": {
+    "rotate_title": "Rotate the signing secret?",
+    "rotate_message": "{url} gets a new secret now, and the old one stops verifying from the next delivery. Update the receiver with the new secret straight away.",
+    "rotate": "Rotate"
+  },
+  "toasts": {
+    "added": "Webhook added",
+    "deleted": "Webhook deleted",
+    "secret_rotated": "Secret rotated — copy it now!"
+  },
+  "errors": {
+    "add_failed": "Failed to add webhook",
+    "rotate_failed": "Failed to rotate the secret",
+    "delete_failed": "Failed to delete"
+  },
+  "empty": {
+    "none": "No webhooks configured.",
+    "load_failed": "Could not load webhooks."
+  }
+}

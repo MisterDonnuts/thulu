@@ -1,0 +1,10 @@
+{
+  "errors": {
+    "webhook_secret_missing": "stripe webhook secret not configured",
+    "malformed_signature_header": "malformed Stripe-Signature header",
+    "invalid_signature_timestamp": "invalid signature timestamp",
+    "signature_timestamp_out_of_tolerance": "signature timestamp outside tolerance",
+    "signature_mismatch": "signature mismatch",
+    "parse_event": "parse stripe event"
+  }
+}

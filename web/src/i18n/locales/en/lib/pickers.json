@@ -1,0 +1,5 @@
+{
+  "instance_default": "— instance default —",
+  "no_agent_columns": "No column of this board can run an agent yet: each one is where tasks start or end.",
+  "no_agent_columns_link": "Add one in the board editor"
+}

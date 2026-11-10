@@ -1,0 +1,23 @@
+{
+  "throughput": {
+    "aria": "Tareas creadas y completadas por día",
+    "created": "creadas",
+    "completed": "completadas",
+    "created_count": {
+      "one": "{count} creada",
+      "other": "{count} creadas"
+    },
+    "completed_count": {
+      "one": "{count} completada",
+      "other": "{count} completadas"
+    },
+    "bar_title": "{date}: {created}, {completed}",
+    "summary": {
+      "one": "Tareas en {count} día: {created}, {completed}",
+      "other": "Tareas en {count} días: {created}, {completed}"
+    }
+  },
+  "spend": {
+    "aria": "Gasto en el tiempo"
+  }
+}

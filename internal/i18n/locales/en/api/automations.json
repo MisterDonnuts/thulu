@@ -1,0 +1,47 @@
+{
+  "errors": {
+    "disabled": "automations are not enabled on this install",
+    "not_found": "automation not found",
+    "run_not_found": "run not found",
+    "spec_required": "spec is required",
+    "workspace_undetermined": "cannot tell which workspace this automation belongs to",
+    "task_without_workspace": "automation: task without a workspace",
+    "unknown_board": "unknown board {board:%q}",
+    "project_not_found": "project {id} not found",
+    "task_not_found": "task {id} not found",
+    "enter_stage_failed": "task created but could not enter stage {stage:%q}",
+    "agent_not_found": "agent {agent:%q} not found",
+    "agent_cannot_answer": "agent {agent:%q} has no prompt to answer mentions with (neither prompts/mention.md nor prompts/main.md); add one on the Agents page",
+    "agent_no_mention_stage": "agent {agent:%q} does not answer mentions: it does not declare the mention stage in thulu.stages",
+    "mcp_not_wired": "mcp server {server:%q} is not wired on this install (known: {known})",
+    "mcp_http_unsupported": "mcp server {server:%q} speaks Streamable HTTP; automation steps only reach SSE servers",
+    "mcp_credential_unsupported": "mcp server {server:%q} authenticates with a workspace credential; automation steps cannot use credentials yet",
+    "no_sandbox_manager": "no sandbox manager on this install",
+    "sandbox_queue_full": "sandbox queue is full (position {position})",
+    "env_metrics_disabled": "environment metrics are not enabled on this install",
+    "metric_not_found": "no metric {metric:%q} in environment {environment}",
+    "environment_not_found": "no environment {environment:%q} in this workspace",
+    "no_credential_store": "no credential store on this install",
+    "credential_disabled": "credential {name:%q} is disabled",
+    "credential_no_token": "credential {name:%q} has no single token field ({fields})",
+    "credential_not_found": "no credential named {name:%q} in this workspace",
+    "no_auth_store": "no auth store",
+    "stage_gated": "task created but held before stage {stage:%q}: waiting for approval ({approvals})",
+    "environment_not_found": "no environment {environment:%q} in this workspace (environment takes the environment's ID, not its name)",
+    "unknown_stage": "board {board:%q} has no stage {stage:%q}",
+    "ref_templated": "{field} does not take {{ }} templates: the run would look up {value:%q} as written; put an ID that exists"
+  },
+  "audit": {
+    "task_created": "Task created by an automation: {title}",
+    "created": "Automation created: {name}",
+    "updated": "Automation updated: {name}",
+    "resumed": "Automation resumed: {name}",
+    "suspended": "Automation suspended: {name}",
+    "deleted": "Automation deleted: {name}",
+    "run_by_hand": "Automation run by hand: {name}"
+  },
+  "log": {
+    "publish_failed": "publish {kind}: {err}",
+    "discover_agents_failed": "discover agents: {err}"
+  }
+}

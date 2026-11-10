@@ -1,0 +1,41 @@
+name: thulu-figma
+description: |
+  Read-only window onto Figma designs over the Figma REST API. Figma's own
+  remote MCP admits only allowlisted clients and refuses personal access
+  tokens, so this server reads the same files with a PAT stored in Thulu's
+  credential manager and resolved server-side: no token ever reaches the agent.
+  Every tool is a GET; the server defines nothing that writes to Figma.
+
+  Start with file_get (a file key or any figma.com link) to see pages, frames,
+  components and styles; then nodes_get for layout, paints and type, and
+  images_render to look at a frame.
+type: mcp
+default_scope: read
+# requires lists Figma PAT scope names; Figma does not report a token's scopes, so Thulu never
+# checks them.
+# internal/credentials/catalog.go is the runtime source of truth; a test checks the two agree.
+tools:
+  - name: file_get
+    description: Outline of a file (pages, frames by id/name/type) plus its components and shared styles. Takes a key or a figma.com link.
+    scope: read
+    requires: {figma: [figma:file_content:read]}
+  - name: nodes_get
+    description: Per node, what building it takes — box, auto-layout, sizing, fills/strokes as hex, radius, effects, text and font, shared style names.
+    scope: read
+    requires: {figma: [figma:file_content:read]}
+  - name: images_render
+    description: Render nodes to PNG/JPG (inline, up to 4) or SVG/PDF (URL); attach=true uploads them to the task.
+    scope: read
+    requires: {figma: [figma:file_content:read]}
+  - name: comments_list
+    description: Comments grouped into threads with the node each is pinned to; resolved ones only when asked.
+    scope: read
+    requires: {figma: [figma:file_comments:read]}
+  - name: team_projects_list
+    description: Projects of a team, by team id or a figma.com/files/team/<id> link.
+    scope: read
+    requires: {figma: [figma:projects:read]}
+  - name: project_files_list
+    description: Files of a project with their keys and last change.
+    scope: read
+    requires: {figma: [figma:projects:read]}

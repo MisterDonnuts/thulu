@@ -1,0 +1,9 @@
+name: octopus-task-workflow
+description: How to work a Thulu task with people and other agents using octopus-api. When to ask with task_ask (blocking, non-blocking or blocker) and what happens next, when to request an approval with task_request_approval and what to do when changes are requested, comments, threads, @mentions and reports, sections and Definition of Done of the body, and how to split the work into subtasks, new tasks and dependencies. Use it when you need something from a person, when leaving the task ready for review or when splitting the work.
+type: knowledge
+enforcement: on_demand
+requires: []
+# Bump on every change: the daemon syncs this skill at boot only when version exceeds the stored
+# one.
+version: 3
+mcp: octopus-api

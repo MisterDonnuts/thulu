@@ -1,0 +1,32 @@
+{
+  "title": "Historial de la configuración de {agent}",
+  "pick": "Elegí una configuración para verla.",
+  "none": "Todavía no hay configuraciones anteriores. Cada vez que guardás los ajustes, instalás encima desde el Workshop o restaurás, la configuración que se reemplaza queda acá.",
+  "kept": "{reason} · {when}",
+  "reason": {
+    "settings": "Antes de guardar los ajustes",
+    "workshop": "Antes de instalar desde el Workshop",
+    "restore": "Antes de restaurar otra"
+  },
+  "field": {
+    "description": "Descripción",
+    "stages": "Etapas",
+    "engine": "Motor",
+    "model": "Modelo",
+    "effort": "Esfuerzo",
+    "skills": "Skills por etapa",
+    "mcp": "MCP por etapa",
+    "auditor": "Auditor en"
+  },
+  "empty_def": "Esta configuración no tenía nada cargado.",
+  "restore": "Restaurar esta configuración",
+  "confirm_title": "¿Restaurar la configuración de {agent}?",
+  "confirm_message": "Las etapas, skills, MCP, motor y modelo vuelven a esta versión. Los prompts no cambian. La configuración actual queda en el historial, así que podés volver a ella.",
+  "restored": "Se restauró la configuración de {agent}",
+  "changes": "Qué cambió después",
+  "full": "La configuración que tenía",
+  "no_changes": "No cambió ninguno de estos campos: cambió otro ajuste, como los turnos por etapa.",
+  "before": "Antes:",
+  "after": "Después:",
+  "empty_value": "(nada)"
+}

@@ -1,0 +1,26 @@
+{
+  "actor": {
+    "api_key": "Key: {name}",
+    "agent": "Agent: {run}",
+    "system": "Thulu (system)",
+    "dev_mode": "Dev mode (no login)"
+  },
+  "chain": {
+    "ok": {
+      "one": "Chain verified: {count} entry, head hash {head}…",
+      "other": "Chain verified: {count} entries, head hash {head}…"
+    },
+    "legacy": {
+      "one": "{count} older entry predates the chain and is not covered.",
+      "other": "{count} older entries predate the chain and are not covered."
+    },
+    "broken": {
+      "one": "Chain broken at entry {id} after {count} good entry: {reason}",
+      "other": "Chain broken at entry {id} after {count} good entries: {reason}"
+    },
+    "broken_dated": {
+      "one": "Chain broken at entry {id}, written {date}, after {count} good entry: {reason}",
+      "other": "Chain broken at entry {id}, written {date}, after {count} good entries: {reason}"
+    }
+  }
+}

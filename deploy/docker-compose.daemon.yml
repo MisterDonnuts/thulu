@@ -1,0 +1,188 @@
+# Thulu — daemon-in-container with sibling agent launching.
+#
+# Development stack. `make up` builds and starts it
+# (alongside tools/docker-compose.yml). The daemon runs ENTIRELY in a container
+# (no host-side daemon, no host-path bind mounts for agent workspaces); there is
+# no supported host-process path. Agents are launched as sibling containers via
+# the Docker socket. File delivery between daemon and agents is container-native:
+#   - assets (entrypoint, snippets, skills, tools, prompts) → CopyToContainer
+#   - worktrees (live, bidirectional) → shared named volume with subpath
+#   - outputs → CopyFromContainer at exit
+#
+# Usage:
+#   docker compose -f deploy/docker-compose.daemon.yml up --build -d
+#   docker compose -f deploy/docker-compose.daemon.yml logs -f octopus
+#   docker compose -f deploy/docker-compose.daemon.yml down
+#
+# Tear down + wipe state:
+#   docker compose -f deploy/docker-compose.daemon.yml down -v
+#
+# Pair with `tools/docker-compose.yml` for the MCP services (thulu-github,
+# thulu-browser, octopus-api, thulu-cloud, thulu-figma). The daemon serves
+# thulu-sandbox itself at /sandbox/sse, so it is NOT a separate container.
+#
+# Needs deploy/.env with OCTOPUS_JWT_SECRET, OCTOPUS_API_KEY and
+# OCTOPUS_PG_PASSWORD (`openssl rand -hex 32` for each). There are no committed
+# fallbacks: a default in this file is a credential every checkout shares.
+#
+# Network: agents launched by the daemon join the `octopus-agents` network
+# (OCTOPUS_AGENT_NETWORK), which tools/docker-compose.yml joins too. There
+# they reach the daemon at http://octopus:8585 and each MCP server at
+# http://<name>:3000/sse. The daemon's own port is published on loopback for
+# the dashboard and the CLI.
+
+# Log rotation for every service. Docker's json-file driver otherwise keeps a
+# container's whole output for as long as the container exists, and the
+# daemon's log alone grows without bound on a busy install.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  octopus:
+    logging: *default-logging
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      # `make up` passes the dev stamp (scripts/dev-version.sh); a bare
+      # `docker compose build` reports "dev", which nothing can order.
+      args:
+        VERSION: ${OCTOPUS_BUILD_VERSION:-dev}
+    image: octopus-daemon:latest
+    container_name: octopus-daemon
+    restart: unless-stopped
+    # No `init: true`: the image's ENTRYPOINT already starts tini as PID 1
+    # (deploy/Dockerfile), and Docker's init on top would nest a second one.
+    # Memory cap on the daemon process itself. The sandboxes have their own
+    # 6GB cgroup (internal/sandbox/manager.go); without this a runaway
+    # goroutine or pathological query could eat the entire host VM. 4GB is
+    # generous for the Go process + Postgres client pool; tune up if
+    # /health/ready starts OOM-killing.
+    mem_limit: 4g
+    # Run as root so the daemon can access /var/run/docker.sock. The base image
+    # creates an unprivileged `octopus` user for production deployments where
+    # the daemon doesn't manage local containers; the launching-sibling-agents
+    # flow requires Docker API access, which is root-equivalent on the host
+    # regardless of which uid is inside the container. Override per-environment
+    # if you wire `group_add` to the host's `docker` gid.
+    user: "0:0"
+    environment:
+      # Tells the daemon to share `octopus-data` with launched agents via
+      # `mount.TypeVolume` + `VolumeOptions.Subpath` (Docker API ≥1.45). This
+      # is what makes worktrees live bidirectionally without bind mounts.
+      OCTOPUS_DATA_VOLUME: octopus-data
+      DOCKER_HOST: unix:///var/run/docker.sock
+      # A stable JWT secret is required: a generated one invalidates sessions
+      # on every restart. Set it from your secrets management; rotate by
+      # replacing it and restarting, which ends all existing sessions.
+      OCTOPUS_JWT_SECRET: ${OCTOPUS_JWT_SECRET:?set OCTOPUS_JWT_SECRET in deploy/.env}
+      # Agents (and their MCPs: thulu-github, thulu-browser, …) authenticate to
+      # the daemon with this key via the X-API-Key header. The dispatcher
+      # injects it into every launched container's env. Treat it as a secret —
+      # rotate by replacing it in deploy/.env and restarting; in-flight agents
+      # will fail their next API call.
+      OCTOPUS_API_KEY: ${OCTOPUS_API_KEY:?set OCTOPUS_API_KEY in deploy/.env}
+      OCTOPUS_LOG_FORMAT: text
+      # Update checks (docs/upgrade-guide.md): the daemon only reports what
+      # is available; `thulu update` installs it.
+      OCTOPUS_UPDATE_SOURCE: ${OCTOPUS_UPDATE_SOURCE:-github}
+      OCTOPUS_UPDATE_CHANNELS: ${OCTOPUS_UPDATE_CHANNELS:-stable}
+      OCTOPUS_UPDATE_INTERVAL: ${OCTOPUS_UPDATE_INTERVAL:-12h}
+      OCTOPUS_UPDATE_GITHUB_TOKEN: ${OCTOPUS_UPDATE_GITHUB_TOKEN:-}
+      OCTOPUS_PUBLIC_HOST: host.docker.internal
+      # Agents join the network the MCP containers are on and call back into
+      # the daemon by service name.
+      OCTOPUS_AGENT_NETWORK: ${OCTOPUS_AGENT_NETWORK:-octopus-agents}
+      OCTOPUS_AGENT_BASE_URL: http://octopus:8585
+      # Model calls go through the daemon's LLM gateway, which holds the
+      # workspace's key (or signs for Bedrock / Vertex); agents only get a
+      # token that dies with the run. `off` in .env puts the key in the agent.
+      OCTOPUS_LLM_GATEWAY: ${OCTOPUS_LLM_GATEWAY:-on}
+      # Bare repos under /data/sources (the local-project pattern) may be
+      # registered as file:///data/sources/<name>.git. Nothing else on the
+      # volume can: not a project checkout, not a worktree.
+      OCTOPUS_GIT_LOCAL_REMOTE_ROOT: ${OCTOPUS_GIT_LOCAL_REMOTE_ROOT:-/data/sources}
+      # Postgres is the only supported backend. The `pg` service below runs
+      # alongside the daemon on the compose network; override OCTOPUS_DATABASE_URL
+      # via .env to point at an external managed Postgres for production.
+      OCTOPUS_DATABASE_URL: ${OCTOPUS_DATABASE_URL:-postgres://octopus:${OCTOPUS_PG_PASSWORD}@pg:5432/octopus?sslmode=disable}
+      # The MCP servers of tools/docker-compose.yml, by service name on the shared
+      # network. Forwarded to every agent as MCP_<NAME>_URL; the daemon's own
+      # metrics collector also derives its /collect base URL from thulu-cloud's.
+      MCP_OCTOPUS_API_URL: ${MCP_OCTOPUS_API_URL:-http://octopus-api:3000/sse}
+      MCP_THULU_GITHUB_URL: ${MCP_THULU_GITHUB_URL:-http://thulu-github:3000/sse}
+      MCP_THULU_BROWSER_URL: ${MCP_THULU_BROWSER_URL:-http://thulu-browser:3000/sse}
+      MCP_THULU_CLOUD_URL: ${MCP_THULU_CLOUD_URL:-http://thulu-cloud:3000/sse}
+      MCP_THULU_FIGMA_URL: ${MCP_THULU_FIGMA_URL:-http://thulu-figma:3000/sse}
+      # These act on Thulu for the calling agent, so they get its run key.
+      OCTOPUS_MCP_FORWARD_CREDENTIAL: ${OCTOPUS_MCP_FORWARD_CREDENTIAL:-octopus-api,thulu-github,thulu-browser,thulu-cloud,thulu-figma}
+    volumes:
+      # Repo mount: the daemon reads build assets (images/, tools/) from here.
+      # Agent definitions, prompts and skills live in Postgres and reach each
+      # run through GET /run/bundle. A fresh install starts with none: create
+      # them on /agents or `thulu agents import`.
+      # The path is daemon-internal: no host-path coupling at the Docker daemon
+      # side, because we never bind-mount these into agent containers.
+      - ..:/workspace:cached
+      # Shared data volume: project worktrees and run outputs. Postgres lives
+      # in the `pg` service. Mounted into each agent at /workspace/projects/<name>
+      # via subpath.
+      - octopus-data:/data
+      # Required to launch sibling containers via the Docker API.
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "127.0.0.1:8585:8585"
+    networks:
+      - octopus
+      - agents
+    depends_on:
+      pg:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8585/health/live"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  pg:
+    logging: *default-logging
+    image: ${OCTOPUS_PG_IMAGE:-postgres:16-alpine}
+    container_name: octopus-pg
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${OCTOPUS_PG_USER:-octopus}
+      POSTGRES_PASSWORD: ${OCTOPUS_PG_PASSWORD:?set OCTOPUS_PG_PASSWORD in deploy/.env}
+      POSTGRES_DB: ${OCTOPUS_PG_DB:-octopus}
+    volumes:
+      - octopus-pg:/var/lib/postgresql/data
+    # Published on loopback 5433 so host tooling reaches the same DB at
+    # localhost:5433 — the repo-wide convention. The daemon itself connects
+    # in-network via pg:5432. The Go test suite's default DSN
+    # (internal/testpg) uses password `octopus`: set OCTOPUS_PG_PASSWORD to
+    # that on a throwaway dev box, or point OCTOPUS_TEST_POSTGRES_DSN here.
+    ports:
+      - "127.0.0.1:${OCTOPUS_PG_HOST_PORT:-5433}:5432"
+    networks:
+      - octopus
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${OCTOPUS_PG_USER:-octopus} -d ${OCTOPUS_PG_DB:-octopus}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+networks:
+  octopus:
+    driver: bridge
+  # Shared with tools/docker-compose.yml and with every agent the daemon
+  # launches. Postgres is not on it.
+  agents:
+    name: ${OCTOPUS_AGENT_NETWORK:-octopus-agents}
+    driver: bridge
+
+volumes:
+  octopus-data:
+    name: octopus-data
+  octopus-pg:
+    name: octopus-pg

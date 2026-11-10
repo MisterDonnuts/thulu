@@ -1,0 +1,51 @@
+{
+  "comments": {
+    "awaiting": "Esperando aprobación para salir de **{stage}**: {approvals}. La tarea sigue sola cuando estén aprobadas o salteadas.",
+    "changes_deferred": "**{by}** pidió cambios en **{approval}** mientras el agente trabaja. Le llegan cuando termine esta corrida.",
+    "kicked_back": "**{by}** pidió cambios en **{approval}**: vuelve a **{stage}**.\n\n{note}",
+    "resume_failed": "Se pidieron cambios en **{approval}**, pero no se pudo retomar el agente de la etapa: {err}\n\n{note}",
+    "settled_advancing": "Están todas las aprobaciones: pasa a **{stage}**."
+  },
+  "errors": {
+    "bad_decision": "{decision:%q} no es una decisión: usá approved, changes_requested o waived",
+    "delete": "borrar la aprobación {id}",
+    "fork_insert": "copiar una aprobación al fork",
+    "import": "importar la aprobación {id}",
+    "import_ids": "una aprobación importada necesita su id y el de su tarea",
+    "insert": "agregar una aprobación a la tarea {task}",
+    "key_invalid": "la clave de aprobación {key:%q} tiene que cumplir [a-z0-9_]{1,32}",
+    "label_required": "la aprobación necesita un nombre",
+    "label_too_long": "el nombre de la aprobación es muy largo (máximo {max} caracteres)",
+    "list": "listar aprobaciones",
+    "not_found": "no existe esa aprobación",
+    "note_too_long": "la nota es muy larga (máximo {max} caracteres)",
+    "reason_too_long": "el motivo es muy largo (máximo {max} caracteres)",
+    "reset": "volver aprobaciones a pendiente",
+    "scan": "leer una aprobación",
+    "task_required": "la aprobación necesita una tarea",
+    "update": "actualizar la aprobación {id}"
+  },
+  "events": {
+    "approved": "{label} aprobada",
+    "changes_requested": "{label}: pidieron cambios",
+    "deleted": "{label} quitada",
+    "requested": "{label} pedida",
+    "reset_answered": "{label} vuelve a pendiente después de los cambios pedidos",
+    "reset_changed": "{label} vuelve a pendiente: el código cambió después de aprobarla",
+    "reset_reentered": "{label} vuelve a pendiente: la tarea volvió a su etapa",
+    "waived": "{label} salteada"
+  },
+  "log": {
+    "claim": "sacar la tarea {task} de awaiting_approval",
+    "decorate_counts": "contar aprobaciones pendientes",
+    "ensure": "abrir las aprobaciones de la etapa para la tarea {task}",
+    "gate": "leer las aprobaciones que frenan la tarea {task}",
+    "kick_back_failed": "devolver la tarea {task} después de que pidieran cambios: {err}",
+    "mirror_flag": "copiar la aprobación {approval} a task_flags",
+    "record_event": "registrar un evento de aprobación en la tarea {task}",
+    "reopen": "reabrir las aprobaciones que le pidieron cambios a la tarea {task}",
+    "reset": "volver a pendiente las aprobaciones de la tarea {task} después de su corrida",
+    "sync_flags": "traer los flags que escribió la versión anterior ({step})"
+  },
+  "resume_message": "{by} pidió cambios antes de aprobar \"{approval}\":\n\n{note}\n\nHacé los cambios en esta etapa. Cuando termines, la aprobación vuelve a pendiente para que la revisen de nuevo."
+}

@@ -1,0 +1,788 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Button from "../components/Button.astro";
+import Check from "../components/Check.astro";
+import Count from "../components/Count.astro";
+import Field from "../components/Field.astro";
+import InlineStatus from "../components/InlineStatus.astro";
+import Modal from "../components/Modal.astro";
+import PageHead from "../components/PageHead.astro";
+import Panel from "../components/Panel.astro";
+import Segmented from "../components/Segmented.astro";
+import Table from "../components/Table.astro";
+import { t } from "../i18n";
+import { mcpColumns } from "../lib/mcp-actions";
+
+// i18n-ignore placeholder syntax, not a message
+const templateSyntax = { field: "{field}", base64: "{base64:username:token}" };
+// i18n-ignore a sample header line, not a message
+const templateSample = "Authorization: Basic {base64:username:token}";
+---
+
+<Layout title={t("mcps.title")}>
+  <main class="page" style="--page-max: 1100px">
+    <PageHead title={t("mcps.title")} subtitle={t("mcps.subtitle")}>
+      <Fragment slot="actions">
+        <Count id="stat-up" n="0 / 0" pill pulse label={t("mcps.header.up")} />
+        <Button href="/agents/#mcp" icon="bot" title={t("mcps.header.use_in_agent_title")}
+          ><span>{t("mcps.header.use_in_agent")}</span></Button
+        >
+        <Button id="btn-add" icon="plus" variant="primary"
+          ><span>{t("mcps.buttons.add")}</span></Button
+        >
+        <Button
+          id="btn-refresh"
+          iconOnly
+          icon="refresh"
+          size="lg"
+          label={t("common.buttons.refresh")}
+        />
+      </Fragment>
+    </PageHead>
+
+    <div id="mcp-access"></div>
+
+    <Panel icon="server" title={t("mcps.panels.services")} titleId="mcp-services-h" flush>
+      <Table cols={mcpColumns()} bodyId="mcp-list" stack loading aria-labelledby="mcp-services-h" />
+    </Panel>
+
+    <Modal
+      id="add-modal"
+      title={t("mcps.modal.register_title")}
+      icon="server"
+      size="md"
+      lede={t("mcps.modal.intro_html")}
+      cancel
+      primary={{ label: t("mcps.buttons.register"), id: "add-submit" }}
+    >
+      <div class="form-stack">
+        <Field label={t("mcps.modal.name")} for="add-name" errorId="add-name-error">
+          <span slot="hint" id="add-name-hint"></span>
+          <!-- i18n-ignore a sample server name, not a message -->
+          <input id="add-name" placeholder="my-mcp" autocomplete="off" />
+        </Field>
+        <div class="form-row">
+          <Field
+            label={t("mcps.modal.url")}
+            hint={t("mcps.modal.url_hint")}
+            for="add-url"
+            errorId="add-url-error"
+            grow
+          >
+            <!-- i18n-ignore a sample URL, not a message -->
+            <input id="add-url" placeholder="https://mcp.example.com/mcp" autocomplete="off" />
+          </Field>
+          <Button id="add-probe" icon="search">{t("mcps.modal.probe")}</Button>
+          <InlineStatus id="add-probe-result" />
+        </div>
+        <Field label={t("mcps.modal.transport")} hint={t("mcps.modal.transport_hint")}>
+          <Segmented
+            id="add-transport"
+            name="add-transport"
+            label={t("mcps.modal.transport")}
+            value="sse"
+            options={[
+              { value: "http", label: t("mcps.modal.transport_http") },
+              { value: "sse", label: t("mcps.modal.transport_sse") },
+            ]}
+          />
+        </Field>
+        <Field label={t("mcps.modal.auth")} help={t("mcps.modal.auth_help")} helpId="add-auth-help">
+          <Segmented
+            id="add-auth"
+            name="add-auth"
+            label={t("mcps.modal.auth")}
+            value="none"
+            options={[
+              { value: "none", label: t("mcps.modal.auth_none") },
+              { value: "credential", label: t("mcps.modal.auth_credential") },
+            ]}
+          />
+        </Field>
+        <div id="add-credential-fields" class="form-stack" hidden>
+          <Field
+            label={t("mcps.modal.credential_ref")}
+            hint={t("mcps.modal.credential_ref_hint")}
+            for="add-cred-ref"
+            errorId="add-cred-ref-error"
+          >
+            <!-- i18n-ignore a sample credential name, not a message -->
+            <input id="add-cred-ref" placeholder="jira-token" autocomplete="off" />
+          </Field>
+          <Field
+            label={t("mcps.modal.header_template")}
+            for="add-header-template"
+            optional
+            help={t("mcps.modal.header_template_help", templateSyntax)}
+            errorId="add-header-template-error"
+          >
+            <textarea id="add-header-template" rows="2" placeholder={templateSample}></textarea>
+          </Field>
+        </div>
+        <Field
+          label={t("mcps.modal.description")}
+          hint={t("mcps.modal.description_hint")}
+          for="add-desc"
+        >
+          <input
+            id="add-desc"
+            placeholder={t("mcps.modal.description_placeholder")}
+            autocomplete="off"
+          />
+        </Field>
+        <Check
+          id="add-forward-key"
+          label={t("mcps.modal.forward_key")}
+          hint={t("mcps.modal.forward_key_hint")}
+        />
+      </div>
+    </Modal>
+  </main>
+
+  <style is:global>
+    .mcp-name {
+      font-weight: 500;
+      color: var(--fg);
+    }
+    td.mcp-uptime {
+      font-size: var(--t-xs);
+      color: var(--fg-3);
+    }
+
+    .mcp-endpoint {
+      font-family: var(--font-mono);
+      font-size: var(--t-xs);
+      color: var(--fg-3);
+      overflow-wrap: anywhere;
+    }
+    .mcp-endpoint a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .mcp-endpoint a:hover {
+      text-decoration: underline;
+    }
+    /* The description under a registered URL: the table's second line, in
+       the page's type rather than the URL's. */
+    .mcp-endpoint .cell-sub {
+      font-family: var(--font-sans);
+    }
+
+    .linkish {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .linkish:hover {
+      text-decoration: underline;
+    }
+  </style>
+
+  <script>
+    import { reconcile, startPoller, dirty, setText } from "../lib/reactive";
+    import { requireAuth } from "../lib/auth";
+    import { api } from "../lib/api";
+    import {
+      $,
+      buttonHTML,
+      clearFormErrors,
+      confirmDialog,
+      emptyRowHTML,
+      esc,
+      makeToast,
+      segmentedValue,
+      setCount,
+      setFieldError,
+      setInlineStatus,
+      setSegmentedValue,
+      tableSpan,
+    } from "../lib/ui";
+    import { safeUrl } from "../lib/safe-url";
+    import { bindModal } from "../lib/modal";
+    import { uptime } from "../lib/time";
+    import {
+      mcpHealthBadge,
+      mcpSourceBadge,
+      mcpStatusBadge,
+      mcpUncheckedBadge,
+    } from "../lib/badges";
+    import {
+      actionsFor,
+      isUnchecked,
+      mcpColumns,
+      mcpRowHTML,
+      sourceOf,
+      upCounts,
+      upTone,
+      type MCPAction,
+    } from "../lib/mcp-actions";
+    import { wikiUrl } from "../lib/wiki";
+    import {
+      connectableServers,
+      fetchOAuthServers,
+      oauthOutcome,
+      oauthStatusText,
+      type OAuthServer,
+    } from "../lib/credentials";
+    import { isOperatorRefusal, mayWriteInstallWide, showReadOnly } from "../lib/operator";
+    import { t } from "../i18n";
+    import { onPage } from "../lib/page";
+
+    onPage("/mcps", (signal) => {
+      requireAuth();
+
+      interface MCPView {
+        name: string;
+        image: string;
+        container_name: string;
+        host_port?: number;
+        container_port?: number;
+        status: string;
+        state?: string;
+        health?: string;
+        container_id?: string;
+        started_at?: string;
+        restart_count?: number;
+        image_available: boolean;
+        // A /mcps response may omit source; treat empty as "runtime".
+        source?: "runtime" | "registered" | "env" | "";
+        url?: string;
+        description?: string;
+        forwards_credential?: boolean;
+        transport?: Transport;
+        auth?: AuthMode;
+        credential_ref?: string;
+        header_template?: string;
+        health_detail?: string;
+      }
+      type Transport = "http" | "sse";
+      type AuthMode = "none" | "credential";
+
+      interface Connection {
+        forwardsCredential: boolean;
+        transport: Transport;
+        auth: AuthMode;
+        credentialRef: string;
+        headerTemplate: string;
+      }
+
+      const toast = makeToast(3500);
+
+      let oauthByName = new Map<string, OAuthServer>();
+      async function loadOAuthServers(): Promise<void> {
+        try {
+          const r = await fetchOAuthServers();
+          oauthByName = new Map(connectableServers(r.servers).map((s) => [s.name, s]));
+        } catch {
+          oauthByName = new Map();
+        }
+      }
+
+      const registerDoc = wikiUrl("/configure/mcps/", "register-your-own-mcp");
+      $("add-modal-lede").innerHTML =
+        t("mcps.modal.intro_html") +
+        (registerDoc
+          ? ` <a href="${esc(registerDoc)}" class="linkish" target="_blank" rel="noopener noreferrer">${esc(t("mcps.modal.docs_link"))}</a>`
+          : "");
+      $("add-name-hint").innerHTML = t("mcps.modal.name_hint_html");
+
+      // The registry is install-wide, so every write is operator-only (lib/operator.ts); others get
+      // a read-only list.
+      let readOnly = false;
+      function lockRegistry(): void {
+        readOnly = true;
+        showReadOnly($("mcp-access"), t("mcps.readonly.lead"), [$("btn-add")]);
+        if (addModal.isOpen()) closeModal();
+        document.querySelectorAll<HTMLElement>(".mcp-actions").forEach((el) => {
+          el.innerHTML = "";
+          delete el.dataset.sig;
+        });
+      }
+      function writeFailed(e: unknown, what: string): void {
+        if (isOperatorRefusal(e)) {
+          lockRegistry();
+          return;
+        }
+        toast(
+          t("mcps.toasts.write_failed", { what, error: String((e as Error)?.message || e) }),
+          "err",
+          6000,
+        );
+      }
+
+      async function callAction(name: string, action: MCPAction): Promise<void> {
+        await api.post(`/mcps/${encodeURIComponent(name)}/${action}`);
+      }
+
+      function connectionBody(c: Connection): Record<string, unknown> {
+        return {
+          forwards_credential: c.forwardsCredential,
+          transport: c.transport,
+          auth: c.auth,
+          credential_ref: c.auth === "credential" ? c.credentialRef : "",
+          header_template: c.auth === "credential" ? c.headerTemplate : "",
+        };
+      }
+      async function registerMCP(
+        name: string,
+        url: string,
+        description: string,
+        c: Connection,
+      ): Promise<void> {
+        await api.post("/mcps/register", { name, url, description, ...connectionBody(c) });
+      }
+      async function updateMCPReg(
+        name: string,
+        url: string,
+        description: string,
+        c: Connection,
+      ): Promise<void> {
+        await api.patch(`/mcps/${encodeURIComponent(name)}`, {
+          url,
+          description,
+          ...connectionBody(c),
+        });
+      }
+      async function deleteMCPReg(name: string): Promise<void> {
+        await api.del(`/mcps/${encodeURIComponent(name)}`);
+      }
+
+      function createRow(sv: MCPView): HTMLElement {
+        const body = document.createElement("tbody");
+        body.innerHTML = mcpRowHTML();
+        const tr = body.firstElementChild as HTMLElement;
+        updateRow(tr, sv);
+        return tr;
+      }
+
+      function updateRow(tr: HTMLElement, sv: MCPView): void {
+        setText(tr.querySelector(".mcp-name"), sv.name);
+
+        const src = sourceOf(sv);
+        const srcCell = tr.querySelector(".source-cell") as HTMLElement;
+        if (srcCell.dataset.src !== src) {
+          srcCell.innerHTML = mcpSourceBadge(src);
+          srcCell.dataset.src = src;
+        }
+
+        const endpoint = tr.querySelector(".mcp-endpoint") as HTMLElement;
+        let endpointHTML = "—";
+        let endpointSig = "empty";
+        if (src === "env") {
+          // Plain text: the host is usually a compose service or cluster name the browser cannot
+          // resolve.
+          const u = sv.url || "";
+          const envKey = `MCP_${sv.name.toUpperCase().replace(/-/g, "_")}_URL`;
+          endpointHTML = `${u ? esc(u) : "—"}<span class="cell-sub">${t("mcps.endpoint.from_env", { key: esc(envKey) })}</span>`;
+          endpointSig = `env|${u}`;
+        } else if (src === "registered") {
+          const u = sv.url || "";
+          const href = safeUrl(u);
+          endpointHTML = !u
+            ? "—"
+            : href
+              ? `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${esc(u)}</a>`
+              : esc(u);
+          const oauth = oauthByName.get(sv.name);
+          const oauthText = oauth ? oauthStatusText(oauth.credential) : "";
+          endpointSig = `reg|${u}|${sv.description || ""}|${oauthText}`;
+          if (sv.description)
+            endpointHTML += `<span class="cell-sub">${esc(sv.description)}</span>`;
+          if (oauthText)
+            endpointHTML += `<span class="cell-sub">${esc(t("mcps.endpoint.oauth", { status: oauthText }))}</span>`;
+        } else if (!sv.host_port && sv.url) {
+          endpointHTML = esc(sv.url);
+          endpointSig = `rt-url|${sv.url}`;
+        } else {
+          const portText = sv.host_port ? `${sv.host_port}:${sv.container_port ?? "?"}` : "—";
+          const isLive = sv.status === "running" && !!sv.host_port;
+          endpointSig = `rt|${portText}|${isLive ? "live" : "dead"}`;
+          endpointHTML = isLive
+            ? `<a href="http://localhost:${Number(sv.host_port)}" target="_blank" rel="noopener">${esc(portText)}</a>`
+            : esc(portText);
+        }
+        if (endpoint.dataset.sig !== endpointSig) {
+          endpoint.innerHTML = endpointHTML;
+          endpoint.dataset.sig = endpointSig;
+        }
+
+        const status = tr.querySelector(".status-cell") as HTMLElement;
+        if (status.dataset.status !== sv.status) {
+          status.innerHTML = mcpStatusBadge(sv.status);
+          status.dataset.status = sv.status;
+        }
+
+        const health = tr.querySelector(".health-cell") as HTMLElement;
+        const unchecked = isUnchecked(sv);
+        const h = `${sv.health || ""}|${sv.health_detail || ""}|${unchecked}`;
+        if (health.dataset.h !== h) {
+          health.innerHTML = unchecked ? mcpUncheckedBadge() : mcpHealthBadge(sv.health);
+          health.title = unchecked ? t("mcps.health.unchecked_title") : sv.health_detail || "";
+          health.dataset.h = h;
+        }
+
+        setText(
+          tr.querySelector(".mcp-uptime"),
+          sv.status === "running" ? uptime(sv.started_at) : "—",
+        );
+
+        const acts: MCPAction[] = [
+          ...(src === "registered" && oauthByName.has(sv.name) ? (["connect"] as const) : []),
+          ...(readOnly ? [] : actionsFor(sv)),
+        ];
+        const sig = acts.join(",");
+        const actionsHost = tr.querySelector(".mcp-actions") as HTMLElement;
+        if (actionsHost.dataset.sig !== sig) {
+          actionsHost.innerHTML = acts.map((a) => actionButton(a)).join("");
+          actionsHost.dataset.sig = sig;
+          actionsHost.querySelectorAll<HTMLButtonElement>("button[data-action]").forEach((btn) => {
+            btn.addEventListener("click", () =>
+              onActionClick(sv.name, btn.dataset.action as MCPAction, btn, sv),
+            );
+          });
+        }
+      }
+
+      interface ModalState extends Partial<Connection> {
+        name?: string;
+        url: string;
+        description: string;
+      }
+      let modalState: ModalState | null = null;
+
+      const addModal = bindModal($("add-modal"), {
+        onClose: () => {
+          modalState = null;
+        },
+      });
+
+      function openModal(state?: ModalState): void {
+        modalState = state ? { ...state } : { url: "", description: "" };
+        const isEdit = !!state?.name;
+        setText(
+          $("add-modal-title"),
+          isEdit
+            ? t("mcps.modal.edit_title", { name: state!.name! })
+            : t("mcps.modal.register_title"),
+        );
+        const nameInput = $("add-name") as HTMLInputElement;
+        nameInput.value = state?.name || "";
+        nameInput.disabled = isEdit;
+        ($("add-url") as HTMLInputElement).value = state?.url || "";
+        ($("add-desc") as HTMLInputElement).value = state?.description || "";
+        ($("add-forward-key") as HTMLInputElement).checked = !!state?.forwardsCredential;
+        setSegmentedValue($("add-transport"), state?.transport || "sse");
+        setSegmentedValue($("add-auth"), state?.auth || "none");
+        ($("add-cred-ref") as HTMLInputElement).value = state?.credentialRef || "";
+        ($("add-header-template") as HTMLTextAreaElement).value = state?.headerTemplate || "";
+        setInlineStatus($("add-probe-result"), "neutral", "");
+        syncAuthFields();
+        const submit = $("add-submit") as HTMLButtonElement;
+        submit.textContent = isEdit ? t("common.buttons.save") : t("mcps.buttons.register");
+        submit.disabled = false;
+        clearFormErrors($("add-modal"));
+        addModal.open(
+          isEdit ? ($("add-url") as HTMLInputElement) : ($("add-name") as HTMLInputElement),
+        );
+      }
+
+      const closeModal = addModal.close;
+
+      function readConnection(): Connection {
+        return {
+          forwardsCredential: ($("add-forward-key") as HTMLInputElement).checked,
+          transport: segmentedValue($("add-transport")) === "http" ? "http" : "sse",
+          auth: segmentedValue($("add-auth")) === "credential" ? "credential" : "none",
+          credentialRef: ($("add-cred-ref") as HTMLInputElement).value.trim(),
+          headerTemplate: ($("add-header-template") as HTMLTextAreaElement).value.trim(),
+        };
+      }
+
+      function syncAuthFields(): void {
+        $("add-credential-fields").hidden = segmentedValue($("add-auth")) !== "credential";
+      }
+
+      interface Detection {
+        transport: "" | Transport;
+        http_status: number;
+        sse_status: number;
+        auth_required: boolean;
+        oauth: boolean;
+        resource_metadata?: string;
+      }
+
+      function describeDetection(d: Detection): string {
+        const parts: string[] = [];
+        if (d.transport === "http") parts.push(t("mcps.modal.probe_http"));
+        else if (d.transport === "sse") parts.push(t("mcps.modal.probe_sse"));
+        else parts.push(t("mcps.modal.probe_unknown", { http: d.http_status, sse: d.sse_status }));
+        if (d.oauth) parts.push(t("mcps.modal.probe_oauth", { url: d.resource_metadata || "" }));
+        else if (d.auth_required) parts.push(t("mcps.modal.probe_auth"));
+        return parts.join(" ");
+      }
+
+      async function probeURL(): Promise<void> {
+        const urlInput = $("add-url") as HTMLInputElement;
+        const status = $("add-probe-result");
+        const url = urlInput.value.trim();
+        if (!/^https?:\/\/[^\s]+/.test(url)) {
+          setFieldError(urlInput, t("mcps.modal.url_invalid"));
+          urlInput.focus();
+          return;
+        }
+        setFieldError(urlInput, "");
+        const btn = $("add-probe") as HTMLButtonElement;
+        btn.disabled = true;
+        setInlineStatus(status, "neutral", t("mcps.modal.probe_running"));
+        try {
+          const d = await api.post<Detection>("/mcps/probe", { url });
+          if (d.transport) setSegmentedValue($("add-transport"), d.transport);
+          if (d.auth_required) {
+            setSegmentedValue($("add-auth"), "credential");
+            const ref = $("add-cred-ref") as HTMLInputElement;
+            if (d.oauth && !ref.value.trim())
+              ref.value = (modalState?.name || ($("add-name") as HTMLInputElement).value).trim();
+            syncAuthFields();
+          }
+          setInlineStatus(status, d.transport ? "ok" : "danger", describeDetection(d));
+        } catch (e) {
+          if (isOperatorRefusal(e)) {
+            lockRegistry();
+            return;
+          }
+          setInlineStatus(
+            status,
+            "danger",
+            t("mcps.modal.probe_failed", { error: String((e as Error)?.message || e) }),
+          );
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      async function submitModal(): Promise<void> {
+        const nameInput = $("add-name") as HTMLInputElement;
+        const urlInput = $("add-url") as HTMLInputElement;
+        const descInput = $("add-desc") as HTMLInputElement;
+        const submit = $("add-submit") as HTMLButtonElement;
+        const isEdit = !!modalState?.name;
+
+        const name = (modalState?.name || nameInput.value).trim();
+        const url = urlInput.value.trim();
+        const description = descInput.value.trim();
+        const credInput = $("add-cred-ref") as HTMLInputElement;
+        const conn = readConnection();
+
+        const nameOk = /^[a-z][a-z0-9-]{1,62}[a-z0-9]$/.test(name);
+        const urlOk = /^https?:\/\/[^\s]+/.test(url);
+        const credOk = conn.auth !== "credential" || conn.credentialRef !== "";
+        setFieldError(nameInput, nameOk ? "" : t("mcps.modal.name_invalid"));
+        setFieldError(urlInput, urlOk ? "" : t("mcps.modal.url_invalid"));
+        setFieldError(credInput, credOk ? "" : t("mcps.modal.credential_ref_invalid"));
+        if (!nameOk || !urlOk || !credOk) {
+          (!nameOk ? nameInput : !urlOk ? urlInput : credInput).focus();
+          return;
+        }
+
+        submit.disabled = true;
+        try {
+          if (isEdit) {
+            await updateMCPReg(name, url, description, conn);
+            toast(t("mcps.toasts.updated", { name }), "ok");
+          } else {
+            await registerMCP(name, url, description, conn);
+            toast(t("mcps.toasts.registered", { name }), "ok");
+          }
+          closeModal();
+          await loadOAuthServers();
+          await tick();
+        } catch (e) {
+          writeFailed(e, t("mcps.toasts.save_failed"));
+        } finally {
+          submit.disabled = false;
+        }
+      }
+
+      function actionButton(a: MCPAction): string {
+        const cfg: Record<MCPAction, { icon: string; label: string; danger?: boolean }> = {
+          start: { icon: "play", label: t("mcps.actions.start") },
+          stop: { icon: "power", label: t("mcps.actions.stop"), danger: true },
+          restart: { icon: "refresh", label: t("mcps.actions.restart") },
+          edit: { icon: "edit", label: t("mcps.actions.edit") },
+          delete: { icon: "trash", label: t("mcps.actions.unregister"), danger: true },
+          connect: { icon: "link", label: t("mcps.actions.connect") },
+        };
+        const c = cfg[a];
+        return buttonHTML({
+          label: c.label,
+          icon: c.icon,
+          iconOnly: true,
+          variant: c.danger ? "danger" : "default",
+          attrs: { "data-action": a },
+        });
+      }
+
+      const ACTION_OK = {
+        start: "mcps.toasts.start_ok",
+        stop: "mcps.toasts.stop_ok",
+        restart: "mcps.toasts.restart_ok",
+      } as const;
+      const ACTION_FAILED = {
+        start: "mcps.toasts.start_failed",
+        stop: "mcps.toasts.stop_failed",
+        restart: "mcps.toasts.restart_failed",
+      } as const;
+
+      async function onActionClick(
+        name: string,
+        action: MCPAction,
+        btn: HTMLButtonElement,
+        sv: MCPView,
+      ): Promise<void> {
+        if (action === "connect") {
+          const q = new URLSearchParams({ connect: name, from: "mcps" });
+          window.location.assign(`/credentials/?${q.toString()}`);
+          return;
+        }
+        if (action === "edit") {
+          openModal({
+            name,
+            url: sv.url || "",
+            description: sv.description || "",
+            forwardsCredential: !!sv.forwards_credential,
+            transport: sv.transport || "sse",
+            auth: sv.auth || "none",
+            credentialRef: sv.credential_ref || "",
+            headerTemplate: sv.header_template || "",
+          });
+          return;
+        }
+        if (action === "delete") {
+          const ok = await confirmDialog({
+            title: t("mcps.confirm.unregister_title", { name }),
+            message: t("mcps.confirm.unregister_message", {
+              env_key: `MCP_${name.toUpperCase().replace(/-/g, "_")}_URL`,
+            }),
+            confirmLabel: t("mcps.actions.unregister"),
+            danger: true,
+          });
+          if (!ok) return;
+          btn.disabled = true;
+          try {
+            await deleteMCPReg(name);
+            toast(t("mcps.toasts.unregistered", { name }), "ok");
+            await tick();
+          } catch (e) {
+            writeFailed(e, t("mcps.toasts.delete_failed", { name }));
+          } finally {
+            btn.disabled = false;
+          }
+          return;
+        }
+        if (action === "stop") {
+          const ok = await confirmDialog({
+            title: t("mcps.confirm.stop_title", { name }),
+            message: t("mcps.confirm.stop_message"),
+            confirmLabel: t("mcps.actions.stop"),
+            danger: true,
+          });
+          if (!ok) return;
+        }
+        btn.disabled = true;
+        try {
+          await callAction(name, action);
+          toast(t(ACTION_OK[action], { name }), "ok");
+          await tick();
+        } catch (e) {
+          writeFailed(e, t(ACTION_FAILED[action], { name }));
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      function renderList(list: MCPView[]): void {
+        const tbody = $("mcp-list") as HTMLTableSectionElement;
+        if (list.length === 0) {
+          // Compare by text, not by class: the markup ships a .row-empty reading "Loading…", and a
+          // class check never replaced it on a fresh install.
+          const shown = tbody.querySelector("tr.row-empty")?.textContent?.trim();
+          const none = t("mcps.empty.none");
+          if (shown !== none) {
+            tbody.innerHTML = emptyRowHTML(none, { cols: tableSpan(mcpColumns()) });
+          }
+          return;
+        }
+        tbody.querySelector("tr.row-empty")?.remove();
+        reconcile<MCPView>({
+          container: tbody,
+          items: list,
+          key: (sv) => sv.name,
+          create: createRow,
+          update: (el, sv) => updateRow(el, sv),
+        });
+      }
+
+      function updateHeader(list: MCPView[]): void {
+        const { up, total, unchecked } = upCounts(list);
+        const label = unchecked
+          ? `${t("mcps.header.up")} · ${t("mcps.header.unchecked", { count: unchecked })}`
+          : t("mcps.header.up");
+        // Repaint only on change: a new node every poll restarts the dot's pulse.
+        const el = $("stat-up");
+        const sig = `${up}|${total}|${label}`;
+        if (el.dataset.sig === sig) return;
+        el.dataset.sig = sig;
+        setCount(el, `${up} / ${total}`, {
+          pill: true,
+          pulse: true,
+          dot: upTone({ up, total }),
+          label,
+        });
+      }
+
+      async function tick(): Promise<void> {
+        const list = await api.get<MCPView[]>("/mcps");
+        updateHeader(list);
+        if (!dirty.hasOpenModal()) renderList(list);
+      }
+
+      $("btn-refresh")?.addEventListener("click", () => {
+        tick().catch((e) => toast(t("mcps.toasts.refresh_failed", { error: String(e) }), "err"));
+      });
+      $("btn-add")?.addEventListener("click", () => openModal());
+      $("add-probe")?.addEventListener("click", () => void probeURL());
+      $("add-auth")?.addEventListener("change", syncAuthFields);
+      void mayWriteInstallWide().then((ok) => {
+        if (!ok) lockRegistry();
+      });
+      $("add-submit")?.addEventListener("click", () => {
+        submitModal().catch((e) =>
+          toast(t("mcps.toasts.save_failed_detail", { error: String(e) }), "err"),
+        );
+      });
+      document.addEventListener(
+        "keydown",
+        (e) => {
+          const modal = $("add-modal");
+          if (!modal || !modal.classList.contains("open")) return;
+          if (e.key === "Enter" && !(e.target instanceof HTMLTextAreaElement)) {
+            e.preventDefault();
+            submitModal().catch((err) =>
+              toast(t("mcps.toasts.save_failed_detail", { error: String(err) }), "err"),
+            );
+          }
+        },
+        { signal },
+      );
+      const outcome = oauthOutcome(new URLSearchParams(window.location.search));
+      if (outcome) {
+        toast(outcome.message, outcome.ok ? "ok" : "err", 10000);
+        history.replaceState(history.state, "", window.location.pathname + window.location.hash);
+      }
+      void loadOAuthServers().then(() => tick());
+      startPoller({
+        interval: 2500,
+        fetch: tick,
+      });
+    });
+  </script>
+</Layout>

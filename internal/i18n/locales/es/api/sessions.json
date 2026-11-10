@@ -1,0 +1,14 @@
+{
+  "errors": {
+    "bad_agent": "agent es obligatorio y sólo admite letras, dígitos, '.', '_' y '-'",
+    "bad_sid": "sid es obligatorio y sólo admite letras, dígitos, '.', '_' y '-'",
+    "no_transcript": "este agente no tiene corridas ni mensajes anteriores en esta tarea",
+    "run_key_only": "los snapshots de sesión sólo se mueven con la key de la corrida a la que pertenecen",
+    "run_session_scope": "una corrida sólo llega a la sesión y la transcripción de su propio agente, en su propia tarea",
+    "runs_read_required": "el transcript se arma con los logs de las corridas: la key necesita runs:read",
+    "snapshot_too_large": "el snapshot de sesión pasa los {max} bytes; el próximo retome arranca desde la transcripción"
+  },
+  "log": {
+    "remove_task_sessions": "borrar los snapshots de sesión de la tarea {task}"
+  }
+}

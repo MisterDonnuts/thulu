@@ -1,0 +1,78 @@
+{
+  "labels": {
+    "title": "Test cases",
+    "priority": "Priority",
+    "covered": "Tested by someone",
+    "covered_aria": "{key} covered",
+    "runs_count": {
+      "one": "{count} run",
+      "other": "{count} runs"
+    },
+    "status_of": "Status of {key}",
+    "status": "Status",
+    "last_run": "{runs} · {ago}",
+    "not_run": "Not run yet",
+    "latest_run": "Latest run",
+    "older_runs": {
+      "one": "{count} earlier run",
+      "other": "{count} earlier runs"
+    },
+    "observed": "Observed",
+    "by_hand": "by hand"
+  },
+  "buttons": {
+    "import": "Import from body",
+    "add": "Add case",
+    "move_up": "Move {key} up",
+    "move_down": "Move {key} down",
+    "edit": "Edit {key}",
+    "delete": "Delete {key}",
+    "run": "Run cases",
+    "remove_section": "Remove the section from the body",
+    "open_agents": "Open Agents"
+  },
+  "hints": {
+    "import": "Turn each checklist line of the body's Test Cases section into a case",
+    "covered": "Someone exercised this case",
+    "description": "Context, preconditions, data (markdown)",
+    "steps": "1. Open…\n2. Click…",
+    "expected": "What should happen (markdown)",
+    "by_hand": "Someone set this status by hand: it is not what the latest run said."
+  },
+  "empty": {
+    "cases": "No test cases yet.",
+    "runs": "Not run yet.",
+    "details": "No description, steps or expected result yet."
+  },
+  "fields": {
+    "title": "Title",
+    "description": "Description",
+    "steps": "Steps",
+    "expected": "Expected result"
+  },
+  "gone": {
+    "take": "The take was deleted",
+    "captures": "Some captures were deleted",
+    "report": "report deleted",
+    "video": "video: file deleted"
+  },
+  "links": {
+    "take": "Take",
+    "open_report": "Open in Reports",
+    "report": "Report",
+    "video": "Play the video {name}"
+  },
+  "notices": {
+    "section_left": "The body still has the Test Cases section with these cases, and nothing keeps it up to date."
+  },
+  "run": {
+    "agent": "Agent",
+    "agent_missing": "{name} (no browser)",
+    "url": "URL to test",
+    "compare": "Compare with",
+    "compare_hint": "https://production.example.com",
+    "cases": "Cases",
+    "start": "Launch",
+    "url_hint": "https://staging.example.com"
+  }
+}

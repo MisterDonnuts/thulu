@@ -1,0 +1,16 @@
+{
+  "revision": 1,
+  "tags": ["docs", "release"],
+  "descriptions": {
+    "es": "Escribe la entrada del CHANGELOG del trabajo de una tarea: lee el diff de la rama, agrupa los cambios como los necesita quien lee las notas de la versión y edita CHANGELOG.md bajo Unreleased."
+  },
+  "definition": {
+    "name": "changelog-writer",
+    "type": "changelog-writer",
+    "description": "Writes the CHANGELOG entry for the work of a task: reads the branch diff, groups the changes the way a reader of the release notes needs them, and edits CHANGELOG.md under Unreleased.",
+    "valid_stages": ["in_progress"],
+    "skills_by_stage": {
+      "in_progress": ["changelog-style"]
+    }
+  }
+}

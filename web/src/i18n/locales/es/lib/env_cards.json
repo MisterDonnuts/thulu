@@ -1,0 +1,89 @@
+{
+  "proposals": {
+    "count": {
+      "one": "{count} mapeo propuesto",
+      "other": "{count} mapeos propuestos"
+    },
+    "by": "por {who}",
+    "inert": "No se recolecta nada hasta que apruebes: las propuestas son inertes a propósito."
+  },
+  "buttons": {
+    "approve": "Aprobar",
+    "reject": "Rechazar",
+    "back_to_waiting": "Volver a espera"
+  },
+  "signals": {
+    "not_applicable": "no aplica",
+    "not_applicable_here": "no aplica acá",
+    "na": "n/d",
+    "no_data": "todavía sin datos",
+    "pushed_age": "{age} · reportado por la app",
+    "title": "Señales"
+  },
+  "custom": {
+    "title": "Métricas custom",
+    "hint": "Las manda la app. Aprobá una para graficarla.",
+    "no_labels": "sin labels",
+    "waiting": "{count} en espera",
+    "registered": "{registered}/{capacity} registradas",
+    "status_discovered": "descubierta",
+    "status_approved": "aprobada",
+    "status_rejected": "rechazada"
+  },
+  "dashboards": {
+    "title": "Dashboards",
+    "proposed": "propuesto",
+    "new": "+ nuevo",
+    "new_title": "Nuevo dashboard",
+    "review_html": {
+      "one": "<strong>{name}</strong> propuesto por {who}: {count} panel, inerte hasta que se apruebe.",
+      "other": "<strong>{name}</strong> propuesto por {who}: {count} paneles, inerte hasta que se apruebe."
+    },
+    "review_hint": "Aprobarlo lo publica y aprueba la revisión pendiente de la tarea que lo propuso.",
+    "no_panels": "Este dashboard no tiene paneles.",
+    "approve_first": "Aprobá una métrica custom de arriba para armar un dashboard.",
+    "no_metrics": "Los dashboards grafican métricas custom. Una métrica nueva aparece acá uno o dos minutos después de que la app la manda por primera vez; cuando la apruebes, vas a poder armar un dashboard.",
+    "none_yet": "Todavía no hay dashboards. Usá «+ nuevo» para graficar las métricas aprobadas, o pedile a un agente que proponga uno."
+  },
+  "credential": {
+    "set": "credencial cargada",
+    "change_title": "Cambiar o desvincular la credencial",
+    "attach": "vincular credencial",
+    "attach_title": "Vinculá una credencial a este entorno"
+  },
+  "badges": {
+    "signals": {
+      "one": "{count} señal",
+      "other": "{count} señales"
+    },
+    "not_mapped": "sin mapear",
+    "production": "producción"
+  },
+  "labels": {
+    "account": "cuenta {account}",
+    "system": "Sistema",
+    "metric_kinds": {
+      "counter": "contador",
+      "gauge": "medidor"
+    }
+  },
+  "actions": {
+    "collect": "Recolectar ahora",
+    "collect_aria": "Recolectar métricas ahora",
+    "telemetry": "Telemetría",
+    "telemetry_aria": "Ingesta de telemetría",
+    "edit_aria": "Editar entorno",
+    "delete_aria": "Eliminar entorno"
+  },
+  "testing": {
+    "title": "Evidencia",
+    "no_url": "Sin dirección para pruebas",
+    "logins": {
+      "one": "{count} login de prueba",
+      "other": "{count} logins de prueba"
+    },
+    "no_logins": "Sin logins de prueba",
+    "manual": "Corre cuando alguien lo arranca",
+    "edit": "Editar en Evidencia"
+  }
+}

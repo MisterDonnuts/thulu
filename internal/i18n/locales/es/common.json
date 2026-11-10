@@ -1,0 +1,6 @@
+{
+  "log": {
+    "warn": "aviso: {message}: {err}",
+    "close_failed": "cerrar {name}"
+  }
+}

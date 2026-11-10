@@ -1,0 +1,160 @@
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+  font-size: var(--t-sm);
+  cursor: pointer;
+}
+
+/* line-height must match the label's so 1lh is its first line and the box centres on it. */
+.check-input {
+  flex: none;
+  width: var(--check-box);
+  height: var(--check-box);
+  margin: calc((1lh - var(--check-box)) / 2) 0 0;
+  padding: 0;
+  font-size: inherit;
+  line-height: var(--lh-snug);
+  accent-color: var(--accent);
+  cursor: inherit;
+}
+
+.check-ico {
+  flex: none;
+  margin-top: calc((var(--lh-snug) * 1em - var(--icon-md)) / 2);
+  color: var(--fg-3);
+}
+
+.check-body {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--s-1) / 2);
+  min-width: 0;
+  line-height: var(--lh-snug);
+}
+.check-label {
+  color: var(--fg);
+  overflow-wrap: anywhere;
+}
+.check-body:has(.check-hint) .check-label {
+  font-weight: 500;
+}
+/* --fg-2: checks also sit in modals (surface-3), where --fg-3 is under 4.5:1 in the dark theme. */
+.check-hint,
+.check-reason {
+  font-size: var(--t-xs);
+  color: var(--fg-2);
+}
+.check-reason {
+  font-style: italic;
+}
+.check-error {
+  font-size: var(--t-xs);
+  color: var(--color-danger-strong);
+}
+
+.check-trailing {
+  flex: none;
+  align-self: center;
+  margin-left: auto;
+  font-size: var(--t-xs);
+  color: var(--fg-2);
+}
+
+.check:has(> .check-input:disabled) {
+  cursor: not-allowed;
+}
+.check:has(> .check-input:disabled) .check-label {
+  color: var(--fg-3);
+}
+
+.check-card {
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: transparent;
+  font-size: var(--t-base);
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out);
+}
+.check-card .check-hint,
+.check-card .check-reason {
+  font-size: var(--t-sm);
+}
+.check-card:hover {
+  border-color: var(--line-strong);
+  background: var(--color-tint-2);
+}
+.check-card:has(> .check-input:checked) {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+.check-card:has(> .check-input:checked) .check-ico {
+  color: var(--accent);
+}
+.check-card:has(> .check-input:focus-visible) {
+  border-color: var(--accent);
+}
+.check-card:has(> .check-input:disabled) {
+  border-style: dashed;
+  border-color: var(--line-strong);
+  background: transparent;
+}
+
+.check-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.check-group-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--check-grid-min)), 1fr));
+}
+.check-group-wide {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--check-grid-min-wide)), 1fr));
+}
+
+.check-list {
+  gap: 0;
+  max-height: var(--check-list-max);
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+.check-list > .check {
+  flex: none;
+  padding: var(--s-3) var(--s-4);
+  border-bottom: 1px solid var(--line);
+}
+.check-list > :last-child {
+  border-bottom: 0;
+}
+.check-list > .check:hover {
+  background: var(--color-tint-2);
+}
+.check-list > .check:has(> .check-input:disabled):hover {
+  background: transparent;
+}
+.check-head {
+  background: var(--surface-1);
+}
+.check-head .check-label {
+  font-weight: 600;
+}
+
+.check-nested {
+  padding-left: calc(var(--check-box) + var(--s-3));
+}
+
+@media (pointer: coarse) {
+  .check-input {
+    width: var(--check-box-touch);
+    height: var(--check-box-touch);
+    margin-top: calc((1lh - var(--check-box-touch)) / 2);
+  }
+  .check-nested {
+    padding-left: calc(var(--check-box-touch) + var(--s-3));
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "could_not_read": "could not read: {err}",
+  "could_not_read_redacted": "could not be read; the daemon log has the error",
+  "log": {
+    "step_failed": "onboarding step {step} could not be read: {err}"
+  },
+  "steps": {
+    "identity": {
+      "title": "Identity provider",
+      "effect": "the dashboard has no login; anyone who reaches the port is owner",
+      "finish": "set OCTOPUS_OIDC_* and restart, or rerun the wizard",
+      "github_oauth": "GitHub OAuth",
+      "dev_mode": "dev mode: auth disabled — anyone who reaches the port is owner",
+      "none": "none configured — API keys are the only way in"
+    },
+    "workspace": {
+      "title": "Workspace",
+      "effect": "nothing can be created: every resource and every API key belongs to one",
+      "store_unavailable": "auth store unavailable",
+      "finish": "create one from the CLI",
+      "count": {"one": "{count} workspace", "other": "{count} workspaces"}
+    },
+    "agents": {
+      "title": "Agent definitions",
+      "effect": "the board has no agents to dispatch to",
+      "finish": "create one on the Agents page, or import a JSON file from Workshop → Import file",
+      "count": {"one": "{count} agent", "other": "{count} agents"}
+    },
+    "git_credential": {
+      "title": "Git credential",
+      "effect": "agents can read public repos only — no branches, no pull requests",
+      "finish": "add a GitHub token on the credentials page",
+      "github_app": "GitHub App — {accounts}",
+      "store_disabled": "credential store disabled",
+      "app_not_installed": "App configured, not installed on any account yet",
+      "install_app": "install the App from the credentials page",
+      "none": "none stored"
+    },
+    "llm_key": {
+      "title": "Model key (BYOK)",
+      "effect": "agent runs fail at dispatch: there is no model to call",
+      "finish": "set the engine's default profile in Settings → AI engines",
+      "store_unavailable": "secrets store unavailable",
+      "no_key": "no key for {engine}"
+    },
+    "project": {
+      "title": "First project",
+      "effect": "there is no repository for agents to work in",
+      "finish": "import a git repo on the projects page",
+      "store_unavailable": "project store unavailable",
+      "count": {"one": "{count} project", "other": "{count} projects"}
+    },
+    "column_agent": {
+      "title": "A column that runs an agent",
+      "effect": "moving a card launches nothing: no column of the board has a default agent",
+      "finish": "open a column's Behavior in the board settings and pick its default agent",
+      "none": "no column of the default board has a default agent"
+    },
+    "stage_template": {
+      "title": "Agents in each project's template",
+      "effect": "tasks of a project with an empty stage template start with no agent in any column",
+      "finish": "pick the agent of each column in the project's Settings → Stage template",
+      "count": "{with} of {count} projects have an agent in some column"
+    }
+  }
+}

@@ -1,0 +1,115 @@
+{
+  "not_configured": "sin configurar",
+  "idp_fallback": "el proveedor que aparece en la página de inicio de sesión",
+  "operator": "Lo opera {entity}. Contacto: {contact}",
+  "version": "Última actualización: 3 de octubre de 2026",
+  "links": {
+    "nav": "Legales",
+    "terms": "Términos",
+    "privacy": "Privacidad",
+    "source": "Código (AGPL)",
+    "back": "Volver a Thulu"
+  },
+  "terms": {
+    "title": "Términos del servicio",
+    "intro": "Estos términos cubren tu uso de este servicio de Thulu, que opera quien figura arriba. Al iniciar sesión los aceptás.",
+    "beta": {
+      "title": "Servicio en beta",
+      "body": "El servicio está en beta. Las funciones cambian o desaparecen sin aviso, el servicio puede no estar disponible y se pueden perder datos. Guardá tu propia copia de todo lo que no puedas perder: tus repositorios siguen en tu proveedor de Git y Thulu trabaja sobre clones. Durante la beta no hay compromiso de disponibilidad."
+    },
+    "accounts": {
+      "title": "Cuentas y workspaces",
+      "body": "Iniciás sesión con tu proveedor de identidad ({idp}); Thulu no guarda ninguna contraseña. Un workspace es de su dueño, que decide quién entra y con qué rol, puede pasárselo a otro miembro y puede borrarlo. Cada miembro responde por lo que hace en el workspace, y por lo que hacen las API keys que crea."
+    },
+    "byok": {
+      "title": "Tu key del proveedor de IA",
+      "body": "Los agentes corren con la key del proveedor de IA que agregás a tu workspace. Tu uso de ese proveedor se rige por tu propio acuerdo con él, y sus cargos van a tu cuenta ahí. El operador guarda la key cifrada y la usa solo para las corridas de agentes de tu workspace."
+    },
+    "use": {
+      "title": "Uso aceptable",
+      "no_law": "No uses el servicio para violar la ley ni los derechos de nadie.",
+      "no_reach": "No intentes llegar a los datos de otros workspaces, saltear límites o credenciales, ni atacar el servicio o los servidores donde corre.",
+      "no_systems": "No apuntes agentes a repositorios o sistemas que no tenés derecho a cambiar.",
+      "suspend": "El operador puede suspender un workspace que rompa estas reglas y le va a decir a su dueño por qué."
+    },
+    "content": {
+      "title": "Tu contenido",
+      "body": "El código, las tareas, los comentarios y los archivos que cargás en el servicio siguen siendo tuyos. El operador los procesa solo para darte el servicio, como explica la página de privacidad."
+    },
+    "ending": {
+      "title": "Dejar de usar el servicio",
+      "body": "Podés borrar un workspace del que sos dueño, o tu cuenta entera, cuando quieras desde Configuración, Cuenta; la página de privacidad dice qué se borra. El operador puede terminar la beta, y si puede les avisa antes por correo a los dueños de los workspaces."
+    },
+    "warranty": {
+      "title": "Sin garantía",
+      "body": "El servicio se ofrece tal cual, sin garantías de ningún tipo, en la medida que la ley lo permita. El operador no responde por pérdidas indirectas, datos perdidos ni ganancias perdidas por la beta."
+    },
+    "changes": {
+      "title": "Cambios",
+      "body": "Estos términos pueden cambiar mientras el servicio esté en beta. La fecha de arriba indica la versión vigente; seguir usando el servicio después de un cambio significa que lo aceptás."
+    },
+    "contact": {
+      "title": "Contacto",
+      "body": "Las preguntas sobre estos términos van a {contact}."
+    }
+  },
+  "privacy": {
+    "title": "Privacidad",
+    "intro": "Esta página dice qué guarda este servicio de Thulu sobre vos y tu workspace, dónde, por cuánto tiempo y cómo borrarlo. Lo opera quien figura arriba.",
+    "roles": "Sobre lo que contiene un workspace, su dueño decide qué entra y el operador lo procesa en su nombre.",
+    "data": {
+      "title": "Qué se guarda",
+      "account": "Cuenta: tu correo, tu nombre, el identificador que te asigna tu proveedor de identidad y tu rol en cada workspace. Ninguna contraseña: iniciás sesión en el proveedor de identidad.",
+      "content": "Contenido del workspace: clones de los repositorios que conectás, las copias de trabajo que editan los agentes, tareas, comentarios, chats, adjuntos y lo que escriben los agentes durante una corrida.",
+      "credentials": "Credenciales: tu key del proveedor de IA y tus tokens de Git, cada uno cifrado con AES-256-GCM. De las API keys se guarda solo un hash.",
+      "usage": "Uso: tokens y costo estimado por corrida de agente, para mostrar el gasto y aplicar límites.",
+      "audit": "Registro de seguridad: quién hizo qué y cuándo, con la dirección IP y el navegador del pedido."
+    },
+    "byok": {
+      "title": "Tu key del proveedor de IA",
+      "body": "Los agentes mandan prompts y código al proveedor de IA cuya key agregaste, bajo tu propio acuerdo con ese proveedor. El operador no pasa ese tráfico por una cuenta propia, así que ese proveedor trabaja para vos, no para el operador. Podés reemplazar o borrar la key cuando quieras desde Configuración."
+    },
+    "where": {
+      "title": "Dónde se guarda",
+      "body": "En servidores alquilados a {hosting}, en {region}. Los workspaces comparten una base de datos y cada pedido queda limitado al workspace en el que actúa. Thulu cifra una por una las credenciales de arriba; el resto de la base y las copias de trabajo dependen del cifrado de los discos del servidor."
+    },
+    "retention": {
+      "title": "Cuánto tiempo se guarda",
+      "run_logs": "Logs y salidas de las corridas de agentes: 30 días por defecto.",
+      "usage": "Registros de uso por corrida: 90 días por defecto; queda un total diario por proyecto.",
+      "webhooks": "Registro de entregas de webhooks: 30 días por defecto.",
+      "sessions": "Sesiones vencidas: se borran solas.",
+      "audit": "Registro de seguridad: hasta que lo borre la configuración de retención del operador.",
+      "rest": "Todo lo demás: hasta que lo borres vos, o borres el workspace o tu cuenta.",
+      "backups": "Backups: las copias más recientes quedan en el servidor y se reemplazan a medida que se hacen nuevas."
+    },
+    "deletion": {
+      "title": "Borrar tus datos",
+      "workspace": "El dueño de un workspace puede borrarlo desde Configuración, Cuenta escribiendo su slug. Eso borra sus tareas, proyectos y clones, chats, credenciales, webhooks, API keys y miembros.",
+      "account": "Podés borrar tu cuenta desde Configuración, Cuenta escribiendo tu correo. Los workspaces de los que sos el único miembro se borran como se describe arriba; un workspace tuyo que usan otras personas primero tenés que pasárselo a otro miembro, o borrarlo. Se borran tus membresías, tus sesiones y tus vínculos con el proveedor de identidad, y las API keys que creaste en otros workspaces dejan de funcionar.",
+      "residual": "Qué queda: las entradas del registro de seguridad sobre lo que hiciste, hasta que venzan; tu nombre como autor de comentarios en workspaces que no eran tuyos, y los backups hechos antes del borrado, hasta que se reemplacen."
+    },
+    "subprocessors": {
+      "title": "Subencargados",
+      "col_company": "Empresa",
+      "col_purpose": "Para qué",
+      "col_data": "Datos",
+      "col_where": "Dónde",
+      "hosting_purpose": "Servidores y almacenamiento",
+      "hosting_data": "Todo lo que guarda el servicio",
+      "idp_name": "Tu proveedor de identidad ({idp})",
+      "idp_purpose": "Iniciar tu sesión",
+      "idp_data": "Correo, nombre y el identificador que asigna",
+      "idp_where": "Según sus propios términos",
+      "note": "Tu proveedor de IA y tu proveedor de Git los elegís vos, bajo tus propios acuerdos con ellos. Un subencargado nuevo aparece en esta lista antes de recibir cualquier dato."
+    },
+    "rights": {
+      "title": "Tus derechos",
+      "body": "Podés pedir una copia de tus datos, su corrección o su borrado escribiendo al contacto de abajo. Los workspaces y tu cuenta los podés borrar vos desde el panel."
+    },
+    "contact": {
+      "title": "Contacto",
+      "body": "Escribí a {contact} sobre tus datos o sobre esta página."
+    }
+  }
+}

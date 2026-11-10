@@ -1,0 +1,178 @@
+{
+  "list": {
+    "title": "Boards",
+    "intro": "Each board is a workflow with its own columns and rules. A task joins a board when it is created and stays on it.",
+    "new": "New board"
+  },
+  "empty": {
+    "title": "No boards yet",
+    "body": "A board holds the columns tasks move through. Create one to start adding tasks."
+  },
+  "card": {
+    "default": "Default",
+    "actions": "Actions for board {board}",
+    "columns_label": "Columns of {board}",
+    "meta": "{columns}, {tasks}",
+    "columns": {
+      "one": "{count} column",
+      "other": "{count} columns"
+    },
+    "tasks": {
+      "one": "{count} task",
+      "other": "{count} tasks"
+    }
+  },
+  "menu": {
+    "open": "Open board",
+    "edit": "Edit columns and types",
+    "make_default": "Make default",
+    "duplicate": "Duplicate",
+    "delete": "Delete board",
+    "default_undeletable": "New tasks land on the default board. Make another board the default to delete this one."
+  },
+  "detail": {
+    "back": "All boards",
+    "loading": "Loading board…",
+    "document_title": "{board} board settings",
+    "open_board": "Open board",
+    "more": "More actions for this board",
+    "about": "Name and description",
+    "name": "Name",
+    "name_required": "A board needs a name. The old one stays.",
+    "description": "Description",
+    "description_placeholder": "Reported bugs, from triage to release",
+    "description_hint": "Shown under the board's name. Up to 280 characters.",
+    "saving": "Saving…",
+    "saved": "Saved",
+    "edit_behavior": "Behavior"
+  },
+  "columns": {
+    "title": "Columns",
+    "intro": "Drag a column by its handle to reorder it, or use its menu to rename it, pick a color, set what happens in it or delete it. Changes save as you make them and also show on the board."
+  },
+  "chips": {
+    "initial": "Start",
+    "terminal": "Finish",
+    "auto_advance": "Auto-advance",
+    "push_branch": "Pushes branch",
+    "open_pr": "Opens PR",
+    "approvals": {
+      "one": "{count} approval",
+      "other": "{count} approvals"
+    },
+    "wip_work": "Counts as In progress",
+    "wip_review": "Counts as Needs review",
+    "none": "Tasks wait here for a person."
+  },
+  "types": {
+    "title": "Task types",
+    "intro": "A task type walks the same columns but can skip some: a bugfix can go from Backlog straight to In progress while a feature still passes Refinement. Every type starts and finishes in the same columns.",
+    "default": "Default",
+    "walks": "Walks through",
+    "locked_initial": "{stage} is where tasks start, so every type passes through it.",
+    "locked_terminal": "{stage} is where work finishes, so every type passes through it.",
+    "icon_label": "Icon of {type}",
+    "icons": {
+      "bug": "Bug",
+      "feature": "Sparkles",
+      "chore": "Wrench",
+      "spike": "Flask",
+      "rocket": "Rocket",
+      "shield": "Shield",
+      "book": "Book",
+      "bolt": "Bolt",
+      "refresh": "Arrows in a circle",
+      "question": "Question mark",
+      "alert": "Alert",
+      "palette": "Palette",
+      "plug": "Plug",
+      "database": "Database",
+      "checklist": "Checklist",
+      "clock": "Clock",
+      "star": "Star",
+      "users": "People"
+    },
+    "color_label": "Color of {type}",
+    "name_label": "Name of {type}",
+    "remove_label": "Remove {type}",
+    "remove_title": "Remove type {type}?",
+    "remove_message": "Tasks of this type keep their place. If any carry it, you choose what they become before the change saves.",
+    "remove_confirm": "Remove type",
+    "none": {
+      "one": "No task types on this board. Every task walks its {count} column.",
+      "other": "No task types on this board. Every task walks all {count} columns."
+    },
+    "add_label": "Add a type",
+    "add_placeholder": "Bugfix",
+    "add": "Add type",
+    "name_required": "Type a name for the task type.",
+    "slug": "Saved with the id {id}",
+    "slug_empty": "The id comes from the name.",
+    "templates": "Or start from:",
+    "pending": "Unsaved changes…",
+    "saved_moved": {
+      "one": "Saved, {count} task moved",
+      "other": "Saved, {count} tasks moved"
+    },
+    "fix_removed": {
+      "one": "{count} task still has the type {type}.",
+      "other": "{count} tasks still have the type {type}."
+    },
+    "fix_skipped": {
+      "one": "{count} task sits in {stage}, which this change makes its type skip.",
+      "other": "{count} tasks sit in {stage}, which this change makes their type skip."
+    },
+    "fix_to": "Move them to",
+    "fix_go": "Move and save",
+    "fix_undo": "Undo the change",
+    "untyped": "No type (walks the whole board)"
+  },
+  "new": {
+    "title": "New board",
+    "name": "Name",
+    "name_placeholder": "Bugfix",
+    "name_required": "Type a name for the board.",
+    "slug": "Saved with the id {id}",
+    "slug_empty": "The id comes from the name and can't change later.",
+    "from": "Start from",
+    "from_standard": "Standard columns",
+    "from_copy": "A copy of {board}",
+    "from_hint": "Pick a board to copy its columns with their behavior and approvals. Editing the copy never touches the original.",
+    "copy_name": "{board} copy",
+    "advanced": "Choose the id yourself",
+    "id": "Id",
+    "id_hint": "Lowercase letters, digits and underscores, up to 32. Tasks and metrics carry it, so it can't change later.",
+    "id_invalid": "{id} can't be an id. Use lowercase letters, digits and underscores, up to 32.",
+    "submit": "Create board",
+    "creating": "Creating…"
+  },
+  "delete": {
+    "title": "Delete board {board}?",
+    "empty": "The board has no tasks.",
+    "with_tasks": {
+      "one": "{count} task is on this board.",
+      "other": "{count} tasks are on this board."
+    },
+    "move_to": {
+      "one": "Move {count} task to",
+      "other": "Move the {count} tasks to"
+    },
+    "move_note": "Each task lands in the column with the same id on that board, or in its first column.",
+    "lost": "The board's columns, behavior and task types are deleted with it. This can't be undone.",
+    "confirm": "Delete board"
+  },
+  "toasts": {
+    "created": "Board {board} created",
+    "deleted": "Board {board} deleted",
+    "default": "New tasks now land on {board}"
+  },
+  "errors": {
+    "network": "The daemon didn't answer. Check your connection and try again.",
+    "list": "Couldn't load the boards: {error}",
+    "detail": "Couldn't load this board: {error}",
+    "missing": "There is no board with the id {board}. It may have been deleted.",
+    "default": "Couldn't change the default board: {error}",
+    "delete": "Couldn't delete the board: {error}",
+    "types": "Couldn't save the task types: {error}"
+  }
+}

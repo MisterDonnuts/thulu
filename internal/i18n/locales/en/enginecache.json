@@ -1,0 +1,7 @@
+{
+  "errors": {
+    "no_scope": "no workspace or person to keep the engine install for",
+    "volume": "the engine volume could not be read or created",
+    "volume_taken": "a Docker volume named {volume} already exists and is not this install's engine volume; remove it or rename it"
+  }
+}

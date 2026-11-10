@@ -1,0 +1,13 @@
+{
+  "errors": {
+    "claims_incomplete": "an identity token needs a workspace and an audience",
+    "generate_key": "generate a workload identity signing key",
+    "issuer_not_https": "{env} must be an https:// URL without query or fragment (got {value})",
+    "load_keys": "load the workload identity signing keys",
+    "no_signing_key": "no workload identity signing key is active yet",
+    "not_configured": "workload identity federation needs the daemon's public address: set {env} (or OCTOPUS_DOMAIN)",
+    "parse_key": "workload identity signing key {kid} is unreadable",
+    "sign": "sign a workload identity token",
+    "store_key": "store a workload identity signing key"
+  }
+}

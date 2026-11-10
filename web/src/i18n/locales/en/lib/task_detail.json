@@ -1,0 +1,110 @@
+{
+  "run": {
+    "done": "Done",
+    "running": "Running",
+    "queued": "Queued",
+    "needs_answer": "Needs an answer",
+    "needs_approval": "Needs approval",
+    "failed": "Failed",
+    "out_of_turns": "Out of turns",
+    "blocked_auditor": "Stopped by the auditor",
+    "not_started": "Did not start",
+    "credential_blocked": "Credential expired",
+    "no_agent": "No agent",
+    "stopped": "Stopped",
+    "resume_failed": "Could not resume"
+  },
+  "priority": {
+    "urgent": "Urgent",
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low"
+  },
+  "attention": {
+    "question_by": "{agent} asked a question",
+    "question": "An agent asked a question",
+    "blocker_by": "{agent} is blocked and needs you",
+    "blocker": "An agent is blocked and needs you",
+    "answer": "Answer",
+    "approval_one": "Waiting for your approval: {label}",
+    "approval_many": {
+      "one": "{count} approval waiting",
+      "other": "{count} approvals waiting"
+    },
+    "review": "Review",
+    "test_one": "Test case failing: {title}",
+    "test_many": {
+      "one": "{count} test case failing",
+      "other": "{count} test cases failing"
+    },
+    "open_case": "Open case",
+    "blocked_one": "Blocked by {title}",
+    "blocked_many": {
+      "one": "Blocked by {title} and {count} more",
+      "other": "Blocked by {title} and {count} more"
+    },
+    "open": "Open",
+    "subtasks_done": {
+      "one": "Its {count} subtask is done",
+      "other": "All {count} subtasks are done"
+    },
+    "kid_question_one": "Subtask {title} needs an answer",
+    "kid_question_many": {
+      "one": "{count} subtask needs an answer",
+      "other": "{count} subtasks need an answer"
+    },
+    "kid_failed_one": "Subtask {title} failed",
+    "kid_failed_many": {
+      "one": "{count} subtask failed",
+      "other": "{count} subtasks failed"
+    },
+    "kid_waits": "{title} waits for {blocker}",
+    "kid_blocked_one": "Subtask {title} is blocked",
+    "kid_blocked_many": {
+      "one": "{count} subtask is blocked",
+      "other": "{count} subtasks are blocked"
+    },
+    "question_working_by": "{agent} asked a question and keeps working",
+    "question_working": "An agent asked a question and keeps working",
+    "changes_one": "Changes requested: {label}",
+    "changes_many": {
+      "one": "{count} approval with changes requested",
+      "other": "{count} approvals with changes requested"
+    }
+  },
+  "move_to": "Move to {stage}",
+  "agent": {
+    "none_in": "None in {stage}. Next: {agent} in {next}.",
+    "next": "Next: {agent} in {stage}"
+  },
+  "tabs": {
+    "approvals": "Approvals",
+    "approvals_pending": {
+      "one": "Approvals, {count} pending",
+      "other": "Approvals, {count} pending"
+    },
+    "reports": "Reports",
+    "reports_count": {
+      "one": "Reports, {count} report",
+      "other": "Reports, {count} reports"
+    }
+  },
+  "runs_line": "{runs}, {tokens}",
+  "runs_line_cost": "{runs}, {tokens}, {cost}",
+  "runs": {
+    "one": "{count} run",
+    "other": "{count} runs"
+  },
+  "tokens_m": "{n}M tokens",
+  "tokens_k": "{n}k tokens",
+  "tokens": {
+    "one": "{count} token",
+    "other": "{count} tokens"
+  },
+  "cause": {
+    "credentials": "Open Credentials",
+    "ai_engines": "Open AI engines",
+    "pick_agent": "Pick an agent",
+    "quota": "See the quota"
+  }
+}

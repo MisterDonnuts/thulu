@@ -1,0 +1,17 @@
+{
+  "name": "thulu-figma",
+  "version": "0.1.0",
+  "description": "MCP Figma tool — read-only file outlines, node layout and styles, renders and comments over the Figma REST API, with the token resolved server-side through Thulu.",
+  "license": "AGPL-3.0-only",
+  "private": true,
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test --test-timeout=30000"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "express": "^4.21.1"
+  }
+}

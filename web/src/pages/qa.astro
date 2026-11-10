@@ -1,0 +1,47 @@
+---
+// The script must stay bundled: the CSP allows no inline script.
+import { locale, t } from "../i18n";
+---
+
+<!doctype html>
+<html lang={locale}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="color-scheme" content="light dark" />
+    <script is:inline src="/boot/theme.js"></script>
+    <meta name="robots" content="noindex" />
+    <title>{t("evidence.redirect.title")}</title>
+    <noscript><meta http-equiv="refresh" content="0;url=/evidence/?tab=tasks" /></noscript>
+  </head>
+  <body>
+    <p class="qa-moved">
+      {t("evidence.redirect.moved")}
+      <a href="/evidence/?tab=tasks">{t("evidence.redirect.link")}</a>
+    </p>
+    <style is:global>
+      @import "../styles/tokens.css";
+      body {
+        margin: 0;
+        background: var(--surface-0);
+        color: var(--fg-2);
+        font-family: var(--font-sans);
+        font-size: var(--t-md);
+      }
+      .qa-moved {
+        padding: var(--s-8);
+      }
+      .qa-moved a {
+        color: var(--accent);
+      }
+    </style>
+    <script>
+      import { qaRedirectTarget } from "../lib/qa-redirect";
+
+      location.replace(qaRedirectTarget(location.search, location.hash));
+    </script>
+  </body>
+</html>

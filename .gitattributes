@@ -1,0 +1,7 @@
+# Images are binary: no text diffs or merges, and check-source skips them.
+*.webp binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary

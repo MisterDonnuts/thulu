@@ -1,0 +1,63 @@
+{
+  "version": {
+    "title": "Versión",
+    "check_now": "Buscar ahora"
+  },
+  "status": {
+    "checking": "verificando",
+    "unavailable": "no disponible",
+    "up_to_date": "al día",
+    "misconfigured": "mal configurado",
+    "update_available": "hay una actualización",
+    "lookups_off": "búsquedas apagadas",
+    "dev_build": "build de desarrollo"
+  },
+  "operator_only": "La versión de la instalación y sus actualizaciones sólo se le muestran a un admin del espacio de trabajo operador, el que nombra {env} en el daemon.",
+  "rejected": "No se ofrecen porque fallaron la verificación: {versions}",
+  "facts": {
+    "running": "Corriendo",
+    "channel": "Canal",
+    "runs_on": "Corre en",
+    "unknown": "desconocido"
+  },
+  "runtime": {
+    "kubernetes": "Kubernetes",
+    "docker": "Docker"
+  },
+  "available": {
+    "title": "Versiones disponibles",
+    "intro": "Thulu no se actualiza solo. Corré el comando en la máquina que administra esta instalación; el paquete de cambios lista todo lo que hace la actualización, para revisarlo o para un ticket de cambio.",
+    "lookups_off": "No hay con qué comparar mientras las búsquedas estén apagadas.",
+    "newest": "Esta es la versión más nueva en los canales permitidos.",
+    "no_check": "Todavía no terminó ninguna búsqueda."
+  },
+  "going_back": {
+    "title": "Volver atrás",
+    "lede_known": "Las versiones que guarda este host, con el comando que vuelve a cada una.",
+    "lede_unknown": "Las versiones que guarda este host. No se leyó el manifiesto de la versión en uso, así que cada comando restaura la base de datos.",
+    "lede_kubernetes": "En Kubernetes, el registry guarda las imágenes y Helm guarda las revisiones. Corré thulu update -to <version> para volver a cualquier versión del historial de abajo."
+  },
+  "columns": {
+    "version": "Versión",
+    "ran": "Corrió",
+    "command": "Comando",
+    "time": "Hora",
+    "event": "Evento",
+    "versions": "Versiones",
+    "by": "Por"
+  },
+  "history": {
+    "title": "Historial",
+    "empty": "Todavía no hay cambios de versión registrados."
+  },
+  "backups": {
+    "title": "Backups",
+    "load_failed": "No se pudo leer el estado de los backups."
+  },
+  "download_failed": "Falló la descarga",
+  "toasts": {
+    "still_checking": "Todavía buscando. Volvé a abrir esta sección en un minuto.",
+    "checked": "Se buscaron actualizaciones",
+    "check_failed": "Falló la búsqueda"
+  }
+}

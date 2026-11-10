@@ -1,0 +1,42 @@
+---
+// Kept outside the rail: below 900px the rail uses a transform, which would make a fixed overlay
+// inside it lay out against the rail.
+// Persisted like the rail so lib/workspace-menu.ts keeps reaching the same elements.
+import Field from "./Field.astro";
+import Modal from "./Modal.astro";
+import { t } from "../i18n";
+---
+
+<div transition:persist="ws-create">
+  <Modal
+    id="ws-create-modal"
+    title={t("layout.workspaces.create")}
+    icon="folder"
+    lede={t("layout.workspaces.create_body")}
+    cancel
+    primary={{
+      label: t("layout.workspaces.create"),
+      id: "ws-create-submit",
+      type: "submit",
+      form: "ws-create-form",
+    }}
+  >
+    <form id="ws-create-form" class="form-stack" novalidate>
+      <Field
+        label={t("layout.workspaces.name_label")}
+        for="ws-create-name"
+        errorId="ws-create-error"
+      >
+        <input
+          id="ws-create-name"
+          type="text"
+          maxlength="80"
+          autocomplete="off"
+          spellcheck="false"
+          placeholder={t("layout.workspaces.name_placeholder")}
+          aria-describedby="ws-create-error"
+        />
+      </Field>
+    </form>
+  </Modal>
+</div>

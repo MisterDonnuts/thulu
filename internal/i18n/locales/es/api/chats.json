@@ -1,0 +1,74 @@
+{
+  "errors": {
+    "not_configured": "el servicio de chat no está configurado",
+    "streaming_unsupported": "esta conexión no soporta streaming",
+    "agent_type_required": "agent_type es obligatorio",
+    "turn_running_retry": "hay un turno en curso; reintentá cuando termine",
+    "unknown_before_id": "no existe el mensaje indicado en before",
+    "text_required": "text es obligatorio",
+    "turn_already_running": "ya hay un turno en curso en este chat",
+    "archived": "el chat está archivado",
+    "delegated_write_only": "este chat actúa por {person}; sólo esa persona puede escribir en él",
+    "person_required": "{what} necesita una persona con sesión iniciada, no una API key",
+    "end_delegation_forbidden": "sólo la persona por la que actúa este chat, o un admin del workspace, puede apagarlo",
+    "start_delegation_forbidden": "sólo la persona que abrió este chat puede dejar que actúe por ella",
+    "delegation_disabled": "este workspace tiene apagados los chats delegados",
+    "delegation_turn_running": "el agente está respondiendo; activalo cuando termine",
+    "delegation_over": "este chat ya no actúa por nadie",
+    "delegation_over_for_you": "este chat ya no actúa por vos; nada de lo que pidió puede correr",
+    "held_body_too_large": "el cuerpo del pedido es demasiado grande para guardarlo hasta la confirmación",
+    "decide_forbidden": "sólo la persona por la que actúa este chat puede decidir sobre lo que pidió",
+    "action_not_found": "no se encontró la acción",
+    "already_decided": "esto ya se decidió",
+    "policy_off_partial": "se apagó, pero algunas delegaciones no terminaron"
+  },
+  "audit": {
+    "created": "Chat creado con {agent}",
+    "deleted": "Chat con {agent} borrado",
+    "reset": "Chat con {agent} reiniciado",
+    "message_posted": "Mensaje enviado al chat con {agent}",
+    "delegation_started": "El chat con {agent} actúa por {person} hasta {until}",
+    "delegation_ended": "El chat con {agent} ya no actúa por {person}",
+    "action_held": "{agent} le pidió a {person} que confirme: {summary}",
+    "action_confirmed": "{person} confirmó lo que pidió {agent}: {summary} (HTTP {code})",
+    "action_canceled": "{person} rechazó lo que pidió {agent}: {summary}",
+    "policy_on": "Chats delegados encendidos",
+    "policy_off": "Chats delegados apagados"
+  },
+  "labels": {
+    "nobody": "nadie",
+    "person_delegating": "delegar un chat",
+    "person_deciding": "decidir sobre lo que pidió un chat delegado",
+    "person_policy": "cambiar por quién pueden actuar los chats",
+    "held_delete_task": "Borrar la tarea «{title}»",
+    "held_delete_on_task": "DELETE {route} en la tarea «{title}»",
+    "held_merge_pr": "Mergear el pull request #{number} en {repo} ({method})",
+    "held_deployment_approved": "Aprobar los deploys que espera el run {run} en {repo}",
+    "held_deployment_rejected": "Rechazar los deploys que espera el run {run} en {repo}"
+  },
+  "hints": {
+    "awaiting_confirmation": "{person} tiene que confirmar esto en el chat antes de que corra. No lo reintentes: contale qué pediste y por qué."
+  },
+  "comments": {
+    "mention_unavailable": "@{agent} no está disponible: el runtime de chat no está configurado.",
+    "mention_failed": "@{agent} no pudo responder: {err}",
+    "mention_started": "Se mencionó a @{agent} en un comentario: está respondiendo (instancia `{instance}`).",
+    "mention_started_event": "mención · {agent}",
+    "mention_finished_event": "mención · {agent} · publicado={posted}"
+  },
+  "prompts": {
+    "mention_header": "📌 **Mención en la tarea «{title}»**\n\nId de la tarea, para tus herramientas: `{task}`\n\n",
+    "mention_stage": "**Etapa actual:** {stage}\n",
+    "mention_description": "\n**Descripción de la tarea:**\n\n{body}\n",
+    "mention_unseen": "\n---\n\n**En el hilo, desde tu última respuesta:**\n\n{transcript}",
+    "mention_comment": "\n---\n\n**Comentario de {speaker}:**\n\n{body}"
+  },
+  "log": {
+    "post_notice_failed": "publicar el aviso de @{agent} en la tarea {task}",
+    "record_mention_started_failed": "registrar el evento mention-started de la tarea {task}",
+    "record_mention_finished_failed": "registrar el evento mention-finished de la tarea {task}",
+    "add_reply_failed": "agregar la respuesta de @{agent} a la tarea {task}",
+    "list_comments_failed": "listar los comentarios de la tarea {task}",
+    "record_action_result_failed": "[chat] registrar el resultado de {action}"
+  }
+}

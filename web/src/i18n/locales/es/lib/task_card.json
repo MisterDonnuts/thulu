@@ -1,0 +1,50 @@
+{
+  "ago": {
+    "just_now": "recién",
+    "under": "<{span}"
+  },
+  "labels": {
+    "drag_to_move": "Arrastrá para mover",
+    "actions_key": "Acciones (.)",
+    "actions_for": "Acciones de {title}",
+    "show_subtasks": {
+      "one": "Mostrar {count} subtarea",
+      "other": "Mostrar {count} subtareas"
+    },
+    "hide_subtasks": "Ocultar subtareas"
+  },
+  "priority": {
+    "urgent": "Prioridad urgente",
+    "high": "Prioridad alta"
+  },
+  "part_of": "Parte de {title}",
+  "more_tags": "+{count}",
+  "blocked_by": "Bloqueada por {title}",
+  "blocked_by_count": {
+    "one": "Bloqueada por {count} tarea",
+    "other": "Bloqueada por {count} tareas"
+  },
+  "blocks": "Bloquea {count}",
+  "pr": "PR #{number}",
+  "pr_plain": "Pull request",
+  "kids": {
+    "question": {
+      "one": "{count} subtarea con pregunta",
+      "other": "{count} subtareas con pregunta"
+    },
+    "question_title": {
+      "one": "{count} subtarea espera una respuesta",
+      "other": "{count} subtareas esperan una respuesta"
+    },
+    "failed": {
+      "one": "{count} subtarea falló",
+      "other": "{count} subtareas fallaron"
+    },
+    "blocked": {
+      "one": "{count} subtarea bloqueada",
+      "other": "{count} subtareas bloqueadas"
+    }
+  },
+  "asked": "Preguntó",
+  "asked_title": "El agente hizo una pregunta y sigue trabajando. Abrí la tarea para contestarla."
+}

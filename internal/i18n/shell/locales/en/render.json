@@ -1,0 +1,6 @@
+{
+  "errors": {
+    "usage": "usage: render.sh <template.yaml>",
+    "tenant_required": "TENANT_ID is required for {template}"
+  }
+}

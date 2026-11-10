@@ -1,0 +1,28 @@
+{
+  "open": "Open",
+  "move": "Move to…",
+  "move_to": "Move to",
+  "priority": "Priority",
+  "priority_none": "None",
+  "add_subtask": "Add subtask",
+  "copy_link": "Copy link",
+  "clone": "Clone",
+  "fork": "Fork",
+  "more_turns": "More turns",
+  "archive": "Archive",
+  "unarchive": "Restore to the board",
+  "archive_with_subtasks": {
+    "one": "Also archives its subtask",
+    "other": "Also archives its {count} subtasks"
+  },
+  "delete_with_subtasks": {
+    "one": "Also deletes its subtask",
+    "other": "Also deletes its {count} subtasks"
+  },
+  "delete_admin_only": "Only an admin can delete tasks",
+  "delete": "Delete",
+  "back": "Back to the menu",
+  "kbd_enter": "Enter",
+  "kbd_delete": "Del",
+  "read_only": "Your role can only read this workspace"
+}

@@ -1,0 +1,34 @@
+{
+  "title": "Your own engine login",
+  "lede": "Sign in with your own account through the engine's own sign-in page. The runs you start then use it instead of the workspace's key, one at a time. Thulu never sees what the sign-in stores.",
+  "warning": "Every agent container a run of yours starts can read this login. Connect a personal account only on a self-hosted install you control.",
+  "connected": "Connected",
+  "not_connected": "Not connected",
+  "pending": "Waiting for your code",
+  "meta_connected": "{who} · runs you start use this login",
+  "meta_none": "Runs you start use the workspace's key",
+  "connect": "Connect",
+  "disconnect": "Disconnect",
+  "modal": {
+    "title": "Sign in to {engine}",
+    "lede": "Open the sign-in page, approve the access with your account, then paste the code it shows you here.",
+    "open": "Open the sign-in page",
+    "code": "Code",
+    "submit": "Connect"
+  },
+  "confirm": {
+    "title": "Disconnect your {engine} login?",
+    "message": "The engine signs this login out and its volume is removed. Runs you start go back to the workspace's key.",
+    "button": "Disconnect"
+  },
+  "toast": {
+    "connected": "Connected as {who}",
+    "disconnected": "Login disconnected"
+  },
+  "errors": {
+    "load": "Could not load your engine logins.",
+    "start": "Could not start the sign-in.",
+    "complete": "The sign-in did not finish.",
+    "disconnect": "Could not disconnect the login."
+  }
+}

@@ -1,0 +1,345 @@
+{
+  "title": "Tasks",
+  "hints": {
+    "click_to_edit": "Click to edit · Enter saves · Esc reverts",
+    "drag_to_resize": "Drag to resize · double-click to reset"
+  },
+  "buttons": {
+    "new_task": "New task",
+    "open_projects": "Open projects"
+  },
+  "toolbar": {
+    "search_placeholder": "Search by title, repo, agent, or #id",
+    "search_placeholder_short": "Search tasks",
+    "filters": "Filters",
+    "type": "Type",
+    "blocked": "Blocked",
+    "blocked_title": "Only cards an unfinished dependency holds",
+    "needs_you": "Needs you",
+    "needs_you_title": "Only this board's cards waiting on a person: a question, an approval, or a run that failed, stopped or did not start",
+    "subtasks": "Subtasks",
+    "mode_nested": "Nested",
+    "mode_nested_sub": "Subtasks show as rows inside their parent card.",
+    "mode_cards": "As cards",
+    "mode_cards_sub": "Each subtask is a card in the column of its stage.",
+    "mode_nested_label": "Subtasks: Nested",
+    "mode_cards_label": "Subtasks: As cards",
+    "show": "Show",
+    "stages": "Stages",
+    "layout": "View",
+    "layout_board": "Board",
+    "layout_list": "List",
+    "group": "Group",
+    "group_stage": "By stage",
+    "group_stage_sub": "One section per stage, in the flow's order.",
+    "group_none": "No grouping",
+    "group_none_sub": "Every task in one list.",
+    "group_stage_label": "Group: stage",
+    "group_none_label": "Group: none"
+  },
+  "kbd": {
+    "enter": "Enter",
+    "drag": "Drag",
+    "focus_search": "Focus search",
+    "close_all": "Close modal / drawer / clear search",
+    "on_card": "On a focused card",
+    "open_task": "Open task",
+    "move_columns": "Move across columns (drop on any stage)",
+    "viewing_attachment": "Viewing an attachment",
+    "prev_next_attachment": "Previous / next attachment",
+    "close_viewer": "Close viewer",
+    "in_task": "In an open task",
+    "edit_brief": "Edit the brief",
+    "expand": "Expand or shrink the panel",
+    "next_prev_task": "Next / previous task",
+    "prev_next_sibling": "Previous / next subtask",
+    "open_parent": "Open the parent",
+    "pick_stage": "Change stage",
+    "pick_priority": "Set priority",
+    "pick_tags": "Edit tags",
+    "pick_deps": "Edit dependencies",
+    "pick_agent": "Edit agents",
+    "shift": "Shift",
+    "add_subtask": "Add a subtask",
+    "more_actions": "More actions",
+    "save_brief": "Save the brief",
+    "delete": "Delete",
+    "comment": "Write a comment",
+    "post_comment": "Post the comment or reply",
+    "reply_thread": "Reply to the focused thread",
+    "resolve_thread": "Resolve or reopen the focused thread",
+    "move_focus": "Move between cards",
+    "space": "Space",
+    "pick_up": "Pick up the card; arrows move it, Space drops it, Esc cancels",
+    "move_to": "Move to a stage",
+    "card_menu": "Card menu",
+    "shift_f10": "Shift F10",
+    "toggle_layout": "Switch between board and list",
+    "on_row": "On a list row",
+    "row_focus": "Previous / next row"
+  },
+  "new_task": {
+    "title": "New task",
+    "labels": {
+      "board": "Board",
+      "repos": "Repos",
+      "type": "Type",
+      "title": "Title",
+      "body": "Body",
+      "priority": "Priority",
+      "tags": "Tags"
+    },
+    "hints": {
+      "board": "(the task appears in its first column)",
+      "repos": "(optional — agents that need a repo will block until you link one)",
+      "type": "(decides which columns this task passes through)",
+      "tags": "(comma-separated)"
+    },
+    "placeholders": {
+      "title": "Short title",
+      "body": "Describe the task — context, constraints, acceptance",
+      "tags": "frontend, checkout"
+    },
+    "no_projects_html": "No projects yet — task will be created without a linked repo. <a href=\"/projects/\" style=\"color:var(--accent)\">Create one</a> if your agent needs it.",
+    "clone_failed": "Not offered because their clone failed: {projects}.",
+    "board_note": {
+      "here": "{projects}: the tasks go to {board}. This one will be created on {current}, the board you have open.",
+      "use": "Create it on {board}"
+    }
+  },
+  "lightbox": {
+    "previous": "Previous attachment",
+    "previous_hint": "Previous (←)",
+    "next": "Next attachment",
+    "next_hint": "Next (→)",
+    "open_new_tab": "Open in new tab",
+    "open": "Open ↗",
+    "no_preview": "No preview available for this file type."
+  },
+  "errors": {
+    "refresh_failed": "refresh failed",
+    "network": "Network error",
+    "http_status": "HTTP {status}",
+    "unknown": "unknown error",
+    "network_detail": "Network error: {error}"
+  },
+  "toasts": {
+    "agents_load_failed": "Could not load agents: {error}",
+    "projects_load_failed": "Could not load projects: {error}",
+    "board_name_empty": "Board name cannot be empty",
+    "board_renamed": "Board renamed",
+    "board_rename_failed": "Could not rename board",
+    "created_in": "Created in {stage}",
+    "create_failed_detail": "Could not create: {error}",
+    "uploaded": "{file} uploaded",
+    "image_upload_failed": "Image upload failed: {error}",
+    "type_skips": "{type} skips {stage}",
+    "this_type_skips": "This type skips {stage}",
+    "move_blocked": "Blocked: {reason}",
+    "move_failed": "Move failed — reverted",
+    "move_network_error": "Network error — reverted",
+    "title_required": "Title is required",
+    "task_created": "Task created",
+    "load_failed": "Cannot load task",
+    "forked": "Forked — opening copy",
+    "fork_failed": "Fork failed: {error}",
+    "force_pr": {
+      "opened": {
+        "one": "Force PR: opened {count} pull request",
+        "other": "Force PR: opened {count} pull requests"
+      },
+      "no_projects": "Force PR: nothing to do — task has no linked projects",
+      "no_token": "Force PR: project \"{name}\" has no GitHub credential. Pick one in Project → Repository → GitHub access.",
+      "open_project": "Open the project",
+      "no_secrets_store": "Force PR: no secrets store configured on the daemon.",
+      "bad_remote": "Force PR: repo URL for \"{name}\" is not a recognized GitHub remote.",
+      "project_missing": "Force PR: project \"{name}\" cannot be loaded: {error}",
+      "open_failed": "Force PR: GitHub rejected the PR for \"{name}\": {error}",
+      "already_open": "Force PR: every linked repo already has a PR.",
+      "unknown_status": "Force PR: unknown status \"{status}\" for \"{name}\"",
+      "failed": "Force PR failed: {error}"
+    },
+    "relaunched": {
+      "one": "Relaunched with {count} turn",
+      "other": "Relaunched with {count} turns"
+    },
+    "relaunch_failed": "Cannot relaunch: {error}",
+    "cloned": "Cloned — opening copy",
+    "clone_failed": "Clone failed: {error}",
+    "task_deleted": "Task deleted",
+    "delete_failed": "Delete failed: {error}",
+    "title_empty": "Title cannot be empty",
+    "title_saved": "Title saved",
+    "title_save_failed": "Could not save title",
+    "copy_failed": "Could not copy to the clipboard",
+    "link_copied": "Link copied",
+    "branch_copied": "Branch name copied",
+    "archived": "Task archived",
+    "unarchived": "The task is back on the board",
+    "archive_failed": "Could not archive: {error}"
+  },
+  "board": {
+    "resize_column": "Resize column",
+    "inline": {
+      "no_repo": "no repo",
+      "placeholder": "What needs to be done?",
+      "repo_title": "Repo this task belongs to",
+      "hint_html": "<kbd>↵</kbd> add · <kbd>Esc</kbd> cancel"
+    },
+    "live": {
+      "picked": "Picked up {title} in {stage}. Left and right move it, Space drops it, Esc cancels.",
+      "over": "{title} over {stage}. Space drops it here.",
+      "edge": "{stage} is the end of this task's flow.",
+      "dropped": "Dropped {title} in {stage}.",
+      "canceled": "{title} stays in {stage}."
+    },
+    "no_match": "No tasks match",
+    "clear_filters": "Clear filters"
+  },
+  "types": {
+    "untyped_option": "Untyped — walks every column",
+    "change_failed": "Could not change the type",
+    "changed": "Type changed"
+  },
+  "confirm": {
+    "fork_running_title": "Fork a running task?",
+    "fork_running_message": "Snapshots the current state. Anything the live agent produces afterwards stays in the original.",
+    "fork_button": "Fork",
+    "delete_task_title": "Delete \"{title}\"?",
+    "delete_this_task_title": "Delete \"this task\"?",
+    "delete_task_message": "Removes the task and cleans up its worktrees. This cannot be undone.",
+    "finish_parent_title": {
+      "one": "Finish \"{title}\" with {count} subtask open?",
+      "other": "Finish \"{title}\" with {count} subtasks open?"
+    },
+    "finish_parent_message": "Open subtasks stay on the board and keep committing to the shared branch.",
+    "delete_subtask_title": "Delete \"{title}\"?",
+    "delete_subtask_message": "Its commits stay on the shared branch. This cannot be undone.",
+    "delete_subtask_button": "Delete subtask",
+    "delete_with_subtasks_button": {
+      "one": "Delete 1 task",
+      "other": "Delete {count} tasks"
+    },
+    "retry_after_audit_title": "Run the stage again?",
+    "retry_after_audit_message": "The auditor stopped the last run. Its feedback is in Reports; read it before the agent tries again."
+  },
+  "test_cases": {
+    "title_required": "A title is required.",
+    "save_failed": "Save failed.",
+    "delete_title": "Delete {key}?",
+    "delete_message": "\"{title}\" will be removed. The videos and files the runs point at stay on the task.",
+    "delete_message_runs": {
+      "one": "\"{title}\" and its {count} run will be removed. The videos and files the runs point at stay on the task.",
+      "other": "\"{title}\" and its {count} runs will be removed. The videos and files the runs point at stay on the task."
+    },
+    "delete_failed": "Could not delete the case: {error}",
+    "move_failed": "Could not move the case: {error}",
+    "import_failed": "Could not import the body's test cases: {error}",
+    "mark_failed": "Could not mark the case: {error}",
+    "status_failed": "Could not set the status: {error}",
+    "imported": {
+      "one": "Imported {count} test case",
+      "other": "Imported {count} test cases"
+    },
+    "report_gone": "That report is no longer on this task",
+    "not_found": "This task has no test case {key}",
+    "run_url_invalid": "Enter a URL that starts with http:// or https://.",
+    "run_no_cases": "Pick at least one case.",
+    "run_started": {
+      "one": "Asked {agent} to run {count} case. Follow it in the activity.",
+      "other": "Asked {agent} to run {count} cases. Follow it in the activity."
+    },
+    "run_failed": "Could not launch the run: {error}",
+    "section_removed": "The Test Cases section left the body.",
+    "remove_section_failed": "Could not remove the section: {error}",
+    "pass_unrun_title": "Mark {key} as passed?",
+    "pass_unrun_message": "Nobody has run this case yet. Mark it passed only if you tested it yourself.",
+    "pass_unrun_confirm": "Mark passed"
+  },
+  "approvals": {
+    "note_required": "Write why first",
+    "approved_mappings": {
+      "one": "Approved — {count} mapping now collecting",
+      "other": "Approved — {count} mappings now collecting"
+    },
+    "update_failed": "Approval update failed: {error}",
+    "add_failed": "Could not add the approval: {error}",
+    "delete_title": "Delete \"{label}\"?",
+    "delete_message": "The approval and its decision leave the task. The agent no longer waits on it.",
+    "delete_button": "Delete approval",
+    "note_needed_changes": "Write what has to change first",
+    "note_needed_waive": "Write why it can be skipped first"
+  },
+  "questions": {
+    "answered": "Answer sent",
+    "answer_failed": "Could not send the answer: {error}",
+    "cancel_title": "Cancel this question?",
+    "cancel_message": "The agent gets no answer. If it was waiting on it, the task stays parked until someone moves or relaunches it.",
+    "cancel_button": "Cancel question",
+    "cancel_failed": "Could not cancel the question: {error}"
+  },
+  "head": {
+    "more": "More board actions"
+  },
+  "merge": {
+    "title": "Merge into",
+    "project": "Project",
+    "target": "Into branch",
+    "submit": "Merge",
+    "note": "Lands {branch} on {target}: a fast-forward when {target} hasn't moved, otherwise a merge commit. Nothing is written if a file conflicts.",
+    "merged": "Merged into {target} ({commit})",
+    "up_to_date": "{target} already has every commit of the task",
+    "conflicts": {
+      "one": "1 file conflicts with {target}; nothing was merged:",
+      "other": "{count} files conflict with {target}; nothing was merged:"
+    },
+    "failed": "Couldn't merge: {error}",
+    "redo": "Redo on top of {branch}",
+    "return": "Return to the agent",
+    "redo_done": "Copy created: it starts from {branch} and lists the files that collided",
+    "redo_title": "{title} (redone on {branch})",
+    "returned": "Comment added with the files. A run working on the task gets it now; otherwise the next run reads it."
+  },
+  "archived": {
+    "title": "Archived",
+    "count": {
+      "one": "1 archived task on this board",
+      "other": "{count} archived tasks on this board"
+    },
+    "empty": "Nothing archived. Archive takes a task off the board and keeps its history.",
+    "restore": "Restore"
+  },
+  "readonly": {
+    "board": "Your role in this workspace is viewer: you can see tasks, but not create, move or change them.",
+    "menu": "Your role can only read this workspace.",
+    "comments": "Your role can only read this workspace: you can't comment on or edit the task."
+  },
+  "list": {
+    "label": "Board tasks",
+    "columns": {
+      "task": "Task",
+      "stage": "Stage",
+      "status": "Status",
+      "priority": "Priority",
+      "agent": "Agent",
+      "projects": "Repos",
+      "tags": "Tags",
+      "subtasks": "Subtasks",
+      "updated": "Updated",
+      "actions": "Actions"
+    },
+    "group": {
+      "show": {
+        "one": "Show the task in {stage}",
+        "other": "Show the {count} tasks in {stage}"
+      },
+      "hide": "Hide the tasks in {stage}"
+    },
+    "empty": "This board has no tasks yet.",
+    "save_failed": "Couldn't save the view to your account: {error}. This browser keeps it.",
+    "live": {
+      "list": "List view.",
+      "board": "Board view."
+    }
+  }
+}

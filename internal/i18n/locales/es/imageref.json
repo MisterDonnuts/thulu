@@ -1,0 +1,11 @@
+{
+  "errors": {
+    "image_missing": "la imagen {ref} no está en el host de Docker: construila o cargala ahí (por ejemplo `make agent-images`), subila a un registry y configurá {env}, o poné OCTOPUS_BUILD_MISSING_IMAGES=1 para que el daemon construya las imágenes de agente que declaran un contexto de build",
+    "inspect_failed": "no se pudo inspeccionar la imagen {ref}",
+    "pull_failed": "no se pudo bajar la imagen {ref}",
+    "read_pull_progress": "no se pudo leer el progreso de la descarga"
+  },
+  "log": {
+    "pulling": "descargando {ref}"
+  }
+}

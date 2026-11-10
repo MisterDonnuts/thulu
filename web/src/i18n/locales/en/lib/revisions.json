@@ -1,0 +1,19 @@
+{
+  "back": "Back",
+  "title": "History of {path}",
+  "pick": "Pick a version to read it.",
+  "none": "No saved versions yet.",
+  "unknown_actor": "unknown",
+  "action": {
+    "created": "Created",
+    "updated": "Edited",
+    "deleted": "Deleted",
+    "restored": "Restored"
+  },
+  "restore": "Restore this version",
+  "undo_delete": "Undo this deletion",
+  "deleted_body": "This version deleted the file.",
+  "confirm_title": "Restore {path}?",
+  "confirm_message": "The file goes back to this version. The current text stays in the history, so you can return to it.",
+  "restored": "Restored {path}"
+}

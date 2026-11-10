@@ -1,0 +1,68 @@
+{
+  "blockers": {
+    "from_unknown": "no se pudo leer la versión instalada; arrancá el daemon para que /info responda",
+    "unstamped_build": "{from:%q} es un build sin versión; su esquema no se puede comparar con una release",
+    "downgrade": "{to} es más vieja que la {from} instalada; para volver atrás usá `thulu update -to {to}`",
+    "needs_intermediate": "{to} sólo actualiza desde {upgrade_from}; {from} tiene que pasar antes por una release intermedia",
+    "missing_env": "la variable obligatoria {name} no está definida",
+    "edited_by_hand": "deploy/{path} se editó a mano; pasá el cambio a {override} y borrá el archivo"
+  },
+  "backup": {
+    "kubernetes": "obligatorio, a tu cargo: sacá un snapshot de la base externa (PITR o un dump) y pasá -backup-confirmed",
+    "external": "obligatorio, a tu cargo: sacá un snapshot de la base externa y pasá -backup-confirmed",
+    "bundled": "lo toma apply antes de cambiar nada: pg_dump del Postgres incluido en backups/"
+  },
+  "downtime": {
+    "kubernetes": "no se espera corte: el chart rota los pods y la versión vieja sigue atendiendo hasta que la nueva está lista",
+    "recreate": "alrededor de un minuto: se recrea el contenedor del daemon"
+  },
+  "rollback": {
+    "nothing": "no hay a qué volver: la versión instalada ahora es desconocida o es la misma",
+    "images_auto": "apply vuelve solo a {from} si la versión nueva no levanta sana.",
+    "images_by_hand": "Más adelante, a mano: `thulu update -to {from}`. Sólo imágenes; la base queda como está.",
+    "external_restore": "Volver a {from} necesita la base como estaba antes de la actualización: restaurá tu snapshot y después",
+    "external_by_hand": "`thulu update -to {from} -restore {restore}`. Se pierde todo lo escrito después de la actualización.",
+    "snapshot_auto": "apply vuelve solo a {from}, restaurando el snapshot que tomó, si la versión nueva no levanta sana.",
+    "snapshot_by_hand": "Más adelante, a mano: `thulu update -to {from} -restore <snapshot>` con el snapshot que registra esta actualización. Se pierde todo lo escrito después de la actualización."
+  },
+  "doc": {
+    "unknown_version": "desconocida",
+    "title": "# Paquete de cambio de Thulu: {from} → {to}",
+    "row_generated": "| Generado | {at} |",
+    "row_mode": "| Modo | {mode} |",
+    "row_from": "| Desde | {from} |",
+    "row_to": "| Hacia | {to} (canal {channel}, publicada el {published}) |",
+    "row_commit": "| Commit | `{commit}` |",
+    "row_source": "| Origen | {source} |",
+    "row_backup": "| Backup | {backup} |",
+    "row_downtime": "| Corte esperado | {downtime} |",
+    "blockers_heading": "## Bloqueos",
+    "blockers_intro": "apply no corre hasta que se resuelvan estos puntos:",
+    "advisories_heading": "## Avisos de seguridad corregidos",
+    "advisories_none": "Ninguno que afecte a {from}.",
+    "advisories_columns": "| ID | Severidad | Resumen |",
+    "migrations_heading": "## Migraciones",
+    "migrations_added": "- Agregadas: {count}",
+    "migrations_contract": "- De contracción (borran o renombran algo que lee una versión anterior): {count}",
+    "migrations_back_images": "- Volver a {from} cambia sólo imágenes; la base queda.",
+    "migrations_back_snapshot": "- Volver a {from} necesita el snapshot tomado antes de esta actualización.",
+    "config_heading": "## Configuración y pasos manuales",
+    "requires_none": "No hay variables obligatorias nuevas.",
+    "requires": "Variables obligatorias: {names}.",
+    "missing_env": "Sin definir en esta instalación: {names}.",
+    "manual_steps_none": "No hay pasos manuales.",
+    "manual_steps": "Pasos manuales (apply necesita -ack-manual-steps):",
+    "files_heading": "## Archivos de deploy",
+    "files_none": "No cambia ningún archivo de deploy.",
+    "plan_heading": "## Plan de ejecución",
+    "plan_explained": "apply verifica la firma del manifiesto, revisa los puntos de arriba, toma el backup, baja cada imagen por digest y verifica su firma, después espera /health/ready y comprueba que /info informe {version}.",
+    "rollback_heading": "## Vuelta atrás",
+    "images_heading": "## Imágenes",
+    "images_columns": "| Imagen | Referencia |",
+    "image_third_party": "| {name} (de terceros, fijada por digest) | `{ref}` |",
+    "image_chart": "| Chart de Helm | `{ref}@{digest}` |",
+    "verify_intro": "Verificá las firmas con la clave pública de SECURITY.md:",
+    "notes_heading": "## Notas de la release",
+    "notes_unsigned": "Citado de la página de la release; la firma no lo cubre."
+  }
+}

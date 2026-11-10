@@ -1,0 +1,13 @@
+{
+  "audit": {
+    "connected": "Conectó su propia sesión de {engine}",
+    "disconnected": "Desconectó su propia sesión de {engine}"
+  },
+  "errors": {
+    "unavailable": "las sesiones personales de engine sólo están disponibles en una instalación con Docker",
+    "unsupported_engine": "el engine {engine} no tiene sesión personal"
+  },
+  "labels": {
+    "person_connecting": "conectar una sesión de engine"
+  }
+}

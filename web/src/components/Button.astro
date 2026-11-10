@@ -1,0 +1,54 @@
+---
+import Icon from "./Icon.astro";
+import Kbd from "./Kbd.astro";
+import {
+  buttonA11y,
+  buttonClasses,
+  type ButtonSize,
+  type ButtonVariant,
+  type IconButtonSize,
+} from "../lib/ui/button";
+
+interface Props {
+  variant?: ButtonVariant;
+  size?: ButtonSize | IconButtonSize;
+  icon?: string;
+  iconOnly?: boolean;
+  label?: string;
+  kbd?: string;
+  href?: string;
+  type?: "button" | "submit" | "reset";
+  disabled?: boolean;
+  title?: string;
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  variant = "default",
+  size = "default",
+  icon,
+  iconOnly = false,
+  label,
+  kbd,
+  href,
+  type = "button",
+  disabled = false,
+  title,
+  class: extra,
+  ...rest
+} = Astro.props;
+const Tag = href ? "a" : "button";
+const hint = iconOnly ? undefined : kbd;
+const a11y = buttonA11y({ iconOnly, label, icon, title, kbd: hint, href, disabled });
+---
+
+<Tag
+  class={buttonClasses({ variant, size, iconOnly, cls: extra })}
+  type={href ? undefined : type}
+  {...a11y}
+  {...rest}
+>
+  {icon && <Icon name={icon} />}
+  {!iconOnly && <slot />}
+  {hint && <Kbd keys={hint} decorative />}
+</Tag>

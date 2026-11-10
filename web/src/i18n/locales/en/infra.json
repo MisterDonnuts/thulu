@@ -1,0 +1,460 @@
+{
+  "title": "Infrastructure · Thulu",
+  "heading": "Infrastructure",
+  "subtitle": "The machine Thulu runs on: how busy it is, what is using it and how much room is left. Only the operator sees this page.",
+  "live": {
+    "loading": "Loading…",
+    "updated": "Updated {ago} ago",
+    "paused": "Paused while the tab is hidden",
+    "stale": "Couldn't refresh. Showing data from {ago} ago."
+  },
+  "blocked": {
+    "not_operator_title": "Only the operator sees this page",
+    "not_operator": "Only admins of the operator workspace ({env}) can see the infrastructure. It shows every workspace on this install, so workspace owners get the usage page instead.",
+    "forbidden_title": "Your role can't open this page",
+    "forbidden": "Ask an admin of the operator workspace to look, or to change your role.",
+    "unavailable_title": "The inspector isn't running",
+    "unavailable": "This daemon started without its infrastructure inspector. Restart it, or look in its logs for the line that says why the inspector didn't start.",
+    "failed_title": "Couldn't load the infrastructure",
+    "failed": "The daemon answered: {error}. Check that it is running, then try again.",
+    "retry": "Try again"
+  },
+  "problems": {
+    "title": "Some sources couldn't be read, so the numbers below leave them out.",
+    "sources": {
+      "docker": "Docker",
+      "kubernetes": "Kubernetes",
+      "metrics": "Metrics",
+      "postgres": "Postgres",
+      "settings": "Settings"
+    }
+  },
+  "tiles": {
+    "aria": "Headline numbers",
+    "cpu": "CPU",
+    "cpu_sub": "Load {load} on {threads} threads",
+    "memory": "Memory",
+    "memory_sub": "{used} of {total}",
+    "disk": "Disk",
+    "disk_sub": "{free} free on {path}",
+    "runs": "Agent runs",
+    "waiting": {
+      "one": "{count} run waiting for a slot",
+      "other": "{count} runs waiting for a slot"
+    },
+    "none_waiting": "None waiting",
+    "no_proc": "Host /proc isn't readable",
+    "no_disks": "No filesystem could be read"
+  },
+  "tabs": {
+    "aria": "Infrastructure sections",
+    "overview": "Overview",
+    "containers": "Containers",
+    "pods": "Pods",
+    "running_count": {
+      "one": "{count} running",
+      "other": "{count} running"
+    },
+    "workspaces": "Workspaces",
+    "storage": "Storage",
+    "cache": "Dependency cache",
+    "attention": "Has warnings",
+    "machine": "Machine"
+  },
+  "activity": {
+    "title": "Activity",
+    "range_aria": "History range",
+    "note": "Sampled every 15 seconds and kept in memory, so a daemon restart starts the history over.",
+    "young": {
+      "one": "Showing the last minute, since the daemon started.",
+      "other": "Showing the last {count} minutes, since the daemon started."
+    }
+  },
+  "charts": {
+    "cpu": "CPU",
+    "memory": "Memory",
+    "memory_now": "{used} ({pct})",
+    "network": "Network",
+    "rx": "In",
+    "tx": "Out",
+    "containers": "Containers and runs",
+    "running": "Containers running",
+    "pods_running": "Pods running",
+    "runs": "Active runs",
+    "warming_up": "Collecting samples. The first points show up within a minute.",
+    "no_proc": "Needs a readable /proc on the host. The Machine tab says how to mount one.",
+    "net_container": "The daemon container's own network; mount the host's /proc to see the machine's."
+  },
+  "usage": {
+    "title": "What's using it",
+    "hint": "Share of {cpus} cores and {mem}",
+    "empty_title": "Nothing running",
+    "empty": "Agents, sandboxes and chats show up here while they run.",
+    "other_note": "Containers on this engine that Thulu didn't start",
+    "other_install_note": "Containers another Thulu install on this engine started",
+    "running_value": "{running} of {total}",
+    "columns": {
+      "what": "What",
+      "running": "Running",
+      "cpu": "CPU",
+      "memory": "Memory"
+    }
+  },
+  "groups": {
+    "agents": "Agents",
+    "sandboxes": "Sandboxes",
+    "chats": "Chats",
+    "browsers": "Browsers",
+    "mcp": "MCP servers",
+    "platform": "Thulu itself",
+    "system": "System",
+    "other_install": "Other Thulu installs",
+    "other": "Outside Thulu"
+  },
+  "kinds": {
+    "daemon": "Daemon",
+    "postgres": "Postgres",
+    "web": "Web",
+    "agent": "Agent",
+    "sandbox": "Sandbox",
+    "chat": "Chat",
+    "mcp": "MCP",
+    "browser": "Browser",
+    "platform": "Platform",
+    "system": "System",
+    "other_install": "Another install",
+    "other": "Outside Thulu"
+  },
+  "workspace_fallback": "Default workspace",
+  "stage_mention": "Mention",
+  "states": {
+    "running": "Running",
+    "created": "Created",
+    "restarting": "Restarting",
+    "paused": "Paused",
+    "removing": "Removing",
+    "exited": "Exited",
+    "dead": "Dead",
+    "pending": "Pending",
+    "succeeded": "Succeeded",
+    "failed": "Failed",
+    "unknown": "Unknown"
+  },
+  "capacity": {
+    "title": "Capacity",
+    "agents": "Agent containers",
+    "mentions": "Mention containers",
+    "sandboxes": "Sandboxes",
+    "chats": "Chat containers",
+    "of_cap": "{n} of {cap}",
+    "no_cap": "{n} running, no cap",
+    "waiting": {
+      "one": "{count} run waiting for a slot",
+      "other": "{count} runs waiting for a slot"
+    },
+    "room": {
+      "one": "{count} run waits for room in its workspace quota",
+      "other": "{count} runs wait for room in their workspace quota"
+    },
+    "none": "No limits set.",
+    "sandboxes_link": "See which sandboxes hold a slot, and the queue",
+    "running_now": "Running now",
+    "runs_empty": "No agent is running.",
+    "run_where": "{workspace}, {stage}",
+    "runs_count": {
+      "one": "{count} run",
+      "other": "{count} runs"
+    },
+    "queue_minutes": "Longest wait in the agent queue (minutes)",
+    "install_wide": "Capacity limits apply to every workspace on this install.",
+    "edit_label": "Limit for {name}",
+    "save": "Save",
+    "saved": "Saved",
+    "hint": "Default: {def}.",
+    "hint_unlimited": "Default: {def}. 0 means no limit.",
+    "hint_range": "Between {min} and {max}. Default: {def}.",
+    "errors": {
+      "required": "Type a number",
+      "integer": "It must be a whole number",
+      "at_least": "It must be {min} or more",
+      "between": "It must be between {min} and {max}"
+    }
+  },
+  "containers": {
+    "title": "Containers",
+    "title_pods": "Pods",
+    "count": "{shown} of {total}",
+    "filter_kind": "Filter by kind",
+    "all_kinds": "All kinds",
+    "running_only": "Running only",
+    "search": "Search containers",
+    "search_placeholder": "Name, workspace or task",
+    "empty_title": "Nothing matches",
+    "empty": "Change the search or the kind, or include stopped containers.",
+    "none_title": "No containers yet",
+    "none": "Agents, sandboxes and chats start containers here when tasks run.",
+    "clear": "Clear filters",
+    "task_value": "Task {id}",
+    "cores": "{n} cores",
+    "of_limit": "{pct} of {limit}",
+    "limit_only": "Limit {limit}",
+    "restarts": {
+      "one": "{count} restart",
+      "other": "{count} restarts"
+    },
+    "columns": {
+      "name": "Name",
+      "kind": "Kind",
+      "workspace": "Workspace",
+      "task": "Agent and stage",
+      "cpu": "CPU",
+      "memory": "Memory",
+      "age": "Up",
+      "state": "State",
+      "actions": "Actions"
+    },
+    "stop": "Stop",
+    "stop_named": "Stop {name}",
+    "stop_title": "Stop {name}?",
+    "stop_chat": "The conversation goes on: the next message starts a new container and resumes the session.",
+    "stop_agent": "The run is recorded as stopped by you. The task stays in its stage and can be relaunched.",
+    "stopped": "{name} stopped",
+    "stopping": "Stopping {name}…",
+    "stop_failed": "Could not stop it: {error}",
+    "orphan": "Orphan",
+    "orphan_hint": "No run of its task launched this agent container: the run was deleted, the task is gone, or a restart left it behind.",
+    "remove_orphan": "Remove",
+    "remove_orphan_named": "Remove {name}",
+    "remove_orphan_title": "Remove {name}?",
+    "remove_orphan_message": "No run of the task depends on this container. It is deleted, not stopped, so nothing reads it later as a run that finished.",
+    "removed_orphan": "{name} removed",
+    "removing_orphan": "Removing {name}…",
+    "remove_orphan_failed": "Could not remove it: {error}"
+  },
+  "workspaces": {
+    "title": "Workspaces",
+    "stats_aria": "Install totals",
+    "stats": {
+      "workspaces": "Workspaces",
+      "users": "Users",
+      "projects": "Projects",
+      "tasks": "Tasks"
+    },
+    "empty_title": "No workspace to list",
+    "empty": "A workspace shows up here once it has a record in the database, a running container or a run today.",
+    "agents_of": "{n} of {cap}",
+    "columns": {
+      "workspace": "Workspace",
+      "plan": "Plan",
+      "containers": "Containers",
+      "agents": "Agents",
+      "cpu": "CPU",
+      "memory": "Memory",
+      "runs_today": "Runs today",
+      "storage": "Disk",
+      "tokens_today": "Tokens today",
+      "cost_today": "Cost today"
+    }
+  },
+  "quotas": {
+    "title": "Workspace quotas",
+    "empty": "No workspace namespace has a ResourceQuota.",
+    "pair": "{used} of {hard}",
+    "ceiling": "Ceiling {value}",
+    "columns": {
+      "workspace": "Workspace",
+      "namespace": "Namespace",
+      "cpu": "CPU (cores)",
+      "memory": "Memory",
+      "pods": "Pods"
+    },
+    "docker_note": "Per-workspace quotas (CPU, memory and pods) exist only on Kubernetes. On Docker the workspaces share the machine; the Capacity limits apply to the whole install."
+  },
+  "disks": {
+    "title": "Disks",
+    "detail": "{used} of {size}, {free} free, inodes {inodes}",
+    "missing_q": "Why is a disk missing?",
+    "note_container": "The daemon reads disks from inside its container, so a filesystem it doesn't mount isn't listed. Mount it into the container and add its path to {env}.",
+    "roles": {
+      "data": "Data",
+      "root": "Root",
+      "docker": "Docker",
+      "containerd": "containerd",
+      "postgres": "Postgres",
+      "extra": "Extra"
+    }
+  },
+  "storage": {
+    "title": "Data directory",
+    "hint": "{dir}, measured {ago} ago",
+    "total": "Total",
+    "empty": "Nothing stored yet. Projects, worktrees, attachments and logs land here as tasks run.",
+    "partial": "Some folders couldn't be read, so the total is low.",
+    "pending": "Measuring. This runs every few minutes.",
+    "no_data_dir": "This daemon has no data directory to measure.",
+    "dirs": {
+      "projects": "Projects",
+      "worktrees": "Worktrees",
+      "attachments": "Attachments",
+      "logs": "Logs",
+      "runs": "Run output",
+      "other": "Other"
+    }
+  },
+  "postgres": {
+    "title": "Postgres",
+    "size": "Database",
+    "connections": "Connections",
+    "connections_value": "{n} of {max}",
+    "version": "Version",
+    "largest": "Largest tables",
+    "rows": "{name}: {n} rows",
+    "unavailable": "Postgres didn't answer"
+  },
+  "docker": {
+    "title": "Docker storage",
+    "images": "Images",
+    "images_value": "{n} images, {size}",
+    "volumes": "Volumes",
+    "build_cache": "Build cache",
+    "largest_volumes": "Largest volumes"
+  },
+  "host": {
+    "title": "Host",
+    "hostname": "Hostname",
+    "os": "System",
+    "os_value": "{os} ({arch})",
+    "kernel": "Kernel",
+    "cpu": "CPU",
+    "cores": "Cores",
+    "cores_value": "{cores} cores, {threads} threads",
+    "uptime": "Uptime",
+    "load": "Load (1, 5, 15 min)",
+    "memory": "Memory",
+    "memory_value": "{used} used of {total}, {available} available, {cached} cache",
+    "swap": "Swap",
+    "swap_value": "{used} of {total}",
+    "no_swap": "None",
+    "network": "Network",
+    "network_value": "{rx} in, {tx} out",
+    "interfaces": "Interfaces",
+    "about_q": "Where do these numbers come from?",
+    "note_container": "The daemon runs inside a container, so these numbers come from the host /proc it can see. Under Docker Desktop or Colima that is the VM, not your computer.",
+    "note_no_proc": "The daemon can't read /proc here (macOS, or a locked-down container), so host CPU, memory and network are missing. Mount the host's /proc into the container and point {env} at it."
+  },
+  "runtime": {
+    "title": "Runtime",
+    "docker": "Docker",
+    "kubernetes": "Kubernetes",
+    "none": "No runtime",
+    "none_note": "The daemon reaches neither Docker nor Kubernetes, so there are no containers to show.",
+    "version": "Engine",
+    "engine_os": "Engine OS",
+    "engine_resources": "Engine resources",
+    "engine_resources_value": "{cpus} CPUs, {mem}",
+    "storage_driver": "Storage driver",
+    "root_dir": "Root directory",
+    "compose_project": "Compose project",
+    "container_states": "Containers",
+    "container_states_value": "{running} running, {paused} paused, {stopped} stopped",
+    "runtime_class": "Runtime class",
+    "default_runtime": "The cluster's default",
+    "control_plane": "Control plane namespace",
+    "pod_phases": "Pods",
+    "pod_phases_value": "{running} running, {pending} pending, {failed} failed, {succeeded} finished",
+    "pvcs": "Volume claims",
+    "agent_image": "Agent image",
+    "agent_image_pending": "Checking the registry for {base} with Claude Code installed",
+    "agent_image_building": "Building {image} (Job {job}); pods install Claude Code on first use until it is ready",
+    "agent_image_ready": "{image}",
+    "agent_image_failed": "Build failed, pods install Claude Code on first use: {message}",
+    "agent_image_skipped": "{base} as is: {message}",
+    "no_metrics": "metrics-server isn't installed or isn't answering, so pod and node usage is missing. Requests and limits still show. Install metrics-server (k3s ships it) to fill CPU and memory in.",
+    "nodes": "Nodes",
+    "no_nodes": "The daemon can't list nodes. Grant it get and list on nodes in its ClusterRole.",
+    "node_cpu_usage": "CPU in use",
+    "node_mem_usage": "Memory in use",
+    "node_cpu_requests": "CPU requested",
+    "node_mem_requests": "Memory requested",
+    "node_cores": "{used} of {total} cores",
+    "node_bytes": "{used} of {total}",
+    "node_meta": "kubelet {kubelet}, kernel {kernel}, up to {pods} pods",
+    "condition": "{type}: {status}"
+  },
+  "cache": {
+    "title": "Dependency cache",
+    "hint": "How sandbox installs went: what came from the cache and what was downloaded again.",
+    "aria": "Dependency cache range",
+    "note": "Kept for 90 days and refreshed every minute, apart from the host charts.",
+    "partial": "The install log starts on {date}, so earlier days are empty.",
+    "empty_title": "No installs logged yet",
+    "empty": "This fills in as tasks install dependencies in their sandbox and projects prewarm their cache.",
+    "unavailable_title": "No install log on this daemon",
+    "unavailable": "This daemon has no sandbox store, so there is no install log to show.",
+    "failed_title": "Couldn't load the dependency cache",
+    "failed": "The daemon answered: {error}. It tries again in a minute.",
+    "signals": "To check",
+    "tiles": {
+      "hit_rate": "Hit rate",
+      "hit_rate_sub": "{hits} of {runs} installs with a setup phase",
+      "installs": "Installs",
+      "installs_sub": "{prewarms} prewarms, {failed} failed",
+      "downloads": "Full installs",
+      "downloads_sub": "{tools} mise versions downloaded",
+      "time_saved": "Time saved",
+      "time_saved_sub": "Against {avg} per full install",
+      "time_saved_none": "No full install to compare with yet",
+      "cache_used": "Cache used",
+      "cache_used_sub": "Fullest disk: {workspace} at {pct}",
+      "cache_used_none": "Not measured yet"
+    },
+    "chart": {
+      "title": "Installs per day"
+    },
+    "projects": {
+      "title": "Projects",
+      "empty": "No project ran a setup phase in this range.",
+      "columns": {
+        "project": "Project",
+        "installs": "Installs",
+        "hit_rate": "Hit rate",
+        "last": "Last",
+        "full_install": "Full install",
+        "snapshots": "Snapshots",
+        "prewarm": "Prewarm"
+      },
+      "snapshots": "{size} in {count}",
+      "prewarm_ok": "OK",
+      "prewarm_failed": "Failed",
+      "prewarm_streak": "{count} failed in a row",
+      "prewarm_now": "Prewarm now",
+      "prewarm_started": "Prewarm started; the table updates within a minute",
+      "prewarm_refused": "Could not prewarm: {error}"
+    },
+    "workspaces": {
+      "title": "Cache per workspace",
+      "empty": "No measurement yet. The first one comes after a prewarm or a task's install.",
+      "columns": {
+        "workspace": "Workspace",
+        "size": "Size",
+        "areas": "What it holds",
+        "growth": "Growth in range",
+        "disk": "Disk",
+        "measured": "Measured"
+      },
+      "ago": "{ago} ago"
+    },
+    "tools": {
+      "title": "mise versions",
+      "empty": "No cache holds a mise version.",
+      "columns": {
+        "tool": "Version",
+        "size": "Size",
+        "workspaces": "Workspaces",
+        "last_used": "Last asked for"
+      },
+      "unused": "Unused",
+      "never": "Not in the log"
+    }
+  }
+}

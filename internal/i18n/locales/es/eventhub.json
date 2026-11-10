@@ -1,0 +1,14 @@
+{
+  "errors": {
+    "unknown_topic": "tema desconocido",
+    "unknown_stream": "stream desconocido",
+    "forbidden": "no tenés permiso para ver este tema",
+    "too_many_topics": "demasiados temas",
+    "too_many_streams": "demasiados streams",
+    "stream_read_failed": "error interno al leer este stream"
+  },
+  "log": {
+    "source_panicked": "la fuente {source} entró en pánico: {panic}\n{stack}",
+    "marshal_frame": "eventhub: serializar el frame {type} para {topic}"
+  }
+}

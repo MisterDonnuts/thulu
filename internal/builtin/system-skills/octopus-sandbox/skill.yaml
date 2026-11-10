@@ -1,0 +1,9 @@
+name: octopus-sandbox
+description: How to work with a task's sandbox in Thulu using thulu-sandbox. What runs there and what runs in your own container, how to find out how a project starts, how to write a startup script or move one to the tools/setup/cache phases so dependencies are not reinstalled on every task, the readiness check, ports and parameters for the URLs, what survives when the sandbox shuts down, the limits (root depending on the runtime, no Docker, network, memory) and what to do about each failure. Use before starting, building or testing a project, when writing or fixing its startup script, or when the sandbox fails.
+type: knowledge
+enforcement: on_demand
+requires: []
+# Bump on every change: the daemon syncs this skill at boot only when version exceeds the stored
+# one.
+version: 6
+mcp: thulu-sandbox

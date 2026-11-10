@@ -1,0 +1,58 @@
+{
+  "errors": {
+    "agent_not_found": "agent not found: {name}",
+    "not_in_catalog": "agent not in catalog",
+    "agent_exists": "agent already exists",
+    "invalid_agent_name": "invalid name: lowercase letters, digits, - and _ only, up to 64 characters, starting with a letter, digit or _",
+    "invalid_type_name": "invalid type name",
+    "template_not_found": "template not found: {name}",
+    "empty_path": "empty path",
+    "path_escapes_dir": "path escapes agent dir",
+    "file_not_editable": "file not editable",
+    "file_not_found": "file does not exist",
+    "read_body": "read body",
+    "revision_id_not_number": "revision id must be a number",
+    "revision_not_found": "revision not found",
+    "no_stored_content": "no stored content",
+    "compose_not_found": "compose not found",
+    "compose_parse": "compose parse",
+    "compose_no_services": "compose has no services",
+    "agent_service_not_found": "agent service not found",
+    "scaffold": "scaffold {path}",
+    "scaffold_rel": "scaffold rel {path}",
+    "mkdir": "mkdir {path}",
+    "mkdir_parent": "mkdir parent {path}",
+    "read_embedded": "read embed {path}",
+    "parse_template": "parse template {path}",
+    "render_template": "render template {path}",
+    "write_file": "write {path}",
+    "relative_path": "rel {path}",
+    "read_file": "read {path}",
+    "walk_dir": "walk {path}"
+  },
+  "labels": {
+    "agent_prompts": "Agent prompts",
+    "auditor_prompts": "Auditor prompts"
+  },
+  "hints": {
+    "agent_prompts": "What the agent reads when a run starts. Each stage uses its own prompt if it has one; otherwise the main prompt (main.md).",
+    "auditor_prompts": "What the auditor reads when it reviews a finished run, one per stage. A stage without its own uses default.md."
+  },
+  "audit": {
+    "content_updated": "agent content updated: {agent}/{path}",
+    "content_deleted": "agent content deleted: {agent}/{path}",
+    "content_restored": "agent content restored: {agent}/{path}",
+    "agent_created": "agent created: {agent}",
+    "agent_deleted": "agent disabled: {agent}",
+    "settings_updated": "agent settings updated: {agent}",
+    "definition_restored": "agent definition restored: {agent}"
+  },
+  "log": {
+    "resolve_output_dir": "resolve output dir for agent {id}",
+    "cleanup_partial_dir": "clean up partial agent dir {path}",
+    "rewrite_type_label": "rewrite thulu.type label in {dir}/{file}",
+    "drop_stale_binding": "drop the LLM profile binding left under agent {agent}",
+    "discover_failed": "discover agents in {path}",
+    "system_skills_unreadable": "could not read the system skills, serving the last list: {err}"
+  }
+}

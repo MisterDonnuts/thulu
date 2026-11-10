@@ -1,0 +1,102 @@
+{
+  "title": "Skills",
+  "subtitle": "Instrucciones que tus agentes cargan por etapa. Las skills de tu workspace las editás vos; las de Thulu vienen con la instalación.",
+  "buttons": {
+    "new_skill": "Nueva skill",
+    "delete_skill": "Eliminar skill",
+    "add_file": "Agregar archivo",
+    "view": "Ver",
+    "history": "Historial",
+    "back": "Volver",
+    "restore_skill": "Restaurar skill"
+  },
+  "sidebar": {
+    "search": "Buscar skills",
+    "workspace": "Este workspace",
+    "system": "Thulu",
+    "none": "Todavía no hay skills.",
+    "no_matches": "Sin resultados.",
+    "load_failed": "No se pudieron cargar las skills: {error}",
+    "deleted": "Eliminadas"
+  },
+  "empty": {
+    "select": "Elegí una skill para ver sus archivos."
+  },
+  "badges": {
+    "system": "Thulu",
+    "version": "v{version}",
+    "mcp": "MCP {mcp}",
+    "origin": "de {origin}"
+  },
+  "system_note": "Thulu mantiene esta skill y la recibe cada corrida. Los workspaces pueden leerla pero no cambiarla.",
+  "system_note_mcp": "Thulu mantiene esta skill. La recibe, sin concederla, cada corrida que tenga el MCP {mcp} cableado. Los workspaces pueden leerla pero no cambiarla.",
+  "system_toggle_note": "Un admin del workspace puede apagarla para un agente en una etapa, en la pestaña Skills del agente en /agents/.",
+  "files": {
+    "new_placeholder": "references/notas.md",
+    "new_label": "Ruta del archivo nuevo",
+    "new_suffix": "(nuevo)",
+    "size": {
+      "one": "{size} byte",
+      "other": "{size} bytes"
+    },
+    "extra_note": "Las corridas reciben prompt.md entero. El resto de los archivos (references/, plantillas) le llega al modelo como una lista de rutas, y abre el que las instrucciones nombren.",
+    "deleted": "Eliminado"
+  },
+  "modal": {
+    "title": "Nueva skill",
+    "name": "Nombre",
+    "name_hint": "minúsculas, dígitos y guiones",
+    "name_placeholder": "release-notes",
+    "description": "Descripción",
+    "description_placeholder": "Qué aprende el agente con ella"
+  },
+  "confirm": {
+    "discard": "Se pierden los cambios a este archivo.",
+    "delete_file_title": "¿Eliminar {path}?",
+    "delete_file_message": "El archivo sale de la skill. Su historial queda, así que podés restaurarlo.",
+    "delete_skill_title": "¿Eliminar {name}?"
+  },
+  "errors": {
+    "save_failed": "No se pudo guardar el archivo.",
+    "name_required": "La skill necesita un nombre.",
+    "save_failed_reason": "No se pudo guardar el archivo: {error}"
+  },
+  "toasts": {
+    "saved": "Se guardó {path}",
+    "deleted": "Se eliminó {name}",
+    "created": "Se creó {name}",
+    "meta_saved": "Se guardó {name}",
+    "restored": "Se restauró {name}"
+  },
+  "deleted": {
+    "when": "Eliminada el {when}",
+    "note": "Los archivos ya no están; su historial sí. Restaurar trae de vuelta todos los archivos que tenía la skill al eliminarla; las concesiones que se quitaron con ella siguen quitadas."
+  },
+  "meta": {
+    "description": "Descripción",
+    "description_hint": "el modelo lee sólo esto antes de decidir si abre la skill. Decí cuándo usarla.",
+    "enforcement": "Entrega",
+    "on_demand": "Cuando el modelo la necesite",
+    "always": "Siempre en el prompt",
+    "enforcement_hint": "\"Cuando el modelo la necesite\": con Claude Code el modelo ve el nombre y la descripción y abre la skill si le sirve; los demás motores reciben el texto entero en el prompt. \"Siempre en el prompt\": el texto entero va en cada corrida, con cualquier motor.",
+    "count": "{count} / {max}"
+  },
+  "usage": {
+    "title": "Usada por",
+    "none": "Ningún agente la concede todavía.",
+    "grant_link": "Concedela en Agentes",
+    "stages": "en {stages}",
+    "auditor_stages": "auditor en {stages}",
+    "load_failed": "No se pudieron cargar los agentes que la usan."
+  },
+  "delete_modal": {
+    "used_by": {
+      "one": "La concede {count} agente:",
+      "other": "La conceden {count} agentes:"
+    },
+    "unused": "Ningún agente la concede.",
+    "revoke": "Quitarla también de estos agentes",
+    "revoke_hint": "Si quedan, esas concesiones le pasan a estos agentes cualquier skill que se cree después con este nombre.",
+    "history_hint": "El historial queda: podés restaurar la skill desde el grupo Eliminadas."
+  }
+}

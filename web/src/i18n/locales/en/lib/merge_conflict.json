@@ -1,0 +1,10 @@
+{
+  "redo_note": {
+    "one": "Copy made to redo this work on top of {target}: merging the original task collided with {target} in 1 file. Start from {target} as it is now and keep its changes to this file:",
+    "other": "Copy made to redo this work on top of {target}: merging the original task collided with {target} in {count} files. Start from {target} as it is now and keep its changes to these files:"
+  },
+  "comment": {
+    "one": "Merging into {target} collided in 1 file. Bring {target} into this branch, resolve the file keeping both changes, and commit:",
+    "other": "Merging into {target} collided in {count} files. Bring {target} into this branch, resolve the files keeping both sides' changes, and commit:"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "delta": {
+    "no_previous": "no previous window",
+    "vs_previous": "{arrow} {pct}% vs previous"
+  },
+  "columns": {
+    "group": "Group",
+    "value": "Value"
+  },
+  "empty": {
+    "unknown_type": "unknown chart type \"{type}\"",
+    "no_data": "no data in this window"
+  },
+  "range": {
+    "last": "last {span}"
+  }
+}

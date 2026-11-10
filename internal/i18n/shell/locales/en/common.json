@@ -1,0 +1,7 @@
+{
+  "errors": {
+    "unknown_argument": "unknown argument '{arg}' (see --help)",
+    "not_on_path": "'{tool}' is not on PATH.",
+    "need_json_tool": "need 'node' or 'python3' on PATH to parse JSON."
+  }
+}

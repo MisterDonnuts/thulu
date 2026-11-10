@@ -1,0 +1,126 @@
+# MCP servers for local development, next to deploy/docker-compose.daemon.yml
+# (`make up` starts both). The self-hosted stacks under deploy/ carry these
+# same servers as profiles; this file is the development pairing.
+#
+# Usage (from the repo root):
+#   docker compose -f tools/docker-compose.yml up -d
+#   docker compose -f tools/docker-compose.yml ps
+#   docker compose -f tools/docker-compose.yml down
+#
+# Every service joins the `octopus-agents` network the daemon stack creates
+# too. Agents and the daemon reach each server there by service name
+# (http://thulu-github:3000/sse) and the servers reach the daemon at
+# http://octopus:8585. The host ports below are published on loopback only, so
+# a server can be poked with curl from this machine and from nowhere else.
+#
+# The code (server.js, thulu-figma's figma.js, and thulu-browser's lib/ and
+# evidence/) and its message
+# catalog (i18n.js, locales/) are mounted read-only over the image's copy: an
+# edit needs a `docker compose restart <name>`, not a rebuild. That is a development
+# convenience; the deploy/ stacks run the image as built.
+
+x-mcp-server: &mcp-server
+  restart: unless-stopped
+  # thulu-browser reaches sandbox preview URLs at host.docker.internal:<port>,
+  # which some Docker setups only resolve when told to.
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+  networks:
+    - agents
+
+services:
+  thulu-browser:
+    <<: *mcp-server
+    image: thulu-browser
+    build:
+      context: ./thulu-browser
+    container_name: thulu-browser
+    shm_size: 1gb
+    ports:
+      - "127.0.0.1:3010:3000"
+    environment:
+      - OCTOPUS_API=http://octopus:8585
+    volumes:
+      - ./thulu-browser/server.js:/app/server.js:ro
+      - ./thulu-browser/lib:/app/lib:ro
+      - ./thulu-browser/evidence:/app/evidence:ro
+      - ./thulu-browser/i18n.js:/app/i18n.js:ro
+      - ./thulu-browser/locales:/app/locales:ro
+
+  thulu-github:
+    <<: *mcp-server
+    image: thulu-github
+    build:
+      context: ./thulu-github
+    container_name: thulu-github
+    ports:
+      - "127.0.0.1:3012:3000"
+    environment:
+      - OCTOPUS_API=http://octopus:8585
+      # No Thulu credential here: the calling agent's run-scoped key arrives
+      # on the MCP handshake and this server uses that one.
+      # GitHub Enterprise Server; empty = api.github.com.
+      - GITHUB_API_URL=${OCTOPUS_GITHUB_API_URL:-}
+    volumes:
+      - ./thulu-github/server.js:/app/server.js:ro
+      - ./thulu-github/i18n.js:/app/i18n.js:ro
+      - ./thulu-github/locales:/app/locales:ro
+
+  octopus-api:
+    <<: *mcp-server
+    image: octopus-api
+    build:
+      context: ./octopus-api
+    container_name: octopus-api
+    ports:
+      - "127.0.0.1:3013:3000"
+    environment:
+      # Forwarded as X-API-Key on every daemon call: the calling agent's own
+      # run key, delivered on the MCP handshake.
+      - OCTOPUS_API=http://octopus:8585
+    volumes:
+      - ./octopus-api/server.js:/app/server.js:ro
+      - ./octopus-api/i18n.js:/app/i18n.js:ro
+      - ./octopus-api/locales:/app/locales:ro
+
+  # Read-only window onto your deployed infrastructure. Resolves
+  # cloud credentials server-side so no key ever reaches an agent's context.
+  thulu-cloud:
+    <<: *mcp-server
+    image: thulu-cloud
+    build:
+      context: ./thulu-cloud
+    container_name: thulu-cloud
+    ports:
+      - "127.0.0.1:3015:3000"
+    environment:
+      # Needed for /internal/environments/{id}/credential and for the per-task
+      # authorization lookup — without the run key every tool 401s.
+      - OCTOPUS_API=http://octopus:8585
+    volumes:
+      - ./thulu-cloud/server.js:/app/server.js:ro
+      - ./thulu-cloud/i18n.js:/app/i18n.js:ro
+      - ./thulu-cloud/locales:/app/locales:ro
+
+  # Read-only Figma over its REST API. The token comes from the workspace's
+  # Figma credential, resolved through the daemon with the run key.
+  thulu-figma:
+    <<: *mcp-server
+    image: thulu-figma
+    build:
+      context: ./thulu-figma
+    container_name: thulu-figma
+    ports:
+      - "127.0.0.1:3016:3000"
+    environment:
+      - OCTOPUS_API=http://octopus:8585
+    volumes:
+      - ./thulu-figma/server.js:/app/server.js:ro
+      - ./thulu-figma/figma.js:/app/figma.js:ro
+      - ./thulu-figma/i18n.js:/app/i18n.js:ro
+      - ./thulu-figma/locales:/app/locales:ro
+
+networks:
+  agents:
+    name: ${OCTOPUS_AGENT_NETWORK:-octopus-agents}
+    driver: bridge

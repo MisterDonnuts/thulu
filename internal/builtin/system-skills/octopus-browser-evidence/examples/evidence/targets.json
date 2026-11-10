@@ -1,0 +1,10 @@
+{
+  "email": "role=textbox[name=\"Email\"]",
+  "password": "role=textbox[name=\"Password\"]",
+  "sign_in": "role=button[name=\"Sign in\"]",
+  "coupon": "[data-testid=\"coupon-input\"]",
+  "apply_coupon": "role=button[name=\"Apply\"]",
+  "order_total": "[data-testid=\"order-total\"]",
+  "coupon_error": "[data-testid=\"coupon-error\"]",
+  "account_menu": "[data-testid=\"account-menu\"]"
+}

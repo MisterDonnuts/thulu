@@ -1,0 +1,22 @@
+{
+  "errors": {
+    "project_store_unavailable": "el almacén de proyectos no está configurado",
+    "dispatcher_unavailable": "el dispatcher no está configurado",
+    "mcp_manager_unavailable": "el gestor de MCP no está configurado",
+    "settings_store_unavailable": "el almacén de configuración no está configurado",
+    "secrets_store_unavailable": "el almacén de secretos no está configurado",
+    "auth_disabled": "la autenticación no está activada",
+    "event_hub_unavailable": "el hub de eventos no está configurado",
+    "metrics_token_required": "hace falta el token de métricas",
+    "invalid_body": "el cuerpo de la solicitud no es válido",
+    "invalid_cursor": "el cursor no es válido"
+  },
+  "log": {
+    "mcp_registry_seed_failed": "cargar el registro de MCP: {err}",
+    "sso_load_failed": "no se pudieron cargar los proveedores de SSO: {err}",
+    "sso_loaded": "proveedores de SSO cargados: {count}",
+    "saas_agent_cap": "modo SaaS con agent.max_containers=0: se limitan los runs de agente simultáneos a {cap} ({cpus} CPUs - 2, mínimo 2). Configurá agent.max_containers para elegir otro tope.",
+    "listening": "escuchando en {addr}",
+    "listening_tls": "escuchando en {addr} (TLS)"
+  }
+}

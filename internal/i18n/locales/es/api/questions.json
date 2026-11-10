@@ -1,0 +1,19 @@
+{
+  "audit": {
+    "answered": "contestó una pregunta de {agent} en la tarea {task}",
+    "canceled": "canceló una pregunta de {agent} en la tarea {task}"
+  },
+  "errors": {
+    "continuation_run": "esta corrida contesta un mensaje del chat: preguntá en tu respuesta, no con task_ask",
+    "not_running": "sólo la corrida que trabaja en la tarea puede preguntar, y la tarea está {status}",
+    "own_task_only": "una corrida de agente pregunta sólo en su propia tarea",
+    "stage_run_only": "sólo la corrida de etapa de un agente puede hacer preguntas: un chat, el auditor o una persona comentan"
+  },
+  "prompts": {
+    "brief_how_to_ask": "## Preguntarle a una persona\n\nCuando no podés seguir sin algo que sólo una persona puede decidir o darte (una elección que la tarea deja abierta, una credencial o un acceso que te falta, una contradicción en el pedido), preguntá con `task_ask` en vez de adivinar. No preguntes lo que ya contestan la descripción, los comentarios o el repositorio.\n\n- Preguntá una vez, con todo lo que necesitás: hasta 4 preguntas por llamada, cada una con hasta 6 opciones cortas cuando las alternativas son claras. Poné lo que encontraste en `context`.\n- Una pregunta que bloquea: llamá a `task_ask` y terminá tu turno. No sigas con lo que depende de la respuesta. Las respuestas te vuelven en esta misma conversación.\n- Una pregunta que no bloquea lleva un `default`: decí qué vas a hacer si nadie contesta y seguí con eso. Puede llegarte una respuesta mientras trabajás.\n- `blocker` es para lo que no podés hacer de ninguna forma sin la persona (una clave, un acceso). Elegilo sólo en ese caso.\n\nUna corrida puede preguntar {per_run} veces como máximo, y una tarea puede tener {open} preguntas abiertas.\n\n",
+    "brief_open_heading": "## Preguntas abiertas\n\nHechas y todavía sin respuesta. No las vuelvas a hacer.\n\n",
+    "brief_open_line": "- ({agent}) {question}\n",
+    "instruction_blocking": "Tu pregunta quedó publicada. Terminá tu turno ahora y no sigas con lo que depende de la respuesta: cuando una persona conteste, te retoman en esta misma conversación con las respuestas.",
+    "instruction_non_blocking": "Tu pregunta quedó publicada. Seguí trabajando con tu default ({default}). Si llega una respuesta mientras trabajás te llega acá; si no, queda en el hilo de la tarea."
+  }
+}

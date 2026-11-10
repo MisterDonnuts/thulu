@@ -1,0 +1,41 @@
+{
+  "errors": {
+    "disabled": "the token optimizer is off for this run",
+    "no_worker": "the agent's worker engine has no usable default LLM profile in this workspace",
+    "provider_unsupported": "the default LLM profile of the worker's engine uses a provider the token optimizer cannot call yet (only anthropic, openai and openai-compatible)",
+    "provider_named": "provider {provider}",
+    "profile_not_usable": "the default LLM profile of the worker's engine cannot back a worker: it has no key, or holds a credential the daemon may not send to the provider's API that is not a Claude Code subscription token either (a federated profile, a Claude subscription token on another engine's profile); give that engine a default profile with an API key or a Claude Code token",
+    "timeout": "the token optimizer worker did not answer in time",
+    "upstream_status": "the worker's provider answered {status} {message}",
+    "upstream_unreachable": "the worker's provider could not be reached",
+    "upstream_response": "the worker's provider sent a response that could not be read",
+    "empty_answer": "the worker's provider sent an empty answer",
+    "unfinished": "the run's pod never reported how this delegation ended",
+    "encode_request": "encode the worker request",
+    "question_required": "a read needs a question",
+    "files_required": "a read needs at least one file",
+    "too_many_files": "a read may send at most {max} files",
+    "path_required": "every file needs a path",
+    "invalid_kind": "kind must be read, not {kind:%q}",
+    "invalid_level": "the level must be off, suggest or enforce, not {level:%q}",
+    "migrations": "token optimizer migrations",
+    "worker_in_pod": "this worker runs in the run's own pod through the Claude Code CLI, with the worker profile's subscription token; prepare it with /internal/token-optimizer/prepare instead of asking the daemon to call it",
+    "worker_not_in_pod": "this worker is called by the daemon through the provider's API; delegate to it with /internal/token-optimizer/delegate instead of running it in the pod",
+    "id_required": "id is required",
+    "invalid_status": "status must be ok, failed or timeout, not {status:%q}",
+    "negative_field": "{field} cannot be negative",
+    "cli_failed": "the in-pod worker (Claude Code) failed",
+    "invalid_error_code": "error_code must be empty or a tokenopt.errors key, at most {max} characters",
+    "write_removed": "the token optimizer does not delegate writes: write the file yourself",
+    "engine_required": "the token optimizer needs the worker's engine when it is on",
+    "unknown_engine": "the token optimizer's engine {engine:%q} is not a registered engine",
+    "model_required": "the token optimizer needs the worker's model when it is on"
+  },
+  "prompts": {
+    "bulk_reader": "You are a precise code analyst. You read the files you are given and answer the question that follows them, for another engineer who will act on your answer without reading the files.\n\nRules:\n- Answer in structured bullets only. No introduction, no summary, no closing remarks.\n- Lead every bullet with the exact name, type and line it is about, as they appear in the file (for example `parseConfig (func, config.go:42)`).\n- Quote identifiers, signatures, constants and error messages exactly. Never paraphrase code you are citing.\n- Answer only what was asked. Skip files, symbols and details the question does not need.\n- If the files do not contain the answer, say so in one bullet and name what is missing. Never guess.",
+    "question": "Question: {question}"
+  },
+  "log": {
+    "worker_unreadable": "token optimizer worker of workspace {workspace} for engine {engine} unreadable: {err} — the run starts without the optimizer"
+  }
+}

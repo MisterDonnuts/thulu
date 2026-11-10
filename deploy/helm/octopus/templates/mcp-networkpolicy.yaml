@@ -1,0 +1,99 @@
+{{- /*
+One NetworkPolicy for every MCP server of this release (mcp.networkPolicy).
+
+The servers act for whichever agent calls them, of any tenant, and
+thulu-browser loads any page an agent names, so a compromised or misused
+server must not become a way into the cluster. Ingress: the daemon (its MCP
+health probe) and, in kubernetes mode, the agent pods of tenant namespaces,
+on the SSE port only. Egress: DNS, the daemon's API, and the public internet
+on publicPorts, minus privateCIDRs (cluster, node and metadata ranges) and,
+with excludeNodeAddresses, every node's own IPv4 address.
+*/ -}}
+{{- $np := .Values.mcp.networkPolicy -}}
+{{- if $np.enabled -}}
+{{- $kube := eq .Values.agentRuntime.mode "kubernetes" -}}
+{{- /*
+The nodes' own IPv4 addresses, read from the cluster at install/upgrade time
+(`helm template` has no cluster, so it sees none): a node's public IP is not
+in privateCIDRs and reaches its ingress and host-network listeners.
+*/ -}}
+{{- $except := $np.privateCIDRs | default list -}}
+{{- if $np.excludeNodeAddresses -}}
+{{- range $node := dig "items" list (lookup "v1" "Node" "" "") -}}
+{{- range $a := dig "status" "addresses" list $node -}}
+{{- if and (has $a.type (list "InternalIP" "ExternalIP")) (regexMatch "^[0-9]+[.][0-9]+[.][0-9]+[.][0-9]+$" $a.address) -}}
+{{- $except = append $except (printf "%s/32" $a.address) -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- $except = $except | uniq -}}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ printf "%s-mcp" (include "octopus.fullname" .) | trunc 63 | trimSuffix "-" }}
+  labels:
+    {{- include "octopus.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: octopus-mcp
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "octopus.selectorLabels" . | nindent 14 }}
+        {{- if and $kube $np.allowTenantIngress }}
+        - namespaceSelector:
+            matchLabels:
+              thulu.dev/plane: data
+        {{- end }}
+        {{- with $np.extraIngressFrom }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: 3000
+  egress:
+    - to:
+        {{- if $np.dnsNamespace }}
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ $np.dnsNamespace }}
+        {{- else }}
+        []
+        {{- end }}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "octopus.selectorLabels" . | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: 8585
+    {{- if $np.publicPorts }}
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            {{- with $except }}
+            except:
+              {{- toYaml . | nindent 14 }}
+            {{- end }}
+      ports:
+        {{- range $np.publicPorts }}
+        - protocol: TCP
+          port: {{ . }}
+        {{- end }}
+    {{- end }}
+    {{- with $np.extraEgress }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+{{- end -}}

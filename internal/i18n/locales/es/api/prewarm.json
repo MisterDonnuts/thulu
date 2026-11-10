@@ -1,0 +1,18 @@
+{
+  "interrupted": "interrumpido: el daemon se reinició mientras corría",
+  "tools_unavailable": "snapshot escrito, pero la imagen no tiene mise: las herramientas declaradas no se instalaron",
+  "errors": {
+    "unavailable": "los precalentados necesitan el runtime de sandboxes, que esta instalación no corre",
+    "not_eligible": "el script de arranque necesita una fase de setup y cache.paths para que haya algo que precalentar"
+  },
+  "log": {
+    "cleanup_failed": "limpiar un precalentado anterior",
+    "closed_stale": "cerrados {count} precalentados interrumpidos por un reinicio",
+    "list_failed": "listar proyectos para precalentar",
+    "fetch_failed": "traer la rama por defecto del proyecto {project} para un precalentado",
+    "key_failed": "calcular la clave de setup del proyecto {project}",
+    "record_failed": "registrar un precalentado del proyecto {project}",
+    "started": "precalentado de {project} iniciado: clave {key}, motivo {reason}",
+    "finished": "precalentado de {project}: {status} {error}"
+  }
+}

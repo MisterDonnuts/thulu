@@ -1,0 +1,32 @@
+{
+  "title": "Chequeos del daemon",
+  "checking": "verificando",
+  "refresh_aria": "Actualizar la salud",
+  "system": "Sistema",
+  "empty": "No llegaron datos de salud.",
+  "offline": "sin conexión",
+  "license": {
+    "title": "Licencia",
+    "edition": "Edición",
+    "licensee": "Licenciatario",
+    "expires": "Vence",
+    "expired": "Vencida",
+    "expires_in": {
+      "one": "La licencia vence en {count} día",
+      "other": "La licencia vence en {count} días"
+    },
+    "features": "Funciones",
+    "ce_note_html": "Estás usando la <strong>Community Edition</strong>. Una licencia Enterprise (<code>OCTOPUS_LICENSE_KEY</code>) agrega la exportación del registro de auditoría, en CSV o NDJSON. Todo lo demás funciona igual en las dos.",
+    "unknown": "desconocida",
+    "load_failed": "No se pudo cargar la información de la licencia."
+  },
+  "retention": {
+    "title": "Retención y limpieza",
+    "intro": "El janitor borra lo que dejan las corridas cuando supera su plazo, en su horario y antes si queda poco disco. 0 lo guarda para siempre; un campo vacío vuelve al valor por defecto.",
+    "saved": {
+      "one": "Se guardó {count} cambio",
+      "other": "Se guardaron {count} cambios"
+    },
+    "save_failed": "No se pudo guardar la retención."
+  }
+}

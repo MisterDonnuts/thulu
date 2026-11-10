@@ -1,0 +1,47 @@
+{
+  "errors": {
+    "schema": "audit schema",
+    "lock_chain": "lock chain",
+    "read_chain_head": "read chain head",
+    "write_csv_header": "write csv header",
+    "write_csv_row": "write csv row",
+    "flush_csv": "flush csv",
+    "sink_file_needs_path": "OCTOPUS_AUDIT_SINK={value:%q}: file: needs a path",
+    "sink_open": "OCTOPUS_AUDIT_SINK: open {path}",
+    "sink_unknown": "OCTOPUS_AUDIT_SINK={value:%q}: expected stdout, stderr or file:/path",
+    "record_version_empty": "record version: empty version",
+    "record_version": "record version",
+    "record_version_lock": "record version: lock",
+    "record_version_read_last": "record version: read last",
+    "record_version_parse_last": "record version: parse last",
+    "update_history": "update history",
+    "export_unavailable": "audit export needs the Enterprise Edition with the audit_export feature"
+  },
+  "log": {
+    "marshal_metadata": "audit: marshal metadata (kind={kind} resource={resource})",
+    "insert_failed": "insert failed (kind={kind} resource={resource}): {err}",
+    "unmarshal_metadata": "audit: unmarshal metadata for entry {id}",
+    "sink_marshal_failed": "sink: marshal {id}: {err}",
+    "sink_write_failed": "sink: write {id}: {err}",
+    "record_version_release_conn": "record version: release connection",
+    "record_version_unlock": "record version: unlock",
+    "update_history_unmarshal": "update history: unmarshal metadata for entry {id}"
+  },
+  "chain": {
+    "broken_at": "{reason} (row {id})",
+    "unhashed_row": "row without a hash after the chain started",
+    "prev_hash_mismatch": "prev_hash does not match the previous row",
+    "content_mismatch": "row content does not match its hash"
+  },
+  "labels": {
+    "retention_policy": "retention policy"
+  },
+  "comments": {
+    "retention_purged": {
+      "one": "Retention removed {count} audit entry older than {cutoff}",
+      "other": "Retention removed {count} audit entries older than {cutoff}"
+    },
+    "version_first_recorded": "Thulu {version} first recorded",
+    "version_changed": "Thulu {from} → {to}"
+  }
+}

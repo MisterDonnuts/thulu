@@ -1,0 +1,26 @@
+{
+  "source": {
+    "agent": "Agente",
+    "auditor": "Auditor",
+    "user": "Persona",
+    "system": "Thulu"
+  },
+  "kind": {
+    "agent_index": "Resumen de la corrida",
+    "evidence": "Evidencia",
+    "auditor_feedback": "Devolución del auditor"
+  },
+  "verdict": {
+    "continue": "Veredicto: seguir",
+    "block": "Veredicto: frenar para que decida una persona",
+    "needs_more_turns": "Veredicto: volver a correr con más turnos",
+    "kick_back": "Veredicto: devolver",
+    "kick_back_to": "Veredicto: devolver a {stage}"
+  },
+  "fallback_title": "Reporte",
+  "score": "Puntaje {score}",
+  "stage": {
+    "mention": "Mención",
+    "chat": "Chat"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "errors": {
+    "state": "este link de conexión no existe, ya se usó, venció o se abrió en otro navegador; empezá la conexión de nuevo",
+    "reconnect_required": "la conexión OAuth necesita que alguien la reconecte en Credenciales",
+    "wrong_resource": "la conexión OAuth se hizo para otro servidor MCP; reconectala desde este servidor",
+    "not_oauth": "la credencial no es una conexión OAuth",
+    "create_tables": "no se pudieron crear las tablas de OAuth de MCP",
+    "workspace_required": "hace falta un workspace para conectar",
+    "bad_url": "{url} no es una URL http(s) usable",
+    "unreachable": "no se pudo llegar a {url}",
+    "resource_mismatch": "el servidor publica metadata para {resource}, que no cubre {url}",
+    "no_authorization_server": "la metadata del recurso en {url} no nombra ningún servidor de autorización",
+    "not_oauth_server": "{url} no pidió OAuth (ni 401 ni metadata de recurso protegido)",
+    "metadata_missing": "el servidor apuntó a {url} para su metadata OAuth, pero ahí no hay nada",
+    "insecure_endpoint": "{url} no es https; los códigos y tokens OAuth sólo van a endpoints https (o loopback)",
+    "issuer_mismatch": "la metadata del servidor de autorización nombra el issuer {issuer}, no {url}",
+    "server_metadata_missing": "no se encontró metadata de servidor de autorización OAuth para {issuer}",
+    "endpoints_missing": "a la metadata de {issuer} le falta el endpoint de autorización o el de tokens",
+    "no_pkce": "{issuer} no soporta PKCE con S256",
+    "metadata_status": "{url} respondió {status}",
+    "metadata_decode": "no se pudo leer el JSON de {url}",
+    "client_required": "{issuer} no tiene registro dinámico de clientes: creá una app OAuth ahí y completá su client ID y secret",
+    "registration_refused": "el servidor de autorización no aceptó registrar a Thulu como cliente ({status}): {detail}",
+    "token_refused": "el servidor de autorización rechazó el pedido de token ({status} {code}): {detail}",
+    "denied": "el servidor de autorización no dio acceso ({code}): {detail}",
+    "save_flow": "no se pudo guardar el flujo de conexión",
+    "read_flow": "no se pudo leer el flujo de conexión",
+    "refresh_failed": "no se pudo renovar la conexión OAuth",
+    "save_tokens": "no se pudieron guardar los tokens renovados",
+    "bad_expires_in": "el endpoint de tokens mandó un expires_in que no es un número: {value}"
+  },
+  "log": {
+    "prune_failed": "limpiar flujos OAuth de MCP vencidos",
+    "mark_failed_failed": "marcar la conexión OAuth {id} como pendiente de reconexión"
+  }
+}

@@ -1,0 +1,151 @@
+Thulu Enterprise License
+Version 1.0
+
+Copyright (c) 2026 Mister.D LLC. All rights reserved,
+except as granted below.
+
+1. Definitions
+
+"Licensor" means Mister.D LLC.
+
+"Enterprise Software" means the files in the ee/ directory of the Thulu
+repository, and the parts of any program built from them.
+
+"Core" means every file of the repository outside ee/. The Core is licensed
+under the GNU Affero General Public License, version 3 only (../LICENSE).
+Nothing in this license limits the rights the AGPL gives you over the Core.
+
+"License Key" means a token signed by Licensor and set in the
+OCTOPUS_LICENSE_KEY setting of an installation.
+
+"Order" means the purchase, quote or signed agreement under which Licensor
+issued your License Key. If a signed agreement conflicts with this license,
+the signed agreement prevails.
+
+"Production Use" means using a feature that the Enterprise Software provides
+(today: the Kubernetes runtime, audit log export and Stripe billing) for any
+purpose other than those in section 2.
+
+"People" means the individuals who have signed in to an installation at
+least once and have access to at least one of its workspaces. Pending
+invitations and API keys are not People.
+
+"You" means the individual or organization that uses the Enterprise
+Software. If you use it for an organization, you accept this license for it.
+
+2. Development and testing
+
+Without a License Key, you may read, copy, build, run and modify the
+Enterprise Software to develop, test, evaluate or demonstrate it, or
+something that works with it, on installations that do no real work for you
+or anyone else.
+
+3. Builds that include the Enterprise Software
+
+The official Thulu binaries and container images include the Enterprise
+Software. Running them, or any build that includes it, without a License Key
+needs no license from Licensor: the features the Enterprise Software
+provides stay off, and the rest is the Core under the AGPL.
+
+4. Production Use
+
+You may make Production Use of the Enterprise Software only while you hold a
+valid License Key issued to you that names the features you use, and only
+within the number of People and other terms of your Order. This applies
+whatever the number of People: there is no free Production Use.
+
+If a License Key states an expiry date, for 14 days after that date you may
+keep making Production Use while you renew. After those 14 days, Production
+Use stops until you set a new License Key. Expiry does not affect the Core
+or your data.
+
+The license check runs offline and sends nothing to Licensor.
+
+5. Number of People
+
+The number of People in your Order is a term of this license. The software
+does not enforce it: it shows a notice to workspace owners and admins when
+more People use an installation than the License Key states, and it does
+not report anything to Licensor. If more People use your installations than
+your Order covers, you will report and pay for the additional People as your
+Order provides. If your Order does not say how, you will tell Licensor within
+30 days and pay for them at the price in your Order, prorated from when they
+were added.
+
+6. Modifications
+
+You own the changes you write to the Enterprise Software ("Modifications"),
+to the extent they are your own work. The Enterprise Software they change
+remains Licensor's, and a modified copy remains under this license: you may
+use and distribute it only as this license allows. Licensor gets no rights
+in your Modifications unless you send them to Licensor. If you send Licensor
+a Modification, suggestion or bug report, you grant Licensor a perpetual,
+worldwide, royalty-free, non-exclusive license to use, modify and distribute
+it, with no obligation to you.
+
+7. Distribution
+
+You may distribute copies of the Enterprise Software, modified or not, on
+its own or inside a build of Thulu, if you include this license, keep its
+copyright and license notices, mark the files you modified, and give the
+recipient no rights beyond this license. Each recipient needs its own
+License Key for Production Use.
+
+You may not offer Production Use of the Enterprise Software to third parties
+as a hosted or managed service without a written agreement with Licensor.
+
+8. No circumvention
+
+Outside the uses in section 2, you may not remove, disable, change or work
+around the License Key check; replace the public key the Enterprise Software
+verifies against; turn on a feature your License Key does not name; or use a
+License Key issued to someone else. This applies whether you do it by
+changing the Enterprise Software or files outside ee/. Code copied from the
+Enterprise Software into another file or project stays under this license.
+This section limits only how you use the Enterprise Software; it does not
+restrict what the AGPL lets you do with the Core.
+
+9. Termination
+
+If you breach this license, your rights under it end automatically. If you
+stop the breach within 30 days after Licensor notifies you, your rights are
+restored. This cure applies once; a later breach ends your rights for good.
+When your rights end, you must stop Production Use. Sections 6, 10, 11, 12
+and 13 survive.
+
+10. No warranty
+
+THE ENTERPRISE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING ANY WARRANTY OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE, TITLE OR NON-INFRINGEMENT, TO THE EXTENT THE LAW ALLOWS.
+Any warranty or support commitment applies only if your Order states it.
+
+11. Limitation of liability
+
+To the extent the law allows, Licensor is not liable for indirect,
+incidental, special, consequential or punitive damages, or for lost profits,
+revenue or data, arising from this license or the Enterprise Software, even
+if advised of their possibility. Licensor's total liability is limited to
+the greater of the fees you paid Licensor in the 12 months before the event
+that caused it, or 100 US dollars. This section does not limit liability
+that the applicable law does not allow to be limited, such as liability for
+wilful misconduct.
+
+12. General
+
+Licensor grants no rights other than those this license states. You may not
+assign this license without Licensor's written consent; Licensor may assign
+it to a successor of its business. If a provision is unenforceable, it
+applies to the extent it can and the rest stays in effect. A new version of
+this license applies only to Enterprise Software released with it.
+Third-party components included in the Enterprise Software keep their own
+licenses.
+
+13. Governing law
+
+This license is governed by the laws of the Argentine Republic, without regard to
+its conflict-of-laws rules. The United Nations Convention on Contracts for
+the International Sale of Goods does not apply. The commercial courts of the City of Buenos Aires, Argentina, have
+exclusive jurisdiction over any dispute about it, except that Licensor may
+bring a claim for infringement of its rights in the Enterprise Software in
+any court that has jurisdiction.

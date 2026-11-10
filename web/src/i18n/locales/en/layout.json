@@ -1,0 +1,54 @@
+{
+  "page_title": "{page} — Thulu",
+  "brand": {
+    "name": "thulu",
+    "ee": "EE"
+  },
+  "header": {
+    "open_navigation": "Open navigation",
+    "navigation": "Navigation",
+    "home": "Thulu home",
+    "setup": "Setup",
+    "search": "Search",
+    "search_hint": "Search tasks, projects, agents, boards and pages"
+  },
+  "new": {
+    "button": "New",
+    "task": "Task",
+    "chat": "Chat",
+    "project": "Project",
+    "automation": "Automation"
+  },
+  "daemon": {
+    "health": "Daemon health",
+    "title": "Daemon: {state}",
+    "checking": "checking",
+    "online": "online",
+    "offline": "offline",
+    "error": "error {status}"
+  },
+  "account": {
+    "menu": "Account menu",
+    "account": "Account",
+    "settings": "Settings",
+    "local_mode": "Local mode",
+    "no_login": "No login on this install",
+    "log_out": "Log out"
+  },
+  "theme": {
+    "label": "Theme",
+    "system": "System",
+    "system_hint": "Follow the light or dark setting of this computer",
+    "light": "Light",
+    "dark": "Dark"
+  },
+  "version": {
+    "label": "Thulu {version}",
+    "running": "Running {version}. Updates and kept versions in Settings → Updates.",
+    "update_available": "An update is available.",
+    "update_fixes_advisories": {
+      "one": "An update is available and fixes {count} security advisory.",
+      "other": "An update is available and fixes {count} security advisories."
+    }
+  }
+}

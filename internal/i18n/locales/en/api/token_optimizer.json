@@ -1,0 +1,15 @@
+{
+  "errors": {
+    "run_keys_only": "only an agent run's own key may delegate to the token optimizer",
+    "body_too_large": "a delegation body may be at most {max} bytes",
+    "profile_not_found": "LLM profile {profile} is not one of this workspace's",
+    "base_url_required": "the worker's {provider} profile has no base_url",
+    "endpoint_refused": "the worker's endpoint is refused",
+    "delegation_not_found": "no delegation {id} of this run is waiting to be finished",
+    "usage_unavailable": "the usage store is not available on this server",
+    "no_default_profile": "the workspace has no default LLM profile for engine {engine}"
+  },
+  "log": {
+    "record_failed": "record delegation {id}"
+  }
+}

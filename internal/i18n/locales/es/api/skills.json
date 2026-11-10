@@ -1,0 +1,15 @@
+{
+  "errors": {
+    "read_dir": "no se puede leer el directorio de skills",
+    "skill_exists": "este workspace ya tiene una skill llamada {name}",
+    "invalid_name": "nombre de skill inválido: usá minúsculas, dígitos y guiones",
+    "description_too_long": "la descripción tiene más de {max} caracteres; los motores la cortan ahí",
+    "invalid_enforcement": "la entrega tiene que ser on_demand o always",
+    "yaml_not_mapping": "skill.yaml tiene que ser una lista de líneas clave: valor"
+  },
+  "audit": {
+    "content_updated": "contenido de la skill actualizado: {skill}/{path}",
+    "content_deleted": "contenido de la skill borrado: {skill}/{path}",
+    "content_restored": "contenido de la skill restaurado: {skill}/{path}"
+  }
+}

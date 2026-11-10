@@ -1,0 +1,136 @@
+{
+  "title": "Automations",
+  "subtitle": "A trigger fires, a short recipe gathers context, and the work that needs a model becomes a task on a board.",
+  "header": {
+    "recipes": {
+      "one": "{count} recipe",
+      "other": "{count} recipes"
+    },
+    "enabled": {
+      "one": "{count} enabled",
+      "other": "{count} enabled"
+    }
+  },
+  "buttons": {
+    "new": "New automation",
+    "run_now": "Run now",
+    "disable": "Disable",
+    "enable": "Enable",
+    "delete_automation": "Delete automation",
+    "validate": "Validate",
+    "run_test": "Run with test data"
+  },
+  "panels": {
+    "recipes": "Recipes"
+  },
+  "tabs": {
+    "aria": "Automation sections",
+    "recipe": "Recipe",
+    "runs": "Runs"
+  },
+  "detail": {
+    "name_placeholder": "Name this automation",
+    "name_aria": "Automation name"
+  },
+  "columns": {
+    "started": "Started",
+    "trigger": "Trigger",
+    "status": "Status",
+    "agent_runs": "Agent runs",
+    "duration": "Duration",
+    "actions": "Actions"
+  },
+  "trigger": {
+    "schedule": "schedule",
+    "event": "event",
+    "metric": "metric",
+    "manual": "manual",
+    "test": "test data"
+  },
+  "state": {
+    "enabled": "enabled",
+    "suspended": "suspended",
+    "unsaved": "unsaved"
+  },
+  "labels": {
+    "next": "next {when}",
+    "last": "· last {ago}",
+    "schedule_tz": "{cron} in {tz}"
+  },
+  "empty": {
+    "unavailable": "Automations are not enabled on this install.",
+    "automations": "No automations yet",
+    "runs": "No runs yet"
+  },
+  "modal": {
+    "title": "New automation",
+    "intro": "Start from a recipe that already works, then edit it."
+  },
+  "validate": {
+    "invalid": "invalid",
+    "next_runs": "next, in your local time: {runs}"
+  },
+  "confirm": {
+    "discard": "Your edits to this recipe will be lost.",
+    "delete_title": "Delete automation?",
+    "delete_message": "\"{name}\" and its run history are removed. This cannot be undone."
+  },
+  "toasts": {
+    "run_canceled": "Run canceled",
+    "cancel_failed": "Cancel failed: {error}",
+    "saved": "Saved",
+    "save_failed": "Save failed: {error}",
+    "skipped": "Skipped: {reason}",
+    "run_started": "Run started",
+    "run_failed": "Run failed: {error}",
+    "toggle_failed": "Toggle failed: {error}",
+    "deleted": "Deleted",
+    "delete_failed": "Delete failed: {error}"
+  },
+  "guide": {
+    "trigger": "Trigger",
+    "kind": {
+      "schedule": "Schedule",
+      "event": "Event",
+      "metric": "Metric",
+      "manual": "Manual"
+    },
+    "insert": "Insert the ID of:",
+    "pick_board": "Board…",
+    "pick_stage": "Stage…",
+    "pick_agent": "Agent…",
+    "pick_project": "Project…",
+    "pick_env": "Environment…",
+    "cron": "Cron",
+    "tz": "Timezone",
+    "event": "Event",
+    "filter": "Filter",
+    "environment": "Environment",
+    "metric": "Metric",
+    "window": "Window",
+    "agg": "Aggregation",
+    "op": "Operator",
+    "threshold": "Threshold",
+    "every": "Check every",
+    "choose": "Choose…",
+    "locked": "Fix the YAML below to use the form again."
+  },
+  "runs": {
+    "raw_output": "Full output (JSON)",
+    "started_ago": "{ago} ago",
+    "no_steps": "No step ran.",
+    "trigger_data": "Trigger data (trigger.payload)",
+    "batched": {
+      "one": "Gathered {count} event",
+      "other": "Gathered {count} events"
+    }
+  },
+  "test": {
+    "title": "Run with test data",
+    "intro": "The recipe runs now with this payload as trigger.payload. It is a sample shaped like the real one: change what you need, for example task_id to the ID of a real task.",
+    "payload": "Test payload",
+    "run": "Run",
+    "bad_json": "Not valid JSON. Check the quotes, commas and braces.",
+    "not_object": "The payload must be a JSON object, between braces."
+  }
+}

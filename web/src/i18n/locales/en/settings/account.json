@@ -1,0 +1,85 @@
+{
+  "profile": {
+    "title": "Your profile",
+    "email": "Email",
+    "name": "Name",
+    "workspace": "Workspace",
+    "signed_out": "Not authenticated — log in to manage your account."
+  },
+  "sessions": {
+    "title": "Active sessions",
+    "revoke_all": "Sign out all other devices",
+    "empty": "No active sessions.",
+    "this_device": "this device",
+    "times": "Started {started} · last used {last_used}",
+    "sign_out": "Sign out",
+    "signed_out": "Session signed out",
+    "sign_out_failed": "Failed to sign out session",
+    "signed_out_state": "Not authenticated — log in to manage your sessions.",
+    "revoked_all": "Signed out of all other devices",
+    "revoke_all_failed": "Failed to sign out other devices"
+  },
+  "identity": {
+    "signed_in": "Signed in as {email}.",
+    "signed_in_via": "Signed in as {email} through {idp}."
+  },
+  "workspaces": {
+    "title": "Your workspaces",
+    "empty": "You are not in any workspace.",
+    "load_failed": "Could not load your workspaces",
+    "members": {
+      "one": "{count} member",
+      "other": "{count} members"
+    },
+    "current": "current",
+    "switch": "Switch",
+    "transfer": "Transfer ownership",
+    "delete": "Delete workspace",
+    "delete_hint": "To delete another workspace you own, switch to it first.",
+    "rename": "Rename"
+  },
+  "legal": {
+    "title": "Terms and privacy"
+  },
+  "danger": {
+    "title": "Delete your account",
+    "body": "Erases your account and every workspace you own alone. A workspace you own that other people use has to be handed to another member, or deleted, first.",
+    "button": "Delete account"
+  },
+  "delete_workspace": {
+    "title": "Delete workspace",
+    "body": "This erases {name} for everyone in it: tasks, projects and their clones, chats, credentials, webhooks and API keys. It cannot be undone.",
+    "button": "Delete workspace",
+    "done": "Workspace deleted",
+    "failed": "Could not delete the workspace"
+  },
+  "transfer": {
+    "title": "Transfer ownership",
+    "body": "Hand {name} to another member. They become its owner and you stay on as an admin.",
+    "member_label": "New owner",
+    "no_members": "Nobody else is in this workspace. Invite someone first.",
+    "button": "Transfer",
+    "done": "Ownership transferred",
+    "failed": "Could not transfer the workspace"
+  },
+  "delete_account": {
+    "title": "Delete your account",
+    "body": "This erases your account, your sessions and every workspace you own alone. API keys you created stop working. It cannot be undone.",
+    "button": "Delete my account",
+    "failed": "Could not delete your account",
+    "blocking_item": {
+      "one": "{name} ({count} member)",
+      "other": "{name} ({count} members)"
+    }
+  },
+  "rename": {
+    "title": "Rename workspace",
+    "body": "Members see the new name in the workspace menu and on invitations. The slug stays the same, so links and sign-in settings keep working.",
+    "label": "Name",
+    "button": "Rename",
+    "empty": "Write a name.",
+    "too_long": "The name can have at most {max} characters.",
+    "done": "Workspace renamed",
+    "failed": "Could not rename the workspace"
+  }
+}

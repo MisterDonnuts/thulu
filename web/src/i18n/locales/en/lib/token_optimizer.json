@@ -1,0 +1,18 @@
+{
+  "levels": {
+    "off": "Off",
+    "suggest": "Suggest",
+    "enforce": "Enforce"
+  },
+  "mode": {
+    "enforce_unavailable": "Enforce works only for agents that run on Claude Code.",
+    "runs_as_suggest": "This agent doesn't run on Claude Code, so Enforce runs as Suggest."
+  },
+  "reasons": {
+    "no_default_profile": "no default credential for this engine",
+    "unsupported_credential": "its default credential can't run it",
+    "unknown": "not available"
+  },
+  "engine_unavailable": "{engine} ({reason})",
+  "pick_engine": "Pick an engine"
+}

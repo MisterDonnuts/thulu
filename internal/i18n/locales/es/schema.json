@@ -1,0 +1,39 @@
+{
+  "errors": {
+    "build_migrations": "esquema: armar las migraciones de {component}",
+    "lock_line": "línea {line} del lock",
+    "lock_line_duplicate": "línea {line} del lock: {migration} aparece dos veces",
+    "released_in_unlisted": "lock: {migration} salió en {release}, que no es una release de la lista",
+    "want_release_line": "se esperaba \"release <versión>\"",
+    "want_entry_line": "se esperaba \"<componente> <id> <sha256> <released_in|->\"",
+    "bad_id": "id inválido {id:%q}",
+    "bad_sha256": "sha256 inválido {sha:%q}",
+    "not_release_version": "{version:%q} no es una versión de release (se espera 1.2.3 o 1.2.3-rc.1)",
+    "release_already_listed": "la release {release} ya está en el lock",
+    "release_not_newer": "la release {release} no es más nueva que {latest}"
+  },
+  "lint": {
+    "blocked": "BLOQUEADA",
+    "contract": "contrato",
+    "no_contract": "destructiva sin Contract: partila (docs/migrations.md) o agregá Contract{StoppedUsingIn, Reason}",
+    "contract_release_not_cut": "Contract.StoppedUsingIn {release:%q} no es una release cortada en el lock"
+  },
+  "problems": {
+    "not_in_lock": "{migration} no está en el lock: corré `make migrations-lock`",
+    "shipped_sql_changed": "{migration} salió en {release} y su SQL cambió. Una migración publicada no cambia nunca: agregá una migración nueva",
+    "changed_since_lock": "{migration} cambió desde que se escribió el lock: corré `make migrations-lock`",
+    "contract_release_invalid": "{migration}: Contract.StoppedUsingIn: {err}",
+    "contract_reason_empty": "{migration}: Contract.Reason está vacío: decí qué se va y por qué",
+    "shipped_gone": "{migration} salió en {release} y ya no está en el código. Una migración publicada no desaparece nunca",
+    "lock_only": "{migration} está en el lock pero no en el código: corré `make migrations-lock`",
+    "release_removed": "se sacó la release {release} del lock",
+    "shipped_removed_from_lock": "{migration} salió en {release} y se sacó del lock",
+    "shipped_hash_changed": "{migration} salió en {release} y su hash cambió en el lock",
+    "shipped_release_changed": "{migration} salió en {release}; el lock ahora dice {now:%q}",
+    "release_not_newer_than_base": "se agregó la release {release}, pero la base ya tiene {latest}",
+    "relock_sql_changed": "{migration} salió en {release} y su SQL cambió; revertilo y agregá una migración nueva",
+    "relock_gone": "{migration} salió en {release} y ya no está en el código; restauralo",
+    "release_not_listed": "el lock no lista la release {release}: corré `make migrations-release VERSION={release}` en el PR de la release",
+    "not_shipped": "{migration} no está marcada como publicada"
+  }
+}

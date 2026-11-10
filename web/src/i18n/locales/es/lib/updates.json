@@ -1,0 +1,65 @@
+{
+  "source": {
+    "misconfigured": "La fuente de releases está mal configurada: {error}",
+    "off": "La búsqueda de releases está apagada (OCTOPUS_UPDATE_SOURCE=off).",
+    "checking_last": {
+      "one": "Buscando releases {channels} en {source} cada hora; última revisión: {date}.",
+      "other": "Buscando releases {channels} en {source} cada {count} horas; última revisión: {date}."
+    },
+    "checking_never": {
+      "one": "Buscando releases {channels} en {source} cada hora; todavía no se revisó.",
+      "other": "Buscando releases {channels} en {source} cada {count} horas; todavía no se revisó."
+    }
+  },
+  "buttons": {
+    "download_package": "Descargar paquete de cambios",
+    "json": "JSON"
+  },
+  "command_name": "el comando de actualización",
+  "advisories": {
+    "heading": "La versión en marcha tiene avisos de seguridad conocidos.",
+    "fallback_severity": "aviso",
+    "fixed_in": "corregido en {version}"
+  },
+  "release": {
+    "published": "publicada el {date}",
+    "no_migrations": "Sin migraciones de base de datos.",
+    "migrations": "{added} migración(es).",
+    "migrations_contract": "{added} migración(es); {contract} borran columnas o tablas viejas.",
+    "upgrades_from": "Actualiza desde {version}.",
+    "rollback_no_restore": "Volver a {version} no requiere restaurar la base de datos.",
+    "rollback_snapshot": "Volver a {version} requiere el snapshot tomado antes de la actualización.",
+    "requires_html": "Requiere {vars}.",
+    "manual_steps": "Pasos manuales",
+    "blockers": "Antes de esta actualización: {blockers}",
+    "full_notes": "Notas de la release completas"
+  },
+  "versions": {
+    "running": "en marcha",
+    "no_restore": "No hace falta restaurar la base de datos.",
+    "no_snapshot": "No hay snapshot registrado para esta versión; reemplazá <snapshot> por uno del directorio de backups.",
+    "restore_loses": "Restaura la base: se pierde lo escrito desde {date}.",
+    "restore_loses_undated": "Restaura la base: se pierde lo escrito después de que la instalación dejó esta versión."
+  },
+  "history": {
+    "version_changed": "El daemon arrancó en una versión nueva",
+    "update_reported": "Corrida de actualización",
+    "result_ok": "correcta",
+    "result_failed": "falló",
+    "result_rolled_back": "revertida",
+    "first_start": "primer arranque"
+  },
+  "check_error": {
+    "title": "No se pudo buscar.",
+    "badge": "no se pudo buscar",
+    "offline": "Sin conexión con {source}.",
+    "rate_limited": "{source} está limitando las consultas; la próxima búsqueda suele pasar.",
+    "not_found": "{source} no tiene las versiones que pide esta instalación: revisá OCTOPUS_UPDATE_SOURCE.",
+    "other": "Falló la búsqueda en {source}.",
+    "detail": "Detalle",
+    "unknown_newest": "La última búsqueda falló, así que no se sabe si hay una versión más nueva."
+  },
+  "unreported": {
+    "note_html": "El daemon arrancó en {versions} y ninguna corrida de actualización lo reportó, así que el historial no dice quién actualizó ni cómo terminó. <code>thulu update</code> reporta con una API key de este espacio de trabajo (rol admin, permiso de configuración) en {env} en el host: creala en <a href=\"/settings/#api\">API</a>."
+  }
+}

@@ -1,0 +1,16 @@
+---
+// Markup must match dotHTML() in lib/ui/badge.ts.
+import { dotA11y, dotClasses, type DotTone } from "../lib/ui/badge";
+
+interface Props {
+  tone?: DotTone;
+  pulse?: boolean;
+  label?: string;
+  id?: string;
+  class?: string;
+  [key: string]: unknown;
+}
+const { tone = "neutral", pulse = false, label, id, class: extra, ...rest } = Astro.props;
+---
+
+<span {id} class={dotClasses(tone, pulse, extra)} {...dotA11y(label)} {...rest}></span>

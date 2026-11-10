@@ -1,0 +1,54 @@
+{
+  "page_title": "{page} — Thulu",
+  "brand": {
+    "name": "thulu",
+    "ee": "EE"
+  },
+  "header": {
+    "open_navigation": "Abrir navegación",
+    "navigation": "Navegación",
+    "home": "Inicio de Thulu",
+    "setup": "Configuración inicial",
+    "search": "Buscar",
+    "search_hint": "Buscar tareas, proyectos, agentes, tableros y páginas"
+  },
+  "new": {
+    "button": "Nuevo",
+    "task": "Tarea",
+    "chat": "Chat",
+    "project": "Proyecto",
+    "automation": "Automatización"
+  },
+  "daemon": {
+    "health": "Estado del daemon",
+    "title": "Daemon: {state}",
+    "checking": "verificando",
+    "online": "en línea",
+    "offline": "sin conexión",
+    "error": "error {status}"
+  },
+  "account": {
+    "menu": "Menú de la cuenta",
+    "account": "Cuenta",
+    "settings": "Configuración",
+    "local_mode": "Modo local",
+    "no_login": "Esta instalación no pide inicio de sesión",
+    "log_out": "Cerrar sesión"
+  },
+  "theme": {
+    "label": "Tema",
+    "system": "Sistema",
+    "system_hint": "Seguir el modo claro u oscuro de esta computadora",
+    "light": "Claro",
+    "dark": "Oscuro"
+  },
+  "version": {
+    "label": "Thulu {version}",
+    "running": "Corriendo {version}. Las actualizaciones y las versiones guardadas están en Configuración → Actualizaciones.",
+    "update_available": "Hay una actualización disponible.",
+    "update_fixes_advisories": {
+      "one": "Hay una actualización disponible que corrige {count} aviso de seguridad.",
+      "other": "Hay una actualización disponible que corrige {count} avisos de seguridad."
+    }
+  }
+}

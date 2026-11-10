@@ -1,0 +1,24 @@
+{
+  "errors": {
+    "licensee_required": "-licensee is required",
+    "invalid_date": "invalid date {date:%q}",
+    "signing_key_missing": "OCTOPUS_LICENSE_SIGNING_KEY is not set (the private key from `license keygen`)"
+  },
+  "cli": {
+    "error": "error: {err}",
+    "keypair_title": "Vendor keypair (ed25519):",
+    "keypair_public": "PUBLIC  (goes in ee/licensing/licensing.go): {key}",
+    "keypair_private": "PRIVATE (keep offline, OCTOPUS_LICENSE_SIGNING_KEY): {key}",
+    "flag_licensee": "licensee name (required)",
+    "flag_features": "comma-separated feature list, or * for all",
+    "flag_expires": "expiry date YYYY-MM-DD (empty = never)",
+    "flag_edition": "license edition",
+    "flag_seats": "people the license covers; 0 leaves it out",
+    "licensee": "Licensee : {licensee}",
+    "features": "Features : {features}",
+    "seats": "Seats    : {count}",
+    "edition": "Edition  : {edition}",
+    "expires": "Expires  : {date}",
+    "expires_never": "Expires  : never"
+  }
+}

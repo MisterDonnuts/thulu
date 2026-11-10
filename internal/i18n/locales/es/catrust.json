@@ -1,0 +1,11 @@
+{
+  "errors": {
+    "read_bundle": "catrust: no se pudo leer {env} ({path})",
+    "invalid_bundle": "catrust: {env} ({path})",
+    "certificate_unparseable": "el certificado {n} no se puede parsear",
+    "no_certificates": "no hay bloques PEM CERTIFICATE",
+    "tar_header": "catrust: cabecera tar de {name}",
+    "tar_body": "catrust: contenido tar de {name}",
+    "finalize_tar": "catrust: no se pudo cerrar el tar"
+  }
+}

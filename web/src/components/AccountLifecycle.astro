@@ -1,0 +1,105 @@
+---
+import Button from "./Button.astro";
+import EmptyRow from "./EmptyRow.astro";
+import EmptyState from "./EmptyState.astro";
+import Field from "./Field.astro";
+import FormError from "./FormError.astro";
+import Modal from "./Modal.astro";
+import Panel from "./Panel.astro";
+import { t } from "../i18n";
+---
+
+<Panel icon="folder" title={t("settings.account.workspaces.title")}>
+  <p class="muted small acct-identity" id="acct-identity"></p>
+  <div id="acct-workspaces" class="row-list">
+    <EmptyRow as="div" loading />
+  </div>
+  <p class="muted small" id="acct-delete-hint" hidden>
+    {t("settings.account.workspaces.delete_hint")}
+  </p>
+</Panel>
+
+<Panel icon="file" title={t("settings.account.legal.title")}>
+  <p class="acct-legal">
+    <a href="/legal/terms/">{t("legal.links.terms")}</a>
+    <a href="/legal/privacy/">{t("legal.links.privacy")}</a>
+  </p>
+</Panel>
+
+<Panel icon="alert" title={t("settings.account.danger.title")} tone="danger">
+  <p class="panel-lede">{t("settings.account.danger.body")}</p>
+  <Button id="acct-delete-account-open" variant="danger"
+    >{t("settings.account.danger.button")}</Button
+  >
+</Panel>
+
+<Modal
+  id="acct-rename-modal"
+  title={t("settings.account.rename.title")}
+  icon="edit"
+  size="sm"
+  lede={t("settings.account.rename.body")}
+  cancel
+  primary={{
+    label: t("settings.account.rename.button"),
+    id: "acct-rename-submit",
+    type: "submit",
+    form: "acct-rename-form",
+  }}
+>
+  <form id="acct-rename-form" class="form-stack" novalidate>
+    <Field label={t("settings.account.rename.label")} for="acct-rename-input">
+      <input id="acct-rename-input" type="text" maxlength="80" autocomplete="off" />
+    </Field>
+    <FormError id="acct-rename-error" />
+  </form>
+</Modal>
+
+<Modal
+  id="acct-transfer-modal"
+  title={t("settings.account.transfer.title")}
+  icon="tt-users"
+  size="sm"
+  cancel
+  primary={{
+    label: t("settings.account.transfer.button"),
+    id: "acct-transfer-submit",
+    type: "submit",
+    form: "acct-transfer-form",
+  }}
+>
+  <p class="modal-lede" id="acct-transfer-body"></p>
+  <form id="acct-transfer-form" class="form-stack" novalidate>
+    <Field
+      label={t("settings.account.transfer.member_label")}
+      for="acct-transfer-select"
+      id="acct-transfer-field"
+    >
+      <select id="acct-transfer-select"></select>
+    </Field>
+    <EmptyState
+      id="acct-transfer-empty"
+      size="inline"
+      dashed
+      title={t("settings.account.transfer.no_members")}
+      hidden
+    />
+    <FormError id="acct-transfer-error" />
+  </form>
+</Modal>
+
+<style is:global>
+  /* Global: the rows under these are built by lib/account-panel.ts. */
+  .acct-identity {
+    margin-bottom: var(--s-3);
+  }
+  .acct-legal {
+    display: flex;
+    gap: var(--s-4);
+  }
+  /* Under the reason in the account deletion's confirmation (account-panel.ts). */
+  .acct-blocking {
+    margin: var(--s-2) 0 0 var(--s-5);
+    font-size: var(--t-sm);
+  }
+</style>

@@ -1,0 +1,41 @@
+{
+  "status": {
+    "pending": "Pendiente",
+    "pass": "Aprobado",
+    "fail": "Fallido",
+    "blocked": "Bloqueado",
+    "skipped": "Omitido"
+  },
+  "priority": {
+    "low": "Baja",
+    "medium": "Media",
+    "high": "Alta",
+    "critical": "Crítica"
+  },
+  "progress": {
+    "pending": {
+      "one": "{count} pendiente",
+      "other": "{count} pendientes"
+    },
+    "pass": {
+      "one": "{count} aprobado",
+      "other": "{count} aprobados"
+    },
+    "fail": {
+      "one": "{count} fallido",
+      "other": "{count} fallidos"
+    },
+    "blocked": {
+      "one": "{count} bloqueado",
+      "other": "{count} bloqueados"
+    },
+    "skipped": {
+      "one": "{count} omitido",
+      "other": "{count} omitidos"
+    },
+    "empty": "sin casos de prueba"
+  },
+  "labels": {
+    "ago": "hace {when}"
+  }
+}

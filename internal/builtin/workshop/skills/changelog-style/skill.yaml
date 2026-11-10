@@ -1,0 +1,9 @@
+name: changelog-style
+description: How to write a CHANGELOG entry people read, in the Keep a Changelog layout. Use it whenever you add or edit a CHANGELOG.md entry.
+descriptions:
+  es: Cómo escribir una entrada del CHANGELOG que la gente lea, con el formato de Keep a Changelog. Usala cada vez que agregues o edites una entrada de CHANGELOG.md.
+type: knowledge
+enforcement: on_demand
+version: 2
+tags: [docs, release]
+requires: []

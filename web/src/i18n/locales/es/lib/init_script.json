@@ -1,0 +1,165 @@
+{
+  "buttons": {
+    "history": "Historial",
+    "back": "Volver al editor"
+  },
+  "saved": "Guardado como revisión {revision}",
+  "discard": "Tus cambios al script de arranque no están guardados. ¿Descartarlos?",
+  "errors": {
+    "script_empty": "El script está vacío.",
+    "script_too_large": "El script supera los {max} bytes.",
+    "param_name": "El nombre de parámetro \"{name}\" debe tener mayúsculas, dígitos y _ y empezar con una letra.",
+    "param_reserved": "El nombre de parámetro \"{name}\" está reservado: OCTOPUS_* lo define el runner.",
+    "param_duplicate": "El parámetro \"{name}\" está declarado dos veces.",
+    "ports": "No es un puerto (1-65535): {ports}",
+    "timeout": "El timeout de listo debe estar entre 1 y {max} segundos.",
+    "workdir": "El workdir debe ser una ruta dentro del repo: relativa y sin ..",
+    "setup_too_large": "El script de setup supera los {max} bytes.",
+    "tools": "Escribí las herramientas como nombre=versión, p. ej. go=1.25.1: {tools}",
+    "too_many_tools": "Como máximo {max} herramientas.",
+    "cache_path": "Las rutas de caché deben ser relativas al workdir, sin .., y no pueden ser .git: {paths}",
+    "too_many_cache": "Como máximo {max} lockfiles y {max} directorios de caché.",
+    "file_path_empty": "Hay un archivo de apoyo sin ruta.",
+    "file_path": "La ruta del archivo de apoyo \"{path}\" debe ser relativa, sin .., ./, // ni / al final, sin caracteres de control y de hasta {max} bytes.",
+    "file_duplicate": "El archivo de apoyo \"{path}\" está dos veces.",
+    "file_nul": "El archivo de apoyo \"{path}\" tiene bytes NUL; sólo se aceptan archivos de texto.",
+    "file_too_large": "El archivo de apoyo \"{path}\" supera los {max} bytes.",
+    "too_many_files": "Como máximo {max} archivos de apoyo.",
+    "files_too_large": "Los archivos de apoyo suman más de {max} bytes."
+  },
+  "author": {
+    "agent": "agente",
+    "unknown": "desconocido",
+    "agent_badge": "Agente",
+    "agent_run": "{agent} en {stage} · tarea #{task}",
+    "agent_run_html": "{agent} en {stage} · {task}",
+    "task": "tarea #{task}"
+  },
+  "status": {
+    "none": "Todavía no hay script de arranque. Escribí los pasos que levantan el proyecto, o dejá que un agente guarde lo que le funcionó.",
+    "note": "Nota: {note}",
+    "revision_html": "Revisión {revision} · {author} · {date}"
+  },
+  "params": {
+    "name": "Nombre",
+    "name_placeholder": "NOMBRE",
+    "default": "Default",
+    "description": "Descripción",
+    "required": "Obligatorio",
+    "remove": "Quitar parámetro",
+    "none": "Sin parámetros.",
+    "add": "Agregar parámetro"
+  },
+  "fields": {
+    "script": "Script",
+    "script_hint": "bash, corre desde el workdir; los parámetros llegan como variables de entorno",
+    "params": "Parámetros",
+    "params_hint": "los agentes pasan valores con init_run",
+    "ports": "Puertos",
+    "ports_hint": "dónde escucha la app, separados por coma",
+    "ready": "Comando de listo",
+    "ready_hint": "exit 0 quiere decir que el proyecto está levantado",
+    "ready_placeholder": "curl -fsS http://localhost:3000/",
+    "timeout": "Timeout de listo (s)",
+    "workdir": "Workdir",
+    "note": "Nota",
+    "note_hint": "se ve en el historial",
+    "note_placeholder": "Qué cambió y por qué",
+    "setup": "Setup",
+    "setup_hint": "bash, corre antes del script; se saltea si su salida ya está",
+    "setup_placeholder": "npm ci",
+    "tools": "Herramientas",
+    "tools_hint": "se instalan con mise; vacío usa el mise.toml o .tool-versions del repo",
+    "tools_placeholder": "go=1.25.1, node=22",
+    "cache_key": "Lockfiles",
+    "cache_key_hint": "si cambia su contenido, el setup vuelve a correr",
+    "cache_key_placeholder": "package-lock.json",
+    "cache_paths": "Directorios de caché",
+    "cache_paths_hint": "lo que llena el setup y guarda el snapshot",
+    "cache_paths_placeholder": "node_modules",
+    "files": "Archivos de apoyo",
+    "files_hint": "se guardan en Thulu, no en el repo; el script los lee desde $OCTOPUS_INIT_FILES y si cambia uno el setup vuelve a correr"
+  },
+  "files": {
+    "path": "Ruta",
+    "path_placeholder": "create-table.mjs",
+    "content": "Contenido",
+    "remove": "Quitar archivo",
+    "none": "Sin archivos de apoyo.",
+    "add": "Agregar archivo"
+  },
+  "history": {
+    "title": "Revisiones del script de arranque",
+    "none": "Todavía no hay revisiones.",
+    "pick": "Elegí una revisión para leerla.",
+    "row": "Revisión {revision}",
+    "restored_from": "restaurada desde la revisión {revision}",
+    "ports": "Puertos: {ports}",
+    "ready": "Listo: {command}",
+    "params": "Parámetros: {params}",
+    "workdir": "Workdir: {workdir}",
+    "restore": "Restaurar esta revisión",
+    "confirm_title": "¿Restaurar la revisión {revision}?",
+    "confirm_message": "Se guarda de nuevo como la revisión más nueva. El script actual queda en el historial.",
+    "restored": "Revisión {revision} restaurada como revisión {now}",
+    "setup": "Setup: {lines} líneas",
+    "tools": "Herramientas: {tools}",
+    "cache_key": "Lockfiles: {files}",
+    "cache_paths": "Directorios de caché: {paths}",
+    "files": {
+      "one": "{count} archivo de apoyo: {files}",
+      "other": "{count} archivos de apoyo: {files}"
+    }
+  },
+  "install": {
+    "title": "Fase de instalación",
+    "hint": "Las dependencias se instalan una vez por versión de los lockfiles y después se restauran de un snapshot."
+  },
+  "prewarm": {
+    "title": "Snapshot",
+    "hint": "se arma desde la rama por defecto cada 10 minutos cuando cambian los lockfiles",
+    "unavailable": "Los snapshots necesitan el runtime de sandboxes, que esta instalación no corre.",
+    "not_eligible": "Completá setup y directorios de caché, y guardá, para tener un snapshot de la instalación.",
+    "snapshot": "Último snapshot: clave {key} · {date} · {size}",
+    "no_snapshot": "Todavía no hay snapshot.",
+    "running": "Hay un precalentado en curso.",
+    "last": "Último precalentado: {state} · {date}",
+    "run": "Precalentar ahora",
+    "started": "Precalentado iniciado",
+    "save_first": "Guardá el script primero: el precalentado usa la revisión guardada.",
+    "state": {
+      "running": "en curso",
+      "ok": "listo",
+      "failed": "falló",
+      "skipped": "salteado, no había sandbox libre",
+      "pruned": "reemplazado por un snapshot más nuevo"
+    },
+    "detail": "Detalle técnico",
+    "reason": {
+      "image": "La imagen del sandbox no está en esta máquina. Alguien que opere la instalación tiene que construirla o cargarla para que los precalentados corran.",
+      "sandbox": "Al sandbox le falta algo que los snapshots necesitan (una herramienta o la carpeta de caché). Hay que arreglar la configuración del sandbox.",
+      "tools": "Falló la instalación de las herramientas declaradas. Revisá nombres y versiones en Herramientas.",
+      "setup": "El script de setup falló en la rama por defecto. En el detalle está su salida.",
+      "no_paths": "El setup corrió, pero después no existe ninguno de los directorios de caché. Revisá las rutas en Directorios de caché.",
+      "timeout": "El precalentado tardó demasiado y se detuvo. Con un setup más rápido o menos directorios de caché entra en el límite.",
+      "lost": "El proceso del precalentado murió antes de terminar, casi siempre por quedarse sin memoria.",
+      "too_large": "La rama por defecto es demasiado grande para precalentar.",
+      "unknown": "El precalentado falló. En el detalle está el error que dio el sandbox."
+    }
+  },
+  "warnings": {
+    "lockfile_missing": "No están en la raíz de la rama por defecto: {files}. El setup vuelve a correr cuando cambian estos archivos, así que uno que falta nunca lo dispara."
+  },
+  "starter": {
+    "found": "Este repo parece {stack} ({file}).",
+    "use": "Arrancar desde una plantilla",
+    "run_comment": "Levanta la app. Cambiá esta línea por el comando de tu proyecto.",
+    "stacks": {
+      "npm": "Node.js con npm",
+      "pnpm": "Node.js con pnpm",
+      "yarn": "Node.js con Yarn",
+      "go": "Go",
+      "pip": "Python con pip"
+    }
+  }
+}

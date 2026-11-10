@@ -1,0 +1,47 @@
+{
+  "moved": "{from} → {to}",
+  "via": {
+    "kick_back": "(the auditor sent it back)",
+    "changes_requested": "(changes were requested)",
+    "stage_deleted": "(its stage was deleted)"
+  },
+  "run_in": "{agent} in {stage}",
+  "cloned_from": "Copy of task {task}",
+  "finished": {
+    "done": "Finished in {stage}",
+    "failed": "Failed in {stage} (exit code {code})",
+    "out_of_turns": "Ran out of turns in {stage}",
+    "stopped": "Stopped in {stage}",
+    "stopped_by": "Stopped by {who} in {stage}"
+  },
+  "credential": {
+    "expired": "{name} expired",
+    "rejected": "{name} was rejected",
+    "unusable": "{name} cannot be used"
+  },
+  "credentials_unusable": {
+    "one": "{count} credential cannot be used",
+    "other": "{count} credentials cannot be used"
+  },
+  "verdict": {
+    "continue": "Continue",
+    "kick_back": "Send it back",
+    "kick_back_to": "Send it back to {stage}",
+    "block": "Stop the task for a person to decide",
+    "needs_more_turns": "Run it again with more turns"
+  },
+  "delivery": {
+    "steered": "Handed to the running agent: {line}",
+    "queued": "Waits for the running agent's next turn: {line}",
+    "continuation": "Resumed the stage: {line}",
+    "unreachable": "No agent could read it: {line}",
+    "mention": "Mention: {line}",
+    "chat": "Chat message: {line}",
+    "thread": "Left in its thread: {line}"
+  },
+  "actor": {
+    "octopus": "Thulu",
+    "auditor": "Auditor",
+    "agent": "An agent"
+  }
+}

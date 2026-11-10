@@ -1,0 +1,82 @@
+/* Depends only on tokens.css, base.css and button.css: the login page imports it without Layout. */
+
+/* Global: the pollers in lib/llm-profiles.ts write it. */
+.code-inline {
+  padding: 1px 5px;
+  background: var(--surface-4);
+  border-radius: var(--r-sm);
+  font-family: var(--font-mono);
+  font-size: var(--t-xs);
+}
+
+.code-block {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-2);
+  min-width: 0;
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  color: var(--fg);
+}
+.code-block-line {
+  align-items: center;
+}
+.code-block-text {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  background: none;
+  color: inherit;
+  font-family: var(--font-mono);
+  font-size: var(--t-xs);
+  line-height: var(--lh-loose);
+  white-space: pre;
+}
+.code-block-line .code-block-text {
+  user-select: all;
+}
+.code-block-text:focus-visible {
+  outline-offset: 2px;
+}
+.code-block-wrap .code-block-text {
+  overflow-x: visible;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.code-block-h-sm .code-block-text {
+  max-height: calc(var(--s-9) * 3);
+  overflow-y: auto;
+}
+.code-block-h-lg .code-block-text {
+  max-height: calc(var(--s-9) * 6);
+  overflow-y: auto;
+}
+.code-block-danger {
+  border-color: var(--danger-line);
+  background: var(--danger-soft);
+  color: var(--fg-2);
+}
+
+.code-block-copy {
+  flex: none;
+}
+.code-block-copy[data-state="copied"] {
+  border-color: var(--ok-line);
+  color: var(--ok);
+}
+.code-block-copy[data-state="failed"] {
+  border-color: var(--danger-line);
+  color: var(--danger);
+}
+
+.code-copy-buffer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  pointer-events: none;
+}

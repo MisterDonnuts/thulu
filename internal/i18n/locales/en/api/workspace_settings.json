@@ -1,0 +1,11 @@
+{
+  "errors": {
+    "run_minutes_range": "agent.max_run_minutes must be a whole number of minutes from {min} to {max}"
+  },
+  "audit": {
+    "set": "Workspace setting {setting} set to {value} minutes; runs now get {effective}",
+    "cleared": "Workspace setting {setting} cleared; runs now get the install default, {effective}",
+    "minutes": "{n} minutes",
+    "no_limit": "no limit"
+  }
+}

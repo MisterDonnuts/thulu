@@ -1,0 +1,27 @@
+{
+  "errors": {
+    "cloud_secret_invalid_json": "cloud credential is not valid JSON",
+    "federation_invalid_json": "stored federation settings are not valid JSON",
+    "federation_organization_id": "the organization ID is the UUID on the Organization page of the Claude Console",
+    "federation_rule_id": "the federation rule ID starts with {prefix}",
+    "federation_service_account_id": "the service account ID starts with {prefix}",
+    "federation_workspace_id": "the workspace ID starts with {prefix}",
+    "login_status_unreadable": "the CLI's login status could not be read",
+    "not_registered": "engine: {name:%q} not registered (known: {known})",
+    "register_empty_name": "engine: Register with empty Name()",
+    "register_nil": "engine: Register(nil)",
+    "registered_twice": "engine: {name:%q} registered twice",
+    "replace_empty_name": "engine: Replace with empty Name()",
+    "replace_nil": "engine: Replace(nil)"
+  },
+  "labels": {
+    "anthropic_api_key": "API Key",
+    "anthropic_federation": "Workload identity federation",
+    "claude_code": "Claude Code",
+    "claude_oauth_token": "OAuth token (Claude Pro/Max): installation owner only, for testing",
+    "openai_api_key": "OpenAI API Key",
+    "openai_codex": "OpenAI Codex",
+    "opencode": "OpenCode",
+    "provider_api_key": "Provider API Key"
+  }
+}

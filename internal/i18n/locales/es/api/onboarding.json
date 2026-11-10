@@ -1,0 +1,66 @@
+{
+  "could_not_read": "no se pudo leer: {err}",
+  "could_not_read_redacted": "no se pudo leer; el error quedó en el log del daemon",
+  "log": {
+    "step_failed": "no se pudo leer el paso {step} del onboarding: {err}"
+  },
+  "steps": {
+    "identity": {
+      "title": "Proveedor de identidad",
+      "effect": "el dashboard no tiene login; cualquiera que llegue al puerto es owner",
+      "finish": "configurá OCTOPUS_OIDC_* y reiniciá, o volvé a correr el asistente",
+      "github_oauth": "OAuth de GitHub",
+      "dev_mode": "modo dev: auth desactivada, cualquiera que llegue al puerto es owner",
+      "none": "ninguno configurado: sólo se entra con API keys"
+    },
+    "workspace": {
+      "title": "Workspace",
+      "effect": "no se puede crear nada: cada recurso y cada API key pertenece a uno",
+      "store_unavailable": "el almacén de auth no está disponible",
+      "finish": "creá uno desde la CLI",
+      "count": {"one": "{count} workspace", "other": "{count} workspaces"}
+    },
+    "agents": {
+      "title": "Definiciones de agentes",
+      "effect": "el tablero no tiene agentes a los que despachar",
+      "finish": "creá uno en la página Agentes, o importá un JSON desde Workshop → Importar archivo",
+      "count": {"one": "{count} agente", "other": "{count} agentes"}
+    },
+    "git_credential": {
+      "title": "Credencial de git",
+      "effect": "los agentes sólo pueden leer repos públicos: ni ramas ni pull requests",
+      "finish": "agregá un token de GitHub en la página de credenciales",
+      "github_app": "GitHub App — {accounts}",
+      "store_disabled": "el almacén de credenciales está desactivado",
+      "app_not_installed": "la App está configurada pero todavía no está instalada en ninguna cuenta",
+      "install_app": "instalá la App desde la página de credenciales",
+      "none": "no hay ninguna guardada"
+    },
+    "llm_key": {
+      "title": "Key del modelo (BYOK)",
+      "effect": "las corridas de agentes fallan al despacharse: no hay modelo al que llamar",
+      "finish": "elegí el perfil default del motor en Configuración → Motores de IA",
+      "store_unavailable": "el almacén de secretos no está disponible",
+      "no_key": "no hay key para {engine}"
+    },
+    "project": {
+      "title": "Primer proyecto",
+      "effect": "no hay ningún repositorio en el que trabajen los agentes",
+      "finish": "importá un repo de git en la página de proyectos",
+      "store_unavailable": "el almacén de proyectos no está disponible",
+      "count": {"one": "{count} proyecto", "other": "{count} proyectos"}
+    },
+    "column_agent": {
+      "title": "Una columna que corre un agente",
+      "effect": "mover una tarjeta no lanza nada: ninguna columna del tablero tiene agente por defecto",
+      "finish": "abrí el Comportamiento de una columna en la configuración del tablero y elegí su agente por defecto",
+      "none": "ninguna columna del tablero por defecto tiene agente por defecto"
+    },
+    "stage_template": {
+      "title": "Agentes en la plantilla de cada proyecto",
+      "effect": "las tareas de un proyecto con la plantilla de etapas vacía nacen sin agente en ninguna columna",
+      "finish": "elegí el agente de cada columna en Configuración → Plantilla de etapas del proyecto",
+      "count": "{with} de {count} proyectos tienen agente en alguna columna"
+    }
+  }
+}

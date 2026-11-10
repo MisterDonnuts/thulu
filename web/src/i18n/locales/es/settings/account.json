@@ -1,0 +1,85 @@
+{
+  "profile": {
+    "title": "Tu perfil",
+    "email": "Correo",
+    "name": "Nombre",
+    "workspace": "Espacio de trabajo",
+    "signed_out": "No iniciaste sesión: entrá para administrar tu cuenta."
+  },
+  "sessions": {
+    "title": "Sesiones activas",
+    "revoke_all": "Cerrar sesión en los demás dispositivos",
+    "empty": "No hay sesiones activas.",
+    "this_device": "este dispositivo",
+    "times": "Inició {started} · último uso {last_used}",
+    "sign_out": "Cerrar sesión",
+    "signed_out": "Sesión cerrada",
+    "sign_out_failed": "No se pudo cerrar la sesión",
+    "signed_out_state": "No iniciaste sesión: entrá para administrar tus sesiones.",
+    "revoked_all": "Se cerró la sesión en los demás dispositivos",
+    "revoke_all_failed": "No se pudo cerrar la sesión en los demás dispositivos"
+  },
+  "identity": {
+    "signed_in": "Iniciaste sesión como {email}.",
+    "signed_in_via": "Iniciaste sesión como {email} con {idp}."
+  },
+  "workspaces": {
+    "title": "Tus workspaces",
+    "empty": "No estás en ningún workspace.",
+    "load_failed": "No se pudieron cargar tus workspaces",
+    "members": {
+      "one": "{count} miembro",
+      "other": "{count} miembros"
+    },
+    "current": "actual",
+    "switch": "Cambiar",
+    "transfer": "Pasar a otro dueño",
+    "delete": "Borrar workspace",
+    "delete_hint": "Para borrar otro workspace tuyo, primero cambiate a ese workspace.",
+    "rename": "Renombrar"
+  },
+  "legal": {
+    "title": "Términos y privacidad"
+  },
+  "danger": {
+    "title": "Borrar tu cuenta",
+    "body": "Borra tu cuenta y todos los workspaces de los que sos el único miembro. Un workspace tuyo que usan otras personas primero tenés que pasárselo a otro miembro, o borrarlo.",
+    "button": "Borrar cuenta"
+  },
+  "delete_workspace": {
+    "title": "Borrar workspace",
+    "body": "Esto borra {name} para todos sus miembros: tareas, proyectos y sus clones, chats, credenciales, webhooks y API keys. No se puede deshacer.",
+    "button": "Borrar workspace",
+    "done": "Workspace borrado",
+    "failed": "No se pudo borrar el workspace"
+  },
+  "transfer": {
+    "title": "Pasar a otro dueño",
+    "body": "Pasale {name} a otro miembro. Esa persona queda como dueña y vos seguís como admin.",
+    "member_label": "Nuevo dueño",
+    "no_members": "No hay nadie más en este workspace. Invitá a alguien primero.",
+    "button": "Pasar",
+    "done": "El workspace tiene nuevo dueño",
+    "failed": "No se pudo pasar el workspace"
+  },
+  "delete_account": {
+    "title": "Borrar tu cuenta",
+    "body": "Esto borra tu cuenta, tus sesiones y todos los workspaces de los que sos el único miembro. Las API keys que creaste dejan de funcionar. No se puede deshacer.",
+    "button": "Borrar mi cuenta",
+    "failed": "No se pudo borrar tu cuenta",
+    "blocking_item": {
+      "one": "{name} ({count} miembro)",
+      "other": "{name} ({count} miembros)"
+    }
+  },
+  "rename": {
+    "title": "Renombrar workspace",
+    "body": "Los miembros ven el nombre nuevo en el menú de workspaces y en las invitaciones. El slug no cambia, así que los links y la configuración de inicio de sesión siguen andando.",
+    "label": "Nombre",
+    "button": "Renombrar",
+    "empty": "Escribí un nombre.",
+    "too_long": "El nombre puede tener {max} caracteres como máximo.",
+    "done": "Workspace renombrado",
+    "failed": "No se pudo renombrar el workspace"
+  }
+}

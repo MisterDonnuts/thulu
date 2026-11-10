@@ -1,0 +1,39 @@
+{
+  "windows": {
+    "run_logs": "Logs y transcripciones de corridas",
+    "sessions": "Filas de uso por corrida",
+    "webhook_deliveries": "Registro de entregas de webhooks",
+    "run_keys": "Claves de corridas terminadas",
+    "sandbox_rows": "Sandboxes desarmados",
+    "cache_metrics": "Historial de la caché de dependencias",
+    "stuck_worktree": "Worktree de una tarea trabada",
+    "audit": "Registro de auditoría"
+  },
+  "days": {
+    "one": "{count} día",
+    "other": "{count} días"
+  },
+  "forever": "para siempre",
+  "default": "por defecto: {value}",
+  "unit_days": "días",
+  "sweep": {
+    "never": "El janitor no terminó ninguna pasada desde que arrancó el daemon.",
+    "last": "Última pasada: {date}.",
+    "last_pressure": "Última pasada: {date}, adelantada porque quedaba poco disco.",
+    "every": {
+      "one": "Corre cada una hora.",
+      "other": "Corre cada {count} horas."
+    }
+  },
+  "disk": {
+    "label": "Piso de disco libre",
+    "off": "Sin piso de disco: el janitor sólo limpia en su horario.",
+    "off_short": "apagado",
+    "floor": "Con menos de {floor}% libre en el disco de datos, el janitor limpia en el momento. Libre ahora: {free}%.",
+    "floor_unknown": "Con menos de {floor}% libre en el disco de datos, el janitor limpia en el momento. No se pudo medir el espacio libre."
+  },
+  "errors": {
+    "days": "Tiene que ser una cantidad entera de días, 0 o más.",
+    "percent": "Tiene que ser un porcentaje entero de 0 a 100."
+  }
+}

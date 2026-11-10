@@ -1,0 +1,16 @@
+{
+  "labels": {
+    "latency_p50": "Latencia p50",
+    "latency_p95": "Latencia p95",
+    "error_rate": "Errores",
+    "throughput": "Requests",
+    "cpu": "CPU",
+    "memory": "Memoria",
+    "restarts": "Reinicios",
+    "saturation": "Saturación",
+    "cost_daily": "Costo/día"
+  },
+  "age": {
+    "just_now": "recién"
+  }
+}

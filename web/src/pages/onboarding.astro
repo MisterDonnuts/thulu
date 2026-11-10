@@ -1,0 +1,120 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Count from "../components/Count.astro";
+import EmptyRow from "../components/EmptyRow.astro";
+import PageHead from "../components/PageHead.astro";
+import Panel from "../components/Panel.astro";
+import { SLOT, t, tParts } from "../i18n";
+
+const subParts = tParts("onboarding.subtitle", { cmd: SLOT });
+// The template needs an explicit {" "} after the bold title: JSX drops the line break between two
+// expressions.
+const devParts = tParts("onboarding.devmode_body", { host: SLOT, cmd: SLOT });
+// i18n-ignore a shell command and an address, not messages
+const CODE: Record<string, string> = { cmd: "thulu init", host: "127.0.0.1" };
+---
+
+<Layout title={t("onboarding.title")}>
+  {
+    /* 960px, the settings width: a column of prose rows stretched across
+      1280 makes each item's text drift away from its own mark. */
+  }
+  <main class="page" style="--page-max: 960px">
+    <PageHead title={t("onboarding.title")}>
+      <Fragment slot="sub">
+        {
+          /* A hosted install's people never ran the wizard: the script
+            swaps in the workspace subtitle when the status says so. */
+        }
+        <span id="setup-sub-install"
+          >{subParts.map((p, i) => (i % 2 ? <code>{CODE[p]}</code> : p))}</span
+        >
+        <span id="setup-sub-saas" hidden>{t("onboarding.subtitle_saas")}</span>
+      </Fragment>
+      <Fragment slot="actions">
+        <Count n={0} pill id="setup-done" label={t("onboarding.stats.of_done", { total: 0 })} />
+      </Fragment>
+    </PageHead>
+
+    <div class="panel-stack">
+      <Panel id="setup-devmode-panel" hidden>
+        <p>
+          <strong>{t("onboarding.devmode_title")}</strong>{" "}
+          {devParts.map((p, i) => (i % 2 ? <code>{CODE[p]}</code> : p))}
+        </p>
+      </Panel>
+
+      <Panel icon="list" title={t("onboarding.panels.checklist")} flush>
+        <span slot="aside"
+          ><span id="setup-live-install">{t("onboarding.hints.live_state")}</span><span
+            id="setup-live-saas"
+            hidden>{t("onboarding.hints.live_state_saas")}</span
+          ></span
+        >
+        <div id="setup-list">
+          <EmptyRow as="div" loading />
+        </div>
+      </Panel>
+    </div>
+  </main>
+
+  <script>
+    import { requireAuth } from "../lib/auth";
+    import { api } from "../lib/api";
+    import { $, emptyRowHTML, setCount, stepListHTML } from "../lib/ui";
+    import { setupStepItem, type SetupStep } from "../lib/onboarding-steps";
+    import { t } from "../i18n";
+    import { onPage } from "../lib/page";
+
+    onPage("/onboarding", (signal) => {
+      requireAuth();
+
+      interface SetupStatus {
+        complete: boolean;
+        dev_mode: boolean;
+        saas?: boolean;
+        steps: SetupStep[];
+      }
+
+      function render(status: SetupStatus): void {
+        const list = $("setup-list");
+        if (!list) return;
+        const done = status.steps.filter((s) => s.done).length;
+        const doneEl = $("setup-done");
+        if (doneEl)
+          setCount(doneEl, done, {
+            pill: true,
+            label: t("onboarding.stats.of_done", { total: status.steps.length }),
+          });
+
+        const devPanel = $("setup-devmode-panel");
+        if (devPanel) (devPanel as HTMLElement).hidden = !status.dev_mode;
+        const subInstall = $("setup-sub-install");
+        const subSaas = $("setup-sub-saas");
+        if (subInstall) subInstall.hidden = !!status.saas;
+        if (subSaas) subSaas.hidden = !status.saas;
+        const liveInstall = $("setup-live-install");
+        const liveSaas = $("setup-live-saas");
+        if (liveInstall) liveInstall.hidden = !!status.saas;
+        if (liveSaas) liveSaas.hidden = !status.saas;
+
+        list.innerHTML = stepListHTML(status.steps.map(setupStepItem));
+      }
+
+      async function load(): Promise<void> {
+        try {
+          render(await api.get<SetupStatus>("/onboarding"));
+        } catch (err) {
+          const list = $("setup-list");
+          if (list) {
+            list.innerHTML = emptyRowHTML(
+              t("onboarding.errors.load_failed", { error: String(err) }),
+              { as: "div", tone: "danger" },
+            );
+          }
+        }
+      }
+      load();
+    });
+  </script>
+</Layout>

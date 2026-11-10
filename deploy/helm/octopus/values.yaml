@@ -1,0 +1,593 @@
+# Default values for the Thulu self-hosted chart.
+# Read the comments before changing a security value: the network policy is off
+# by default (networkPolicy.enabled) and is the first thing to turn on. Two values are required: a JWT secret (auth fails closed without it)
+# and a Postgres DSN (database.url or database.existingSecret).
+
+image:
+  repository: ghcr.io/misterdonnuts/octopus
+  # Defaults to the chart's appVersion when empty.
+  tag: ""
+  # Optional sha256 digest ("sha256:..."). When set the image is pulled by
+  # digest, so a re-pushed tag cannot change what runs. Release images are
+  # cosign-signed; deploy/k8s-data-plane/kyverno-verify-images.template.yaml verifies
+  # them at admission.
+  digest: ""
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+# Number of daemon replicas. MUST stay 1: state is in Postgres, but the agent
+# registry is in memory and the janitor/dispatcher loops assume a single
+# writer, so a second replica would split-brain.
+replicaCount: 1
+
+# ── Required configuration ────────────────────────────────────────────────────
+config:
+  # Public domain the dashboard is served on (used for cookies / redirects).
+  domain: thulu.example.com
+  # JSON structured logs in production.
+  logFormat: json
+  # Comma-separated CORS / post-login redirect allowlist. Defaults to
+  # https://<domain> when empty.
+  allowedOrigins: ""
+  # Peers whose X-Forwarded-For and X-Forwarded-Proto the daemon believes, so
+  # rate limits and audit entries see the real client IP and the session
+  # cookies get Secure behind the TLS-terminating ingress (the chart pins the
+  # SSO callback and frontend origin to https://<domain> either way; override
+  # with extraEnv.OCTOPUS_OIDC_REDIRECT_URI / OCTOPUS_FRONTEND_ORIGIN, or set
+  # both to "" to derive them per request again, e.g. a LAN address and a
+  # tunnel side by side, which then needs the tunnel's peer listed here):
+  # comma-separated IPs or CIDRs of the ingress
+  # controller pods, e.g. "10.42.0.0/24" (the pod CIDR of the nodes that run
+  # it) or the controller's pod IPs. Empty = trust nobody: every request is
+  # attributed to the controller's address, which is wrong but not forgeable.
+  # Avoid "private" (loopback + RFC1918): in a cluster that is every pod,
+  # agent pods included, and any of them could then forge the client address.
+  trustedProxies: ""
+  # NEVER enable in production — disables all auth. Loopback-only guard in code.
+  devMode: false
+  # ── Sign-in policy (SSO) ─────────────────────────────────────────────────────
+  # Empty values leave the daemon's defaults in place.
+  sso:
+    # Comma-separated email domains allowed to sign in, e.g. "acme.com".
+    # Requires the IdP to mark the email verified. Empty = any domain the IdP
+    # lets through.
+    allowedDomains: ""
+    # Comma-separated IdP groups; a user must be in at least one. Empty = no
+    # group check.
+    allowedGroups: ""
+    # "true" lets a newcomer found a personal workspace; "false" forbids it.
+    # Empty = off when OIDC is configured, on otherwise.
+    allowPersonalWorkspaces: ""
+    # Workspace slug new SSO users join instead of getting their own.
+    defaultWorkspace: ""
+    # Role they join it with: viewer (default), developer or admin.
+    defaultRole: ""
+  # Where audit entries are also written, besides Postgres: stdout, stderr or
+  # file:/data/audit.log. Empty = Postgres only.
+  auditSink: ""
+  # Longest lifetime an operator API key may be minted with: a Go duration
+  # ("2160h") or a day count ("90d"). Empty = 90d; "0" removes the cap.
+  apiKeyMaxTTL: ""
+
+# ── GitHub Enterprise Server ──────────────────────────────────────────────────
+# Leave both empty for github.com. url is the web base
+# (https://ghe.acme.example); apiUrl defaults to <url>/api/v3. The daemon uses
+# them for login, App tokens and git, forwards them to agents, and thulu-github
+# gets GITHUB_API_URL. A GHES behind an internal CA also needs caBundle below.
+github:
+  url: ""
+  apiUrl: ""
+
+# ── Daemon TLS (in-cluster) ───────────────────────────────────────────────────
+# Off by default: the ingress terminates TLS and talks plain HTTP to the pod.
+# enabled=true makes the daemon serve HTTPS on 8585 with the kubernetes.io/tls
+# Secret secretName (tls.crt / tls.key, reloaded when it rotates), switches the
+# probes to HTTPS, and hands agents and MCP servers https:// URLs. Then:
+#   - the certificate must name <release>-octopus.<namespace>.svc (and
+#     .svc.cluster.local), because that is the host agents dial;
+#   - its CA must be in caBundle, so agents, sandboxes and MCP servers trust it;
+#   - the ingress must speak HTTPS to the backend, e.g. for ingress-nginx
+#     nginx.ingress.kubernetes.io/backend-protocol: "HTTPS" under
+#     ingress.annotations.
+# The LLM gateway port (agentRuntime.gatewayPort) stays plain HTTP inside the
+# cluster; the NetworkPolicy limits it to tenant namespaces.
+tls:
+  enabled: false
+  secretName: ""
+
+# ── Secrets ───────────────────────────────────────────────────────────────────
+# By default the chart creates a Secret from the values below. For GitOps, set
+# existingSecret to a Secret you manage out-of-band (e.g. sealed-secrets / vault)
+# and leave the inline values empty — they will be ignored.
+secrets:
+  # Reference an existing Secret instead of creating one. It must contain the
+  # keys: OCTOPUS_JWT_SECRET (required), OCTOPUS_SECRETBOX_KEY (recommended)
+  # and any of the optional vars below.
+  existingSecret: ""
+  # REQUIRED unless using existingSecret. Generate: openssl rand -hex 32
+  jwtSecret: ""
+  # Key that encrypts stored credentials (Git tokens, LLM keys, webhook
+  # secrets). Generate: openssl rand -hex 32. Without it they are encrypted
+  # with a key derived from jwtSecret, so rotating the JWT secret would make
+  # them unreadable. Set it once and keep it: on the next start the daemon
+  # re-encrypts existing values under it. To rotate, move the old value to
+  # extraEnv.OCTOPUS_SECRETBOX_PREVIOUS_KEYS and set a new one here.
+  secretboxKey: ""
+  # Enterprise license (OCTOPUS_LICENSE_KEY). agentRuntime.mode=kubernetes needs
+  # one with the kubernetes feature; without it the daemon refuses to start.
+  # It also turns on audit export and Stripe billing.
+  licenseKey: ""
+  # Bearer token Prometheus sends to GET /metrics. Without it, /metrics needs
+  # an admin session in the operator workspace (OCTOPUS_OPERATOR_WORKSPACE).
+  metricsToken: ""
+  # Optional SSO (leave blank to disable).
+  oidc:
+    issuer: ""
+    clientId: ""
+    clientSecret: ""
+    name: ""
+    # group:role pairs, e.g. "octopus-admins:admin,octopus-devs:developer"
+    groupRoleMap: ""
+  github:
+    clientId: ""
+    clientSecret: ""
+
+# ── Database (required) ───────────────────────────────────────────────────────
+# The daemon keeps all state in Postgres and refuses to start without
+# OCTOPUS_DATABASE_URL. Give it ONE of:
+#   url            — inline DSN; the chart stores it in its own Secret
+#                    (<release>-octopus-database), never in the pod spec.
+#   existingSecret — a Secret you manage (sealed-secrets / Vault / ESO) holding
+#                    the DSN under existingSecretKey. Preferred for production.
+# If neither is set, the DSN must be the OCTOPUS_DATABASE_URL key of
+# secrets.existingSecret (loaded with the rest of that Secret).
+# DSN form: postgres://user:pass@host:5432/octopus?sslmode=verify-full
+database:
+  url: ""
+  existingSecret: ""
+  existingSecretKey: OCTOPUS_DATABASE_URL
+
+# ── Update notices (Settings → Updates) ──────────────────────────────────────
+# The daemon only reads which releases exist; it never changes its own
+# version. The operator moves it with `helm upgrade` or `thulu update`.
+updates:
+  # Where to look for releases: "github" (the public releases), an https://
+  # mirror of them (air-gapped installs), or "off" for no network call at all.
+  # Every manifest is checked against the release key built into the binary,
+  # wherever it comes from.
+  source: github
+  # Comma-separated channels to offer: stable, prerelease, preview.
+  channels: stable
+
+# Extra non-secret env vars passed straight through (e.g.
+# OCTOPUS_SANDBOX_MEMORY_BYTES, OCTOPUS_RATE_LIMIT_RPS). The tenant quota and
+# sandbox sizing knobs go here too: OCTOPUS_TENANT_QUOTA_CPU_REQUESTS and
+# _MEMORY_REQUESTS are what a workspace's pods may reserve together (default
+# 20 and 64Gi; a run with no room waits for it), OCTOPUS_TENANT_QUOTA_MEMORY
+# the sum of their memory limits (default 128Gi), OCTOPUS_TENANT_QUOTA_STORAGE
+# the task worktrees' budget per workspace (default 500Gi) and
+# OCTOPUS_SANDBOX_CACHE_SIZE the per-workspace dependency cache claim (default
+# 20Gi, "off" for none), which the quota adds on top. See
+# values-saas.example.yaml.
+extraEnv: {}
+
+# ── Persistence (project worktrees, logs and attachments at /data) ────────────
+persistence:
+  enabled: true
+  existingClaim: ""
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 10Gi
+
+# ── Agent runtime mode ────────────────────────────────────────────────────────
+# kubernetes (default): launches each agent, sandbox and chat as a pod through
+#   the Kubernetes API. Creates a LEAST-PRIVILEGE ClusterRole for the daemon
+#   (namespaces + pods + services + quotas + network policies; explicitly NO
+#   pods/exec, NO secrets, NO cluster-admin), fenced by the admission policy
+#   below, mounts its ServiceAccount token, and sets OCTOPUS_AGENT_*.
+# docker: the compose-style runtime — each agent is a container on a Docker
+#   endpoint. Needs dockerSocket.enabled=true or DOCKER_HOST in extraEnv; the
+#   chart refuses to render docker mode with neither.
+# The SAME image serves both modes; only this switch and its RBAC differ.
+# kubernetes is an Enterprise feature: set secrets.licenseKey, or use docker.
+agentRuntime:
+  mode: kubernetes # kubernetes | docker
+  # Registry-pullable agent images (pods can't build locally), one per engine:
+  # a run starts the image of its engine. Each defaults to
+  # <image.repository>-agent-<engine>:<tag>
+  # (ghcr.io/misterdonnuts/octopus-agent-codex). `thulu apply` sets them by
+  # digest.
+  engineImages:
+    claude-code: ""
+    codex: ""
+    opencode: ""
+  # One image for every engine (OCTOPUS_AGENT_IMAGE), e.g. your own built FROM
+  # octopus-agent, which carries the three CLIs. Beats engineImages.
+  agentImage: ""
+  # Sandbox image (the in-pod exec agent + build toolset). Defaults to
+  # <image.repository>-sandbox:<tag> (ghcr.io/misterdonnuts/octopus-sandbox).
+  sandboxImage: ""
+  # Namespace for sandboxes that belong to no workspace. Tenant sandboxes run
+  # in the tenant's namespace (tenant-<workspace>). The admission policy only
+  # lets the daemon act in tenant-* namespaces and this one.
+  sandboxNamespace: octopus-sandboxes
+  # RuntimeClass applied to every agent pod. kata-clh (strong microVM) is the
+  # recommended default for untrusted code; gvisor is the lighter tier. Must
+  # match a RuntimeClass installed on the cluster (see deploy/k8s-data-plane).
+  runtimeClass: kata-clh
+  # In-cluster URL agents use to reach the daemon API + sandbox MCP. Defaults to
+  # the chart's Service DNS (http://<svc>.<ns>.svc:<port>) when empty.
+  daemonBaseURL: ""
+  # Port the LLM egress gateway listens on (kubernetes mode). Sandbox pods send
+  # model traffic here; the gateway injects the tenant BYOK key.
+  gatewayPort: 8586
+  # ValidatingAdmissionPolicy that fences the daemon's ClusterRole (Kubernetes
+  # >= 1.30). RBAC cannot scope "create pods" to a set of namespaces that do not
+  # exist yet, so without this policy the daemon's identity could create a pod
+  # in any namespace — kube-system included — and mount that namespace's
+  # Secrets. With it, every write the daemon's ServiceAccount makes must target
+  # a tenant-* namespace (labeled thulu.dev/plane=data) or sandboxNamespace,
+  # and every pod it creates must run a sandboxed RuntimeClass, with no host
+  # access, no Secret volumes, no Secret env except its own <pod>-env Secret,
+  # and the namespace's default ServiceAccount without a token. RoleBindings
+  # the daemon writes may only grant its own ServiceAccount the tenant-secrets
+  # role (rbac.yaml). Disable only on clusters older than 1.30, and treat the
+  # daemon's credentials as cluster-admin-equivalent if you do.
+  admissionPolicy:
+    enabled: true
+    # RuntimeClasses a daemon-created pod may use. Empty list = do not check
+    # (for a dev cluster without Kata/gVisor; never in production).
+    allowedRuntimeClasses:
+      - kata-clh
+      - gvisor
+  # Builds, once per install, an agent image with Claude Code already in it, so
+  # agent pods stop downloading it on every start. The published images carry
+  # no copy of Claude Code (they install it on first use, in the pod's own
+  # home), and Kubernetes gives every pod a new home. On start the daemon
+  # checks the registry for <repo>:<daemon version>-cc<Claude Code
+  # version>-<base digest>; if it is missing, it runs a rootless BuildKit Job
+  # in its own namespace, FROM the published image by digest, and points
+  # agent pods at the result once pushed. Until then, or when the build fails,
+  # pods keep the published image. The daemon does nothing for an image that
+  # already carries Claude Code (built with CLAUDE_CODE_INSTALL=build), one it
+  # cannot read from its registry, or an install whose agents use a proxy or
+  # an extra CA. State: Infrastructure > Runtime, and the daemon's log.
+  imageBuild:
+    enabled: true
+    # Namespace for the BuildKit Job and the bundled registry. BuildKit needs
+    # seccomp and AppArmor unconfined, so it is labelled PSA privileged: keep
+    # anything else out of it. Empty = <release>-builder.
+    namespace: ""
+    # Empty = the bundled registry below. Otherwise a registry path the Job
+    # pushes to and agent pods pull from, e.g. 123456789.dkr.ecr.eu-west-1.amazonaws.com/thulu.
+    # The nodes must be able to pull it without a pull secret (ECR or Artifact
+    # Registry through the node identity, or the node's containerd config).
+    registry: ""
+    # External registry only: a kubernetes.io/dockerconfigjson Secret in the
+    # builder namespace with push access. The daemon reads it to check for the
+    # image. e.g. kubectl -n octopus-builder create secret docker-registry
+    # registry-push --docker-server=... --docker-username=... --docker-password=...
+    pushSecret: ""
+    builderImage: docker.io/moby/buildkit:v0.23.2-rootless@sha256:cab936745de5d673465948f1e93ff4d6e372bbe33f218afd3314eba45a6f85a9
+    localRegistry:
+      image: docker.io/library/registry:2.8.3@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373
+      storage:
+        size: 20Gi
+        # Empty = the cluster's default StorageClass.
+        storageClass: ""
+      # Nodes pull agent images from localhost:<hostPort>: a read-only mirror
+      # (a DaemonSet on the host network, listening on 127.0.0.1 only) in front
+      # of the registry. containerd speaks plain HTTP to localhost without any
+      # node configuration, and nothing off the node can reach it. Pick a port
+      # free on every node.
+      hostPort: 30500
+      resources:
+        requests: {cpu: 50m, memory: 64Mi}
+        limits: {cpu: 500m, memory: 256Mi}
+    # BuildKit pods reach DNS, the bundled registry and public addresses on
+    # publicPorts (base image, npm), never tenant pods, the daemon, Postgres or
+    # the nodes. Needs a CNI that enforces NetworkPolicy.
+    networkPolicy:
+      enabled: true
+      dnsNamespace: kube-system
+      publicPorts: [443]
+      privateCIDRs:
+        - 10.0.0.0/8
+        - 172.16.0.0/12
+        - 192.168.0.0/16
+        - 100.64.0.0/10
+        - 169.254.0.0/16
+      # Every node's IPv4 address joins the except list (Helm lookup at
+      # install/upgrade; the installing identity needs list on nodes).
+      excludeNodeAddresses: true
+      # e.g. an external registry on a private address.
+      extraEgress: []
+
+# ── Extra CA bundle ───────────────────────────────────────────────────────────
+# A corporate / TLS-inspecting proxy CA that agents and sandboxes must trust
+# (internal registry, GHES, egress proxy). Name a ConfigMap in the release
+# namespace holding the PEM bundle under `key`. The chart mounts it into the
+# daemon at /etc/octopus-ca, sets OCTOPUS_EXTRA_CA_BUNDLE (the daemon copies it
+# into each tenant namespace and mounts it into agent and sandbox pods; docker
+# mode copies it into each container) and adds the directory to SSL_CERT_DIR
+# so the daemon's own HTTPS clients trust it too. The MCP servers get it as
+# NODE_EXTRA_CA_CERTS. Empty = no extra CA.
+# e.g. kubectl -n octopus create configmap corp-ca --from-file=ca.crt=corp-root.pem
+caBundle:
+  configMap: ""
+  key: ca.crt
+
+# ── Agent runtime (Docker access, docker mode only) ───────────────────────────
+# Off by default: the kubernetes runtime needs no Docker endpoint. In docker
+# mode the daemon needs one. Two ways:
+#   dockerSocket.enabled=true  → hostPath-mount the node's /var/run/docker.sock.
+#     Simplest, matches the compose deployment, but grants the pod root-level
+#     control of the node — pin to a dedicated node and read the SECURITY note
+#     in the chart README. The daemon also needs the socket's group
+#     (podSecurityContext.supplementalGroups).
+#   DOCKER_HOST via extraEnv → a Docker endpoint you control (e.g. a
+#     sysbox/DinD service). Recommended for stronger isolation.
+dockerSocket:
+  enabled: false
+  hostPath: /var/run/docker.sock
+
+# ── MCP servers ───────────────────────────────────────────────────────────────
+# The native MCP servers agents call during a run. Each enabled one is a
+# Deployment + ClusterIP Service in the release namespace (templates/mcp.yaml),
+# and the daemon gets MCP_<NAME>_URL pointing at it — forwarded to every agent
+# pod — plus OCTOPUS_MCP_FORWARD_CREDENTIAL naming it, so the server acts with
+# the calling run's own key. thulu-sandbox is not here: the daemon serves it.
+# `thulu init` writes the enabled flags from its MCP checklist.
+mcp:
+  # Registry prefix; each image is <imageRegistry>/octopus-mcp-<name>. Point it
+  # at your mirror for an air-gapped cluster.
+  imageRegistry: ghcr.io/misterdonnuts
+  # Tag for every MCP image. Defaults to the chart's appVersion when empty.
+  imageTag: ""
+  pullPolicy: IfNotPresent
+  # Numeric user so runAsNonRoot can be verified without trusting the image's
+  # USER line (uid 1000 is `node` in the node base images).
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  # Every server writes only to /tmp (an emptyDir), so the root filesystem is
+  # read-only.
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: ["ALL"]
+  nodeSelector: {}
+  tolerations: []
+  # One NetworkPolicy over every MCP server (templates/mcp-networkpolicy.yaml).
+  # The servers act for agents of every tenant and thulu-browser opens any
+  # page an agent names, so on a shared install keep them out of the cluster.
+  networkPolicy:
+    enabled: false
+    # Kubernetes mode: agent pods of every tenant namespace (label
+    # thulu.dev/plane=data) may call the servers on 3000. They are shared
+    # across tenants; turn it off only if tenants get their own servers.
+    allowTenantIngress: true
+    # Extra ingress peers on 3000 (NetworkPolicyPeer list). Docker mode needs
+    # one: agent containers reach the servers from the node's address.
+    extraIngressFrom: []
+    # Namespace of cluster DNS (kube-system on k3s, kubeadm, EKS, GKE). Empty
+    # = DNS to any address.
+    dnsNamespace: kube-system
+    # TCP ports open to any address outside privateCIDRs. Add 80 if
+    # thulu-browser must open plain-http sites.
+    publicPorts: [443]
+    # Never reachable through publicPorts: RFC 1918, CGNAT, link-local (cloud
+    # metadata). Add the cluster's pod/service CIDRs if they sit outside
+    # these. A node's own IP reaches its ingress and NodePorts: see
+    # excludeNodeAddresses, or list each node's public address here as a /32.
+    privateCIDRs:
+      - 10.0.0.0/8
+      - 172.16.0.0/12
+      - 192.168.0.0/16
+      - 100.64.0.0/10
+      - 169.254.0.0/16
+    # Add every node's InternalIP/ExternalIP (IPv4) as a /32 to the except
+    # list, read from the cluster at install/upgrade (Helm lookup). The
+    # installing identity needs list on nodes, or the render fails: set it to
+    # false then and list the addresses in privateCIDRs. Run `helm upgrade`
+    # again when a node's address changes; `helm template` sees no nodes.
+    excludeNodeAddresses: true
+    # Extra egress rules appended verbatim (NetworkPolicyEgressRule list), e.g.
+    # a GitHub Enterprise Server on a private address for thulu-github.
+    extraEgress: []
+  # Per server: enabled, image.repository/tag (override the registry/tag
+  # above for this one server), resources, extraEnv (plain env vars).
+  # thulu-github gets GITHUB_API_URL from github.url / github.apiUrl.
+  octopusApi:
+    enabled: true
+    image: { repository: "", tag: "" }
+    resources:
+      requests: { cpu: 25m, memory: 64Mi }
+      limits: { memory: 192Mi }
+    extraEnv: {}
+  thuluGithub:
+    enabled: true
+    image: { repository: "", tag: "" }
+    resources:
+      requests: { cpu: 25m, memory: 64Mi }
+      limits: { memory: 192Mi }
+    extraEnv: {}
+  thuluBrowser:
+    enabled: true
+    image: { repository: "", tag: "" }
+    # An evidence render runs a browser context and an ffmpeg encode side by
+    # side (EVIDENCE_MAX_RENDERS=2 at once).
+    resources:
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { memory: 2Gi }
+    extraEnv: {}
+  # Off by default: it reads nothing until an environment has a cloud
+  # credential, and it is the one server that talks to your cloud account.
+  thuluCloud:
+    enabled: false
+    image: { repository: "", tag: "" }
+    resources:
+      requests: { cpu: 25m, memory: 96Mi }
+      # The AWS SDK is heavier than the other servers' dependencies.
+      limits: { memory: 320Mi }
+    extraEnv: {}
+  # Off by default: it reads nothing until the workspace has a Figma
+  # credential. Reaches api.figma.com and Figma's image CDN on 443.
+  thuluFigma:
+    enabled: false
+    image: { repository: "", tag: "" }
+    # A render is downloaded whole to send it inline or attach it.
+    resources:
+      requests: { cpu: 25m, memory: 64Mi }
+      limits: { memory: 256Mi }
+    extraEnv: {}
+
+# ── Service / Ingress / TLS ───────────────────────────────────────────────────
+service:
+  type: ClusterIP
+  port: 8585
+
+ingress:
+  enabled: true
+  className: ""
+  # Extra Ingress annotations (controller tuning, external-dns, ...).
+  annotations: {}
+  # cert-manager issuer for the TLS secret. Empty = no cert-manager annotation:
+  # bring the TLS secret yourself (e.g. from an internal CA). Set ONE of:
+  #   clusterIssuer: letsencrypt-prod   (public ACME; the host must be reachable)
+  #   clusterIssuer: corp-internal-ca   (a CA ClusterIssuer for an internal PKI)
+  #   issuer: my-namespaced-issuer      (a namespaced Issuer)
+  certManager:
+    clusterIssuer: ""
+    issuer: ""
+  hosts:
+    - host: thulu.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: octopus-tls
+      hosts:
+        - thulu.example.com
+  # A second Ingress that refuses, at the edge, the paths only agents and MCP
+  # servers use (they reach the daemon on the in-cluster Service): the LLM
+  # gateway, /internal/*, /git/*, the sandbox MCP transport, /run/bundle and,
+  # by default, /metrics, /openapi.json, GitHub's public callbacks and the
+  # telemetry intake (templates/ingress-blocked.yaml). Off here so existing
+  # installs keep their routes; values-saas.example.yaml turns it on.
+  blockedPaths:
+    enabled: false
+    # Keep routing these from outside:
+    exposeMetrics: false  # a Prometheus outside the cluster scraping /metrics
+    exposeOpenAPI: false  # Settings links to /openapi.json; blocked, the link gets a 403
+    exposeGithub: false   # GitHub App webhook, setup and OAuth callback
+    exposeIngest: false   # OTLP telemetry intake at /ingest/v1/*
+    # More paths to refuse: [{path: /foo/, pathType: Prefix}]
+    extra: []
+    # Render a Traefik Middleware (traefik.io/v1alpha1, Traefik v3) that
+    # answers 403. Set false for another controller and deny through
+    # annotations instead; the chart refuses to render with neither.
+    traefik:
+      middleware: true
+    # Added to the blocking Ingress, e.g. for ingress-nginx:
+    #   nginx.ingress.kubernetes.io/whitelist-source-range: 127.0.0.1/32
+    annotations: {}
+
+# ── Pod security ──────────────────────────────────────────────────────────────
+# Hardened defaults. The image runs as uid/gid 10001 (numeric USER in
+# deploy/Dockerfile); pinning the same ids here lets the kubelet verify
+# runAsNonRoot and makes fsGroup give the daemon write access to /data.
+# The root filesystem is read-only; the daemon writes only to /data (the PVC)
+# and /tmp (an emptyDir).
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  # Skip the recursive chown of /data when the volume root already matches.
+  fsGroupChangePolicy: OnRootMismatch
+  seccompProfile:
+    type: RuntimeDefault
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: "2"
+    memory: 2Gi
+
+# Opt-in NetworkPolicy for the daemon pod. Requires a CNI that enforces
+# NetworkPolicy (Calico, Cilium). When enabled it allows:
+#   ingress → 8585 from the ingress controller namespace and from pods in the
+#             release namespace (MCP servers); in kubernetes mode also 8585 +
+#             gatewayPort from tenant namespaces (thulu.dev/plane=data), which
+#             is how agent pods clone, call the API and reach the LLM gateway.
+#   egress  → DNS; HTTPS 443 anywhere (IdP, GitHub, LLM providers); pods in the
+#             release namespace (MCP servers, an in-namespace Postgres);
+#             Postgres; the Kubernetes API server; and in kubernetes mode the
+#             in-pod exec agents (8587) in tenant namespaces.
+# Narrow postgres/apiServer to your CIDRs for a tighter policy.
+networkPolicy:
+  enabled: false
+  ingressNamespaceLabel: kubernetes.io/metadata.name
+  ingressNamespace: ingress-nginx
+  # Extra ingress peers for 8585 (e.g. a Prometheus namespace scraping /metrics).
+  # Each entry is a NetworkPolicyPeer, e.g.
+  #   - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: monitoring}}
+  extraIngressFrom: []
+  postgres:
+    port: 5432
+    # Empty = any destination on that port. e.g. ["10.20.0.0/24"].
+    cidrs: []
+  apiServer:
+    # 443 is the in-cluster `kubernetes` Service port; most CNIs match the
+    # policy after DNAT, i.e. against the endpoint port (6443 on kubeadm/k3s).
+    ports: [443, 6443]
+    # Empty = any destination on those ports. e.g. ["10.0.0.10/32"] (the
+    # endpoints of `kubectl get endpoints kubernetes`).
+    cidrs: []
+  # Extra egress rules appended verbatim (NetworkPolicyEgressRule list), e.g. a
+  # corporate proxy or an internal Git server on a non-443 port. Bedrock or
+  # Vertex on the daemon's own identity (OCTOPUS_LLM_AMBIENT_CLOUD_IDENTITY)
+  # needs its credential endpoint here: EKS Pod Identity 169.254.170.23/32
+  # port 80, GKE Workload Identity 169.254.169.254/32 port 80 plus
+  # 169.254.169.252/32 port 988. IRSA only needs STS on 443, already open.
+  extraEgress: []
+
+nodeSelector: {}
+tolerations: []
+
+# PriorityClass for the daemon's pod. On a cluster of several nodes set it to
+# one above the tenant pods (for example octopus-control), so a burst of runs never keeps the daemon from being
+# scheduled on the surviving node.
+priorityClassName: ""
+affinity: {}
+
+serviceAccount:
+  create: true
+  name: ""
+  # Cloud identity for the daemon, which signs Bedrock / Vertex calls for
+  # profiles that store no key (with OCTOPUS_LLM_AMBIENT_CLOUD_IDENTITY=1), e.g.
+  #   eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/octopus-bedrock
+  #   iam.gke.io/gcp-service-account: octopus@PROJECT.iam.gserviceaccount.com
+  annotations: {}
+
+# Liveness/readiness probe tuning (paths are fixed in the daemon).
+probes:
+  liveness:
+    initialDelaySeconds: 10
+    periodSeconds: 30
+  readiness:
+    initialDelaySeconds: 5
+    periodSeconds: 10

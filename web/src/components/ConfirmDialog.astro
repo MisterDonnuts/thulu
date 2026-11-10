@@ -1,0 +1,143 @@
+---
+// Markup must match confirmDialogHTML() in lib/ui/confirm.ts, which rewrites Layout's instance for
+// each question.
+import Button from "./Button.astro";
+import Callout from "./Callout.astro";
+import Check from "./Check.astro";
+import Icon from "./Icon.astro";
+import { SLOT, t, tParts } from "../i18n";
+import {
+  confirmDialogAttrs,
+  confirmIds,
+  type ConfirmLink,
+  type ConfirmOption,
+} from "../lib/ui/confirm";
+
+interface Props {
+  title: string;
+  message?: string;
+  details?: string[];
+  detailsMono?: boolean;
+  option?: ConfirmOption;
+  requireText?: string;
+  warning?: string;
+  warningLink?: ConfirmLink;
+  notes?: string[];
+  confirmLabel: string;
+  cancelLabel?: string;
+  danger?: boolean;
+  icon?: string;
+  idPrefix?: string;
+}
+const {
+  title,
+  message,
+  details,
+  detailsMono = false,
+  option,
+  requireText,
+  warning,
+  warningLink,
+  notes = [],
+  confirmLabel,
+  cancelLabel = t("common.buttons.cancel"),
+  danger = false,
+  icon = "alert",
+  idPrefix,
+} = Astro.props;
+const ids = confirmIds(idPrefix);
+const hasBody = Astro.slots.has("default");
+const requireParts = tParts("ui.confirm.require", { text: SLOT });
+---
+
+<div {...confirmDialogAttrs({ message, danger, idPrefix })}>
+  <div class="confirm-dialog-head">
+    <span class="confirm-dialog-icon"><Icon name={icon} size="lg" /></span>
+    <div class="confirm-dialog-title" id={ids.title}>{title}</div>
+  </div>
+  <form class="confirm-dialog-form" id={ids.form} novalidate>
+    <div class="confirm-dialog-content">
+      {
+        message && (
+          <p class="confirm-dialog-msg" id={ids.message}>
+            {message}
+          </p>
+        )
+      }
+      {
+        details && details.length > 0 && (
+          <ul
+            class={
+              detailsMono ? "confirm-dialog-list confirm-dialog-list-mono" : "confirm-dialog-list"
+            }
+          >
+            {details.map((d) => (
+              <li>{d}</li>
+            ))}
+          </ul>
+        )
+      }
+      {
+        hasBody && (
+          <div class="confirm-dialog-body">
+            <slot />
+          </div>
+        )
+      }
+      {
+        option && (
+          <Check
+            id={ids.option}
+            name={option.name ?? "option"}
+            label={option.label}
+            hint={option.hint}
+            checked={!!option.checked}
+          />
+        )
+      }
+      {
+        requireText !== undefined && (
+          <div class="confirm-dialog-field">
+            <label for={ids.require}>
+              {requireParts.map((part, i) =>
+                i % 2 ? <code class="code-inline">{requireText}</code> : part,
+              )}
+            </label>
+            <input
+              id={ids.require}
+              type="text"
+              autocomplete="off"
+              autocapitalize="off"
+              spellcheck="false"
+            />
+          </div>
+        )
+      }
+      {
+        warning && (
+          <Callout tone="warn" icon="warn">
+            <p>{warning}</p>
+            {warningLink && (
+              <p>
+                <a href={warningLink.href} data-confirm-leave>
+                  {warningLink.label}
+                </a>
+              </p>
+            )}
+          </Callout>
+        )
+      }
+      {notes.map((note) => <p class="confirm-dialog-note">{note}</p>)}
+      <div class="confirm-dialog-error" id={ids.error} role="alert" hidden></div>
+    </div>
+    <div class="confirm-dialog-foot">
+      <Button variant="ghost" id={ids.cancel}>{cancelLabel}</Button>
+      <Button
+        variant={danger ? "danger" : "primary"}
+        type="submit"
+        id={ids.ok}
+        disabled={requireText !== undefined}>{confirmLabel}</Button
+      >
+    </div>
+  </form>
+</div>

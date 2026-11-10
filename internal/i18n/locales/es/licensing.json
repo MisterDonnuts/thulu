@@ -1,0 +1,26 @@
+{
+  "errors": {
+    "malformed_token": "licencia: el token está mal formado",
+    "signature_mismatch": "licencia: la firma no verifica (alterada o firmada con otra clave)",
+    "marshal_claims": "licencia: serializar los claims",
+    "public_key_size": "licencia: la clave pública tiene {size} bytes, se esperaban {want}",
+    "private_key_size": "licencia: la clave privada tiene {size} bytes, se esperaban {want}",
+    "generate_keypair": "licencia: generar el par de claves",
+    "decode_private_key": "licencia: decodificar el hex de la clave privada",
+    "decode_public_key": "licencia: decodificar el hex de la clave pública",
+    "no_public_key": "licencia: no hay clave pública configurada"
+  },
+  "log": {
+    "community_edition": "edición community (sin licencia configurada)",
+    "vendor_key_invalid": "la clave del proveedor embebida no es válida, corre como edición community: {err}",
+    "verification_failed": "falló la verificación de la licencia, corre como edición community: {err}",
+    "expired_in_grace": "la licencia VENCIÓ pero sigue en el período de gracia; renovala pronto ({licensed})",
+    "expired": "la licencia venció y pasó el período de gracia; corre como edición community hasta que se renueve",
+    "not_yet_valid": "la licencia todavía no es válida (NotBefore en el futuro); corre como edición community",
+    "licensed": "con licencia",
+    "licensed_perpetual": "licencia de {org:%q} ({edition}, perpetua)",
+    "licensed_until": "licencia de {org:%q} ({edition}, vence el {expires})",
+    "no_vendor_key": "hay una licencia pero este build no trae la clave del proveedor para verificarla; corre como edición community",
+    "saas_needs_license": "OCTOPUS_SAAS_MODE está prendido pero la licencia no incluye saas: el webhook de Stripe responde 503"
+  }
+}

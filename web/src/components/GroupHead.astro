@@ -1,0 +1,83 @@
+---
+// Markup must match groupHeadHTML() in lib/ui/list-row.ts.
+import Icon from "./Icon.astro";
+import { groupHeadClasses, groupHeadTitleTag, type GroupHeadLevel } from "../lib/ui/list-row";
+
+interface Props {
+  title: string;
+  href?: string;
+  kicker?: string;
+  icon?: string;
+  meta?: string;
+  level?: GroupHeadLevel;
+  band?: boolean;
+  as?: "div" | "tr";
+  cols?: number;
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  title,
+  href,
+  kicker,
+  icon,
+  meta,
+  level,
+  band = false,
+  as = "div",
+  cols,
+  class: extra,
+  ...rest
+} = Astro.props;
+const Title = groupHeadTitleTag(level);
+const cls = groupHeadClasses({ band, cls: extra });
+const hasExtra = Astro.slots.has("extra");
+---
+
+{
+  as === "tr" ? (
+    <tr class="group-head-row" {...rest}>
+      <th colspan={cols}>
+        <div class={cls}>
+          {icon && <Icon name={icon} />}
+          <Title class="group-head-title">
+            {kicker && <span class="group-head-kicker">{kicker}</span>}
+            {href ? (
+              <a class="group-head-link" href={href}>
+                {title}
+              </a>
+            ) : (
+              title
+            )}
+          </Title>
+          {meta && <span class="group-head-meta">{meta}</span>}
+          {hasExtra && (
+            <span class="group-head-extra">
+              <slot name="extra" />
+            </span>
+          )}
+        </div>
+      </th>
+    </tr>
+  ) : (
+    <div class={cls} {...rest}>
+      {icon && <Icon name={icon} />}
+      <Title class="group-head-title">
+        {kicker && <span class="group-head-kicker">{kicker}</span>}
+        {href ? (
+          <a class="group-head-link" href={href}>
+            {title}
+          </a>
+        ) : (
+          title
+        )}
+      </Title>
+      {meta && <span class="group-head-meta">{meta}</span>}
+      {hasExtra && (
+        <span class="group-head-extra">
+          <slot name="extra" />
+        </span>
+      )}
+    </div>
+  )
+}

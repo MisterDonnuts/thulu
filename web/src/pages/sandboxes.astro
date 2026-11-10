@@ -1,0 +1,693 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Button from "../components/Button.astro";
+import Callout from "../components/Callout.astro";
+import Count from "../components/Count.astro";
+import EmptyRow from "../components/EmptyRow.astro";
+import Field from "../components/Field.astro";
+import InlineStatus from "../components/InlineStatus.astro";
+import PageHead from "../components/PageHead.astro";
+import Panel from "../components/Panel.astro";
+import Table from "../components/Table.astro";
+import { SLOT, t, tParts } from "../i18n";
+import { SANDBOX_DEFAULTS, queueColumns, sandboxColumns } from "../lib/sandboxes";
+
+const subParts = tParts("sandboxes.subtitle", { cmd: SLOT });
+const EXEC_CMD = "exec";
+---
+
+<Layout title={t("sandboxes.title")}>
+  <main class="page" style="--page-max: 1100px">
+    <PageHead title={t("sandboxes.title")}>
+      <Fragment slot="sub">
+        {subParts.map((p, i) => (i % 2 ? <code class="code-inline">{EXEC_CMD}</code> : p))}
+      </Fragment>
+      <Fragment slot="actions">
+        <Count
+          pill
+          n={0}
+          label={t("sandboxes.stats.active_of", { max: SANDBOX_DEFAULTS.max })}
+          dot
+          id="stat-live"
+        />
+        <Count pill n={0} label={t("sandboxes.stats.queued")} id="stat-queued" />
+      </Fragment>
+    </PageHead>
+
+    <Callout tone="warn" icon="warn" id="no-sandbox-agent" hidden>
+      {t("sandboxes.hints.no_agent")}{" "}
+      <a href="/agents/">{t("sandboxes.hints.no_agent_link")}</a>
+    </Callout>
+
+    <div class="panel-stack">
+      <Panel icon="box" title={t("sandboxes.panels.active")} flush>
+        <Table cols={sandboxColumns()} stack bodyId="sandbox-list">
+          <EmptyRow cols={6} loading />
+        </Table>
+      </Panel>
+
+      <Panel icon="clock" title={t("sandboxes.panels.queue")} flush>
+        <Fragment slot="aside">{t("sandboxes.hints.queue_order")}</Fragment>
+        <Table cols={queueColumns()} stack bodyId="sandbox-queue">
+          <EmptyRow cols={6}>{t("sandboxes.empty.queue")}</EmptyRow>
+        </Table>
+      </Panel>
+
+      <Panel id="sandbox-settings" icon="settings" title={t("sandboxes.panels.settings")} pad="md">
+        <div class="settings-grid">
+          <Field
+            label={t("sandboxes.labels.max")}
+            for="setting-max-input"
+            help={t("sandboxes.hints.max_default", { n: 3 })}
+            errorId="setting-max-error"
+          >
+            <input
+              id="setting-max-input"
+              type="text"
+              inputmode="numeric"
+              value="3"
+              aria-describedby="setting-max-input-help"
+            />
+          </Field>
+          <Field
+            label={t("sandboxes.labels.idle_evict")}
+            for="setting-idle-input"
+            help={t("sandboxes.hints.idle_default", { n: 30 })}
+            errorId="setting-idle-error"
+          >
+            <input
+              id="setting-idle-input"
+              type="text"
+              inputmode="decimal"
+              value="30"
+              aria-describedby="setting-idle-input-help"
+            />
+          </Field>
+          <Field
+            label={t("sandboxes.labels.acquire_block")}
+            for="setting-block-input"
+            help={t("sandboxes.hints.block_default", { n: 120 })}
+            errorId="setting-block-error"
+          >
+            <input
+              id="setting-block-input"
+              type="text"
+              inputmode="numeric"
+              value="120"
+              aria-describedby="setting-block-input-help"
+            />
+          </Field>
+        </div>
+
+        <h3 class="sub-head">{t("sandboxes.labels.priority_by_stage")}</h3>
+        <p class="panel-lede">{t("sandboxes.hints.priority")}</p>
+        <ul id="priority-list" class="row-list priority-list"></ul>
+
+        <div class="form-actions settings-actions">
+          <Button id="save-settings" variant="primary" size="md" icon="check"
+            >{t("sandboxes.buttons.save")}</Button
+          >
+          <InlineStatus id="save-status" />
+        </div>
+      </Panel>
+    </div>
+  </main>
+
+  <style is:global>
+    .owner-link {
+      color: var(--fg);
+    }
+    .owner-link:hover {
+      text-decoration: underline;
+    }
+    #no-sandbox-agent {
+      margin-bottom: var(--s-4);
+    }
+
+    /* Settings */
+    .settings-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: var(--s-4);
+    }
+    .priority-list {
+      max-width: 480px;
+    }
+    /* A weight is a short number: the box keeps to it. */
+    .priority-list input {
+      width: calc(5ch + 2 * var(--control-pad-x));
+    }
+
+    .settings-actions {
+      margin-top: var(--s-5);
+      padding-top: var(--s-4);
+      border-top: 1px solid var(--line);
+    }
+  </style>
+
+  <script>
+    import { reconcile, startPoller, dirty, setText } from "../lib/reactive";
+    import { requireAuth } from "../lib/auth";
+    import { api } from "../lib/api";
+    import {
+      $,
+      confirmDialog,
+      emptyRowHTML,
+      esc,
+      listRowHTML,
+      makeToast,
+      setCount,
+      setFieldError,
+      setInlineStatus,
+      tableRowHTML,
+      type InlineStatusTone,
+    } from "../lib/ui";
+    import { formatSeconds, ago } from "../lib/time";
+    import { sandboxStatusBadge } from "../lib/badges";
+    import type { Stage } from "../lib/stages";
+    import { ApiError } from "../lib/api";
+    import { projectInitScriptHref } from "../lib/infra-cache";
+    import {
+      SANDBOX_DEFAULTS,
+      anyAgentUsesSandbox,
+      checkPriorities,
+      checkSandboxForm,
+      refusedField,
+      killMessage,
+      queueColumns,
+      sandboxColumns,
+      sandboxOwner,
+      sandboxOwnerName,
+      settingNumber,
+      taskHref,
+      toUnit,
+      type AgentMCPs,
+      type FieldProblem,
+      type SandboxForm,
+    } from "../lib/sandboxes";
+    import { isOperatorRefusal, mayWriteInstallWide, showReadOnly } from "../lib/operator";
+    import { t } from "../i18n";
+    import { onPage } from "../lib/page";
+
+    onPage("/sandboxes", (signal) => {
+      requireAuth();
+
+      let boardStages: Stage[] = [];
+      const stageLabels = new Map<string, string>();
+      function stageLabel(id: string): string {
+        if (id === "prewarm") return t("sandboxes.stages.prewarm");
+        return stageLabels.get(id) || id;
+      }
+
+      interface SandboxView {
+        task_id: string;
+        task_title?: string;
+        project_name?: string;
+        // False on Kubernetes, where killing also deletes the work volume.
+        publishes_ports?: boolean;
+        container_id: string;
+        image: string;
+        status: string;
+        host_ports: Record<string, number>;
+        created_at: string;
+        last_activity_at: string;
+        idle_seconds: number;
+        released_at?: string;
+      }
+      interface QueueEntry {
+        task_id: string;
+        task_title?: string;
+        stage: string;
+        priority: number;
+        enqueued_at: string;
+      }
+
+      const toast = makeToast();
+
+      let liveCount = 0;
+      let maxSandboxes: number = SANDBOX_DEFAULTS.max;
+      function paintLive() {
+        setCount($("stat-live"), liveCount, {
+          pill: true,
+          label: t("sandboxes.stats.active_of", { max: maxSandboxes }),
+          dot: liveCount > 0 ? "ok" : true,
+          pulse: liveCount > 0,
+        });
+      }
+
+      function emptyRowText(container: Element): string {
+        return container.querySelector("tr.row-empty")?.textContent?.trim() ?? "";
+      }
+
+      function renderOwner(td: HTMLElement | null, id: string, title?: string, project?: string) {
+        if (!td) return;
+        const sig = `${id}|${title ?? ""}|${project ?? ""}`;
+        if (td.dataset.sig === sig) return;
+        td.dataset.sig = sig;
+        const o = sandboxOwner(id);
+        const name = document.createElement(o.kind === "evidence" ? "span" : "a");
+        name.className = "owner-link";
+        name.textContent = sandboxOwnerName(id, title, project);
+        if (name instanceof HTMLAnchorElement) {
+          name.href = o.kind === "prewarm" ? projectInitScriptHref(o.id) : taskHref(o.id);
+        }
+        const sub = document.createElement("span");
+        sub.className = "cell-sub mono";
+        sub.textContent = o.id;
+        td.replaceChildren(name, sub);
+      }
+
+      function rowEl(html: string): HTMLElement {
+        const tpl = document.createElement("template");
+        tpl.innerHTML = html;
+        return tpl.content.firstElementChild as HTMLElement;
+      }
+      const SANDBOX_COLS = sandboxColumns();
+      const QUEUE_COLS = queueColumns();
+
+      function createSandboxRow(sb: SandboxView): HTMLElement {
+        const tr = rowEl(
+          tableRowHTML(
+            SANDBOX_COLS,
+            {
+              cells: [
+                "",
+                "",
+                "",
+                "",
+                "",
+                {
+                  actions: [
+                    {
+                      iconOnly: true,
+                      icon: "power",
+                      variant: "danger",
+                      cls: "btn-kill",
+                      label: t("sandboxes.buttons.kill_sandbox"),
+                      title: t("sandboxes.buttons.kill"),
+                    },
+                  ],
+                },
+              ],
+            },
+            { stack: true },
+          ),
+        );
+        tr.querySelector<HTMLButtonElement>(".btn-kill")!.addEventListener("click", async () => {
+          const ok = await confirmDialog({
+            title: t("sandboxes.confirm.kill_title"),
+            message: killMessage(
+              sandboxOwnerName(sb.task_id, sb.task_title, sb.project_name),
+              sb.publishes_ports !== false,
+            ),
+            confirmLabel: t("sandboxes.buttons.kill"),
+            danger: true,
+          });
+          if (!ok) return;
+          try {
+            await api.del(`/tasks/${encodeURIComponent(sb.task_id)}/sandbox`);
+            toast(t("sandboxes.toasts.killed"), "ok");
+          } catch (e) {
+            toast(t("sandboxes.toasts.kill_failed", { error: String(e) }), "err");
+          }
+        });
+        updateSandboxRow(tr, sb);
+        return tr;
+      }
+      function updateSandboxRow(tr: HTMLElement, sb: SandboxView) {
+        renderOwner(
+          tr.querySelector<HTMLElement>(".owner"),
+          sb.task_id,
+          sb.task_title,
+          sb.project_name,
+        );
+        setText(tr.querySelector(".ctn"), sb.container_id ? sb.container_id.slice(0, 12) : "—");
+        const status = tr.querySelector(".status-cell") as HTMLElement;
+        if (status.dataset.status !== sb.status) {
+          status.innerHTML = sandboxStatusBadge(sb.status);
+          status.dataset.status = sb.status;
+        }
+        setText(tr.querySelector(".idle"), formatSeconds(sb.idle_seconds));
+        const ports = Object.entries(sb.host_ports || {})
+          .sort(([a], [b]) => Number(a) - Number(b))
+          .map(([cp, hp]) => `${hp}:${cp}`)
+          .join("  ");
+        setText(tr.querySelector(".ports"), ports || "—");
+      }
+
+      function createQueueRow(e: QueueEntry, idx: number): HTMLElement {
+        const tr = rowEl(
+          tableRowHTML(
+            QUEUE_COLS,
+            {
+              cells: [
+                "",
+                "",
+                "",
+                "",
+                "",
+                {
+                  actions: [
+                    {
+                      iconOnly: true,
+                      icon: "x",
+                      variant: "danger",
+                      cls: "btn-dequeue",
+                      label: t("sandboxes.buttons.dequeue_label", { task: e.task_id }),
+                      title: t("sandboxes.buttons.dequeue"),
+                    },
+                  ],
+                },
+              ],
+            },
+            { stack: true },
+          ),
+        );
+        tr.querySelector<HTMLButtonElement>(".btn-dequeue")!.addEventListener(
+          "click",
+          async (ev) => {
+            const btn = ev.currentTarget as HTMLButtonElement;
+            btn.disabled = true;
+            try {
+              await api.del(`/tasks/${encodeURIComponent(e.task_id)}/sandbox/queue`);
+              toast(t("sandboxes.toasts.dequeued"), "ok");
+              await refresh();
+            } catch (err) {
+              toast(
+                t("sandboxes.toasts.dequeue_failed", {
+                  error: err instanceof Error ? err.message : String(err),
+                }),
+                "err",
+              );
+              btn.disabled = false;
+            }
+          },
+        );
+        updateQueueRow(tr, e, idx);
+        return tr;
+      }
+      function updateQueueRow(tr: HTMLElement, e: QueueEntry, idx: number) {
+        setText(tr.querySelector(".pos"), String(idx + 1));
+        renderOwner(tr.querySelector<HTMLElement>(".owner"), e.task_id, e.task_title);
+        setText(tr.querySelector(".stage"), stageLabel(e.stage));
+        setText(tr.querySelector(".prio"), String(e.priority));
+        setText(tr.querySelector(".wait"), ago(e.enqueued_at));
+      }
+
+      interface Settings {
+        "sandbox.priorities": Record<string, number>;
+        "sandbox.max": number;
+        "sandbox.idle_evict_seconds": number;
+        "sandbox.acquire_block_ms": number;
+      }
+
+      async function loadSettings() {
+        const all = await api.get<Record<string, unknown>>("/settings");
+        // A stored 0 is valid (0 minutes = never evict); only an absent or non-numeric setting
+        // falls back to the default.
+        const prio = all["sandbox.priorities"];
+        const settings: Settings = {
+          "sandbox.priorities":
+            prio && typeof prio === "object" ? (prio as Record<string, number>) : {},
+          "sandbox.max": settingNumber(all["sandbox.max"], SANDBOX_DEFAULTS.max),
+          "sandbox.idle_evict_seconds": settingNumber(
+            all["sandbox.idle_evict_seconds"],
+            SANDBOX_DEFAULTS.idleEvictSeconds,
+          ),
+          "sandbox.acquire_block_ms": settingNumber(
+            all["sandbox.acquire_block_ms"],
+            SANDBOX_DEFAULTS.acquireBlockMs,
+          ),
+        };
+        if (!dirty.isFocusInEditable()) {
+          ($("setting-max-input") as HTMLInputElement).value = String(settings["sandbox.max"]);
+          ($("setting-idle-input") as HTMLInputElement).value = toUnit(
+            settings["sandbox.idle_evict_seconds"],
+            60,
+          );
+          ($("setting-block-input") as HTMLInputElement).value = toUnit(
+            settings["sandbox.acquire_block_ms"],
+            1000,
+          );
+          showProblems({});
+          renderPriorities(settings["sandbox.priorities"]);
+        }
+        maxSandboxes = settings["sandbox.max"];
+        paintLive();
+      }
+
+      // Priority inputs are redrawn when stages change, so they read settingsLocked instead of
+      // being disabled once.
+      let settingsLocked = false;
+      function lockSettings() {
+        settingsLocked = true;
+        const panel = $("sandbox-settings");
+        showReadOnly(
+          panel.querySelector<HTMLElement>(".panel-body")!,
+          t("sandboxes.hints.install_wide"),
+          panel.querySelectorAll("input, button"),
+        );
+        // Force a redraw on the next load so an edit the server refused is replaced by the stored
+        // values.
+        delete $("priority-list").dataset.sig;
+      }
+      void mayWriteInstallWide().then((ok) => {
+        if (!ok) lockSettings();
+      });
+
+      function renderPriorities(prio: Record<string, number>) {
+        const list = $("priority-list") as HTMLUListElement;
+        // Priority keys with no matching stage are deliberately not rendered, so the next save
+        // drops them.
+        const rows: Array<{ id: string; label: string; weight: number }> = boardStages.map(
+          (st) => ({
+            id: st.id,
+            label: st.label || st.id,
+            weight: prio[st.id] ?? 0,
+          }),
+        );
+        rows.sort((a, b) => b.weight - a.weight || a.id.localeCompare(b.id));
+        const sig = rows.map((r) => `${r.id}=${r.weight}`).join("|");
+        if (list.dataset.sig === sig) return;
+        list.innerHTML = rows
+          .map((r) =>
+            listRowHTML({
+              as: "li",
+              boxed: true,
+              titleHTML: `<span id="prio-label-${esc(r.id)}">${esc(r.label)}</span>`,
+              metaHTML: `<span class="field-error field-error-row" id="prio-error-${esc(r.id)}" hidden></span>`,
+              actionsHTML: `<input type="text" inputmode="numeric" data-stage="${esc(r.id)}" aria-labelledby="prio-label-${esc(r.id)}" value="${esc(String(r.weight ?? ""))}"${settingsLocked ? " disabled" : ""} />`,
+            }),
+          )
+          .join("");
+        list.dataset.sig = sig;
+      }
+
+      const FIELDS: Array<[keyof SandboxForm, string]> = [
+        ["max", "setting-max"],
+        ["idleMinutes", "setting-idle"],
+        ["waitSeconds", "setting-block"],
+      ];
+      function problemText(p: FieldProblem): string {
+        switch (p) {
+          case "required":
+            return t("sandboxes.errors.required");
+          case "number":
+            return t("sandboxes.errors.number");
+          case "integer":
+            return t("sandboxes.errors.integer");
+          case "min1":
+            return t("sandboxes.errors.min1");
+          case "min0":
+            return t("sandboxes.errors.min0");
+          case "whole_min0":
+            return t("sandboxes.errors.whole_min0");
+          case "refused":
+            return t("sandboxes.errors.refused");
+        }
+      }
+      function priorityInputs(): HTMLInputElement[] {
+        return Array.from(
+          document.querySelectorAll<HTMLInputElement>("#priority-list input[data-stage]"),
+        );
+      }
+      function readPriorities(): Record<string, string> {
+        const out: Record<string, string> = {};
+        for (const inp of priorityInputs()) out[inp.dataset.stage!] = inp.value;
+        return out;
+      }
+      function showPriorityProblems(problems: Record<string, FieldProblem>) {
+        for (const inp of priorityInputs()) {
+          const line = inp.closest("li")?.querySelector<HTMLElement>(".field-error");
+          const p = problems[inp.dataset.stage!];
+          if (line) {
+            line.hidden = !p;
+            line.textContent = p ? problemText(p) : "";
+          }
+          if (p) {
+            inp.setAttribute("aria-invalid", "true");
+            if (line?.id) inp.setAttribute("aria-describedby", line.id);
+          } else {
+            inp.removeAttribute("aria-invalid");
+            inp.removeAttribute("aria-describedby");
+          }
+        }
+      }
+      function showProblems(problems: Partial<Record<keyof SandboxForm, FieldProblem>>) {
+        for (const [field, id] of FIELDS) {
+          const p = problems[field];
+          setFieldError($(`${id}-input`), p ? problemText(p) : "");
+        }
+      }
+      function readForm(): SandboxForm {
+        return {
+          max: ($("setting-max-input") as HTMLInputElement).value,
+          idleMinutes: ($("setting-idle-input") as HTMLInputElement).value,
+          waitSeconds: ($("setting-block-input") as HTMLInputElement).value,
+        };
+      }
+      for (const [, id] of FIELDS) {
+        $(`${id}-input`).addEventListener("input", () => {
+          const check = checkSandboxForm(readForm());
+          showProblems(check.ok ? {} : check.problems);
+        });
+      }
+      $("priority-list").addEventListener("input", () => {
+        const check = checkPriorities(readPriorities());
+        showPriorityProblems(check.ok ? {} : check.problems);
+      });
+
+      function setStatus(text: string, tone: InlineStatusTone = "neutral", fadeMs?: number) {
+        setInlineStatus($("save-status"), tone, text, { fadeMs });
+      }
+
+      async function saveSettings() {
+        const check = checkSandboxForm(readForm());
+        const prio = checkPriorities(readPriorities());
+        showProblems(check.ok ? {} : check.problems);
+        showPriorityProblems(prio.ok ? {} : prio.problems);
+        if (!check.ok || !prio.ok) {
+          setStatus(t("sandboxes.status.fix_fields"), "danger");
+          return;
+        }
+        setStatus(t("common.status.saving"));
+        try {
+          // One PATCH: the daemon stores all four values or none, so a refused value never leaves
+          // the others half saved.
+          await api.patch("/settings", {
+            "sandbox.max": check.values.max,
+            "sandbox.idle_evict_seconds": check.values.idleEvictSeconds,
+            "sandbox.acquire_block_ms": check.values.acquireBlockMs,
+            "sandbox.priorities": prio.values,
+          });
+          maxSandboxes = check.values.max;
+          paintLive();
+          setStatus(t("sandboxes.status.saved"), "ok", 2000);
+        } catch (e) {
+          if (isOperatorRefusal(e)) {
+            setStatus("");
+            lockSettings();
+            await loadSettings();
+            return;
+          }
+          const refused = e instanceof ApiError ? refusedField(e.body) : null;
+          if (refused && refused.field !== "priorities") {
+            showProblems({ [refused.field]: refused.problem });
+            setStatus(t("sandboxes.status.fix_fields"), "danger");
+            return;
+          }
+          if (refused) {
+            setStatus(problemText(refused.problem), "danger");
+            return;
+          }
+          setStatus(
+            t("sandboxes.status.error", {
+              error: e instanceof ApiError ? e.message : String(e),
+            }),
+            "danger",
+          );
+        }
+      }
+
+      $("save-settings")!.addEventListener("click", saveSettings);
+
+      async function refresh() {
+        try {
+          const [sandboxes, queue] = await Promise.all([
+            api.get<SandboxView[]>("/sandboxes"),
+            api.get<QueueEntry[]>("/sandboxes/queue"),
+          ]);
+          liveCount = sandboxes.length;
+          paintLive();
+          setCount($("stat-queued"), queue.length, {
+            pill: true,
+            label: t("sandboxes.stats.queued"),
+          });
+
+          const sbList = $("sandbox-list")!;
+          if (sandboxes.length === 0) {
+            // Compare the text, not just .row-empty: the markup ships a "Loading…" empty row that
+            // would otherwise never be replaced.
+            const noSandboxes = t("sandboxes.empty.no_sandboxes");
+            if (emptyRowText(sbList) !== noSandboxes) {
+              sbList.innerHTML = emptyRowHTML(noSandboxes, { cols: 6 });
+            }
+          } else {
+            sbList.querySelector("tr.row-empty")?.remove();
+            reconcile<SandboxView>({
+              container: sbList,
+              items: sandboxes,
+              key: (sb) => sb.task_id,
+              create: createSandboxRow,
+              update: updateSandboxRow,
+            });
+          }
+
+          const qList = $("sandbox-queue")!;
+          if (queue.length === 0) {
+            if (!qList.querySelector("tr.row-empty")) {
+              qList.innerHTML = emptyRowHTML(t("sandboxes.empty.queue"), { cols: 6 });
+            }
+          } else {
+            qList.querySelector("tr.row-empty")?.remove();
+            reconcile<QueueEntry>({
+              container: qList,
+              items: queue,
+              key: (e) => e.task_id,
+              create: (e) => createQueueRow(e, queue.indexOf(e)),
+              update: (el, e) => updateQueueRow(el, e, queue.indexOf(e)),
+            });
+          }
+        } catch {}
+      }
+
+      api
+        .get<Stage[]>("/stages?include_virtual=1")
+        .then((stages) => {
+          for (const st of stages) stageLabels.set(st.id, st.label || st.id);
+          boardStages = stages.filter((s) => !s.virtual);
+        })
+        .catch(() => {})
+        .finally(() => loadSettings().catch(() => {}));
+      api
+        .get<AgentMCPs[]>("/types")
+        .then((agents) => {
+          $("no-sandbox-agent").hidden = anyAgentUsesSandbox(agents);
+        })
+        .catch(() => {});
+      refresh();
+      startPoller({
+        interval: 4000,
+        firstDelay: 4000,
+        fetch: () => refresh(),
+        skipWhen: () => dirty.hasOpenModal(),
+      });
+      startPoller({
+        interval: 15000,
+        firstDelay: 15000,
+        fetch: () => loadSettings(),
+        skipWhen: () => dirty.isFocusInEditable(),
+      });
+    });
+  </script>
+</Layout>

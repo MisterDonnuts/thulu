@@ -1,0 +1,11 @@
+{
+  "errors": {
+    "no_logs": "no logs found for this run",
+    "not_started": "this run's agent hasn't started yet",
+    "consumer_disconnected": "log consumer disconnected"
+  },
+  "log": {
+    "seek_failed": "seek log file {path}",
+    "reopen_failed": "reopen the pod log stream"
+  }
+}

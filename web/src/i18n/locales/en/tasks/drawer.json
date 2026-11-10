@@ -1,0 +1,334 @@
+{
+  "labels": {
+    "more_actions": "More actions",
+    "close_esc": "Close (Esc)",
+    "remove_item": "Remove {name}",
+    "breadcrumb": "Where this task lives",
+    "prev_sibling": "Previous subtask",
+    "prev_sibling_key": "Previous subtask ([)",
+    "next_sibling": "Next subtask",
+    "next_sibling_key": "Next subtask (])",
+    "expand": "Expand the panel",
+    "expand_key": "Expand (F)",
+    "shrink": "Shrink the panel",
+    "shrink_key": "Shrink (F)",
+    "more_actions_key": "More actions (.)",
+    "tabs": "Task sections"
+  },
+  "menu": {
+    "more_turns": "More turns",
+    "more_turns_sub": "Runs this stage's agent again with twice the turns of its last run.",
+    "force_pr": "Force PR",
+    "force_pr_sub": "Push the branch and open a PR for any linked repo without one.",
+    "fork": "Fork task",
+    "fork_sub": "Snapshot the full state and branch a new worktree from HEAD.",
+    "clone": "Clone task",
+    "clone_sub": "Copy title, body, repos & assignments. No comments or history.",
+    "delete": "Delete task",
+    "delete_sub": "Remove the task and clean up its worktrees. Cannot be undone.",
+    "copy_link": "Copy link",
+    "copy_link_sub": "A link that opens this task.",
+    "add_subtask": "Add subtask",
+    "add_subtask_sub": "Works on this task's branch and lands in its PR.",
+    "archive": "Archive",
+    "archive_sub": "Takes it off the board. Comments, runs and branch stay; restore it from Archived.",
+    "archive_sub_kids": {
+      "one": "Takes it and its subtask off the board. Restore them from Archived.",
+      "other": "Takes it and its {count} subtasks off the board. Restore them from Archived."
+    },
+    "unarchive": "Restore to the board",
+    "unarchive_sub": "Goes back to its column with its subtasks.",
+    "delete_sub_kids": {
+      "one": "Also deletes its subtask. This cannot be undone.",
+      "other": "Also deletes its {count} subtasks. This cannot be undone."
+    },
+    "delete_admin_only": "Only an admin can delete tasks. Archive it to take it off the board."
+  },
+  "tabs": {
+    "approvals": "Approvals",
+    "reports": "Reports",
+    "chat": "Chat",
+    "timeline": "Timeline",
+    "task": "Task"
+  },
+  "body": {
+    "unsaved": "unsaved",
+    "saved": "saved",
+    "checklist_failed": "checklist update failed",
+    "uploading": "uploading {file}…",
+    "placeholder": "What is this task about?\n\n# Heading\n**bold** · *italic* · `inline code` · [link](https://example.com)\n\n- bullet\n- list\n\n| col | col |\n|-----|-----|\n| val | val |\n\n> quote\n\n```\ncode block\n```\n\nPaste a screenshot from your clipboard and it'll be uploaded automatically."
+  },
+  "props": {
+    "untyped": "Untyped",
+    "edit_projects": "Edit linked projects",
+    "agent": "Agent",
+    "edit_agents": "Edit per-stage agent assignments",
+    "type": "Type",
+    "change_type": "Change task type",
+    "edit_deps": "Edit dependencies",
+    "priority": "Priority",
+    "set_priority": "Set priority",
+    "tags": "Tags",
+    "edit_tags": "Edit tags",
+    "label": "Properties",
+    "stage": "Stage",
+    "change_stage_named": "Stage {stage}, change it",
+    "projects": "Projects",
+    "branch": "Branch and PR",
+    "blocked_by": "Blocked by",
+    "blocks": "Blocks",
+    "runs": "Runs",
+    "created": "Created",
+    "updated": "Updated",
+    "show_all": "Show all properties",
+    "show_less": "Show fewer",
+    "summary_no_agent": "no agent",
+    "summary_no_agent_long": "No agent",
+    "summary_more": {
+      "one": "{list}, {count} more",
+      "other": "{list}, {count} more"
+    },
+    "no_priority": "No priority",
+    "no_tags": "No tags",
+    "no_date": "—",
+    "sandbox": "Sandbox",
+    "sandbox_idle": "idle {time}",
+    "sandbox_port": "Port {port}",
+    "sandbox_kill": "Kill",
+    "sandbox_kill_title": "Kill the sandbox?",
+    "sandbox_killed": "Sandbox removed",
+    "sandbox_kill_failed": "Could not kill it: {error}",
+    "orphan": "Container",
+    "orphan_badge": "Orphan",
+    "orphan_line": "{agent} running with no run of this task · {time}",
+    "orphan_line_untimed": "{agent} running with no run of this task",
+    "orphan_hint": "An agent container works on this task, but no run of the task launched it: its run was deleted, or a restart left it behind. Removing it leaves the task as it is.",
+    "orphan_remove": "Remove",
+    "orphan_remove_named": "Remove container {name}",
+    "orphan_remove_title": "Remove the orphan container?",
+    "orphan_remove_message": "{name} is deleted. No run of the task depends on it, so the task stays as it is.",
+    "orphan_removed": "Orphan container removed",
+    "orphan_remove_failed": "Could not remove it: {error}",
+    "summary_orphans": {
+      "one": "{count} orphan container",
+      "other": "{count} orphan containers"
+    }
+  },
+  "priority": {
+    "none": "None",
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High",
+    "urgent": "Urgent",
+    "set_failed": "Could not set priority"
+  },
+  "test_cases_label": "Test cases",
+  "attachments": {
+    "origin_comment_by": "comment · {author}",
+    "origin_comment": "comment",
+    "origin_body": "body",
+    "origin_upload": "upload",
+    "delete_title": "Delete this attachment",
+    "delete_label": "Delete attachment",
+    "added_from": "Added from: {origin}",
+    "delete_confirm_title": "Delete attachment?",
+    "delete_confirm_message": "\"{file}\" is removed from the task and the file is deleted. Anywhere it is embedded — the body, a comment — will show a broken link.",
+    "delete_failed": "Could not delete the attachment"
+  },
+  "projects": {
+    "search_placeholder": "Search or create…",
+    "hint": "Select an option or create one",
+    "create": "Create project “{name}”",
+    "unlink_failed": "Could not unlink project",
+    "link_failed": "Could not link project"
+  },
+  "agents": {
+    "pick_for": "Pick agent for {stage}",
+    "none_option": "— None",
+    "none_installed": "No agents installed yet. The install's operator adds them in Agents.",
+    "save_failed": "Could not save agent assignment"
+  },
+  "subtasks": {
+    "created": {
+      "one": "{count} subtask created",
+      "other": "{count} subtasks created"
+    },
+    "title": "Subtasks",
+    "hide_done": "Hide done",
+    "show_done": {
+      "one": "Show {count} done",
+      "other": "Show {count} done"
+    },
+    "add": "Add subtask",
+    "add_short": "Add",
+    "placeholder": "Subtask title, or paste a list",
+    "order_hint": "Drag a row, or use Move up and Move down in its menu, to change the order.",
+    "more_options": "More options",
+    "start_in": "Start in",
+    "waits_for": "Waits for",
+    "waits_reason": "Waits for only applies to a subtask that starts in the first stage.",
+    "agents": "Agents",
+    "inherits": "Inherits projects, board, type and agents from the parent.",
+    "no_siblings": "No other subtasks yet",
+    "inherit_agent": "Parent's: {agent}",
+    "inherit_none": "No agent",
+    "row_actions": "Actions for {title}",
+    "drag": "Drag to reorder",
+    "adding": "Adding…",
+    "create_failed": "Could not create {title}: {error}",
+    "create_n": {
+      "one": "Create {count} subtask",
+      "other": "Create {count} subtasks"
+    },
+    "reordered": "Order saved",
+    "reorder_failed": "Could not save the order: {error}",
+    "deleted": "{title} deleted",
+    "waits_hard": "It cannot start until these are done.",
+    "waits_soft": "It already started, so these stay as heads-ups and do not block it.",
+    "menu": {
+      "open": "Open",
+      "move": "Move to stage",
+      "mark_done": "Mark done",
+      "waits": "Waits for…",
+      "up": "Move up",
+      "down": "Move down",
+      "delete": "Delete",
+      "move_to": "Move to",
+      "waits_for": "Waits for"
+    },
+    "create_failed_many": {
+      "one": "Could not create {title}: {error}. {count} title was not created and is back in the list.",
+      "other": "Could not create {title}: {error}. {count} titles were not created and are back in the list."
+    },
+    "paste_head": {
+      "one": "{count} subtask from the pasted list. Edit or remove any before creating.",
+      "other": "{count} subtasks from the pasted list. Edit or remove any before creating."
+    },
+    "paste_title": "Subtask {n}",
+    "paste_drop": "Remove {title}"
+  },
+  "deps": {
+    "add_label": "Tasks this one can depend on",
+    "search_placeholder": "Find task to depend on…",
+    "kind_hard": "blocking",
+    "kind_soft": "heads-up",
+    "empty": "No dependencies yet.",
+    "meta": "{kind}, {stage}",
+    "meta_blocked": "{kind}, {stage}, still open",
+    "blocked_by": "Blocked by",
+    "remove_failed": "Failed to remove: {error}",
+    "hard_initial_only": "A blocking dependency only holds the task while it is in {stage}. After that, add it as a heads-up.",
+    "kind_label": "Dependency kind",
+    "siblings": "Same parent",
+    "other_tasks": "Other tasks"
+  },
+  "tags": {
+    "create": "Create tag “{tag}”",
+    "placeholder": "Add tag…",
+    "empty": "No tags yet.",
+    "remove_failed": "Could not remove tag",
+    "add_failed": "Could not add tag"
+  },
+  "usage": {
+    "empty": "No runs yet",
+    "context": "Context · last turn",
+    "live": "live",
+    "summary": "total tokens · {runs} · {turns}",
+    "runs": {
+      "one": "{count} run",
+      "other": "{count} runs"
+    },
+    "turns": {
+      "one": "{count} turn",
+      "other": "{n} turns"
+    },
+    "input": "input",
+    "output": "output",
+    "cache_read": "cache read",
+    "cache_write": "cache write"
+  },
+  "title_hint": "Enter saves, Esc cancels.",
+  "attention_label": "Waiting on you",
+  "header": {
+    "archived": "Archived",
+    "archived_title": "It is off the board and does not change stage. Restore it from the ⋯ menu to work on it again.",
+    "open_parent_key": "Open the parent (U)",
+    "copy_link": "Copy a link to this task",
+    "sibling_pos": "{index} of {total}",
+    "stage_label": "Stage {stage}, change it",
+    "stage_key": "Change stage (S)",
+    "rollup": "{done} of {total} subtasks done",
+    "answer": "Answer",
+    "review": "Review",
+    "more_turns": "More turns",
+    "retry": "Retry",
+    "review_retry": "Review and retry",
+    "relaunch_stage": "Relaunch stage",
+    "credentials": "Open Credentials",
+    "pick_agent": "Pick an agent"
+  },
+  "move_failed": "Could not move the task",
+  "move_network_error": "Network error, the task did not move",
+  "moved": "{title} moved to {stage}",
+  "brief": {
+    "title": "Brief",
+    "edit": "Edit",
+    "edit_key": "Edit the brief (E)",
+    "discard": "Discard changes",
+    "done": "Done",
+    "empty": "No brief yet.",
+    "write": "Write the brief",
+    "written_by": "By {agent}, {ago}",
+    "show_all": "Show all",
+    "show_less": "Show less",
+    "open_subtask": "Open the subtask {title}, in {stage}",
+    "make_subtask": "Make a subtask",
+    "saved": "Saved",
+    "saving": "Saving…",
+    "unsaved": "Unsaved changes",
+    "saved_seconds": {
+      "one": "Saved {count} second ago",
+      "other": "Saved {count} seconds ago"
+    },
+    "saved_ago": "Saved {ago} ago",
+    "not_saved": "Not saved.",
+    "retry": "Retry",
+    "discard_title": "Discard your changes?",
+    "discard_message": "The brief goes back to how it was when you started editing.",
+    "hint_html": "{paste} pastes an image, {save} saves, {esc} saves and closes",
+    "add_sections": "Add sections",
+    "add_sections_title": "Adds the sections agents read that are missing, at the end: Goal, Context, Definition of Done and Out of Scope."
+  },
+  "files": {
+    "title": "Files",
+    "add": "Add files",
+    "upload_failed": "Could not upload {file}: {error}",
+    "uploaded": {
+      "one": "{count} file uploaded",
+      "other": "{count} files uploaded"
+    },
+    "kinds": {
+      "video": {
+        "one": "{count} video",
+        "other": "{count} videos"
+      },
+      "image": {
+        "one": "{count} image",
+        "other": "{count} images"
+      },
+      "other": {
+        "one": "{count} other file",
+        "other": "{count} other files"
+      }
+    },
+    "group_count": {
+      "one": "{count} file",
+      "other": "{count} files"
+    }
+  },
+  "attention_more": {
+    "one": "{count} more",
+    "other": "{count} more"
+  },
+  "attention_less": "Show less"
+}

@@ -1,0 +1,62 @@
+---
+import Dot from "./Dot.astro";
+import Icon from "./Icon.astro";
+import {
+  badgeClasses,
+  type BadgeEdge,
+  type BadgeShape,
+  type BadgeSize,
+  type BadgeTone,
+  type DotTone,
+} from "../lib/ui/badge";
+
+interface Props {
+  tone?: BadgeTone;
+  shape?: BadgeShape;
+  size?: BadgeSize;
+  mono?: boolean;
+  edge?: BadgeEdge;
+  raised?: boolean;
+  icon?: string;
+  spin?: boolean;
+  dot?: boolean | DotTone;
+  pulse?: boolean;
+  title?: string;
+  id?: string;
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  tone = "neutral",
+  shape = "rect",
+  size = "md",
+  mono = false,
+  edge,
+  raised = false,
+  icon,
+  spin = false,
+  dot = false,
+  pulse = false,
+  title,
+  id,
+  class: extra,
+  ...rest
+} = Astro.props;
+const dotTone: DotTone = typeof dot === "string" ? dot : "neutral";
+---
+
+<span
+  {id}
+  class={badgeClasses({ tone, shape, size, mono, edge, raised, cls: extra })}
+  {title}
+  {...rest}
+>
+  {
+    icon ? (
+      <Icon name={icon} class={spin ? "badge-spin" : undefined} />
+    ) : (
+      (dot || pulse) && <Dot tone={dotTone} pulse={pulse} />
+    )
+  }
+  <slot />
+</span>

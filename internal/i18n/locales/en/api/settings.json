@@ -1,0 +1,18 @@
+{
+  "errors": {
+    "not_found": "not found",
+    "unknown_setting": "unknown setting: {setting}",
+    "priorities_shape": "sandbox.priorities must be a {stage: int} map",
+    "sandbox_max_positive": "sandbox.max must be a positive integer",
+    "non_negative_int": "{setting} must be a non-negative integer",
+    "positive_int": "{setting} must be a positive integer",
+    "retention_days": "{setting} must be a non-negative integer (days; 0 keeps forever)",
+    "percent_range": "{setting} must be an integer from 0 (disabled) to 100",
+    "int_range": "{setting} must be an integer from {min} to {max}",
+    "public_url_string": "ingest.public_url must be a string",
+    "batch_empty": "send at least one setting"
+  },
+  "log": {
+    "reprioritize_failed": "reorder the sandbox queue after a priority change"
+  }
+}

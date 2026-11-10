@@ -1,0 +1,32 @@
+{
+  "title": "Settings history of {agent}",
+  "pick": "Pick a configuration to read it.",
+  "none": "No earlier configurations yet. Each time you save the settings, install over it from the Workshop or restore, the configuration it replaces lands here.",
+  "kept": "{reason} · {when}",
+  "reason": {
+    "settings": "Before a settings save",
+    "workshop": "Before a Workshop install",
+    "restore": "Before restoring another"
+  },
+  "field": {
+    "description": "Description",
+    "stages": "Stages",
+    "engine": "Engine",
+    "model": "Model",
+    "effort": "Effort",
+    "skills": "Skills per stage",
+    "mcp": "MCP per stage",
+    "auditor": "Auditor on"
+  },
+  "empty_def": "This configuration had nothing set.",
+  "restore": "Restore this configuration",
+  "confirm_title": "Restore the configuration of {agent}?",
+  "confirm_message": "Stages, skills, MCP, engine and model go back to this version. The prompts do not change. The current configuration stays in the history, so you can go back to it.",
+  "restored": "Restored the configuration of {agent}",
+  "changes": "What changed next",
+  "full": "The configuration it had",
+  "no_changes": "None of these fields changed: another setting did, such as the turns per stage.",
+  "before": "Before:",
+  "after": "After:",
+  "empty_value": "(nothing)"
+}

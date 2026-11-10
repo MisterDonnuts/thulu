@@ -1,0 +1,33 @@
+---
+import ListRow from "./ListRow.astro";
+import { catalogItemRow } from "../lib/ui/catalog";
+import type { ListRowClamp } from "../lib/ui/list-row";
+
+interface Props {
+  name: string;
+  description?: string;
+  mono?: boolean;
+  clamp?: ListRowClamp;
+  current?: boolean;
+  dim?: boolean;
+  class?: string;
+  [key: string]: unknown;
+}
+const { name, description, mono, clamp, current, dim, class: extra, ...rest } = Astro.props;
+const row = catalogItemRow({ name, description, mono, clamp, current, dim, cls: extra });
+---
+
+<ListRow
+  as={row.as}
+  title={row.title}
+  mono={row.mono}
+  meta={row.meta}
+  clamp={row.clamp}
+  current={row.current}
+  dim={row.dim}
+  class={row.cls}
+  {...rest}
+>
+  <slot name="badges" slot="badges" />
+  <slot name="tags" slot="tags" />
+</ListRow>

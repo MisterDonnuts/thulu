@@ -1,0 +1,23 @@
+---
+// board-editor.css is global, not scoped: the column heads and color swatches are written at
+// runtime.
+import Menu from "../Menu.astro";
+import Modal from "../Modal.astro";
+import { t } from "../../i18n";
+import "../../styles/board-editor.css";
+---
+
+<Menu id="ce-menu" floating label={t("lib.board_editor.head.options_title")} />
+<div id="ce-live" class="visually-hidden" aria-live="polite"></div>
+<p id="ce-grip-hint" class="visually-hidden">{t("lib.board_editor.head.grip_hint")}</p>
+
+<Modal
+  id="ce-behavior"
+  title={t("lib.board_editor.behavior.title_generic")}
+  icon="settings"
+  size="md"
+  closable
+  class="ce-modal"
+>
+  <div id="ce-behavior-body" class="ce-behavior"></div>
+</Modal>

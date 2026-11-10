@@ -1,0 +1,7 @@
+{
+  "errors": {
+    "mkdir_failed": "mkdir {path}: {err}",
+    "write_readme_failed": "write README: {err}",
+    "command_failed": "git {args}: {output:%s}: {err}"
+  }
+}

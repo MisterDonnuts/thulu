@@ -1,0 +1,9 @@
+{
+  "errors": {
+    "registry_unavailable": "el registro de MCP no está configurado",
+    "missing_name": "falta el nombre",
+    "unknown_action": "no existe esa acción",
+    "invalid_url": "la url no es válida",
+    "forwarding_needs_private_url": "\"Actúa sobre Thulu en nombre del agente\" pide una URL https, o http hacia una dirección privada, de loopback o interna del cluster: si no, la clave de la corrida viajaría sin cifrar"
+  }
+}

@@ -1,0 +1,44 @@
+title = "Thulu gitleaks config"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Example and placeholder values in config templates"
+paths = [
+  '''deploy/\.env\.example''',
+  '''\.env\.example''',
+]
+
+[[allowlists]]
+description = "Test fixtures — fake tokens used in unit tests"
+paths = [
+  '''.*_test\.go''',
+  '''internal/.*/testdata/.*''',
+]
+
+[[allowlists]]
+description = "Documentation — token format examples, not real values"
+paths = [
+  '''docs/.*\.md''',
+  '''README\.md''',
+  '''CHANGELOG\.md''',
+]
+
+[[allowlists]]
+description = "JWT test signing keys (random hex, no real secret)"
+regexes = [
+  '''OCTOPUS_JWT_SECRET\s*=\s*"?[a-f0-9]{32,}"?''',
+]
+paths = [
+  '''.*_test\.go''',
+]
+
+[[allowlists]]
+description = "License key format examples in source code"
+regexes = [
+  '''OCTOPUS_LICENSE_KEY=.*\..*''',
+]
+paths = [
+  '''docs/.*''',
+]

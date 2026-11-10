@@ -1,0 +1,42 @@
+name: thulu-cloud
+description: |
+  Read-only window onto your deployed infrastructure (AWS and Google
+  Cloud). Cloud credentials are resolved server-side per environment via
+  Thulu — no key ever reaches the agent, which matters because this same
+  agent reads logs written by third parties. Every tool is read-only by
+  construction: the server defines no write tools at all, and the GCP token is
+  minted with cloud-platform.read-only so a mutating call could not succeed
+  even if one were built by mistake.
+
+  Start with environments_list to get an environment_id, then discover_resources
+  to see what exists (each resource carries suggested metric sources per signal).
+  Check the environment's `provider` first: metric sources and log queries have
+  a different shape on each cloud.
+type: mcp
+default_scope: read
+# internal/credentials/catalog.go is the runtime source of truth for `requires`; a test checks the
+# two agree.
+tools:
+  - name: environments_list
+    description: Deployed environments of a project (dev/staging/prod) with provider, region, selectors and whether a credential is configured.
+    scope: read
+  - name: discover_resources
+    description: "Inventory an environment's cloud resources with suggested metric sources per signal. AWS: ALBs, ECS services, Lambdas, RDS, log groups. GCP: Cloud Run, HTTPS load balancers, GKE, Cloud SQL, Cloud Functions. Reports gaps explicitly."
+    scope: read
+    requires: {aws: [], gcp: []}
+  - name: metrics_query
+    description: "Time series for explicit metric sources. AWS sources are {namespace, metric_name, dimensions, stat}; GCP sources are {metric_type, filter, aligner, reducer}. Values arrive in canonical units (ms, percent)."
+    scope: read
+    requires: {aws: [aws:cloudwatch:GetMetricData], gcp: [gcp:monitoring.timeSeries.list]}
+  - name: error_groups
+    description: Exceptions grouped by message with counts and first/last seen — Logs Insights on AWS, Error Reporting (falling back to Cloud Logging) on GCP. The signal most likely to point at specific code.
+    scope: read
+    requires: {aws: [aws:logs:StartQuery, aws:logs:GetQueryResults], gcp: [gcp:logging.logEntries.list]}
+  - name: logs_search
+    description: "Search logs. AWS: a Logs Insights query. GCP: a Cloud Logging filter. Output capped; narrow the window rather than raising the cap."
+    scope: read
+    requires: {aws: [aws:logs:StartQuery, aws:logs:GetQueryResults], gcp: [gcp:logging.logEntries.list]}
+  - name: deploys
+    description: Deployment markers in a window, to attribute a metric change to a release. Real on GCP (Cloud Run revisions); reports itself unavailable on AWS.
+    scope: read
+    requires: {gcp: [gcp:run.services.list]}

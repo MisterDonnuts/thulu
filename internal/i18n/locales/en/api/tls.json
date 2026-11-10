@@ -1,0 +1,14 @@
+{
+  "errors": {
+    "cert_and_key_together": "{cert} and {key} must be set together",
+    "load_key_pair": "load TLS key pair",
+    "stat_certificate": "TLS certificate",
+    "stat_key": "TLS key",
+    "no_certificate": "no TLS certificate loaded"
+  },
+  "log": {
+    "stat_failed": "TLS: {err}; still serving the certificate loaded earlier",
+    "reload_failed": "TLS: new key pair on disk does not load ({err}); still serving the previous one",
+    "reloaded": "TLS: reloaded certificate from {path}"
+  }
+}

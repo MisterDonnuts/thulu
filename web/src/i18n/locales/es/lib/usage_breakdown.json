@@ -1,0 +1,58 @@
+{
+  "title": "En qué se fue el costo",
+  "categories": {
+    "startup": "Arranque",
+    "reasoning": "Razonamiento",
+    "user_input": "Pedido",
+    "tools": "Herramientas",
+    "subagents": "Subagentes",
+    "compaction": "Compactación",
+    "delegation": "Delegación",
+    "unattributed": "Sin atribuir"
+  },
+  "part": "{category}: {cost}",
+  "from_mcp": "MCP {server}",
+  "from_skill": "skill {skill}",
+  "delegated": "Delegada",
+  "delegated_title": "Se la pasó al worker del Token optimizer ({id}), que costó {cost}.",
+  "error": "Error",
+  "columns": {
+    "tool": "Llamada",
+    "run": "Agente · etapa",
+    "result_tokens": "Tokens del resultado",
+    "carried": "Releída",
+    "cost": "Costo",
+    "open": "Abrir corrida",
+    "turn": "Turno",
+    "model": "Modelo",
+    "input": "Input",
+    "cache_read": "Lectura de caché",
+    "cache_write": "Escritura de caché",
+    "output": "Output",
+    "prompt": "Prompt",
+    "time": "Hora"
+  },
+  "open_run": "Abrir el desglose de {run}",
+  "delegations": {
+    "one": "{count} delegación al worker, {cost}.",
+    "other": "{count} delegaciones al worker, {cost}."
+  },
+  "unattributed_note": "{cost} de {total} no se pudo atribuir a ninguna llamada.",
+  "top_calls": "Top llamadas",
+  "not_attributed": "Esta corrida es anterior a la atribución por llamada: sólo quedaron sus totales.",
+  "facts": {
+    "cost": "Costo",
+    "api_calls": "Llamadas a la API",
+    "base_tokens": "Tokens de arranque",
+    "compactions": "Compactaciones",
+    "unattributed": "Sin atribuir",
+    "optimizer": "Token optimizer"
+  },
+  "compaction": "Compactación",
+  "tool_calls": "Llamadas a herramientas",
+  "api_calls": "Llamadas a la API",
+  "no_tools": "Esta corrida no llamó a ninguna herramienta.",
+  "no_calls": "No hay llamadas a la API registradas.",
+  "run_title": "Desglose de la corrida",
+  "run_failed": "No se pudo cargar el desglose de la corrida: {error}"
+}

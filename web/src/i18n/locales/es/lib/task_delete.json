@@ -1,0 +1,11 @@
+{
+  "intro": {
+    "one": "Esta subtarea se elimina con ella:",
+    "other": "Estas {count} subtareas se eliminan con ella:"
+  },
+  "more": {
+    "one": "y 1 más",
+    "other": "y {count} más"
+  },
+  "outro": "También se limpian sus worktrees. No se puede deshacer."
+}

@@ -1,0 +1,417 @@
+{
+  "tools": {
+    "pr_view": {
+      "description": "Trae la metadata de un PR: título, body, estado, flag de draft, refs head/base, autor, mergeable, merged, cantidad de comentarios/reviews/archivos, html_url y timestamps. Usala ANTES de pr_diff o pr_files para saber qué estás mirando — sale más barato que bajar el diff entero.",
+      "params": {
+        "repo": "owner/name (p. ej. acme/web).",
+        "number": "Número del PR."
+      }
+    },
+    "pr_diff": {
+      "description": "Devuelve el diff unificado de un PR (el mismo que verías en la pestaña 'Files changed'). Tiene un tope de {cap_bytes} bytes — para PRs más grandes, usá pr_files para recorrerlo archivo por archivo. El diff se pide con el media type diff de GitHub, así que los archivos binarios aparecen como omitidos.",
+      "params": {
+        "repo": "owner/name.",
+        "number": "Número del PR."
+      }
+    },
+    "pr_list": {
+      "description": "Lista los PRs de un repo con filtros opcionales. Devuelve un array compacto (sin body, sin diff) — usá pr_view para el detalle de uno en particular.",
+      "params": {
+        "repo": "owner/name.",
+        "state": "Default: open.",
+        "head": "Filtra por head ref, p. ej. user:branch.",
+        "base": "Filtra por branch base.",
+        "per_page": "Máximo 100. Default 30.",
+        "page": "Página, empezando en 1. Default 1."
+      }
+    },
+    "pr_files": {
+      "description": "Lista los archivos que cambia un PR, con sus patches. Usala cuando pr_diff es demasiado grande para entrar en el contexto. Cada archivo trae filename, status, additions, deletions y el patch del archivo (GitHub lo recorta en archivos muy grandes). Paginá con page/per_page.",
+      "params": {
+        "repo": "owner/name.",
+        "number": "Número del PR.",
+        "per_page": "Máximo 100. Default 30.",
+        "page": "Página, empezando en 1. Default 1."
+      }
+    },
+    "pr_comments_list": {
+      "description": "Los comentarios de la conversación del PR (el timeline debajo de la descripción, no los comentarios inline de las reviews: esos están en pr_review_threads). Del más viejo al más nuevo, cada uno con id, autor, author_association, body, timestamps y html_url. Lee todas las páginas hasta {cap} comentarios y avisa si cortó ahí; los bodies vienen recortados.",
+      "params": {
+        "repo": "owner/name.",
+        "number": "Número del PR.",
+        "since": "Sólo los comentarios actualizados desde esta hora ISO 8601 (p. ej. 2026-10-01T00:00:00Z). Usalo para leer lo que llegó desde tu última pasada."
+      },
+      "notes": {
+        "capped": "cortó en {cap} comentarios; faltan los más nuevos. Volvé a llamarla con since en el último created_at de esta respuesta."
+      }
+    },
+    "pr_review_threads": {
+      "description": "Los comentarios inline de las reviews agrupados por hilo, con su estado de resuelto y desactualizado. Los hilos sin resolver vienen primero. Cada hilo trae un id (pasáselo a las tools que resuelven o reabren un hilo), path, line, un diff_hunk recortado y sus comentarios, cada uno con un id numérico (pasáselo a la tool que responde un comentario de review). Leela con state=unresolved antes de atender el feedback de una review.",
+      "params": {
+        "repo": "owner/name.",
+        "number": "Número del PR.",
+        "state": "'all' (default, sin resolver primero), 'unresolved' o 'resolved'. Los totales de la respuesta siempre cuentan todos los hilos."
+      },
+      "errors": {
+        "invalid_state": "state tiene que ser 'all', 'unresolved' o 'resolved', llegó '{state}'"
+      },
+      "notes": {
+        "capped": "cortó en {cap} hilos; el PR tiene más."
+      }
+    },
+    "pr_reviews_list": {
+      "description": "Las reviews enviadas en un PR, de la más vieja a la más nueva: id, autor, state (APPROVED, CHANGES_REQUESTED, COMMENTED, DISMISSED, o PENDING para la tuya sin enviar), body, submitted_at, el commit_id que revisó y html_url. El body de la review es el resumen; sus comentarios inline están en pr_review_threads.",
+      "params": {
+        "repo": "owner/name.",
+        "number": "Número del PR."
+      },
+      "notes": {
+        "capped": "cortó en {cap} reviews; faltan las más nuevas."
+      }
+    },
+    "pr_reviewers": {
+      "description": "Quién debe todavía una review y cómo quedó cada reviewer. requested_users y requested_teams son los pedidos pendientes (GitHub saca a un reviewer de ahí cuando envía su review, hasta que el autor se la vuelve a pedir). reviewers trae el último veredicto de cada persona: una review COMMENTED después de una aprobación no la borra, igual que en la página del PR.",
+      "params": {
+        "repo": "owner/name.",
+        "number": "Número del PR."
+      }
+    },
+    "pr_checks": {
+      "description": "El CI del commit head del PR: check runs (name, app, status, conclusion, tiempos, html_url, título y resumen recortado del output), commit statuses y un veredicto: failing, pending, passing o none. Si el token no puede leer check runs, el CI sale de los runs de GitHub Actions de ese commit y source dice 'actions'. Para el log de un job de Actions que falló, seguí con run_jobs y run_logs.",
+      "params": {
+        "repo": "owner/name.",
+        "number": "Número del PR.",
+        "only_failed": "Listar sólo lo que falló. El veredicto y los totales igual cuentan todo. Default false."
+      },
+      "notes": {
+        "checks_not_minted": "el token no pudo obtener {permission} (la instalación de la GitHub App no tiene \"Checks: read\", u Thulu no lo concede acá), así que el CI sale sólo de los runs de GitHub Actions. No cuenta el CI de otros servicios que reporta por la API de Checks.",
+        "checks_refused": "GitHub se negó a listar los check runs (HTTP {status}: {message}), así que el CI sale sólo de los runs de GitHub Actions. No cuenta el CI de otros servicios que reporta por la API de Checks."
+      }
+    },
+    "labels_list": {
+      "description": "Los labels del repositorio: name, color y description. Leela antes de ponerle un label a un PR, así elegís uno que existe.",
+      "params": {
+        "repo": "owner/name."
+      },
+      "notes": {
+        "capped": "cortó en {cap} labels; el repositorio tiene más."
+      }
+    },
+    "commit": {
+      "description": "Sólo en modo Docker. Con OCTOPUS_GIT_NATIVE=1 (Kubernetes) corré `git commit` en tu terminal; esta tool sólo te lo avisa. Le pide a Thulu que stagee todos los cambios (`git add -A`) y los commitee en el worktree de tu task desde el host. NO PODÉS correr `git commit` desde tu container: el link `.git` del worktree apunta a un path del host que no se ve adentro del container. Esta tool corre el commit en el host, donde el link resuelve. Idempotente: cuando el worktree está limpio la respuesta dice `skipped: 'no changes to commit'` y no pasa nada. Llamala ANTES de branch_push.",
+      "params": {
+        "message": "Mensaje del commit — escribí un mensaje convencional y claro. Se usa tal cual; no se le aplica ningún template."
+      }
+    },
+    "branch_push": {
+      "description": "Con OCTOPUS_GIT_NATIVE=1 (Kubernetes) pusheá con `git push` desde tu terminal: Thulu lo publica en GitHub antes de que el push termine, y esta tool sólo vuelve a publicar lo que ya pusheaste, sin rebasear. El resto de este texto es para el modo Docker. Le pide a Thulu que pushee el branch de la task a origin. Llamala DESPUÉS de `commit` y ANTES de `pr_create` — el branch tiene que existir en el remoto para que GitHub acepte el PR. El container del agente no tiene claves SSH, así que el push corre en el host (Thulu) con la auth remota con la que se clonó el proyecto. Sin argumentos: la task sale de la sesión SSE. Idempotente.\n\nAUTO-REBASE: antes de pushear, Thulu hace fetch de origin/<default> y, si el branch de la task quedó atrás, rebasea encima (y después pushea con --force-with-lease). Así el PR sigue siendo mergeable cuando main avanza durante la task. La respuesta incluye `rebased: true` cuando pasa esto.\n\nCONFLICTOS: si el rebase choca con conflictos, Thulu lo aborta y devuelve `conflict: true` con `conflict_files: [...]`, la lista de archivos que tenés que arreglar. El worktree queda limpio (sin marcadores de conflicto en los archivos). Para resolver: editá cada archivo de `conflict_files` para que refleje el contenido mergeado correcto (el cambio que busca tu task encima del main nuevo) y volvé a llamar a `commit` y `branch_push`. Thulu reintenta el rebase solo. Usá `branch_status` si querés una vista previa sin pushear."
+    },
+    "branch_status": {
+      "description": "Le pregunta a Thulu cómo está el branch de la task respecto de origin/<default>. Devuelve la cantidad de commits adelante/atrás y los flags `up_to_date` y `needs_rebase`. Usala cuando quieras ver la divergencia sin disparar un push — por ejemplo, para decidir si commitear más trabajo o pasar a Human Review, o para confirmar que un rebase anterior quedó limpio. El rebase en sí pasa adentro de `branch_push`; esta tool sólo informa. Sin argumentos: la task sale de la sesión SSE."
+    },
+    "pr_comment": {
+      "description": "Publica un comentario de nivel superior (estilo issue) en un PR. Para comentarios inline atados a líneas puntuales, usá pr_review_submit con un body de review y el array comments. GitHub renderiza el Markdown.",
+      "params": {
+        "repo": "owner/name.",
+        "number": "Número del PR.",
+        "body": "Body en Markdown."
+      }
+    },
+    "pr_review_submit": {
+      "description": "Envía una review de un PR con un veredicto. event=APPROVE, REQUEST_CHANGES o COMMENT. El body es el resumen general de la review. comments[] son comentarios inline opcionales atados a {path, line, body}.",
+      "params": {
+        "repo": "owner/name.",
+        "number": "Número del PR.",
+        "event": "Veredicto. GitHub rechaza un APPROVE sobre un PR del que sos autor.",
+        "body": "Resumen general de la review, en markdown.",
+        "comments": "Comentarios inline opcionales.",
+        "comments_line": "Número de línea en el archivo (en el head)."
+      }
+    },
+    "pr_review_comment_reply": {
+      "description": "Responde adentro de un hilo de review inline, debajo del comentario del reviewer. comment_id es el id numérico de cualquier comentario del hilo (lo devuelve pr_review_threads); la respuesta siempre queda al final de ese hilo. Usala para contestar un comentario de review donde se hizo — pr_comment publicaría un comentario de nivel superior desconectado. Cuando el arreglo esté pusheado, cerrá el hilo con pr_review_thread_resolve.",
+      "params": {
+        "repo": "owner/name.",
+        "number": "Número del PR.",
+        "comment_id": "Id numérico de un comentario de review del hilo (cualquiera: el primero o una respuesta).",
+        "body": "Body de la respuesta en Markdown."
+      }
+    },
+    "pr_review_thread_resolve": {
+      "description": "Marca un hilo de review como resuelto. Resolvé sólo un hilo que atendiste — el cambio está pusheado, o respondiste por qué queda como está —, nunca uno para limpiar la lista. thread_id es el node id GraphQL del hilo que devuelve pr_review_threads. El hilo tiene que ser de repo; si no, no se cambia nada.",
+      "params": {
+        "repo": "owner/name del PR al que pertenece el hilo.",
+        "thread_id": "Node id GraphQL del hilo de review (de pr_review_threads), p. ej. PRRT_kwDO…."
+      }
+    },
+    "pr_review_thread_unresolve": {
+      "description": "Reabre un hilo de review resuelto, p. ej. uno resuelto por error o cuyo arreglo se revirtió. thread_id es el node id GraphQL del hilo que devuelve pr_review_threads. El hilo tiene que ser de repo; si no, no se cambia nada.",
+      "params": {
+        "repo": "owner/name del PR al que pertenece el hilo.",
+        "thread_id": "Node id GraphQL del hilo de review (de pr_review_threads)."
+      }
+    },
+    "pr_reviewers_request": {
+      "description": "Pide reviews de un PR a usuarios y/o equipos. Nombrá al menos uno. GitHub rechaza al autor del PR y a quien no tenga acceso al repo. Devuelve a quiénes se les pidió review ahora.",
+      "params": {
+        "repo": "owner/name.",
+        "number": "Número del PR.",
+        "reviewers": "Logins de GitHub a los que pedirles review.",
+        "team_reviewers": "Slugs (no nombres) de equipos de la organización del repo a los que pedirles review."
+      }
+    },
+    "pr_reviewers_remove": {
+      "description": "Retira pedidos de review a usuarios y/o equipos. Nombrá al menos uno. Una review ya enviada queda. Devuelve a quiénes se les sigue pidiendo review.",
+      "params": {
+        "repo": "owner/name.",
+        "number": "Número del PR.",
+        "reviewers": "Logins de GitHub a los que retirarles el pedido.",
+        "team_reviewers": "Slugs de equipos a los que retirarles el pedido."
+      }
+    },
+    "pr_labels_add": {
+      "description": "Agrega labels a un PR, sin sacar las que ya tiene. Las labels tienen que existir en el repo: un nombre desconocido se rechaza con las existentes más parecidas, y no se cambia nada (esta tool nunca crea labels). Devuelve las labels del PR después del cambio.",
+      "params": {
+        "repo": "owner/name.",
+        "number": "Número del PR.",
+        "labels": "Nombres de labels, como los escribe el repo (no importan las mayúsculas)."
+      }
+    },
+    "pr_labels_remove": {
+      "description": "Saca labels de un PR. Una label que el PR no tiene se informa en not_on_pr, no es un error. Devuelve las labels del PR después del cambio.",
+      "params": {
+        "repo": "owner/name.",
+        "number": "Número del PR.",
+        "labels": "Nombres de labels a sacar."
+      }
+    },
+    "pr_labels_set": {
+      "description": "Reemplaza todas las labels de un PR por exactamente esta lista; una lista vacía las saca todas. Las labels tienen que existir en el repo: un nombre desconocido se rechaza con las existentes más parecidas, y no se cambia nada. Devuelve las labels del PR después del cambio.",
+      "params": {
+        "repo": "owner/name.",
+        "number": "Número del PR.",
+        "labels": "La lista completa de nombres de labels que tiene que tener el PR."
+      }
+    },
+    "pr_assignees_add": {
+      "description": "Asigna usuarios a un PR, sin sacar a los asignados actuales. GitHub saltea sin fallar un login que no puede asignar; esos vuelven en not_assigned. Devuelve los asignados después del cambio.",
+      "params": {
+        "repo": "owner/name.",
+        "number": "Número del PR.",
+        "assignees": "Logins de GitHub a asignar."
+      }
+    },
+    "pr_assignees_remove": {
+      "description": "Desasigna usuarios de un PR. Devuelve los asignados después del cambio.",
+      "params": {
+        "repo": "owner/name.",
+        "number": "Número del PR.",
+        "assignees": "Logins de GitHub a desasignar."
+      }
+    },
+    "pr_update": {
+      "description": "Edita el título, el body o el branch base de un PR. Pasá sólo lo que cambia; el body se reemplaza entero, así que leelo primero con pr_view si querés agregarle algo. Esta tool no puede cerrar ni reabrir un PR.",
+      "params": {
+        "repo": "owner/name.",
+        "number": "Número del PR.",
+        "title": "Título nuevo.",
+        "body": "Body nuevo (markdown). Reemplaza al actual.",
+        "base": "Branch base nuevo. Tiene que existir en el remoto."
+      }
+    },
+    "pr_ready_for_review": {
+      "description": "Cambia el estado de draft de un PR. draft=false (default) marca un draft como listo para revisar, lo que les avisa a los reviewers pedidos; draft=true lo vuelve a draft. No hace nada, y lo dice, cuando el PR ya está en ese estado.",
+      "params": {
+        "repo": "owner/name.",
+        "number": "Número del PR.",
+        "draft": "false (default): marcarlo listo para revisar. true: volverlo a draft."
+      }
+    },
+    "pr_create": {
+      "description": "Abre un PR nuevo. El branch (head) TIENE que existir ya en el remoto — esta tool no pushea código, sólo crea el PR. Primero hacé git push desde adentro de tu container y después llamala.",
+      "params": {
+        "repo": "owner/name.",
+        "head": "Branch de origen. Para PRs entre forks usá 'user:branch'.",
+        "base": "Branch de destino (p. ej. main).",
+        "title": "Título del PR.",
+        "body": "Body del PR (markdown).",
+        "draft": "Abrirlo como draft. Default false."
+      }
+    },
+    "workflow_list": {
+      "description": "Lista los workflows definidos en el repo (.github/workflows/*.yml). Devuelve id, name, path y state de cada uno.",
+      "params": {
+        "repo": "owner/name."
+      }
+    },
+    "run_list": {
+      "description": "Lista runs de workflows. Filtrá por workflow_id (o path), branch, status o actor. Devuelve un array compacto — usá run_logs para la salida.",
+      "params": {
+        "repo": "owner/name.",
+        "workflow_id": "Id del workflow (número) o nombre de archivo (p. ej. 'ci.yml'). Opcional.",
+        "branch": "Filtra por branch.",
+        "status": "Filtra por status/conclusion del run.",
+        "per_page": "Máximo 100. Default 30.",
+        "page": "Página, empezando en 1. Default 1."
+      }
+    },
+    "run_jobs": {
+      "description": "Lista los jobs de un run: id, name, status, conclusion y el detalle paso por paso. De acá sale el job_id para run_logs — run_logs sólo puede devolver texto plano cuando se acota a un único job.",
+      "params": {
+        "repo": "owner/name.",
+        "run_id": "Id del run del workflow.",
+        "filter": "'latest' (default) devuelve los jobs del intento más reciente; 'all' incluye los jobs de intentos anteriores del mismo run.",
+        "failed_only": "Devuelve sólo los jobs cuya conclusion es failure/timed_out/cancelled. Es el caso típico cuando perseguís un check en rojo. Default false.",
+        "per_page": "Máximo 100. Default 30.",
+        "page": "Página, empezando en 1. Default 1."
+      }
+    },
+    "run_logs": {
+      "description": "Trae los logs de un run (o de un job puntual). La salida tiene un tope de {cap_bytes} bytes — para runs grandes, preferí job_id para acotar al paso que falla (sacalo de run_jobs). Sin job_id GitHub devuelve un zip, que este server no puede descomprimir. Devuelve texto.",
+      "params": {
+        "repo": "owner/name.",
+        "run_id": "Id del run del workflow.",
+        "job_id": "Opcional: acota a los logs de un único job."
+      }
+    },
+    "run_view": {
+      "description": "Un run por id: status, conclusion, intento, tiempos, commit y html_url. Es el poll barato — run_list relee la lista entera para contestar lo mismo sobre un run que ya conocés.",
+      "params": {
+        "repo": "owner/name.",
+        "run_id": "Id del run del workflow."
+      }
+    },
+    "run_watch": {
+      "description": "Consulta un run hasta que termina y devuelve el resultado. Corta antes si el run llega a 'waiting' (un environment le está pidiendo a una persona que lo apruebe) — el agente no es el reviewer, así que esperar al reviewer adentro de una llamada a una tool quemaría el presupuesto para nada. Si falla, el resultado ya trae los jobs fallidos y sus ids, así que la próxima llamada puede ser run_logs. Vuelve con timed_out=true si se acaba la espera; llamala de nuevo.",
+      "params": {
+        "repo": "owner/name.",
+        "run_id": "Id del run del workflow.",
+        "timeout_seconds": "Cuánto esperar. Default 120, con un tope de {max_seconds}. Mantenelo por debajo del timeout de tools del cliente MCP.",
+        "poll_seconds": "Segundos entre consultas. Default 10, mínimo 5.",
+        "stop_on_waiting": "Volver apenas el run necesita que aprueben un deploy. Default true."
+      }
+    },
+    "run_pending_deployments": {
+      "description": "Los environments en los que un run quedó trabado esperando revisión: environment, wait timer, quién puede aprobar y si este token es uno de ellos. Leelo antes de suponer que un deploy se colgó — 'waiting' es una compuerta humana, no una falla.",
+      "params": {
+        "repo": "owner/name.",
+        "run_id": "Id del run del workflow."
+      }
+    },
+    "run_artifacts": {
+      "description": "Lista los artifacts que produjo un run: nombre, tamaño, vencimiento y la URL de descarga. La URL pide un token de GitHub, así que es para que la abra una persona — este server no baja ni descomprime artifacts.",
+      "params": {
+        "repo": "owner/name.",
+        "run_id": "Id del run del workflow.",
+        "per_page": "Máximo 100. Default 30.",
+        "page": "Página, empezando en 1. Default 1."
+      }
+    },
+    "workflow_view": {
+      "description": "Un workflow: id, name, path, state, más el YAML fuente. Leelo antes de run_dispatch — en el fuente están escritos los inputs que declara el workflow (y si acepta workflow_dispatch siquiera).",
+      "params": {
+        "repo": "owner/name.",
+        "workflow_id": "Id del workflow (número) o nombre de archivo (p. ej. 'deploy.yml').",
+        "ref": "Branch/tag en el que leer el fuente. Default: el HEAD del repo.",
+        "include_source": "Traer el YAML. Default true."
+      }
+    },
+    "run_dispatch": {
+      "description": "Dispara un workflow_dispatch. El archivo del workflow tiene que incluir 'on: workflow_dispatch' — fijate primero con workflow_view, junto con los inputs que declara. GitHub contesta 204 sin id de run, así que esta tool consulta un rato y devuelve el run que creó; seguilo con run_watch. Arrancar un deploy no tiene vuelta atrás desde acá más allá de run_cancel, y un run que cae en 'waiting' necesita a una persona.",
+      "params": {
+        "repo": "owner/name.",
+        "workflow_id": "Id del workflow (número) o nombre de archivo (p. ej. 'deploy.yml').",
+        "ref": "Branch o tag sobre el que corre el workflow.",
+        "inputs": "Inputs opcionales que declara el workflow. Los valores tienen que ser strings."
+      }
+    },
+    "run_rerun": {
+      "description": "Vuelve a correr un run. failed_only=true vuelve a correr sólo los jobs que fallaron (ahorra tiempo de CI cuando la mayoría pasó).",
+      "params": {
+        "repo": "owner/name.",
+        "run_id": "Id del run del workflow.",
+        "failed_only": "Volver a correr sólo los jobs que fallaron. Default false."
+      }
+    },
+    "run_cancel": {
+      "description": "Cancela un run que está en cola o en curso. Es el botón de stop: un deploy que se está yendo al pasto se cancela con esto. Los jobs que ya terminaron quedan terminados — cancelar no es un rollback.",
+      "params": {
+        "repo": "owner/name.",
+        "run_id": "Id del run del workflow."
+      }
+    },
+    "deployment_approve": {
+      "description": "Aprueba (o rechaza) los environments que un run está esperando. Sólo funciona cuando el token del run es reviewer requerido de ese environment. Concedésela a un agente sólo cuando los reviewers del environment están pensados para ser automáticos — si no, dejala afuera y que una persona apruebe en GitHub, que para eso existe 'waiting'.",
+      "params": {
+        "repo": "owner/name.",
+        "run_id": "Id del run del workflow.",
+        "state": "Default 'approved'.",
+        "environment_ids": "Environments a revisar. Default: todos los environments pendientes que este token puede aprobar (según run_pending_deployments).",
+        "comment": "Comentario de la review que queda registrado en el deploy."
+      }
+    },
+    "pr_merge": {
+      "description": "Mergea un pull request. En el run de una task mergea con el token del run. En un chat no mergea: el pedido espera a que la persona por la que actúa el chat lo confirme en Thulu, y la tool responde status 'awaiting_confirmation' con un action_id. Avisale a la persona que la está esperando; no la vuelvas a llamar.",
+      "params": {
+        "repo": "owner/name.",
+        "number": "Número del PR.",
+        "merge_method": "merge, squash o rebase. Default: el del repositorio.",
+        "commit_title": "Título del commit de merge.",
+        "commit_message": "Cuerpo del commit de merge.",
+        "sha": "SHA del head que el PR todavía tiene que tener, para no mergear sin ver un push posterior a la review."
+      }
+    }
+  },
+  "errors": {
+    "no_credential": "esta llamada no trajo ninguna credencial de Thulu — la key del agente viaja en el handshake MCP (X-API-Key); este server no tiene una propia",
+    "task_context_required": "{tool} trabaja sobre el worktree de una task, y esta sesión no tiene (es un chat, o una URL del SSE sin ?task=<id>). Commiteá y pusheá desde el run de la task; en un chat, leé, comentá y revisá con las otras tools.",
+    "octopus_call_failed": "falló Thulu {op} (HTTP {status}): {body}",
+    "commit_message_required": "commit necesita un argumento 'message' no vacío",
+    "no_task_context": "se abrió fuera de una task (un chat, o una URL del SSE sin ?task=<id>), así que no quedó vinculado a ninguna",
+    "no_github_token": "no hay ningún token de GitHub: conectá este proyecto a GitHub desde Thulu (instalación de la GitHub App o una credencial del proyecto)",
+    "repo_format": "repo tiene que ser 'owner/name', llegó {repo}",
+    "repo_token_failed": "no hay token de GitHub para {repo} (HTTP {status}): {body}",
+    "logs_zip": "los logs del run llegaron como un zip — thulu-github no descomprime en el server. Llamá a run_jobs({repo, run_id, failed_only: true}) para sacar los ids de los jobs, y después a run_logs({repo, run_id, job_id}) para los logs en texto plano de ese job.",
+    "invalid_state": "state tiene que ser 'approved' o 'rejected', llegó '{state}'",
+    "no_reviewable_environment": "este run no tiene ningún environment pendiente que este token pueda revisar — run_pending_deployments dice quién lo puede aprobar",
+    "comment_other_pr": "el comentario de review {comment_id} es del PR #{actual}, no del #{number}: no se publicó nada",
+    "thread_id_required": "thread_id es obligatorio: el node id GraphQL del hilo de review, como lo devuelve pr_review_threads",
+    "thread_not_found": "{thread_id} no es un hilo de review de un PR que este token pueda ver",
+    "thread_other_repo": "el hilo de review {thread_id} es de {actual}, no de {repo}: no se cambió nada",
+    "reviewers_required": "nombrá al menos un reviewer (reviewers: logins) o un equipo (team_reviewers: slugs)",
+    "list_required": "{param} tiene que nombrar al menos un elemento",
+    "unknown_labels": "{repo} no tiene la label {labels}. Esta tool no crea labels: usá nombres que el repo ya tenga (labels_list los lista). No se cambió nada.",
+    "update_nothing": "no hay nada que editar: pasá title, body o base",
+    "unknown_tool": "tool desconocida '{name}'",
+    "tool_not_allowed": "la tool '{name}' no está en la lista de tools permitidas para esta sesión",
+    "deploy_tool_not_granted": "la tool '{name}' arranca o destraba un deploy, y ningún scope la concede — ni siquiera write. Hay que nombrarla en la lista de tools MCP del agente (thulu.mcp.default.<stage>: thulu-github@…+{name}).",
+    "scope_required": "la tool '{name}' necesita el scope '{required}', esta sesión tiene '{scope}'",
+    "no_handler": "la tool '{name}' no tiene handler (bug del server)",
+    "tool_failed": "error en {tool}: {message}",
+    "tool_failed_http": "error en {tool} (HTTP {status}): {message}",
+    "session_not_found": "no se encontró la sesión",
+    "handshake_no_key": "una sesión MCP necesita la key del run en el handshake (X-API-Key o Authorization: Bearer)",
+    "message_key_mismatch": "este mensaje no trae la key con la que se abrió su sesión",
+    "list_only_session": "esta sesión se abrió sin credencial: puede listar las tools, no llamarlas"
+  },
+  "text": {
+    "truncated": "\n\n[…{label} recortado: thulu-github omitió {bytes} bytes más]",
+    "label_close_matches": "'{label}' (las más parecidas: {matches})",
+    "label_no_match": "'{label}' (ninguna parecida)",
+    "dispatch_watch": "seguilo con run_watch({repo, run_id}).",
+    "dispatch_no_run": "GitHub aceptó el dispatch pero no apareció ningún run nuevo en {seconds}s — los encola de forma asincrónica. Buscalo con run_list({repo, workflow_id, branch}).",
+    "run_waiting_review": "el run está esperando la revisión de un deploy. Un reviewer requerido lo tiene que aprobar en GitHub.",
+    "run_read_failure": "leé la falla con run_logs({repo, run_id, job_id}).",
+    "cancel_requested": "se pidió la cancelación — GitHub frena los jobs que están corriendo, no deshace los que ya terminaron."
+  },
+  "log": {
+    "task_token_lookup_failed": "[thulu-github] falló la búsqueda del token para la task {task}: {err}",
+    "project_token_lookup_failed": "[thulu-github] falló la búsqueda del token para el proyecto {project}: {err}",
+    "unknown_scope": "[thulu-github] scope desconocido '{scope}', se usa 'write'",
+    "listening": "server MCP thulu-github escuchando en :{port}",
+    "octopus_api": "  OCTOPUS_API:      {url}",
+    "sse_endpoint": "  Endpoint SSE:     GET  /sse?task=<id>&scope=read|write[&tools=a+b][&catalog=1]",
+    "health_endpoint": "  Health check:     GET  /health",
+    "shutting_down": "\n{signal} recibido, apagando"
+  }
+}

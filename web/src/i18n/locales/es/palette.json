@@ -1,0 +1,14 @@
+{
+  "title": "Buscar",
+  "placeholder": "Buscá tareas, proyectos, agentes, tableros y páginas",
+  "results": "Resultados",
+  "hint": "↑↓ para moverte · Enter para abrir · Esc para cerrar",
+  "empty": "Nada coincide con “{query}”.",
+  "groups": {
+    "pages": "Páginas",
+    "tasks": "Tareas",
+    "projects": "Proyectos",
+    "agents": "Agentes",
+    "boards": "Tableros"
+  }
+}

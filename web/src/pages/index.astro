@@ -1,0 +1,671 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Badge from "../components/Badge.astro";
+import Button from "../components/Button.astro";
+import Count from "../components/Count.astro";
+import EmptyState from "../components/EmptyState.astro";
+import Icon from "../components/Icon.astro";
+import PageHead from "../components/PageHead.astro";
+import Panel from "../components/Panel.astro";
+import StatGroup from "../components/StatGroup.astro";
+import StatTile from "../components/StatTile.astro";
+import StepList from "../components/StepList.astro";
+import { t } from "../i18n";
+---
+
+<Layout title={t("dashboard.title")}>
+  <main class="page">
+    <PageHead title={t("dashboard.title")} subtitle={t("dashboard.subtitle")}>
+      <Fragment slot="actions">
+        <Button href="/tasks/" variant="primary" size="md" icon="board" kbd="G T"
+          >{t("dashboard.buttons.open_board")}</Button
+        >
+        <Button
+          id="kbd-help-btn"
+          iconOnly
+          size="lg"
+          icon="keyboard"
+          label={t("common.kbd.shortcuts")}
+          title={t("common.kbd.shortcuts_hint")}
+        />
+      </Fragment>
+    </PageHead>
+
+    <div class="panel-stack">
+      <Panel id="first-steps" tag="div" icon="list" title={t("dashboard.first_steps.title")} hidden>
+        <a href="/onboarding/" slot="aside">
+          {t("dashboard.first_steps.all")}
+          <Icon name="arrow-right" />
+        </a>
+        <p class="panel-lede">{t("dashboard.first_steps.intro")}</p>
+        <StepList id="first-steps-list" steps={[]} compact />
+      </Panel>
+
+      <StatGroup tag="section" layout="flow" label={t("dashboard.metrics.aria")}>
+        <StatTile
+          id="m-tasks"
+          href="/tasks/"
+          icon="board"
+          label={t("dashboard.metrics.open_tasks")}
+          value="0"
+          sub="—"
+        />
+        <!-- Not a link: it counts agent containers, and /agents/ lists definitions, not runs. -->
+        <StatTile
+          id="m-agents"
+          icon="bot"
+          label={t("dashboard.metrics.live_runs")}
+          value="0"
+          sub="—"
+        />
+        <StatTile
+          id="m-cost"
+          href="/usage/"
+          icon="zap"
+          label={t("dashboard.metrics.cost_all_time")}
+          value="—"
+          sub="—"
+        />
+        <StatTile
+          id="m-rate"
+          icon="clock"
+          label={t("dashboard.metrics.rate_limit")}
+          value="—"
+          sub={t("dashboard.metrics.rate.none")}
+        />
+        <StatTile
+          id="m-quota"
+          href="/usage/"
+          icon="flag"
+          label={t("dashboard.metrics.runs_month")}
+          value="—"
+          sub="—"
+          hidden
+        />
+      </StatGroup>
+
+      <section class="grid">
+        <Panel tag="div" icon="bot" title={t("dashboard.panels.runs")} flush>
+          <Count pill n={0} dot id="agents-pulse" slot="status" />
+          <div id="agents" class="list row-list">
+            <EmptyState size="sm" loading />
+          </div>
+        </Panel>
+
+        <Panel tag="div" icon="board" title={t("dashboard.panels.recent_tasks")} flush>
+          <a href="/tasks/" slot="aside">
+            {t("dashboard.panels.view_all")}
+            <Icon name="arrow-right" />
+          </a>
+          <div id="tasks" class="list row-list">
+            <EmptyState size="sm" loading />
+          </div>
+        </Panel>
+
+        <Panel tag="div" icon="zap" title={t("dashboard.panels.usage")} class="panel-span-2">
+          <Badge id="rate-label" mono slot="status" hidden />
+          <div id="usage">
+            <EmptyState size="sm" loading />
+          </div>
+        </Panel>
+      </section>
+    </div>
+  </main>
+
+  <style is:global>
+    /* ── Grid ───────────────────────────────────────────────────── */
+    .grid {
+      display: grid;
+      gap: var(--s-4);
+      grid-template-columns: 1fr 1fr;
+    }
+    .panel-span-2 {
+      grid-column: 1 / -1;
+    }
+
+    .list {
+      max-height: 360px;
+      overflow-y: auto;
+    }
+
+    @media (max-width: 900px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+
+  <script>
+    import { reconcile, startPoller, dirty, setText } from "../lib/reactive";
+    import { requireAuth, sessionInfo } from "../lib/auth";
+    import { roleWithin } from "../lib/api-keys";
+    import { api, ApiError } from "../lib/api";
+    import {
+      $,
+      buttonHTML,
+      dotClasses,
+      dotHTML,
+      emptyStateHTML,
+      esc,
+      listRowHTML,
+      makeToast,
+      setBadge,
+      setCount,
+      setStat,
+      statGroupHTML,
+      statTileHTML,
+      stepItemHTML,
+      type BadgeTone,
+      type StatTone,
+    } from "../lib/ui";
+    import { crossBoardIndex, stageOf, stagePillHTML } from "../lib/stages";
+    import { estimatedCost, fmtTokens, fmtUsd } from "../lib/format";
+    import { freshState, keepFresh, staleNotice, type Freshness } from "../lib/freshness";
+    import { taskHref } from "../lib/links";
+    import {
+      firstStepItems,
+      orderSteps,
+      rateSummary,
+      showFirstSteps,
+      workspaceSteps,
+      type SetupStatus,
+    } from "../lib/dashboard";
+    import { runQuota, type Entitlements } from "../lib/plan";
+    import { t } from "../i18n";
+    import { onPage } from "../lib/page";
+
+    onPage("/", (signal) => {
+      requireAuth();
+
+      const toast = makeToast();
+
+      // Stages are indexed per board: the same stage id can be terminal on one board and mid-flow
+      // on another.
+      let cachedStages: Map<string, any> | null = null;
+      const boardLabels = new Map<string, string>();
+      async function getStages(): Promise<Map<string, any>> {
+        if (cachedStages) return cachedStages;
+        try {
+          const { boards } = await api.get<{ boards: { id: string; label?: string }[] }>("/boards");
+          for (const b of boards) boardLabels.set(b.id, b.label || b.id);
+          const perBoard: Record<string, any[]> = {};
+          await Promise.all(
+            boards.map(async (b) => {
+              perBoard[b.id] = await api.get(`/boards/${encodeURIComponent(b.id)}/stages`);
+            }),
+          );
+          cachedStages = crossBoardIndex(perBoard);
+        } catch {
+          cachedStages = new Map();
+        }
+        return cachedStages;
+      }
+
+      const fresh = {
+        agents: freshState(),
+        tasks: freshState(),
+        usage: freshState(),
+        quota: freshState(),
+      };
+      function markStale(ids: string[], f: Freshness) {
+        const notice = staleNotice(f);
+        for (const id of ids) {
+          const card = $(id);
+          setStat(card, { stale: f.stale });
+          if (notice) card.title = notice;
+          else card.removeAttribute("title");
+        }
+      }
+
+      interface Agent {
+        id: string;
+        name: string;
+        status: string;
+        exit_code?: number;
+        uptime?: string;
+      }
+
+      function agentMeta(a: Agent): string {
+        const dead = a.status === "exited" || a.status === "stopped";
+        return dead
+          ? a.exit_code != null
+            ? t("dashboard.agents.exit", { code: a.exit_code })
+            : a.status
+          : a.uptime || t("dashboard.agents.running");
+      }
+
+      function rowEl(html: string): HTMLElement {
+        const tpl = document.createElement("template");
+        tpl.innerHTML = html;
+        return tpl.content.firstElementChild as HTMLElement;
+      }
+
+      function createAgentRow(a: Agent): HTMLElement {
+        const row = rowEl(
+          listRowHTML({
+            title: a.name,
+            leadHTML: dotHTML(),
+            metaHTML: `<span class="mono agent-meta">${esc(agentMeta(a))}</span>`,
+            actionsHTML: agentActHTML(a),
+          }),
+        );
+        // updateAgentRow rewrites the button, so the listener sits on the cell.
+        row.querySelector(".row-actions")!.addEventListener("click", async (ev) => {
+          const btn = (ev.target as HTMLElement).closest<HTMLButtonElement>(".run-act");
+          if (!btn || btn.disabled) return;
+          btn.disabled = true;
+          const name = btn.dataset.name || t("dashboard.agents.fallback_name");
+          if (btn.dataset.act === "stop") {
+            try {
+              await api.post(`/agents/${btn.dataset.id}/stop`);
+              toast(t("dashboard.agents.stopped", { name }), "ok");
+            } catch {
+              toast(t("dashboard.agents.stop_failed", { name }), "err");
+            }
+          } else if (btn.dataset.act === "rm") {
+            try {
+              await api.del(`/agents/${btn.dataset.id}`);
+              toast(t("dashboard.agents.removed", { name }), "ok");
+            } catch {
+              toast(t("dashboard.agents.remove_failed", { name }), "err");
+            }
+          }
+          loadAgents();
+        });
+        updateAgentRow(row, a);
+        return row;
+      }
+
+      function agentActHTML(a: Agent): string {
+        const stop = a.status === "running";
+        return buttonHTML({
+          label: stop ? t("dashboard.agents.stop_short") : t("dashboard.agents.remove_short"),
+          icon: stop ? "power" : "trash",
+          variant: "ghost",
+          size: "sm",
+          cls: "run-act",
+          attrs: {
+            "data-act": stop ? "stop" : "rm",
+            "aria-label": stop
+              ? t("dashboard.agents.stop_named", { name: a.name })
+              : t("dashboard.agents.remove_named", { name: a.name }),
+          },
+        });
+      }
+
+      function updateAgentRow(row: HTMLElement, a: Agent) {
+        const dot = row.querySelector<HTMLElement>(".dot")!;
+        const running = a.status === "running";
+        dot.className = dotClasses(running ? "ok" : "neutral", running);
+        setText(row.querySelector(".row-title"), a.name);
+        setText(row.querySelector(".agent-meta"), agentMeta(a));
+        const cell = row.querySelector<HTMLElement>(".row-actions")!;
+        const wantAct = a.status === "running" ? "stop" : "rm";
+        if (cell.querySelector<HTMLElement>(".run-act")?.dataset.act !== wantAct) {
+          cell.innerHTML = agentActHTML(a);
+        }
+        const btn = cell.querySelector<HTMLButtonElement>(".run-act")!;
+        btn.dataset.id = a.id;
+        btn.dataset.name = a.name;
+      }
+
+      async function loadAgents() {
+        try {
+          const agents = await keepFresh<Agent[]>({
+            current: [],
+            fetch: () => api.get<Agent[]>("/agents"),
+            freshness: fresh.agents,
+          });
+          markStale(["m-agents"], fresh.agents);
+          const running = agents.filter((a) => a.status === "running").length;
+          setCount($("agents-pulse"), agents.length, {
+            pill: true,
+            dot: running > 0 ? "ok" : true,
+            pulse: running > 0,
+          });
+          setStat($("m-agents"), {
+            value: running,
+            sub: t("dashboard.metrics.runs_sub", {
+              total: agents.length,
+              count: agents.length - running,
+            }),
+          });
+
+          agents.sort(
+            (a, b) => (a.status === "running" ? -1 : 1) - (b.status === "running" ? -1 : 1),
+          );
+
+          const ct = $("agents");
+          const empty = ct.querySelector<HTMLElement>(":scope > .empty-state");
+          if (agents.length === 0) {
+            // Replace any other placeholder (Loading…, offline); keeping it left the panel stuck on
+            // "Loading…".
+            if (empty?.dataset.empty !== "none") {
+              empty?.remove();
+              ct.insertAdjacentHTML(
+                "beforeend",
+                emptyStateHTML({
+                  size: "sm",
+                  body: t("dashboard.agents.none"),
+                  attrs: { "data-empty": "none" },
+                }),
+              );
+            }
+          } else if (empty) {
+            empty.remove();
+          }
+
+          reconcile<Agent>({
+            container: ct,
+            items: agents,
+            key: (a) => a.id,
+            create: createAgentRow,
+            update: updateAgentRow,
+          });
+        } catch {
+          markStale(["m-agents"], fresh.agents);
+          const ct = $("agents");
+          showOffline(ct);
+        }
+      }
+
+      interface RecentTask {
+        id: string;
+        title: string;
+        stage: string;
+        board_id?: string;
+        updated_at?: string;
+        created_at?: string;
+        _stage?: any;
+      }
+
+      function createTaskRow(t: RecentTask): HTMLElement {
+        const a = rowEl(
+          listRowHTML({
+            href: taskHref(t.id, t.board_id),
+            title: t.title,
+            leadHTML: "<span></span>",
+          }),
+        );
+        updateTaskRow(a, t);
+        return a;
+      }
+      function updateTaskRow(a: HTMLElement, t: RecentTask) {
+        const s = t._stage;
+        const label = s?.label || t.stage;
+        (a as HTMLAnchorElement).href = taskHref(t.id, t.board_id);
+        const holder = a.querySelector<HTMLElement>(".row-lead")!;
+        const key = `${label}|${s?.color ?? ""}`;
+        if (holder.dataset.key !== key) {
+          holder.dataset.key = key;
+          holder.innerHTML = stagePillHTML(t.stage, s, { size: "sm" });
+        }
+        setText(a.querySelector(".row-title"), t.title);
+        const boardName = boardLabels.size > 1 ? boardLabels.get(t.board_id || "") || "" : "";
+        let board = a.querySelector<HTMLElement>(".row-aside");
+        if (!board && boardName) {
+          board = document.createElement("span");
+          board.className = "row-aside";
+          a.append(board);
+        }
+        if (board) {
+          board.hidden = !boardName;
+          setText(board, boardName);
+        }
+      }
+
+      async function loadTasks() {
+        try {
+          const [tasks, stages] = await Promise.all([
+            keepFresh<RecentTask[]>({
+              current: [],
+              fetch: () => api.get<RecentTask[]>("/tasks"),
+              freshness: fresh.tasks,
+            }),
+            getStages(),
+          ]);
+          markStale(["m-tasks"], fresh.tasks);
+          taskCount = tasks.length;
+          const infoOf = (t: RecentTask) => stageOf(stages, t.board_id || "", t.stage);
+          const open = tasks.filter((t) => !infoOf(t)?.terminal);
+          const inProgress = open.filter((t) => infoOf(t)?.wip_group === "work").length;
+          const review = open.filter((t) => infoOf(t)?.wip_group === "review").length;
+          setStat($("m-tasks"), {
+            value: open.length,
+            sub: t("dashboard.metrics.tasks_sub", { in_progress: inProgress, review }),
+          });
+
+          const ct = $("tasks");
+          if (!tasks.length) {
+            showPlaceholder(
+              ct,
+              "none",
+              emptyStateHTML({
+                size: "sm",
+                body: t("dashboard.tasks.empty"),
+                action: { label: t("dashboard.tasks.open_board"), href: "/tasks/", size: "sm" },
+                attrs: { "data-empty": "none" },
+              }),
+            );
+            return;
+          }
+          ct.querySelectorAll(":scope > .empty-state").forEach((e) => e.remove());
+
+          const recent = tasks
+            .slice()
+            .sort((a, b) => {
+              const ta = new Date(a.updated_at || a.created_at || 0).getTime();
+              const tb = new Date(b.updated_at || b.created_at || 0).getTime();
+              return tb - ta;
+            })
+            .slice(0, 8)
+            .map((t) => ({ ...t, _stage: infoOf(t) }));
+
+          reconcile<RecentTask>({
+            container: ct,
+            items: recent,
+            key: (t) => t.id,
+            create: createTaskRow,
+            update: updateTaskRow,
+          });
+        } catch {
+          markStale(["m-tasks"], fresh.tasks);
+          const ct = $("tasks");
+          showOffline(ct);
+        }
+      }
+
+      const USAGE_TILES: { id: string; label: string; tone?: StatTone }[] = [
+        { id: "tokens", label: t("dashboard.usage.tokens_uncached"), tone: "accent" },
+        { id: "output", label: t("dashboard.usage.output") },
+        { id: "total_cost", label: t("dashboard.usage.total_cost"), tone: "ok" },
+        { id: "avg_cost", label: t("dashboard.usage.avg_cost"), tone: "ok" },
+        { id: "sessions", label: t("dashboard.usage.sessions") },
+        { id: "turns", label: t("dashboard.usage.turns") },
+      ];
+      let usageBuilt = false;
+      function ensureUsageTiles() {
+        if (usageBuilt) return;
+        $("usage").innerHTML = statGroupHTML(
+          USAGE_TILES.map((s) =>
+            statTileHTML({
+              label: s.label,
+              value: "",
+              tone: s.tone,
+              size: "sm",
+              attrs: { "data-stat": s.id },
+            }),
+          ),
+        );
+        usageBuilt = true;
+      }
+      function paintUsage(id: string, value: string) {
+        const tile = $("usage").querySelector<HTMLElement>(`[data-stat="${id}"]`);
+        if (tile) setStat(tile, { value });
+      }
+
+      async function loadUsage() {
+        try {
+          const u = await keepFresh<any>({
+            current: null,
+            fetch: () => api.get<any>("/usage"),
+            freshness: fresh.usage,
+          });
+          markStale(["m-cost", "m-rate"], fresh.usage);
+          paintRate(u.rate_limit);
+          // all_time comes from the daily rollup, which retention never prunes; totals only covers
+          // kept sessions (90 days by default).
+          const totals = u.all_time ?? u.totals;
+          if (!totals || !totals.sessions) {
+            const ct = $("usage");
+            showPlaceholder(
+              ct,
+              "none",
+              emptyStateHTML({
+                size: "sm",
+                body: t("dashboard.usage.empty"),
+                attrs: { "data-empty": "none" },
+              }),
+            );
+            usageBuilt = false;
+            $("rate-label").hidden = true;
+            setStat($("m-cost"), {
+              value: fmtUsd(0),
+              sub: t("dashboard.metrics.sessions", { count: 0 }),
+            });
+            return;
+          }
+          ensureUsageTiles();
+          paintUsage("tokens", fmtTokens(totals.input_tokens + totals.output_tokens));
+          paintUsage("output", fmtTokens(totals.output_tokens));
+          const cost = estimatedCost(totals.total_cost_usd, totals.estimated_cost_usd, fmtUsd);
+          paintUsage("total_cost", cost.text);
+          paintUsage("avg_cost", fmtUsd(totals.avg_cost_usd));
+          paintUsage("sessions", String(totals.sessions));
+          paintUsage("turns", String(totals.total_turns || 0));
+
+          setStat($("m-cost"), {
+            value: cost.text,
+            sub: t("dashboard.metrics.cost_sub", {
+              sessions: t("dashboard.metrics.sessions", { count: totals.sessions }),
+              tokens: fmtTokens(totals.input_tokens + totals.output_tokens),
+            }),
+          });
+          $("m-cost").querySelector<HTMLElement>(".stat-value")!.title = cost.title;
+        } catch {
+          markStale(["m-cost", "m-rate"], fresh.usage);
+          const ct = $("usage");
+          showOffline(ct);
+          usageBuilt = false;
+        }
+      }
+
+      const BAND_TONE: Record<"low" | "mid" | "high", BadgeTone & StatTone> = {
+        low: "ok",
+        mid: "warn",
+        high: "danger",
+      };
+      function paintRate(rl: unknown) {
+        const r = rateSummary(rl as Parameters<typeof rateSummary>[0]);
+        setStat($("m-rate"), {
+          value: r.value,
+          sub: r.sub,
+          tone: r.band ? BAND_TONE[r.band] : "neutral",
+        });
+        const pill = $("rate-label");
+        pill.hidden = !r.band;
+        if (r.band) setBadge(pill, r.value, BAND_TONE[r.band], { mono: true });
+      }
+
+      let taskCount = -1;
+      let firstStepsForbidden = false;
+      async function loadFirstSteps() {
+        const panel = $("first-steps");
+        if (taskCount !== 0 || firstStepsForbidden) {
+          panel.hidden = true;
+          return;
+        }
+        if (!roleWithin("admin", (await sessionInfo())?.role)) firstStepsForbidden = true;
+        if (firstStepsForbidden) {
+          panel.hidden = true;
+          return;
+        }
+        let status: SetupStatus | null = null;
+        try {
+          status = await api.get<SetupStatus>("/onboarding");
+        } catch (e) {
+          if (e instanceof ApiError && e.status === 403) firstStepsForbidden = true;
+          status = null;
+        }
+        const show = taskCount >= 0 && showFirstSteps(status, taskCount);
+        panel.hidden = !show;
+        if (!show || !status) return;
+        const html = firstStepItems(orderSteps(workspaceSteps(status.steps)))
+          .map(stepItemHTML)
+          .join("");
+        const list = $("first-steps-list");
+        if (list.innerHTML !== html) list.innerHTML = html;
+      }
+
+      let entitlements: Entitlements | null = null;
+      async function loadQuota() {
+        try {
+          entitlements = await keepFresh<Entitlements | null>({
+            current: entitlements,
+            fetch: () => api.get<Entitlements>("/entitlements"),
+            freshness: fresh.quota,
+          });
+        } catch {
+          markStale(["m-quota"], fresh.quota);
+          return;
+        }
+        markStale(["m-quota"], fresh.quota);
+        const q = runQuota(entitlements);
+        const card = $("m-quota");
+        card.hidden = !q;
+        if (!q) return;
+        setStat(card, {
+          value: q.value,
+          sub: q.resets,
+          tone: q.tone === "full" ? "danger" : q.tone === "warn" ? "warn" : "neutral",
+        });
+      }
+
+      function showOffline(ct: HTMLElement) {
+        showPlaceholder(
+          ct,
+          "offline",
+          emptyStateHTML({
+            size: "sm",
+            tone: "danger",
+            title: t("common.status.daemon_offline"),
+            attrs: { "data-empty": "offline" },
+          }),
+        );
+      }
+
+      // Skip only when this exact placeholder is the sole child: checking for any placeholder left
+      // the first "Loading…" forever.
+      function showPlaceholder(ct: HTMLElement, kind: string, html: string) {
+        const only = ct.childElementCount === 1 ? ct.firstElementChild : null;
+        if (only instanceof HTMLElement && only.dataset.empty === kind) return;
+        ct.innerHTML = html;
+      }
+
+      function refresh() {
+        loadAgents();
+        void loadTasks().then(loadFirstSteps);
+        loadUsage();
+        loadQuota();
+      }
+
+      startPoller({
+        interval: 6000,
+        fetch: async () => {
+          refresh();
+        },
+        skipWhen: () => dirty.hasOpenModal(),
+      });
+    });
+  </script>
+</Layout>

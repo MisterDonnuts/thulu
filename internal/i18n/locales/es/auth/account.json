@@ -1,0 +1,37 @@
+{
+  "errors": {
+    "session_only": "esto lo hace solo una persona con su propia sesión iniciada; ni las API keys ni la sesión sin login pueden",
+    "workspace_id_required": "falta workspace_id",
+    "not_a_member": "no sos miembro de ese workspace",
+    "transfer_owner_only": "solo el dueño del workspace puede transferirlo",
+    "transfer_user_required": "falta user_id: el miembro que pasa a ser dueño",
+    "transfer_to_self": "ya sos el dueño de este workspace",
+    "transfer_target_not_member": "el workspace solo se puede transferir a uno de sus miembros; agregalo primero",
+    "delete_confirm_required": "falta la confirmación: mandá {\"confirm\":\"<el correo de tu cuenta>\"}",
+    "owns_shared_workspaces": {
+      "one": "sos dueño de un workspace que usan otras personas ({workspaces}); transferíselo a otro miembro o borralo antes de borrar tu cuenta",
+      "other": "sos dueño de {count} workspaces que usan otras personas ({workspaces}); transferí cada uno a otro miembro o borralo antes de borrar tu cuenta"
+    },
+    "still_owns_workspaces": "la cuenta todavía es dueña de un workspace; transferilo o borralo primero",
+    "purge_unavailable": "esta instalación no puede borrar workspaces, así que acá no se puede borrar una cuenta que sea dueña de uno",
+    "purge_failed": "no se pudo borrar el workspace {workspace}; tu cuenta no se borró, probá de nuevo"
+  },
+  "audit": {
+    "workspace_switched": "Entró a este workspace",
+    "ownership_transferred": "Se transfirió {workspace} a {user}",
+    "workspace_deleted": "Workspace borrado para siempre junto con la cuenta de su dueño: {workspace}",
+    "account_deleted": {
+      "one": "Cuenta borrada junto con el workspace del que era dueña ({keys} API keys revocadas en otros workspaces)",
+      "other": "Cuenta borrada junto con los {count} workspaces de los que era dueña ({keys} API keys revocadas en otros workspaces)"
+    }
+  },
+  "log": {
+    "set_last_workspace": "cuenta: guardar el último workspace del usuario {user}",
+    "transfer_failed": "cuenta: transferir el workspace {workspace}: {err}",
+    "transfer_bump_version": "cuenta: subir la versión de token tras la transferencia del usuario {user}",
+    "purge_failed": "cuenta: borrar el workspace {workspace}: {err}",
+    "delete_failed": "cuenta: borrar el usuario {user}: {err}",
+    "last_workspace": "cuenta: leer el último workspace del usuario {user}",
+    "transfer_reissue": "cuenta: volver a emitir la sesión tras la transferencia del usuario {user}"
+  }
+}

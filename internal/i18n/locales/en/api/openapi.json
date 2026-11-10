@@ -1,0 +1,461 @@
+{
+  "info": {
+    "title": "Thulu API",
+    "description": "The HTTP API of Thulu, a task board where an agent (Claude Code, Codex or OpenCode) works each stage and a person decides what merges."
+  },
+  "servers": {
+    "local": "Local development"
+  },
+  "tags": {
+    "health": "Health",
+    "auth": "Auth",
+    "tasks": "Tasks",
+    "projects": "Projects",
+    "webhooks": "Webhooks",
+    "automations": "Automations",
+    "audit": "Audit",
+    "agents": "Agents",
+    "usage": "Usage",
+    "chats": "Chats",
+    "events": "Events"
+  },
+  "params": {
+    "case": "Case id or key (TC-3)",
+    "qid": "Question id",
+    "aid": "Approval id",
+    "delivery_id": "Delivery id",
+    "run_id": "Automation run id",
+    "setting_key": "the setting; today only agent.max_run_minutes"
+  },
+  "responses": {
+    "created": "Created",
+    "no_content": "No content",
+    "deleted": "Deleted",
+    "topic_list": "Current topic list",
+    "unknown_stream": "Unknown stream, or owned by another caller"
+  },
+  "schemas": {
+    "task": {
+      "body": "Markdown description. Populated by {route} only — the list endpoints return it empty so a board poll does not carry every description."
+    },
+    "test_case": {
+      "key": "TC-<n> unless given; unique per task. {param} in a path accepts it or the id",
+      "priority": "low, medium, high or critical",
+      "status": "pending, pass, fail, blocked or skipped",
+      "runs": "Newest first"
+    },
+    "report": {
+      "source": "agent, auditor or user",
+      "kind": "agent_index, auditor_feedback or evidence",
+      "body": "Markdown"
+    },
+    "test_case_run": {
+      "verdict": "pass, fail or blocked",
+      "report_id": "The evidence report in the Reports tab",
+      "comment_id": "Where runs recorded before reports existed kept their report"
+    },
+    "webhook": {
+      "secret": "Signing secret; returned only on creation and rotation",
+      "legacy_signing": "Signed with HMAC keyed by hex(sha256(secret)) until the secret is rotated"
+    },
+    "audit_chain_report": {
+      "checked": "Rows whose hash was recomputed and matched",
+      "legacy": "Rows written before the chain existed",
+      "broken_at": "Id of the first row that failed",
+      "head": "Hash of the newest row; record it outside the database",
+      "cause": "Why that row failed, without its id",
+      "broken_created_at": "When the failed row was written"
+    },
+    "token_optimizer": {
+      "level": "off, suggest or enforce",
+      "reason": "why the level is lower than configured: no_worker (the agent names no complete worker, its engine has no usable default profile, or a cli worker for an agent on another engine than claude-code, whose image has no claude) or engine_without_hooks (enforce on an agent whose engine runs no hooks); empty otherwise",
+      "via": "how the run reaches the worker: api (the daemon calls the provider with the default profile's key, which never reaches the pod) or cli (the run's own pod runs the Claude Code CLI with the default profile's subscription token); empty when there is no usable worker",
+      "provider": "the provider of the engine's default LLM profile",
+      "engine": "the worker's engine: claude-code, codex or opencode",
+      "model": "the worker's model, from the agent's definition",
+      "available": "whether the engine's default LLM profile can back a worker",
+      "worker_reason": "why the worker is not available: no_default_profile or unsupported_credential; empty otherwise",
+      "profile_name": "the name of the engine's default LLM profile"
+    },
+    "workspace_run_limit": {
+      "about": "The wall-clock limit on one agent run in this workspace, in minutes",
+      "value": "the workspace's own choice; null when it chose none",
+      "default": "the install's limit, what a workspace without a value gets; 0 = no limit",
+      "ceiling": "the most a workspace may choose",
+      "effective": "what the workspace's runs get: min(value, ceiling), or the default",
+      "body": "whole minutes from 1 to the ceiling, or null to go back to the install default"
+    }
+  },
+  "ops": {
+    "health_full": {
+      "summary": "Full health check"
+    },
+    "health_live": {
+      "summary": "Liveness probe"
+    },
+    "health_ready": {
+      "summary": "Readiness probe"
+    },
+    "auth_config": {
+      "summary": "Auth server configuration (public)"
+    },
+    "auth_refresh": {
+      "summary": "Refresh access token"
+    },
+    "auth_logout": {
+      "summary": "Revoke refresh token"
+    },
+    "auth_me": {
+      "summary": "Get current user"
+    },
+    "list_members": {
+      "summary": "List workspace members"
+    },
+    "add_member": {
+      "summary": "Add member to workspace"
+    },
+    "update_member_role": {
+      "summary": "Update member role"
+    },
+    "remove_member": {
+      "summary": "Remove member from workspace"
+    },
+    "list_invitations": {
+      "summary": "List pending invitations"
+    },
+    "update_invitation": {
+      "summary": "Change an invitation's role"
+    },
+    "delete_invitation": {
+      "summary": "Cancel an invitation"
+    },
+    "list_tasks": {
+      "summary": "List all tasks",
+      "params": {
+        "board": "Filter by board (the task's workflow). Preferred over stage: a stage id can belong to several boards.",
+        "stage": "Filter by stage (e.g. backlog, in_progress, done)",
+        "limit": "Page size. Omit for the whole list. Capped at 500.",
+        "cursor": "Opaque token from a previous response's X-Next-Cursor header. Absence of that header means the last page was reached."
+      }
+    },
+    "create_task": {
+      "summary": "Create a task"
+    },
+    "get_task": {
+      "summary": "Get task"
+    },
+    "update_task": {
+      "summary": "Update task"
+    },
+    "delete_task": {
+      "summary": "Delete task"
+    },
+    "add_comment": {
+      "summary": "Add comment"
+    },
+    "list_attachments": {
+      "summary": "List every attachment on the task"
+    },
+    "upload_attachment": {
+      "summary": "Upload an attachment",
+      "description": "Two request shapes on one route: multipart/form-data with the file in the `file` part, or application/json with the bytes in `content_base64`. Both accept `comment_id` (bind the file to a comment on this task). The author comes from the credential. 50MB per file."
+    },
+    "serve_attachment": {
+      "summary": "Download an attachment's bytes",
+      "responses": {
+        "ok": "The file"
+      }
+    },
+    "delete_attachment": {
+      "summary": "Delete an attachment and its file"
+    },
+    "list_sections": {
+      "summary": "Parsed structured sections of the task body"
+    },
+    "set_section": {
+      "summary": "Create or replace one body section"
+    },
+    "check_section_item": {
+      "summary": "Check/uncheck one checklist item"
+    },
+    "list_flags": {
+      "summary": "List flags"
+    },
+    "create_flag": {
+      "summary": "Create flag"
+    },
+    "list_pull_requests": {
+      "summary": "Read the state, CI and review of the task's pull requests",
+      "description": "Answers {pull_requests: [...]}, one row per project with a pull request: project_id, project_name, url, number, title, state (open, draft, merged, closed), head, base, ci {source (checks or actions), total, passed, failed, running, state (none, running, passed, failed)}, review (none, pending, approved, changes_requested), mergeable (ready, blocked, behind, conflicts, unknown), changed_files, additions, deletions, commits, updated_at. A pull request GitHub would not answer for keeps project_id, project_name and url, with error (the catalog key) and error_message instead of the rest. Answers are cached for 30 seconds; GitHub webhooks about a pull request, its reviews or its checks drop them sooner. ci.source is actions when the GitHub App lacks Checks: read: only GitHub Actions jobs are counted then.",
+      "responses": {
+        "ok": "The task's pull requests"
+      }
+    },
+    "list_reports": {
+      "summary": "List the task's reports, oldest first"
+    },
+    "add_report": {
+      "summary": "File a report in the Reports tab",
+      "description": "kind is evidence or agent_index (agent runs only); auditor feedback has its own route. body is markdown, up to 256 KB. instance_id, when given, must be a run of this task. Reports never post a comment, launch or notify anyone."
+    },
+    "list_test_cases": {
+      "summary": "List the task's test cases, each with its runs"
+    },
+    "add_test_cases": {
+      "summary": "Add one test case, or several as {cases: [...]}",
+      "description": "Returns the created cases. A case without a key gets TC-<max+1>; a taken key answers 409."
+    },
+    "import_test_cases_from_body": {
+      "summary": "Turn the body's Test Cases checklist into cases, skipping titles already present"
+    },
+    "update_test_case": {
+      "summary": "Update a test case (partial)"
+    },
+    "delete_test_case": {
+      "summary": "Delete a test case and its runs"
+    },
+    "record_test_case_run": {
+      "summary": "Record a run of a test case",
+      "description": "verdict is required. Every attachment, report and comment id must belong to the task (404 otherwise). The case takes the verdict as its status and counts as covered. Answers {run, test_case}."
+    },
+    "list_workspace_test_cases": {
+      "summary": "QA view: test cases across the caller's workspace",
+      "description": "Answers {test_cases: [...], counts: {status: n}, covered_counts: {status: n}}. Each row is a TestCase without runs, plus task_title, task_stage, board_id, last_run and runs_count. Both counts have every status over the whole filtered set, the status filter left out; covered_counts counts only covered cases.",
+      "params": {
+        "status": "Comma-separated statuses",
+        "q": "Matches case key, case title and task title",
+        "uncovered": "1 for cases nobody exercised yet",
+        "limit": "Default 200, max 1000"
+      }
+    },
+    "ask_question": {
+      "summary": "Ask people a question (agent stage runs only)",
+      "description": "Body: task_ask's input {kind, blocking, context, questions: [{header, question, options: [{label, description}], multi_select, allow_other}], default}. Only the task's live stage run may call it, with its own run key. Answers {question, comment_id, instruction}. 409 when the task is not running in the key's stage; 429 past 3 asks per run or 5 open questions per task."
+    },
+    "answer_question": {
+      "summary": "Answer an agent's question",
+      "description": "Body: {answers: [{question_index, selected: [label], other}], note}. A person only; signed with the caller's credential. The answer is posted in the question's thread and handed to the agent: into its live run, or by resuming the stage once every blocking question of that run is answered."
+    },
+    "cancel_question": {
+      "summary": "Cancel an agent's question unanswered"
+    },
+    "inbox": {
+      "summary": "What waits on a person in the workspace",
+      "description": "Answers {questions: [...], approvals: [...]}: agents' open questions and the approvals still holding their stage (pending or with changes requested), each with task_id, task_title and stage, oldest first."
+    },
+    "list_approvals": {
+      "summary": "List a task's approvals"
+    },
+    "request_approval": {
+      "summary": "Ask for an approval",
+      "description": "Body: {label, reason, key}. Opens a pending approval on the task's current stage; moving the task forward out of that stage answers 409 until it is approved or waived. An agent run may call it on its own task."
+    },
+    "decide_approval": {
+      "summary": "Decide an approval",
+      "description": "Body: {decision, note}. decision is approved, changes_requested or waived; the last two need a note. A person only. changes_requested does what the stage's on_changes_requested says: resume its agent with the note, send the task back, or stay."
+    },
+    "delete_approval": {
+      "summary": "Remove an approval (not one a stage requires: waive that instead)"
+    },
+    "relaunch_task": {
+      "summary": "Relaunch current stage agent"
+    },
+    "clone_task": {
+      "summary": "Clone task"
+    },
+    "list_deps": {
+      "summary": "List dependencies"
+    },
+    "add_dep": {
+      "summary": "Add dependency"
+    },
+    "list_projects": {
+      "summary": "List projects"
+    },
+    "create_project": {
+      "summary": "Create project"
+    },
+    "get_project": {
+      "summary": "Get project"
+    },
+    "update_project": {
+      "summary": "Update project"
+    },
+    "delete_project": {
+      "summary": "Delete project"
+    },
+    "list_webhooks": {
+      "summary": "List webhook endpoints"
+    },
+    "create_webhook": {
+      "summary": "Register webhook endpoint",
+      "responses": {
+        "created": "Created — includes one-time secret"
+      }
+    },
+    "list_webhook_events": {
+      "summary": "List the events an endpoint can subscribe to",
+      "responses": {
+        "ok": "Array of event names; a subscription also accepts * and <prefix>.*"
+      }
+    },
+    "delete_webhook": {
+      "summary": "Delete webhook"
+    },
+    "rotate_webhook_secret": {
+      "summary": "Replace the signing secret (returned once) and stop signing with the secret hash"
+    },
+    "test_webhook": {
+      "summary": "Send test delivery to webhook"
+    },
+    "list_webhook_deliveries": {
+      "summary": "List the latest delivery attempts of a webhook"
+    },
+    "retry_webhook_delivery": {
+      "summary": "Send a logged webhook delivery again"
+    },
+    "list_automations": {
+      "summary": "List automations"
+    },
+    "create_automation": {
+      "summary": "Create automation from a YAML spec"
+    },
+    "validate_automation": {
+      "summary": "Parse a spec without storing it"
+    },
+    "get_automation": {
+      "summary": "Get automation"
+    },
+    "update_automation": {
+      "summary": "Replace the spec"
+    },
+    "delete_automation": {
+      "summary": "Delete automation and its history"
+    },
+    "set_automation_enabled": {
+      "summary": "Suspend or resume"
+    },
+    "run_automation": {
+      "summary": "Run now"
+    },
+    "list_automation_runs": {
+      "summary": "Run history"
+    },
+    "get_automation_run": {
+      "summary": "One run with its step timeline"
+    },
+    "cancel_automation_run": {
+      "summary": "Cancel an in-flight run"
+    },
+    "verify_audit": {
+      "summary": "Recompute the audit hash chain (operator workspace only)"
+    },
+    "list_audit": {
+      "summary": "Query audit log"
+    },
+    "list_agents": {
+      "summary": "List running agents"
+    },
+    "get_agent": {
+      "summary": "Get agent"
+    },
+    "stop_agent": {
+      "summary": "Stop agent"
+    },
+    "agent_logs": {
+      "summary": "Get agent logs"
+    },
+    "get_usage": {
+      "summary": "Aggregate usage stats"
+    },
+    "list_sessions": {
+      "summary": "List agent sessions"
+    },
+    "list_chats": {
+      "summary": "List agent chats"
+    },
+    "create_chat": {
+      "summary": "Create chat with an agent"
+    },
+    "get_chat": {
+      "summary": "Get chat"
+    },
+    "update_chat": {
+      "summary": "Rename / archive chat"
+    },
+    "delete_chat": {
+      "summary": "Delete chat"
+    },
+    "reset_chat": {
+      "summary": "Reset chat (wipe transcript + engine session)"
+    },
+    "list_chat_messages": {
+      "summary": "List chat messages",
+      "params": {
+        "before": "Return only messages older than this message id"
+      }
+    },
+    "post_chat_message": {
+      "summary": "Post message (async turn — reply via SSE)",
+      "responses": {
+        "accepted": "Accepted — turn running",
+        "conflict": "A turn is already running"
+      }
+    },
+    "chat_events": {
+      "summary": "SSE stream of chat events (message_added, turn_started/finished/failed, chat_*) — superseded by /events topic \"chat\""
+    },
+    "open_event_stream": {
+      "summary": "Open the multiplexed SSE channel; frames arrive as `msg` events tagged with their topic",
+      "params": {
+        "topics": "Comma-separated topics to subscribe on open (chat, logs:<runID>)"
+      },
+      "responses": {
+        "ok": "text/event-stream; opens with a `hello` event carrying stream_id"
+      }
+    },
+    "subscribe_topics": {
+      "summary": "Add topics to an open stream"
+    },
+    "unsubscribe_topics": {
+      "summary": "Drop topics from an open stream"
+    },
+    "upload_project": {
+      "summary": "Create a project from an uploaded folder",
+      "description": "multipart/form-data with two parts in this order: \"meta\", JSON {name, description, default_board_id, stage_template}, then \"archive\", the folder as .tar.gz or .zip (200 MB at most). Dependency folders (node_modules, .venv, ...) and files that look like secrets (.env, private keys) are left out and listed in the report. A .git at the top keeps its history; without one the folder is the first commit on main. Answers {project, report}."
+    },
+    "reupload_project": {
+      "summary": "Upload a new version of an upload project's folder",
+      "description": "multipart/form-data with one \"archive\" part. The folder becomes a commit on the default branch when it differs from what is there; files the upload left out on purpose stay as they were. Answers {project, report}.",
+      "params": {
+        "mode": "What to do when the folder came from a commit the default branch has moved past (the zip of a branch from projectArchive names it). Unset: answer 409 with code api.projects.errors.main_moved and ahead. merge: bring those commits along; a clash answers 409 with conflicts. replace: the folder wins."
+      }
+    },
+    "project_branches": {
+      "summary": "List a project's branches, without task branches"
+    },
+    "project_archive": {
+      "summary": "Download a branch of the project as a zip",
+      "params": {
+        "branch": "Branch to download. The project's default branch when absent."
+      }
+    },
+    "merge_task": {
+      "summary": "Merge a task's branch into a branch of an uploaded project",
+      "description": "Body {project_id, target}, both optional: the task's only uploaded project and its default branch. Commits what the worktree has, pushes the task branch (rebased onto the default branch), then fast-forwards the target or writes a merge commit. 409 with the conflicting files in conflicts when the branches conflict; nothing is written then. Agent runs cannot call it."
+    },
+    "resolve_token_optimizer": {
+      "summary": "What the token optimizer resolves to for an agent"
+    },
+    "list_token_optimizer_workers": {
+      "summary": "Which engines can answer the token optimizer",
+      "description": "One entry per registered engine: whether the workspace's default LLM profile for it can back a token optimizer worker, and how a run would reach it. The agent form offers the available ones."
+    },
+    "get_workspace_settings": {
+      "summary": "Read the workspace's own settings: its agent run limit and the bounds the install sets"
+    },
+    "put_workspace_setting": {
+      "summary": "Set or clear one of the workspace's own settings (admin)"
+    }
+  }
+}

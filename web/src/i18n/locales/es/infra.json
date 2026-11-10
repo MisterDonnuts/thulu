@@ -1,0 +1,460 @@
+{
+  "title": "Infraestructura · Thulu",
+  "heading": "Infraestructura",
+  "subtitle": "La máquina donde corre Thulu: qué tan ocupada está, quién la usa y cuánto lugar queda. Sólo el operador ve esta página.",
+  "live": {
+    "loading": "Cargando…",
+    "updated": "Actualizado hace {ago}",
+    "paused": "En pausa mientras la pestaña está oculta",
+    "stale": "No se pudo actualizar. Mostrando datos de hace {ago}."
+  },
+  "blocked": {
+    "not_operator_title": "Sólo el operador ve esta página",
+    "not_operator": "Sólo los admins del workspace operador ({env}) pueden ver la infraestructura. Muestra todos los workspaces de esta instalación, así que los dueños de cada workspace tienen la página de uso.",
+    "forbidden_title": "Tu rol no puede abrir esta página",
+    "forbidden": "Pedile a un admin del workspace operador que la mire, o que te cambie el rol.",
+    "unavailable_title": "El inspector no está corriendo",
+    "unavailable": "Este daemon arrancó sin el inspector de infraestructura. Reinicialo, o buscá en sus logs la línea que dice por qué no arrancó.",
+    "failed_title": "No se pudo cargar la infraestructura",
+    "failed": "El daemon respondió: {error}. Fijate que esté corriendo y probá de nuevo.",
+    "retry": "Probar de nuevo"
+  },
+  "problems": {
+    "title": "Algunas fuentes no se pudieron leer, así que los números de abajo las dejan afuera.",
+    "sources": {
+      "docker": "Docker",
+      "kubernetes": "Kubernetes",
+      "metrics": "Métricas",
+      "postgres": "Postgres",
+      "settings": "Ajustes"
+    }
+  },
+  "tiles": {
+    "aria": "Números principales",
+    "cpu": "CPU",
+    "cpu_sub": "Carga {load} en {threads} hilos",
+    "memory": "Memoria",
+    "memory_sub": "{used} de {total}",
+    "disk": "Disco",
+    "disk_sub": "{free} libres en {path}",
+    "runs": "Corridas de agentes",
+    "waiting": {
+      "one": "{count} corrida esperando lugar",
+      "other": "{count} corridas esperando lugar"
+    },
+    "none_waiting": "Ninguna en espera",
+    "no_proc": "No se puede leer el /proc del host",
+    "no_disks": "No se pudo leer ningún sistema de archivos"
+  },
+  "tabs": {
+    "aria": "Secciones de infraestructura",
+    "overview": "Resumen",
+    "containers": "Contenedores",
+    "pods": "Pods",
+    "running_count": {
+      "one": "{count} corriendo",
+      "other": "{count} corriendo"
+    },
+    "workspaces": "Workspaces",
+    "storage": "Almacenamiento",
+    "cache": "Caché de dependencias",
+    "attention": "Tiene avisos",
+    "machine": "Máquina"
+  },
+  "activity": {
+    "title": "Actividad",
+    "range_aria": "Rango del historial",
+    "note": "Se muestrea cada 15 segundos y vive en memoria, así que reiniciar el daemon arranca el historial de cero.",
+    "young": {
+      "one": "Mostrando el último minuto, desde que arrancó el daemon.",
+      "other": "Mostrando los últimos {count} minutos, desde que arrancó el daemon."
+    }
+  },
+  "charts": {
+    "cpu": "CPU",
+    "memory": "Memoria",
+    "memory_now": "{used} ({pct})",
+    "network": "Red",
+    "rx": "Entrada",
+    "tx": "Salida",
+    "containers": "Contenedores y corridas",
+    "running": "Contenedores corriendo",
+    "pods_running": "Pods corriendo",
+    "runs": "Corridas activas",
+    "warming_up": "Juntando muestras. Los primeros puntos aparecen en menos de un minuto.",
+    "no_proc": "Hace falta un /proc del host legible. La pestaña Máquina explica cómo montarlo.",
+    "net_container": "Red del contenedor del daemon; montá el /proc del host para ver la red de la máquina."
+  },
+  "usage": {
+    "title": "Quién la usa",
+    "hint": "Parte de {cpus} núcleos y {mem}",
+    "empty_title": "No corre nada",
+    "empty": "Los agentes, sandboxes y chats aparecen acá mientras corren.",
+    "other_note": "Contenedores de este motor que Thulu no arrancó",
+    "other_install_note": "Contenedores que arrancó otra instalación de Thulu en este motor",
+    "running_value": "{running} de {total}",
+    "columns": {
+      "what": "Qué",
+      "running": "Corriendo",
+      "cpu": "CPU",
+      "memory": "Memoria"
+    }
+  },
+  "groups": {
+    "agents": "Agentes",
+    "sandboxes": "Sandboxes",
+    "chats": "Chats",
+    "browsers": "Navegadores",
+    "mcp": "Servidores MCP",
+    "platform": "Thulu",
+    "system": "Sistema",
+    "other_install": "Otras instalaciones de Thulu",
+    "other": "Ajenos a Thulu"
+  },
+  "kinds": {
+    "daemon": "Daemon",
+    "postgres": "Postgres",
+    "web": "Web",
+    "agent": "Agente",
+    "sandbox": "Sandbox",
+    "chat": "Chat",
+    "mcp": "MCP",
+    "browser": "Navegador",
+    "platform": "Plataforma",
+    "system": "Sistema",
+    "other_install": "Otra instalación",
+    "other": "Ajeno a Thulu"
+  },
+  "workspace_fallback": "Workspace por defecto",
+  "stage_mention": "Mención",
+  "states": {
+    "running": "Corriendo",
+    "created": "Creado",
+    "restarting": "Reiniciando",
+    "paused": "En pausa",
+    "removing": "Borrándose",
+    "exited": "Terminado",
+    "dead": "Muerto",
+    "pending": "Pendiente",
+    "succeeded": "Terminó bien",
+    "failed": "Falló",
+    "unknown": "Desconocido"
+  },
+  "capacity": {
+    "title": "Capacidad",
+    "agents": "Contenedores de agentes",
+    "mentions": "Contenedores de menciones",
+    "sandboxes": "Sandboxes",
+    "chats": "Contenedores de chat",
+    "of_cap": "{n} de {cap}",
+    "no_cap": "{n} corriendo, sin tope",
+    "waiting": {
+      "one": "{count} corrida esperando lugar",
+      "other": "{count} corridas esperando lugar"
+    },
+    "room": {
+      "one": "{count} corrida espera lugar en la cuota de su workspace",
+      "other": "{count} corridas esperan lugar en la cuota de su workspace"
+    },
+    "none": "No hay límites configurados.",
+    "sandboxes_link": "Ver qué sandboxes ocupan lugar y la cola",
+    "running_now": "Corriendo ahora",
+    "runs_empty": "No corre ningún agente.",
+    "run_where": "{workspace}, {stage}",
+    "runs_count": {
+      "one": "{count} corrida",
+      "other": "{count} corridas"
+    },
+    "queue_minutes": "Espera máxima en la cola de agentes (minutos)",
+    "install_wide": "Los topes de capacidad valen para todos los workspaces de esta instalación.",
+    "edit_label": "Tope de {name}",
+    "save": "Guardar",
+    "saved": "Guardado",
+    "hint": "Por defecto: {def}.",
+    "hint_unlimited": "Por defecto: {def}. Con 0 no hay tope.",
+    "hint_range": "Entre {min} y {max}. Por defecto: {def}.",
+    "errors": {
+      "required": "Escribí un número",
+      "integer": "Tiene que ser un número entero",
+      "at_least": "Tiene que ser {min} o más",
+      "between": "Tiene que estar entre {min} y {max}"
+    }
+  },
+  "containers": {
+    "title": "Contenedores",
+    "title_pods": "Pods",
+    "count": "{shown} de {total}",
+    "filter_kind": "Filtrar por tipo",
+    "all_kinds": "Todos los tipos",
+    "running_only": "Sólo los que corren",
+    "search": "Buscar contenedores",
+    "search_placeholder": "Nombre, workspace o tarea",
+    "empty_title": "No hay coincidencias",
+    "empty": "Cambiá la búsqueda o el tipo, o incluí los contenedores detenidos.",
+    "none_title": "Todavía no hay contenedores",
+    "none": "Los agentes, sandboxes y chats arrancan contenedores acá cuando corren las tareas.",
+    "clear": "Limpiar filtros",
+    "task_value": "Tarea {id}",
+    "cores": "{n} núcleos",
+    "of_limit": "{pct} de {limit}",
+    "limit_only": "Límite {limit}",
+    "restarts": {
+      "one": "{count} reinicio",
+      "other": "{count} reinicios"
+    },
+    "columns": {
+      "name": "Nombre",
+      "kind": "Tipo",
+      "workspace": "Workspace",
+      "task": "Agente y etapa",
+      "cpu": "CPU",
+      "memory": "Memoria",
+      "age": "Arriba",
+      "state": "Estado",
+      "actions": "Acciones"
+    },
+    "stop": "Detener",
+    "stop_named": "Detener {name}",
+    "stop_title": "¿Detener {name}?",
+    "stop_chat": "La conversación sigue: el próximo mensaje arranca un contenedor nuevo y retoma la sesión.",
+    "stop_agent": "La corrida queda como detenida por vos. La tarea sigue en su etapa y se puede relanzar.",
+    "stopped": "{name} detenido",
+    "stopping": "Deteniendo {name}…",
+    "stop_failed": "No se pudo detener: {error}",
+    "orphan": "Huérfano",
+    "orphan_hint": "Ninguna corrida de su tarea lanzó este contenedor de agente: la corrida se borró, la tarea ya no existe o un reinicio lo dejó colgado.",
+    "remove_orphan": "Quitar",
+    "remove_orphan_named": "Quitar {name}",
+    "remove_orphan_title": "¿Quitar {name}?",
+    "remove_orphan_message": "Ninguna corrida de la tarea depende de este contenedor. Se borra en vez de detenerse, así nada lo lee después como una corrida que terminó.",
+    "removed_orphan": "{name} quitado",
+    "removing_orphan": "Quitando {name}…",
+    "remove_orphan_failed": "No se pudo quitar: {error}"
+  },
+  "workspaces": {
+    "title": "Workspaces",
+    "stats_aria": "Totales de la instalación",
+    "stats": {
+      "workspaces": "Workspaces",
+      "users": "Usuarios",
+      "projects": "Proyectos",
+      "tasks": "Tareas"
+    },
+    "empty_title": "No hay workspaces para listar",
+    "empty": "Un workspace aparece acá cuando tiene un registro en la base, un contenedor corriendo o una corrida hoy.",
+    "agents_of": "{n} de {cap}",
+    "columns": {
+      "workspace": "Workspace",
+      "plan": "Plan",
+      "containers": "Contenedores",
+      "agents": "Agentes",
+      "cpu": "CPU",
+      "memory": "Memoria",
+      "runs_today": "Corridas hoy",
+      "storage": "Disco",
+      "tokens_today": "Tokens hoy",
+      "cost_today": "Costo hoy"
+    }
+  },
+  "quotas": {
+    "title": "Cuotas por workspace",
+    "empty": "Ningún namespace de workspace tiene ResourceQuota.",
+    "pair": "{used} de {hard}",
+    "ceiling": "Techo {value}",
+    "columns": {
+      "workspace": "Workspace",
+      "namespace": "Namespace",
+      "cpu": "CPU (núcleos)",
+      "memory": "Memoria",
+      "pods": "Pods"
+    },
+    "docker_note": "Las cuotas por workspace (CPU, memoria y pods) existen sólo en Kubernetes. En Docker los workspaces comparten la máquina; los topes de Capacidad son para toda la instalación."
+  },
+  "disks": {
+    "title": "Discos",
+    "detail": "{used} de {size}, {free} libres, inodos {inodes}",
+    "missing_q": "¿Por qué falta un disco?",
+    "note_container": "El daemon lee los discos desde adentro de su contenedor, así que un sistema de archivos que no monta no aparece. Montalo en el contenedor y sumá su ruta a {env}.",
+    "roles": {
+      "data": "Datos",
+      "root": "Raíz",
+      "docker": "Docker",
+      "containerd": "containerd",
+      "postgres": "Postgres",
+      "extra": "Extra"
+    }
+  },
+  "storage": {
+    "title": "Directorio de datos",
+    "hint": "{dir}, medido hace {ago}",
+    "total": "Total",
+    "empty": "Todavía no hay nada guardado. Los proyectos, worktrees, adjuntos y logs caen acá a medida que corren las tareas.",
+    "partial": "Algunas carpetas no se pudieron leer, así que el total queda corto.",
+    "pending": "Midiendo. Esto corre cada pocos minutos.",
+    "no_data_dir": "Este daemon no tiene directorio de datos para medir.",
+    "dirs": {
+      "projects": "Proyectos",
+      "worktrees": "Worktrees",
+      "attachments": "Adjuntos",
+      "logs": "Logs",
+      "runs": "Salida de corridas",
+      "other": "Otros"
+    }
+  },
+  "postgres": {
+    "title": "Postgres",
+    "size": "Base de datos",
+    "connections": "Conexiones",
+    "connections_value": "{n} de {max}",
+    "version": "Versión",
+    "largest": "Tablas más grandes",
+    "rows": "{name}: {n} filas",
+    "unavailable": "Postgres no respondió"
+  },
+  "docker": {
+    "title": "Almacenamiento de Docker",
+    "images": "Imágenes",
+    "images_value": "{n} imágenes, {size}",
+    "volumes": "Volúmenes",
+    "build_cache": "Caché de build",
+    "largest_volumes": "Volúmenes más grandes"
+  },
+  "host": {
+    "title": "Host",
+    "hostname": "Nombre",
+    "os": "Sistema",
+    "os_value": "{os} ({arch})",
+    "kernel": "Kernel",
+    "cpu": "CPU",
+    "cores": "Núcleos",
+    "cores_value": "{cores} núcleos, {threads} hilos",
+    "uptime": "Encendido hace",
+    "load": "Carga (1, 5, 15 min)",
+    "memory": "Memoria",
+    "memory_value": "{used} usados de {total}, {available} disponibles, {cached} de caché",
+    "swap": "Swap",
+    "swap_value": "{used} de {total}",
+    "no_swap": "Ninguno",
+    "network": "Red",
+    "network_value": "{rx} de entrada, {tx} de salida",
+    "interfaces": "Interfaces",
+    "about_q": "¿De dónde salen estos números?",
+    "note_container": "El daemon corre dentro de un contenedor, así que estos números salen del /proc del host que alcanza a ver. Con Docker Desktop o Colima eso es la VM, no tu computadora.",
+    "note_no_proc": "El daemon no puede leer /proc acá (macOS, o un contenedor cerrado), así que faltan la CPU, la memoria y la red del host. Montá el /proc del host en el contenedor y apuntá {env} a esa ruta."
+  },
+  "runtime": {
+    "title": "Runtime",
+    "docker": "Docker",
+    "kubernetes": "Kubernetes",
+    "none": "Sin runtime",
+    "none_note": "El daemon no llega ni a Docker ni a Kubernetes, así que no hay contenedores para mostrar.",
+    "version": "Motor",
+    "engine_os": "Sistema del motor",
+    "engine_resources": "Recursos del motor",
+    "engine_resources_value": "{cpus} CPUs, {mem}",
+    "storage_driver": "Driver de almacenamiento",
+    "root_dir": "Directorio raíz",
+    "compose_project": "Proyecto de Compose",
+    "container_states": "Contenedores",
+    "container_states_value": "{running} corriendo, {paused} en pausa, {stopped} detenidos",
+    "runtime_class": "Runtime class",
+    "default_runtime": "La del cluster por defecto",
+    "control_plane": "Namespace del control plane",
+    "pod_phases": "Pods",
+    "pod_phases_value": "{running} corriendo, {pending} pendientes, {failed} fallidos, {succeeded} terminados",
+    "pvcs": "Volume claims",
+    "agent_image": "Imagen de agente",
+    "agent_image_pending": "Buscando en el registry {base} con Claude Code instalado",
+    "agent_image_building": "Construyendo {image} (Job {job}); hasta que esté lista, los pods instalan Claude Code en el primer uso",
+    "agent_image_ready": "{image}",
+    "agent_image_failed": "Falló el build, los pods instalan Claude Code en el primer uso: {message}",
+    "agent_image_skipped": "{base} tal cual: {message}",
+    "no_metrics": "metrics-server no está instalado o no responde, así que falta el uso de pods y nodos. Los requests y límites se siguen viendo. Instalá metrics-server (k3s lo trae) para completar CPU y memoria.",
+    "nodes": "Nodos",
+    "no_nodes": "El daemon no puede listar nodos. Dale get y list sobre nodes en su ClusterRole.",
+    "node_cpu_usage": "CPU en uso",
+    "node_mem_usage": "Memoria en uso",
+    "node_cpu_requests": "CPU pedida",
+    "node_mem_requests": "Memoria pedida",
+    "node_cores": "{used} de {total} núcleos",
+    "node_bytes": "{used} de {total}",
+    "node_meta": "kubelet {kubelet}, kernel {kernel}, hasta {pods} pods",
+    "condition": "{type}: {status}"
+  },
+  "cache": {
+    "title": "Caché de dependencias",
+    "hint": "Cómo salieron las instalaciones en los sandboxes: qué vino de la caché y qué se descargó de nuevo.",
+    "aria": "Rango de la caché de dependencias",
+    "note": "Se guarda 90 días y se actualiza cada minuto, aparte de los gráficos del host.",
+    "partial": "El registro de instalaciones empieza el {date}, así que los días anteriores quedan vacíos.",
+    "empty_title": "Todavía no hay instalaciones registradas",
+    "empty": "Esto se llena a medida que las tareas instalan dependencias en su sandbox y los proyectos precalientan su caché.",
+    "unavailable_title": "Este daemon no tiene registro de instalaciones",
+    "unavailable": "Este daemon no tiene store de sandboxes, así que no hay registro de instalaciones para mostrar.",
+    "failed_title": "No se pudo cargar la caché de dependencias",
+    "failed": "El daemon respondió: {error}. Se vuelve a intentar en un minuto.",
+    "signals": "Para revisar",
+    "tiles": {
+      "hit_rate": "Aciertos",
+      "hit_rate_sub": "{hits} de {runs} instalaciones con fase de setup",
+      "installs": "Instalaciones",
+      "installs_sub": "{prewarms} precalentados, {failed} fallidos",
+      "downloads": "Instalaciones completas",
+      "downloads_sub": "{tools} versiones de mise descargadas",
+      "time_saved": "Tiempo ahorrado",
+      "time_saved_sub": "Contra {avg} por instalación completa",
+      "time_saved_none": "Todavía no hay instalación completa para comparar",
+      "cache_used": "Caché usada",
+      "cache_used_sub": "Disco más lleno: {workspace} al {pct}",
+      "cache_used_none": "Sin medir todavía"
+    },
+    "chart": {
+      "title": "Instalaciones por día"
+    },
+    "projects": {
+      "title": "Proyectos",
+      "empty": "Ningún proyecto corrió una fase de setup en este rango.",
+      "columns": {
+        "project": "Proyecto",
+        "installs": "Instalaciones",
+        "hit_rate": "Aciertos",
+        "last": "Última",
+        "full_install": "Instalación completa",
+        "snapshots": "Snapshots",
+        "prewarm": "Precalentado"
+      },
+      "snapshots": "{size} en {count}",
+      "prewarm_ok": "OK",
+      "prewarm_failed": "Falló",
+      "prewarm_streak": "{count} fallidos seguidos",
+      "prewarm_now": "Precalentar ahora",
+      "prewarm_started": "Precalentado en marcha; la tabla se actualiza en un minuto",
+      "prewarm_refused": "No se pudo precalentar: {error}"
+    },
+    "workspaces": {
+      "title": "Caché por workspace",
+      "empty": "Todavía no hay mediciones. La primera llega después de un precalentado o de la instalación de una tarea.",
+      "columns": {
+        "workspace": "Workspace",
+        "size": "Tamaño",
+        "areas": "Qué guarda",
+        "growth": "Crecimiento en el rango",
+        "disk": "Disco",
+        "measured": "Medida"
+      },
+      "ago": "hace {ago}"
+    },
+    "tools": {
+      "title": "Versiones de mise",
+      "empty": "Ninguna caché tiene versiones de mise.",
+      "columns": {
+        "tool": "Versión",
+        "size": "Tamaño",
+        "workspaces": "Workspaces",
+        "last_used": "Último pedido"
+      },
+      "unused": "Sin uso",
+      "never": "No figura en el registro"
+    }
+  }
+}

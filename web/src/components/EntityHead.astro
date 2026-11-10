@@ -1,0 +1,55 @@
+---
+// Markup must match entityHeadHTML() in lib/ui/catalog.ts.
+import { entityHeadTitleClasses, type EntityHeadLevel } from "../lib/ui/catalog";
+
+interface Props {
+  title?: string;
+  titleId?: string;
+  level?: EntityHeadLevel;
+  mono?: boolean;
+  meta?: string;
+  metaId?: string;
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  title,
+  titleId,
+  level = 2,
+  mono = false,
+  meta,
+  metaId,
+  class: extra,
+  ...rest
+} = Astro.props;
+const H = level === 1 ? "h1" : level === 3 ? "h3" : "h2";
+const hasMeta =
+  (meta !== undefined && meta !== "") || metaId !== undefined || Astro.slots.has("meta");
+---
+
+<div class={["entity-head", extra].filter(Boolean).join(" ")} {...rest}>
+  <div class="entity-head-text">
+    <H id={titleId} class={entityHeadTitleClasses(mono)}><slot name="title">{title}</slot></H>
+    {
+      hasMeta && (
+        <p id={metaId} class="entity-head-meta">
+          <slot name="meta">{meta}</slot>
+        </p>
+      )
+    }
+    {
+      Astro.slots.has("badges") && (
+        <div class="entity-head-badges">
+          <slot name="badges" />
+        </div>
+      )
+    }
+  </div>
+  {
+    Astro.slots.has("actions") && (
+      <div class="entity-head-actions">
+        <slot name="actions" />
+      </div>
+    )
+  }
+</div>

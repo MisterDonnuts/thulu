@@ -1,0 +1,99 @@
+---
+import { t } from "../i18n";
+import {
+  statClasses,
+  statIds,
+  statTone,
+  type StatMeter,
+  type StatSize,
+  type StatTone,
+} from "../lib/ui/stat";
+import Badge from "./Badge.astro";
+import Icon from "./Icon.astro";
+import Meter from "./Meter.astro";
+
+interface Props {
+  label: string;
+  value?: string | number;
+  sub?: string;
+  tone?: StatTone;
+  size?: StatSize;
+  href?: string;
+  icon?: string;
+  meter?: StatMeter;
+  na?: boolean;
+  stale?: boolean;
+  tag?: "div" | "li";
+  id?: string;
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  label,
+  value,
+  sub,
+  tone,
+  size = "md",
+  href,
+  icon,
+  meter,
+  na = false,
+  stale = false,
+  tag = "div",
+  id,
+  class: extra,
+  ...rest
+} = Astro.props;
+const link = href !== undefined;
+const Tag = link ? "a" : tag;
+const ids = statIds(id);
+const dataTone = statTone(tone);
+const hasSub = sub !== undefined ? sub !== "" : Astro.slots.has("sub");
+const meterName = meter ? (ids.label ? { labelledBy: ids.label } : { label }) : {};
+const { value: meterValue, cls: meterCls, attrs: meterAttrs, ...meterRest } = meter ?? { value: 0 };
+---
+
+<Tag
+  {id}
+  class={statClasses({ size, link, na, cls: extra })}
+  {href}
+  data-tone={dataTone}
+  data-stale={stale ? "" : undefined}
+  {...rest}
+>
+  {
+    icon && (
+      <span class="stat-icon">
+        <Icon name={icon} />
+      </span>
+    )
+  }
+  <span class="stat-label" id={ids.label}>{label}</span>
+  <span class="stat-value">{value !== undefined ? String(value) : <slot name="value" />}</span>
+  {
+    meter && (
+      <Meter
+        value={meterValue}
+        {...meterRest}
+        {...meterName}
+        {...meterAttrs}
+        class={["stat-meter", meterCls].filter(Boolean).join(" ")}
+      />
+    )
+  }
+  {
+    Astro.slots.has("spark") && (
+      <span class="stat-spark">
+        <slot name="spark" />
+      </span>
+    )
+  }
+  {hasSub && <span class="stat-sub">{sub !== undefined ? sub : <slot name="sub" />}</span>}
+  {
+    stale && (
+      <Badge tone="warn" shape="pill" size="sm" class="stat-stale">
+        {t("ui.stat.stale")}
+      </Badge>
+    )
+  }
+</Tag>

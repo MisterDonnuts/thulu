@@ -1,0 +1,10 @@
+{
+  "errors": {
+    "webhook_secret_missing": "no está configurado el secreto del webhook de Stripe",
+    "malformed_signature_header": "el header Stripe-Signature está mal formado",
+    "invalid_signature_timestamp": "el timestamp de la firma no es válido",
+    "signature_timestamp_out_of_tolerance": "el timestamp de la firma está fuera de la tolerancia",
+    "signature_mismatch": "la firma no coincide",
+    "parse_event": "leer el evento de Stripe"
+  }
+}

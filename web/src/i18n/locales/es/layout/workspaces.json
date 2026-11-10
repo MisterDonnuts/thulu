@@ -1,0 +1,20 @@
+{
+  "switch": "Cambiar de workspace",
+  "heading": "Tus workspaces",
+  "switch_failed": "No se pudo cambiar de workspace",
+  "current": "{name}, cambiar de workspace",
+  "invite": "Invitar personas",
+  "create": "Crear workspace",
+  "create_unavailable": "No está disponible en tu cuenta",
+  "create_body": "Un workspace tiene sus propios tableros, agentes, credenciales y miembros. Nadie más lo ve hasta que invites a alguien.",
+  "name_label": "Nombre",
+  "name_placeholder": "Acme",
+  "name_required": "Ponele un nombre al workspace.",
+  "creating": "Creando…",
+  "create_failed": "No se pudo crear el workspace",
+  "create_cap": {
+    "one": "Ya tenés {count} workspace propio, el máximo por cuenta acá.",
+    "other": "Ya tenés {count} workspaces propios, el máximo por cuenta acá."
+  },
+  "create_reserved": "Acá los workspaces los crean quienes administran la instalación. Pediles uno."
+}

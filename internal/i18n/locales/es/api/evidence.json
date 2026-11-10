@@ -1,0 +1,51 @@
+{
+  "errors": {
+    "artifact_kind": "tipo de archivo desconocido: {kind}",
+    "chat_unavailable": "esta instancia no tiene chats, así que ningún agente puede grabar",
+    "forbidden_admin_only": "sólo un admin puede hacer esto",
+    "forbidden_delete_on_project": "este entorno es de un proyecto: borralo desde la página del proyecto",
+    "forbidden_no_init_script": "el proyecto no tiene init script, así que su Sandbox no puede levantar",
+    "forbidden_no_preview_port": "ninguno de los puertos del init script del proyecto es uno que el sandbox expone",
+    "forbidden_no_url": "este entorno todavía no tiene URL",
+    "forbidden_production": "es un entorno de producción: sólo un admin lo puede cambiar",
+    "forbidden_repo_not_github": "el repositorio del proyecto no está en GitHub, así que los deploys no pueden disparar corridas",
+    "forbidden_sandbox_fixed": "el Sandbox de un proyecto no se puede borrar, renombrar ni programar",
+    "forbidden_sandbox_no_record": "no se ofrece grabar en un Sandbox: grabá en un entorno con URL",
+    "forbidden_sandbox_unavailable": "esta instancia no puede correr sandboxes",
+    "forbidden_viewer": "los viewers pueden mirar pero no cambiar nada",
+    "no_agent": "ningún agente de este espacio de trabajo tiene la etapa de chat, que hace falta para grabar; sumala a uno en Agentes",
+    "no_auth_store": "esta instancia no tiene keys",
+    "project_not_found": "no existe el proyecto {id}",
+    "recording_chat_only": "sólo el agente de un chat de grabación puede usar esto",
+    "runner_create": "crear el runner de evidencia de la tanda {batch}",
+    "runner_only": "sólo el runner de esta tanda puede usar esto",
+    "runner_start": "arrancar el runner de evidencia de la tanda {batch}",
+    "schedule_invalid": "la programación no es una expresión cron o zona horaria válida",
+    "secret_not_found": "el entorno no tiene un login de prueba llamado {name}",
+    "task_not_found": "no existe la tarea {id}",
+    "unavailable": "esta instancia no tiene evidencia"
+  },
+  "log": {
+    "detach_failed": "conservar la evidencia del proyecto {project} antes de borrarlo",
+    "drop_recording_chat_failed": "borrar el chat {chat} de una grabación que no arrancó",
+    "recording_save_failed": "cerrar la grabación {recording}",
+    "remove_failed": "borrar el archivo de evidencia {path}",
+    "sandbox_fetch_failed": "fetch de la rama {branch} del proyecto {project} para una tanda en Sandbox; se usa lo que tiene el clon",
+    "sandbox_list_failed": "listar los sandboxes de evidencia",
+    "sandbox_stop_failed": "borrar el sandbox de evidencia {owner}",
+    "stop_failed": "borrar el runner de evidencia {runner}"
+  },
+  "recording": {
+    "chat_title": "Grabar {key} · {title}",
+    "context": "Contexto",
+    "expected": "Resultado esperado",
+    "howto": "Usá la skill octopus-evidence-library: explorá la app, filmá el flujo con evidence_start … evidence_finish, verificá cada resultado esperado con evidence_verify y guardá una sola vez con evidence_save_case. No cambies datos reales.",
+    "intro": "Grabá el caso {key} \"{title}\" en el entorno {env} ({url}).",
+    "secrets": "Logins de prueba disponibles, se escriben con browser_type(secret=\"NOMBRE\"): {names}.",
+    "steps": "Pasos"
+  },
+  "reasons": {
+    "runner_exit": "el ejecutor terminó con código {code}",
+    "deadline": "la tanda superó su tiempo límite"
+  }
+}

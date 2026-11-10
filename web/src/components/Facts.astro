@@ -1,0 +1,33 @@
+---
+// Markup must match factsHTML() in lib/ui/facts.ts.
+import Fact from "./Fact.astro";
+import { factRows, factsClasses, type Fact as FactRow, type FactsLayout } from "../lib/ui/facts";
+
+interface Props {
+  rows?: Omit<FactRow, "valueHTML">[];
+  layout?: FactsLayout;
+  boxed?: boolean;
+  class?: string;
+  [key: string]: unknown;
+}
+const { rows, layout = "columns", boxed = false, class: extra, ...rest } = Astro.props;
+---
+
+<dl class={factsClasses({ layout, boxed, cls: extra })} {...rest}>
+  {
+    rows ? (
+      factRows(rows).map((r) => (
+        <Fact
+          label={r.label}
+          value={r.value ?? undefined}
+          mono={r.mono}
+          note={r.note}
+          valueAttrs={r.valueAttrs}
+          {...r.attrs}
+        />
+      ))
+    ) : (
+      <slot />
+    )
+  }
+</dl>

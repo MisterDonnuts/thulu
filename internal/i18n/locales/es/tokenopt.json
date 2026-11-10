@@ -1,0 +1,41 @@
+{
+  "errors": {
+    "disabled": "el optimizador de tokens está apagado para esta corrida",
+    "no_worker": "el engine del worker del agente no tiene en este workspace un perfil LLM por defecto que sirva",
+    "provider_unsupported": "el perfil LLM por defecto del engine del worker usa un proveedor al que el optimizador de tokens todavía no sabe llamar (sólo anthropic, openai y openai-compatible)",
+    "provider_named": "proveedor {provider}",
+    "profile_not_usable": "el perfil LLM por defecto del engine del worker no sirve para un worker: no tiene key, o tiene una credencial que el daemon no puede mandar a la API del proveedor y que tampoco es un token de suscripción de Claude Code (un perfil federado, un token de suscripción de Claude en el perfil de otro engine); dale a ese engine un perfil por defecto con una API key o con un token de Claude Code",
+    "timeout": "el worker del optimizador de tokens no contestó a tiempo",
+    "upstream_status": "el proveedor del worker contestó {status} {message}",
+    "upstream_unreachable": "no se pudo llegar al proveedor del worker",
+    "upstream_response": "el proveedor del worker mandó una respuesta que no se pudo leer",
+    "empty_answer": "el proveedor del worker mandó una respuesta vacía",
+    "unfinished": "el pod de la corrida nunca informó cómo terminó esta delegación",
+    "encode_request": "armar el pedido al worker",
+    "question_required": "una lectura necesita una pregunta",
+    "files_required": "una lectura necesita al menos un archivo",
+    "too_many_files": "una lectura puede mandar como mucho {max} archivos",
+    "path_required": "cada archivo necesita una ruta",
+    "invalid_kind": "kind tiene que ser read, no {kind:%q}",
+    "invalid_level": "el nivel tiene que ser off, suggest o enforce, no {level:%q}",
+    "migrations": "migraciones del optimizador de tokens",
+    "worker_in_pod": "este worker corre en el pod de la propia corrida con el CLI de Claude Code y el token de suscripción del perfil del worker; prepará la llamada con /internal/token-optimizer/prepare en vez de pedirle al daemon que lo llame",
+    "worker_not_in_pod": "a este worker lo llama el daemon por la API del proveedor; delegá con /internal/token-optimizer/delegate en vez de correrlo en el pod",
+    "id_required": "falta el id",
+    "invalid_status": "status tiene que ser ok, failed o timeout, no {status:%q}",
+    "negative_field": "{field} no puede ser negativo",
+    "cli_failed": "falló el worker en el pod (Claude Code)",
+    "invalid_error_code": "error_code tiene que estar vacío o ser una clave tokenopt.errors, de como mucho {max} caracteres",
+    "write_removed": "el optimizador de tokens no delega escrituras: escribí el archivo vos",
+    "engine_required": "con el optimizador de tokens prendido hace falta el engine del worker",
+    "unknown_engine": "el engine {engine:%q} del optimizador de tokens no es un engine registrado",
+    "model_required": "con el optimizador de tokens prendido hace falta el modelo del worker"
+  },
+  "prompts": {
+    "bulk_reader": "Sos un analista de código preciso. Leés los archivos que te pasan y contestás la pregunta que viene después, para otro ingeniero que va a actuar con tu respuesta sin leer los archivos.\n\nReglas:\n- Contestá sólo con viñetas estructuradas. Sin introducción, sin resumen, sin cierre.\n- Empezá cada viñeta con el nombre, el tipo y la línea exactos de lo que trata, como aparecen en el archivo (por ejemplo `parseConfig (func, config.go:42)`).\n- Citá identificadores, firmas, constantes y mensajes de error tal cual. Nunca parafrasees el código que citás.\n- Contestá sólo lo que te preguntaron. Salteá los archivos, símbolos y detalles que la pregunta no necesita.\n- Si los archivos no tienen la respuesta, decilo en una viñeta y nombrá lo que falta. Nunca adivines.",
+    "question": "Pregunta: {question}"
+  },
+  "log": {
+    "worker_unreadable": "no se pudo leer el worker del optimizador de tokens del workspace {workspace} para el engine {engine}: {err} — la corrida arranca sin el optimizador"
+  }
+}

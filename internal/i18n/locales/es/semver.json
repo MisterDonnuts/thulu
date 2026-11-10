@@ -1,0 +1,8 @@
+{
+  "errors": {
+    "invalid_version": "semver: versión inválida {version:%q}",
+    "empty_constraint": "la restricción está vacía",
+    "unknown_operator": "restricción {constraint:%q}: operador desconocido {op:%q}",
+    "not_a_version": "restricción {constraint:%q}: {version:%q} no es una versión"
+  }
+}

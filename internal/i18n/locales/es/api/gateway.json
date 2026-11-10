@@ -1,0 +1,22 @@
+{
+  "errors": {
+    "profile_wrong_provider": "{cause}: el perfil de esta corrida es para {profile_provider}, no para {provider}",
+    "credential_not_served": "{cause}: la credencial de esta corrida no se sirve por el gateway",
+    "base_url_required": "{cause}: un perfil {provider} tiene que indicar su endpoint (base_url)",
+    "cloud_credential_unreadable": "{cause}: no se puede leer la credencial de nube del perfil",
+    "no_cloud_credential": "{cause}: el perfil no tiene credencial y esta instalación no presta su propia identidad de nube",
+    "invalid_region": "{cause}: el perfil no tiene una región válida",
+    "vertex_no_project": "{cause}: el perfil de Vertex no tiene proyecto",
+    "provider_not_signed": "{cause}: el proveedor {provider:%q} no es una nube que el gateway firme",
+    "bedrock_invocations_only": "por el gateway sólo pasan invocaciones de modelos de Bedrock",
+    "vertex_anthropic_only": "por el gateway sólo pasan llamadas a modelos de Anthropic en Vertex AI",
+    "vertex_wrong_project": "el perfil de esta corrida es para el proyecto {project} en {region}",
+    "resolve_llm_failed": "resolver el LLM de {agent}",
+    "no_llm_credential": "{cause}: el workspace no tiene credencial de LLM para este agente",
+    "unknown_engine": "{cause}: el gateway no conoce el motor {engine:%q}",
+    "run_keys_only": "{cause}: sólo las keys de corridas de agentes pueden usar el gateway de LLM",
+    "default_upstream_invalid": "el upstream por defecto {url:%q} no es una URL válida",
+    "endpoint_invalid": "{cause}: el endpoint del perfil no es una URL válida",
+    "server_not_built": "el servidor de la API no está armado"
+  }
+}

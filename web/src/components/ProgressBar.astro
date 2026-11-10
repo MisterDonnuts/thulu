@@ -1,0 +1,39 @@
+---
+import {
+  progressBarA11y,
+  progressBarClasses,
+  progressSegments,
+  type ProgressSegment,
+  type ProgressSize,
+} from "../lib/ui/progress";
+
+interface Props {
+  segments: ProgressSegment[];
+  total?: number;
+  size?: ProgressSize;
+  split?: boolean;
+  label?: string;
+  decorative?: boolean;
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  segments,
+  total,
+  size = "sm",
+  split = false,
+  label,
+  decorative = false,
+  class: extra,
+  ...rest
+} = Astro.props;
+const parts = progressSegments(segments, total);
+---
+
+<span
+  class={progressBarClasses({ size, split, cls: extra })}
+  {...progressBarA11y(segments, { label, decorative })}
+  {...rest}
+>
+  {parts.map((p) => <span class={p.cls} data-tone={p.tone} style={p.style} title={p.title} />)}
+</span>

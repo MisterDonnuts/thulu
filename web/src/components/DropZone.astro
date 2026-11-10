@@ -1,0 +1,75 @@
+---
+// Markup must match dropZoneHTML() in lib/ui/dropzone.ts.
+import Button from "./Button.astro";
+import Icon from "./Icon.astro";
+import { t } from "../i18n";
+import {
+  dropAccepts,
+  dropTitleId,
+  dropZoneAttrs,
+  dropZoneClasses,
+  JSON_ACCEPT,
+  ZIP_ACCEPT,
+  type DropAccept,
+} from "../lib/ui/dropzone";
+
+interface Props {
+  id: string;
+  title: string;
+  sub?: string;
+  icon?: string;
+  accept?: DropAccept;
+  overlay?: boolean;
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  id,
+  title,
+  sub,
+  icon,
+  accept = "both",
+  overlay = false,
+  class: extra,
+  ...rest
+} = Astro.props;
+const takes = dropAccepts(accept);
+---
+
+<div class={dropZoneClasses({ overlay, cls: extra })} {...dropZoneAttrs(id, accept)} {...rest}>
+  {icon && <Icon name={icon} size="xl" class="drop-ico" />}
+  <p class="drop-title" id={dropTitleId(id)}>{title}</p>
+  {sub && <p class="drop-sub">{sub}</p>}
+  {
+    !overlay && (
+      <div class="drop-actions">
+        {takes.folder && (
+          <Button size="sm" data-drop-pick="folder">
+            {t("projects.upload.pick_folder")}
+          </Button>
+        )}
+        {takes.zip && (
+          <Button size="sm" data-drop-pick="zip">
+            {t("projects.upload.pick_zip")}
+          </Button>
+        )}
+        {takes.json && (
+          <Button size="sm" data-drop-pick="json">
+            {t("ui.dropzone.pick_json")}
+          </Button>
+        )}
+      </div>
+    )
+  }
+  {
+    !overlay && takes.folder && (
+      <input type="file" webkitdirectory multiple hidden data-drop-input="folder" />
+    )
+  }
+  {!overlay && takes.zip && <input type="file" accept={ZIP_ACCEPT} hidden data-drop-input="zip" />}
+  {
+    !overlay && takes.json && (
+      <input type="file" accept={JSON_ACCEPT} hidden data-drop-input="json" />
+    )
+  }
+</div>

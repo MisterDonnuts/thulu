@@ -1,0 +1,39 @@
+{
+  "windows": {
+    "run_logs": "Run logs and transcripts",
+    "sessions": "Per-run usage rows",
+    "webhook_deliveries": "Webhook delivery log",
+    "run_keys": "Ended run keys",
+    "sandbox_rows": "Torn-down sandboxes",
+    "cache_metrics": "Dependency cache history",
+    "stuck_worktree": "Worktree of a stuck task",
+    "audit": "Audit log"
+  },
+  "days": {
+    "one": "{count} day",
+    "other": "{count} days"
+  },
+  "forever": "forever",
+  "default": "default: {value}",
+  "unit_days": "days",
+  "sweep": {
+    "never": "The janitor has not finished a pass since the daemon started.",
+    "last": "Last pass: {date}.",
+    "last_pressure": "Last pass: {date}, early because the disk was low.",
+    "every": {
+      "one": "It runs every hour.",
+      "other": "It runs every {count} hours."
+    }
+  },
+  "disk": {
+    "label": "Free disk floor",
+    "off": "No disk floor: the janitor only sweeps on its schedule.",
+    "off_short": "off",
+    "floor": "Under {floor}% free on the data disk the janitor sweeps at once. Free now: {free}%.",
+    "floor_unknown": "Under {floor}% free on the data disk the janitor sweeps at once. Free space could not be measured."
+  },
+  "errors": {
+    "days": "Must be a whole number of days, 0 or more.",
+    "percent": "Must be a whole percentage from 0 to 100."
+  }
+}

@@ -1,0 +1,183 @@
+---
+import Button from "./Button.astro";
+import Dot from "./Dot.astro";
+import Icon from "./Icon.astro";
+import Tag from "./Tag.astro";
+import {
+  pickerAttrs,
+  pickerChipOptions,
+  pickerClasses,
+  pickerCreateAttrs,
+  pickerCurrentAttrs,
+  pickerCurrentId,
+  pickerEmptyText,
+  pickerErrorAttrs,
+  pickerGroupAttrs,
+  pickerGroupId,
+  pickerGroups,
+  pickerHasHead,
+  pickerInputAttrs,
+  pickerKindAttrs,
+  pickerLead,
+  pickerListAttrs,
+  pickerOptionAttrs,
+  pickerRemoveButton,
+  type PickerCurrentItem,
+  type PickerGroup,
+  type PickerItem,
+  type PickerOptions,
+} from "../lib/ui/picker";
+import { menuDotStyle } from "../lib/ui/menu";
+
+interface Props extends Omit<PickerOptions, "cls" | "attrs"> {
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  id,
+  label,
+  items,
+  multi,
+  search,
+  query,
+  chips,
+  hint,
+  create,
+  createHTML,
+  empty,
+  active,
+  current,
+  kind,
+  errors,
+  place,
+  width,
+  start,
+  up,
+  class: extra,
+  ...rest
+} = Astro.props;
+const s = {
+  id,
+  label,
+  items,
+  multi,
+  search,
+  query,
+  chips,
+  hint,
+  create,
+  createHTML,
+  empty,
+  active,
+  current,
+  kind,
+  errors,
+};
+const cls = pickerClasses({ place, width, start, up, cls: extra });
+const own = pickerAttrs(s);
+const chosen = items.filter((i: PickerItem) => i.selected);
+if (
+  createHTML ||
+  items.some((i: PickerItem) => i.labelHTML || i.leadHTML) ||
+  current?.items.some((i: PickerCurrentItem) => i.labelHTML)
+) {
+  throw new Error("Picker: markup labels and leads are for pickerHTML()"); // i18n-ignore a programming error
+}
+---
+
+<div class={cls} {...own} {...rest}>
+  {
+    current && (
+      <div {...pickerCurrentAttrs(id)}>
+        <div class="nselect-group-head" id={`${pickerCurrentId(id)}-h`}>
+          {current.heading}
+        </div>
+        {current.items.length ? (
+          current.items.map((c: PickerCurrentItem) => (
+            <div class="nselect-current-row">
+              <span class="nselect-label">{c.label}</span>
+              {c.hint && <span class="nselect-item-hint">{c.hint}</span>}
+              <Button
+                iconOnly
+                icon="x"
+                size="sm"
+                variant="danger"
+                label={pickerRemoveButton(c).label}
+                data-remove={c.value}
+              />
+            </div>
+          ))
+        ) : (
+          <div class="nselect-empty">{current.empty}</div>
+        )}
+      </div>
+    )
+  }
+  {
+    pickerHasHead(s) && (
+      <div class="nselect-headrow">
+        {multi && chips && (
+          <span class="nselect-head">
+            {chosen.map((i: PickerItem) => (
+              <Tag label={i.label} {...pickerChipOptions(i)} />
+            ))}
+          </span>
+        )}
+        {search !== undefined && <input {...pickerInputAttrs(s)} />}
+        {kind && (
+          <select {...pickerKindAttrs(id, kind)}>
+            {kind.options.map((o) => (
+              <option value={o.value} selected={o.value === kind.value} disabled={o.disabled}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+    )
+  }
+  {hint && <div class="nselect-hint">{hint}</div>}
+  <div {...pickerListAttrs(s)}>
+    {
+      pickerGroups(items).map((g: PickerGroup, n: number) => {
+        const opts = g.items.map((item: PickerItem, k: number) => {
+          const i = g.start + k;
+          const lead = pickerLead(item);
+          return (
+            <div {...pickerOptionAttrs(s, item, i)} {...item.attrs}>
+              {lead && (
+                <span class="nselect-lead">
+                  {lead === "icon" && item.icon && <Icon name={item.icon} />}
+                  {lead === "dot" && <Dot style={menuDotStyle(item.dot)} />}
+                </span>
+              )}
+              <span class="nselect-label">{item.label}</span>
+              {item.hint && <span class="nselect-item-hint">{item.hint}</span>}
+              {item.selected && <Icon name="check" class="nselect-check" />}
+            </div>
+          );
+        });
+        return g.label === undefined ? (
+          opts
+        ) : (
+          <div {...pickerGroupAttrs(id, n)}>
+            <div class="nselect-group-head" id={pickerGroupId(id, n)}>
+              {g.label}
+            </div>
+            {opts}
+          </div>
+        );
+      })
+    }
+    {items.length === 0 && <div class="nselect-empty">{pickerEmptyText(s)}</div>}
+    {
+      create && (
+        <div {...pickerCreateAttrs(s)}>
+          <Icon name="plus" />
+          <span class="nselect-label">{create}</span>
+        </div>
+      )
+    }
+  </div>
+  {errors && <p {...pickerErrorAttrs(id)} />}
+</div>

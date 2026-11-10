@@ -1,0 +1,32 @@
+---
+// Markup must match filterChipsHTML() in lib/ui/toolbar.ts.
+import Chip from "./Chip.astro";
+import {
+  chipGroupAttrs,
+  filterChipOptions,
+  type ChipSize,
+  type FilterChipItem,
+} from "../lib/ui/toolbar";
+
+interface Props {
+  items: readonly FilterChipItem[];
+  picked?: string | readonly string[] | null;
+  attr?: string;
+  size?: ChipSize;
+  label?: string;
+  hideZero?: boolean;
+  id?: string;
+  class?: string;
+}
+const { items, picked, attr, size, label, hideZero, id, class: extra } = Astro.props;
+const opts = { attr, size, label, hideZero, id, cls: extra };
+---
+
+<div {...chipGroupAttrs(opts)}>
+  {
+    items.map((item) => {
+      const { attrs, ...chip } = filterChipOptions(item, picked, opts);
+      return <Chip {...chip} {...attrs} />;
+    })
+  }
+</div>

@@ -1,0 +1,69 @@
+---
+// Markup must match countHTML() and setCount() in lib/ui/count.ts.
+import Dot from "./Dot.astro";
+import { type DotTone } from "../lib/ui/badge";
+import {
+  countClasses,
+  countHidden,
+  countText,
+  type CountSize,
+  type CountTone,
+} from "../lib/ui/count";
+
+interface Props {
+  n: number | string;
+  pill?: boolean;
+  tone?: CountTone;
+  size?: CountSize;
+  label?: string;
+  srLabel?: string;
+  dot?: boolean | DotTone;
+  pulse?: boolean;
+  max?: number;
+  hideZero?: boolean;
+  title?: string;
+  id?: string;
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  n,
+  pill = false,
+  tone = "neutral",
+  size = "md",
+  label,
+  srLabel,
+  dot = false,
+  pulse = false,
+  max,
+  hideZero = false,
+  title,
+  id,
+  class: extra,
+  ...rest
+} = Astro.props;
+if (!pill && (dot || pulse || label)) throw new Error("count: a dot or a label needs pill"); // i18n-ignore a programming error
+const num = countText(n, max);
+const dotTone: DotTone = typeof dot === "string" ? dot : "neutral";
+---
+
+<span
+  {id}
+  class={countClasses({ pill, tone, size, cls: extra })}
+  {title}
+  hidden={countHidden(n, hideZero)}
+  {...rest}
+>
+  {(dot || pulse) && <Dot tone={dotTone} pulse={pulse} />}
+  {
+    label ? (
+      <>
+        <strong>{num}</strong>
+        {` ${label}`}
+      </>
+    ) : (
+      num
+    )
+  }
+  {srLabel && <span class="visually-hidden">{` ${srLabel}`}</span>}
+</span>

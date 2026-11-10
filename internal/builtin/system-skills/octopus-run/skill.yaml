@@ -1,0 +1,10 @@
+name: octopus-run
+description: How an agent runs in Thulu. What kind of run this is (stage, mention, resume), where the repos and the output dir are, who commits and who opens the PR, which files get published to the task and what happens to the task when you finish. Rules for every run.
+type: knowledge
+# always: if the model skips it, it moves its own task or loses the report in the output dir
+# unnoticed.
+enforcement: always
+requires: []
+# Bump on every change: the daemon syncs this skill at boot only when version exceeds the stored
+# one.
+version: 7

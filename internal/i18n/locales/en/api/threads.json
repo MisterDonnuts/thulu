@@ -1,0 +1,26 @@
+{
+  "comments": {
+    "applied": "{author} sent this thread to the agent. {detail}"
+  },
+  "errors": {
+    "no_such_thread": "no such thread on this task",
+    "resolved_required": "resolved is required",
+    "agent_gone": "{agent}, the agent that worked on this task, no longer exists: there is no session to hand the thread to. The thread stays in the comments.",
+    "no_session_yet": "This task has not run yet, so there is no session to hand the thread to. The thread stays in the comments, and the first agent reads it in its brief."
+  },
+  "log": {
+    "note_applied": "note applied thread {thread} on task {task}",
+    "record_applied_event": "record thread applied event for task {task}",
+    "record_resolved_event": "record thread resolved event for task {task}"
+  },
+  "prompts": {
+    "apply_intro": "Applying the thread \"{thread}\" from the task's comments. Carry out in this stage what was concluded there.\n",
+    "apply_note": "\n**Instruction:** {note}\n",
+    "apply_transcript": "\n---\n\n**The thread:**\n\n{transcript}"
+  },
+  "timeline": {
+    "applied": "Thread \"{title}\" sent to {agent}: {detail}",
+    "reopened": "{who} reopened the thread \"{title}\"",
+    "resolved": "{who} resolved the thread \"{title}\""
+  }
+}

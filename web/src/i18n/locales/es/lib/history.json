@@ -1,0 +1,47 @@
+{
+  "moved": "{from} → {to}",
+  "via": {
+    "kick_back": "(la devolvió el auditor)",
+    "changes_requested": "(pidieron cambios)",
+    "stage_deleted": "(se borró su etapa)"
+  },
+  "run_in": "{agent} en {stage}",
+  "cloned_from": "Copia de la tarea {task}",
+  "finished": {
+    "done": "Terminó en {stage}",
+    "failed": "Falló en {stage} (código de salida {code})",
+    "out_of_turns": "Se quedó sin turnos en {stage}",
+    "stopped": "Frenada en {stage}",
+    "stopped_by": "Frenada por {who} en {stage}"
+  },
+  "credential": {
+    "expired": "{name} venció",
+    "rejected": "{name} fue rechazada",
+    "unusable": "{name} no se puede usar"
+  },
+  "credentials_unusable": {
+    "one": "{count} credencial no se puede usar",
+    "other": "{count} credenciales no se pueden usar"
+  },
+  "verdict": {
+    "continue": "Seguir",
+    "kick_back": "Devolver",
+    "kick_back_to": "Devolver a {stage}",
+    "block": "Frenar la tarea para que decida una persona",
+    "needs_more_turns": "Volver a correr con más turnos"
+  },
+  "delivery": {
+    "steered": "Se le pasó al agente en curso: {line}",
+    "queued": "Espera el próximo turno del agente en curso: {line}",
+    "continuation": "Retomó la etapa: {line}",
+    "unreachable": "Ningún agente lo pudo leer: {line}",
+    "mention": "Mención: {line}",
+    "chat": "Mensaje de chat: {line}",
+    "thread": "Quedó en su hilo: {line}"
+  },
+  "actor": {
+    "octopus": "Thulu",
+    "auditor": "Auditor",
+    "agent": "Un agente"
+  }
+}

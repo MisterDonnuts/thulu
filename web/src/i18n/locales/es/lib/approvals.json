@@ -1,0 +1,49 @@
+{
+  "empty": "No hay aprobaciones. Pedí una cuando alguien tenga que dar el visto bueno.",
+  "status": {
+    "pending": "pendiente",
+    "approved": "aprobada",
+    "changes_requested": "pidieron cambios",
+    "waived": "salteada"
+  },
+  "source": {
+    "stage": "etapa",
+    "agent": "agente",
+    "system": "sistema",
+    "person": "persona",
+    "stage_named": "la pide {stage}"
+  },
+  "decided": {
+    "approved": "La aprobó {who} · {when}",
+    "changes_requested": "{who} pidió cambios · {when}",
+    "waived": "La salteó {who} · {when}"
+  },
+  "approve": "Aprobar",
+  "request_changes": "Pedir cambios",
+  "waive": "Saltear",
+  "changes_placeholder": "Qué hay que cambiar (obligatorio)",
+  "waive_placeholder": "Por qué se saltea esta aprobación (obligatorio)",
+  "confirm_changes": "Pedir cambios",
+  "confirm_waive": "Saltear",
+  "add_title": "Pedir una aprobación",
+  "label_placeholder": "Quién firma, por ejemplo Diseño",
+  "reason_placeholder": "p. ej. toca los totales del checkout",
+  "add": "Pedir",
+  "label_label": "Quién da el visto bueno",
+  "reason_label": "Por qué (opcional)",
+  "note_label": "Nota",
+  "note_hint": "Hace falta para pedir cambios o saltearla.",
+  "note_placeholder": "Qué tiene que cambiar, o por qué se saltea",
+  "more_actions": "Más acciones para {label}",
+  "key_title": "Clave: {key}",
+  "effect": {
+    "resume": "Pedir cambios retoma a {agent} con tu nota.",
+    "resume_unnamed": "Pedir cambios retoma la etapa con tu nota.",
+    "kick_back": "Pedir cambios devuelve la tarea a {stage}.",
+    "resume_deferred": "Hay una corrida trabajando en la tarea: pedir cambios retoma a {agent} con tu nota cuando termine.",
+    "resume_unnamed_deferred": "Hay una corrida trabajando en la tarea: pedir cambios retoma la etapa con tu nota cuando termine.",
+    "kick_back_deferred": "Hay una corrida trabajando en la tarea: pedir cambios la devuelve a {stage} cuando termine la corrida.",
+    "stay": "Pedir cambios deja la tarea en {stage}: lo que sigue lo decide una persona.",
+    "record": "Pedir cambios sólo queda registrado: esta aprobación es de otra etapa."
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "thulu-browser",
+  "version": "0.1.0",
+  "description": "MCP browser tool — Playwright-backed sessions, screenshots and filmed evidence over MCP",
+  "license": "AGPL-3.0-only",
+  "private": true,
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test --test-timeout=60000"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "express": "^4.21.1",
+    "playwright": "1.63.0",
+    "zod": "^3.23.8"
+  }
+}

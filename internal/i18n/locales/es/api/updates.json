@@ -1,0 +1,45 @@
+{
+  "errors": {
+    "no_such_route": "no existe esa ruta",
+    "checker_not_configured": "el verificador de actualizaciones no está configurado",
+    "lookups_off": "la búsqueda de releases está apagada ({env}=off); el operador define la fuente al deployar",
+    "source_misconfigured": "la fuente de releases está mal configurada: {err}",
+    "check_too_soon": "hubo una verificación hace menos de un minuto; probá de nuevo en {wait}",
+    "bad_format": "format tiene que ser md o json",
+    "to_required": "to es obligatorio",
+    "no_verified_release": "no hay una release {version} verificada entre las versiones disponibles; corré una verificación primero",
+    "render_package_failed": "armar el paquete de cambios",
+    "read_history_failed": "leer el historial de versiones",
+    "report_needs_operator_key": "los reportes de actualización necesitan una API key del workspace operador",
+    "audit_not_configured": "el log de auditoría no está configurado",
+    "invalid_body": "cuerpo inválido",
+    "from_not_version": "from no es una versión",
+    "to_not_version": "to es obligatorio y tiene que ser una versión",
+    "bad_result": "result tiene que ser ok, failed o rolled_back",
+    "bad_mode": "mode tiene que ser docker o kubernetes",
+    "bad_operator": "operator tiene que ser texto imprimible de {max} bytes como máximo",
+    "bad_detail": "detail tiene que ser texto de {max} bytes como máximo",
+    "bad_started_at": "started_at tiene que ser una hora RFC 3339",
+    "bad_finished_at": "finished_at tiene que ser una hora RFC 3339",
+    "finished_before_started": "finished_at es anterior a started_at",
+    "finished_in_future": "finished_at está en el futuro",
+    "backup_status_too_large": "{path} es demasiado grande para ser un estado de backup",
+    "backup_status_unreadable": "{path} no es un estado de backup escrito por deploy/backup.sh"
+  },
+  "audit": {
+    "checked": "buscó actualizaciones",
+    "package_downloaded": "descargó el paquete de cambios a {version}",
+    "reported": "actualización {from} → {to}: {result}"
+  },
+  "labels": {
+    "operator_subject": "la versión de la instalación",
+    "operator_verb": "ver o reportar",
+    "unknown_version": "desconocida",
+    "result_ok": "correcta",
+    "result_failed": "falló",
+    "result_rolled_back": "revertida"
+  },
+  "hints": {
+    "unverified_preview": "Build preview, sin verificar acá: chequear su firma keyless requiere cosign, que el daemon no trae. `thulu update` la verifica antes de instalar y la rechaza si la firma no se sostiene (la máquina que lo corre necesita cosign)."
+  }
+}

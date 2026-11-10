@@ -1,0 +1,38 @@
+{
+  "errors": {
+    "endpoint_not_found": "no existe el endpoint",
+    "endpoint_inactive": "el endpoint está inactivo",
+    "marshal_payload": "serializar el payload",
+    "build_request": "armar la solicitud",
+    "schema": "esquema de webhooks",
+    "seal_secret": "cifrar el secreto del webhook",
+    "marshal_events": "serializar los eventos",
+    "unmarshal_events": "leer los eventos",
+    "delete_rows": "borrar {table}",
+    "open_signing_secret": "abrir el secreto de firma del webhook"
+  },
+  "log": {
+    "process_outbox_failed": "procesar la cola de salida: {err}",
+    "marshal_payload_failed": "serializar el payload: {err}",
+    "list_endpoints_failed": "listar los endpoints del workspace {workspace}: {err}",
+    "enqueue_failed": "encolar para el endpoint {endpoint}: {err}",
+    "park_orphaned": "webhook: archivar la entrega huérfana {id}",
+    "mark_delivered": "webhook: marcar entregada {id}",
+    "park_dead_letter": "webhook: archivar como fallida {id}",
+    "reschedule": "webhook: reprogramar {id}",
+    "unmarshal_events": "webhook: leer los eventos del endpoint {endpoint}",
+    "unmarshal_outbox_payload": "webhook: leer el payload en cola {id}",
+    "marshal_delivery_log": "webhook: serializar el payload para el registro de entregas (endpoint={endpoint})",
+    "record_delivery_failed": "registrar la entrega: {err}"
+  },
+  "delivery": {
+    "blocked": "No se pudo conectar: la política de salida bloquea {host} (una dirección privada o de loopback)",
+    "no_such_host": "No se pudo conectar: no se resolvió {host}",
+    "dns_failed": "No se pudo conectar: no se pudo resolver {host} (falló el DNS del daemon)",
+    "refused": "No se pudo conectar: {host} rechazó la conexión",
+    "unreachable": "No se pudo conectar: no hay ruta de red hasta {host}",
+    "tls": "No se pudo conectar: el certificado TLS de {host} no es válido",
+    "timeout": "No se pudo conectar: {host} no respondió a tiempo",
+    "failed": "No se pudo conectar con {host}: {err}"
+  }
+}

@@ -1,0 +1,4267 @@
+---
+import Layout from "../layouts/Layout.astro";
+import AccountLifecycle from "../components/AccountLifecycle.astro";
+import Badge from "../components/Badge.astro";
+import BoardsSection from "../components/board/BoardsSection.astro";
+import Button from "../components/Button.astro";
+import Callout from "../components/Callout.astro";
+import Check from "../components/Check.astro";
+import CheckGroup from "../components/CheckGroup.astro";
+import CodeBlock from "../components/CodeBlock.astro";
+import Count from "../components/Count.astro";
+import EmptyRow from "../components/EmptyRow.astro";
+import EngineLogins from "../components/EngineLogins.astro";
+import Field from "../components/Field.astro";
+import FormError from "../components/FormError.astro";
+import Icon from "../components/Icon.astro";
+import Modal from "../components/Modal.astro";
+import PageHead from "../components/PageHead.astro";
+import GroupHead from "../components/GroupHead.astro";
+import Panel from "../components/Panel.astro";
+import Table from "../components/Table.astro";
+import { locale, locales, t } from "../i18n";
+import { AUDIT_TABLE, auditColumns } from "../lib/audit-view";
+import { UPDATES_TABLE, historyColumns, versionsColumns } from "../lib/updates";
+
+const AUDIT_KINDS = ["task", "agent", "project", "approval", "question", "flag", "webhook", "auth"];
+
+const LANGUAGES = locales.map((code) => ({
+  code,
+  name: new Intl.DisplayNames([code], { type: "language" }).of(code) ?? code,
+}));
+---
+
+<Layout title={t("settings.title")}>
+  <main class="page" style="--page-max: 960px">
+    {
+      /* The title and the subtitle are rewritten per section — see
+         lib/settings-sections.ts. What is here is what a settings page with
+         no hash shows. */
+    }
+    <PageHead title={t("settings.title")} titleId="settings-title">
+      <span slot="sub" id="settings-sub">{t("settings.subtitle")}</span>
+    </PageHead>
+
+    <div id="panel-denied" class="settings-section" hidden>
+      <Callout tone="warn" icon="lock" role="note"><span id="denied-note"></span></Callout>
+    </div>
+
+    <div id="panel-webhooks" class="settings-section panel-stack" hidden>
+      <Panel icon="plus" title={t("settings.webhooks.add.title")}>
+        <form id="webhook-form" class="form-stack" novalidate>
+          <Field label={t("settings.webhooks.labels.endpoint_url")} for="wh-url">
+            <input
+              type="url"
+              id="wh-url"
+              placeholder={t("settings.webhooks.placeholders.endpoint_url")}
+              autocomplete="off"
+            />
+          </Field>
+          <fieldset class="wh-events-pick">
+            <legend class="field-label">{t("settings.webhooks.labels.events")}</legend>
+            <Check
+              id="wh-all-events"
+              value="*"
+              checked
+              label={t("settings.webhooks.labels.all_events")}
+              hint={t("settings.webhooks.labels.all_events_help")}
+            />
+            {
+              /* Filled from GET /webhooks/events: the daemon's own
+                 catalog, the one it validates a subscription against. */
+            }
+            <CheckGroup
+              id="events-specific"
+              layout="grid"
+              wide
+              label={t("settings.webhooks.labels.events")}
+            />
+          </fieldset>
+          <FormError id="wh-error" />
+          <div class="form-actions">
+            <Button id="wh-submit" type="submit" variant="primary" icon="plus"
+              >{t("settings.webhooks.add.submit")}</Button
+            >
+          </div>
+        </form>
+      </Panel>
+
+      <Panel icon="link" title={t("settings.webhooks.endpoints.title")} flush>
+        <Count n={0} pill id="wh-count" slot="status" />
+        <Callout id="wh-legacy-note" tone="warn" icon="warn" band role="note" hidden
+          ><span id="wh-legacy-note-text"></span></Callout
+        >
+        <div id="wh-secret-display" class="key-reveal wh-callout" hidden>
+          <p class="muted small key-warning" id="wh-secret-label"></p>
+          <CodeBlock
+            textId="wh-secret-value"
+            wrap
+            copy
+            label={t("settings.webhooks.endpoints.secret_name")}
+          />
+        </div>
+        <div id="webhooks-list" class="row-list">
+          <EmptyRow as="div" loading />
+        </div>
+      </Panel>
+    </div>
+
+    <div id="panel-boards" class="settings-section">
+      <BoardsSection />
+    </div>
+
+    <div id="panel-audit" class="settings-section" hidden>
+      <Panel icon="list" title={t("settings.audit.title")} flush>
+        <Fragment slot="actions">
+          <select id="audit-kind" class="select-sm" aria-label={t("settings.audit.kind_aria")}>
+            <option value="">{t("settings.audit.all_events")}</option>
+            {AUDIT_KINDS.map((kind) => <option value={kind}>{`${kind}.*`}</option>)}
+          </select>
+          <Button
+            id="audit-export-csv"
+            size="sm"
+            icon="file"
+            title={t("settings.audit.export.csv_title")}>{t("settings.audit.export.csv")}</Button
+          >
+          <Button
+            id="audit-export-json"
+            size="sm"
+            icon="file"
+            title={t("settings.audit.export.json_title")}>{t("settings.audit.export.json")}</Button
+          >
+          <Button
+            id="audit-refresh"
+            size="sm"
+            iconOnly
+            icon="refresh"
+            label={t("common.buttons.refresh")}
+          />
+        </Fragment>
+        <Callout id="audit-chain" icon="lock" band hidden>
+          <span id="audit-chain-line">{t("settings.audit.chain.not_verified")}</span>
+          <Fragment slot="actions">
+            <Button id="audit-verify" size="sm" title={t("settings.audit.chain.verify_title")}
+              >{t("settings.audit.chain.verify")}</Button
+            >
+            <Button id="audit-chain-goto" size="sm" hidden>{t("settings.audit.chain.goto")}</Button>
+          </Fragment>
+        </Callout>
+        <Callout id="audit-export-ce" band role="note" hidden
+          ><span id="audit-export-ce-text"></span></Callout
+        >
+        <div id="audit-table-wrap">
+          {
+            /* Cells at the top: the Summary column wraps to two or three
+               lines while Time and Actor are one. On a phone each entry
+               stacks into a card. */
+          }
+          <Table cols={auditColumns()} {...AUDIT_TABLE} bodyId="audit-tbody" />
+          <EmptyRow as="div" id="audit-empty" hidden>{t("settings.audit.empty")}</EmptyRow>
+          <div class="load-more-row">
+            <Button id="audit-load-more" hidden>{t("settings.audit.load_more")}</Button>
+          </div>
+        </div>
+      </Panel>
+    </div>
+
+    <div id="panel-api" class="settings-section" hidden>
+      <div class="settings-grid">
+        <Panel icon="file" title={t("settings.api.openapi.title")}>
+          <p class="panel-lede">{t("settings.api.openapi.intro")}</p>
+          <div class="control-row">
+            <Button
+              id="openapi-link"
+              href="/openapi.json"
+              target="_blank"
+              rel="noopener"
+              icon="file"
+            >
+              <!-- i18n-ignore the spec's file name, the same in every language -->
+              openapi.json
+              <Icon name="arrow-up-right" />
+            </Button>
+            <Button id="copy-openapi" icon="copy">{t("settings.api.openapi.copy_url")}</Button>
+          </div>
+        </Panel>
+
+        <Panel id="ingest-panel" icon="zap" title={t("settings.api.ingest.title")}>
+          <p class="panel-lede">{t("settings.api.ingest.intro")}</p>
+          <Field label={t("settings.api.ingest.label")} for="ingest-url">
+            <div class="control-row">
+              <input
+                id="ingest-url"
+                type="url"
+                placeholder={t("settings.api.ingest.placeholder")}
+                aria-describedby="ingest-url-hint"
+                style="flex:1; min-width:240px"
+              />
+              <Button id="ingest-url-save">{t("common.buttons.save")}</Button>
+            </div>
+            <p id="ingest-url-hint" class="field-help"></p>
+          </Field>
+        </Panel>
+
+        <Panel icon="settings" title={t("settings.api.keys.title")} class="grid-span">
+          <p class="panel-lede">{t("settings.api.keys.intro")}</p>
+          <div class="form-row key-form">
+            <Field label={t("settings.api.keys.name_label")} for="api-key-name" class="grow">
+              <input
+                id="api-key-name"
+                type="text"
+                placeholder={t("settings.api.keys.name_placeholder")}
+              />
+            </Field>
+            <Field label={t("settings.labels.role")} for="api-key-role">
+              <select id="api-key-role" title={t("settings.api.keys.role_title")}>
+                <option value="viewer">{t("settings.roles.viewer")}</option>
+                <option value="developer" selected>{t("settings.roles.developer")}</option>
+                <option value="admin">{t("settings.roles.admin")}</option>
+                <option value="owner">{t("settings.roles.owner")}</option>
+              </select>
+            </Field>
+            <Field
+              label={t("settings.api.keys.expires_aria")}
+              for="api-key-expires"
+              style="width:140px"
+            >
+              <input
+                id="api-key-expires"
+                type="number"
+                min="1"
+                step="1"
+                placeholder={t("settings.api.keys.expires_placeholder")}
+                aria-describedby="api-key-expiry-hint"
+              />
+            </Field>
+            <Button id="gen-api-key" variant="primary" icon="plus"
+              >{t("settings.api.keys.generate")}</Button
+            >
+          </div>
+          <p id="api-key-expiry-hint" class="field-help control-help"></p>
+          <div class="perm-picker">
+            <div class="preset-row">
+              <span class="muted preset-label">{t("settings.api.presets.label")}</span>
+              <Button size="sm" class="preset-btn" data-preset="read-only"
+                >{t("settings.api.presets.read_only")}</Button
+              >
+              <Button size="sm" class="preset-btn" data-preset="ci"
+                >{t("settings.api.presets.ci")}</Button
+              >
+              <Button size="sm" class="preset-btn" data-preset="agent"
+                >{t("settings.api.presets.agent")}</Button
+              >
+              <Button size="sm" class="preset-btn" data-preset="full"
+                >{t("settings.api.presets.full")}</Button
+              >
+            </div>
+            <CheckGroup
+              id="api-key-perms"
+              layout="grid"
+              label={t("settings.api.presets.perms_aria")}
+            />
+          </div>
+          <FormError id="api-key-error" class="key-error" />
+          <div id="new-key-display" class="key-reveal" hidden>
+            <p class="muted small key-warning">{t("settings.api.keys.copy_warning")}</p>
+            <CodeBlock
+              textId="new-key-value"
+              wrap
+              copy
+              label={t("settings.api.keys.new_key_name")}
+            />
+            <p id="new-key-expiry" class="field-help control-help"></p>
+          </div>
+          <div id="api-keys-list" class="row-list"></div>
+        </Panel>
+
+        <Panel icon="clock" title={t("settings.api.run_keys.title")} class="grid-span">
+          <p class="panel-lede">{t("settings.api.run_keys.intro")}</p>
+          <div id="run-keys-list" class="row-list"></div>
+        </Panel>
+      </div>
+    </div>
+
+    <div id="panel-llm" class="settings-section" hidden>
+      <p id="llm-intro" class="muted llm-intro"></p>
+      <Callout id="llm-cross" icon="info" class="llm-cross"
+        ><span id="llm-cross-text"></span></Callout
+      >
+      <div id="llm-engines" class="panel-stack">
+        <EmptyRow as="div" loading />
+      </div>
+      <EngineLogins />
+
+      {
+        /* Run time limit: how long one agent run in this workspace may take
+           (GET/PUT /workspace-settings). An admin chooses it up to the
+           ceiling the operator sets; everyone else reads it. */
+      }
+      <Panel id="runlimit-panel" icon="clock" title={t("settings.run_limit.title")} hidden>
+        <p class="panel-lede">{t("settings.run_limit.intro")}</p>
+        <form id="runlimit-form" class="form-stack" novalidate>
+          <Callout id="runlimit-readonly" icon="lock" hidden
+            >{t("settings.run_limit.read_only")}</Callout
+          >
+          <Field
+            label={t("settings.run_limit.label")}
+            for="runlimit-minutes"
+            hint={t("settings.run_limit.unit")}
+            errorId="runlimit-minutes-error"
+          >
+            <input
+              id="runlimit-minutes"
+              type="number"
+              min="1"
+              step="1"
+              inputmode="numeric"
+              aria-describedby="runlimit-minutes-help"
+            />
+            <span slot="help" id="runlimit-help"></span>
+          </Field>
+          <p id="runlimit-now" class="muted"></p>
+          <FormError id="runlimit-error" />
+          <div class="form-actions">
+            <Button id="runlimit-clear" size="sm">{t("settings.run_limit.use_default")}</Button>
+            <Button id="runlimit-save" type="submit" variant="primary" size="sm" disabled
+              >{t("common.buttons.save")}</Button
+            >
+          </div>
+        </form>
+      </Panel>
+
+      {
+        /*
+          The banded skin. Modal.astro owns the head, body and foot bands, so the
+          form lives inside the body and the footer's submit
+          button reaches it through `form="profile-form"` — same submit, same
+          Enter key, one less nesting level.
+
+          The overlay keeps its `.overlay`/`.open` structure on purpose:
+          dirty.hasOpenModal() looks for `.overlay.open` to stop the poller
+          from refreshing under a half-filled form.
+        */
+      }
+      <Modal
+        id="prof-modal"
+        title={t("settings.llm.modal.new_title")}
+        icon="zap"
+        size="md"
+        cancel
+        primary={{
+          label: t("settings.llm.modal.create"),
+          id: "prof-save-btn",
+          type: "submit",
+          form: "profile-form",
+        }}
+      >
+        <p class="modal-lede" id="prof-engine-line"></p>
+        <form id="profile-form" class="form-stack" novalidate>
+          <Field label={t("settings.llm.labels.name")} for="prof-name">
+            <input
+              id="prof-name"
+              type="text"
+              placeholder={t("settings.llm.placeholders.name")}
+              autocomplete="off"
+              required
+            />
+          </Field>
+          <Field
+            label={t("settings.llm.labels.provider")}
+            for="prof-provider"
+            id="prof-provider-field"
+          >
+            <select id="prof-provider"></select>
+          </Field>
+          <div class="form-row">
+            <Field label={t("settings.llm.labels.model")} for="prof-model" optional class="grow">
+              <input id="prof-model" type="text" list="prof-models" autocomplete="off" />
+              <datalist id="prof-models"></datalist>
+            </Field>
+            <Field
+              label={t("settings.llm.labels.effort")}
+              for="prof-effort"
+              id="prof-effort-field"
+              style="min-width:140px"
+            >
+              <select id="prof-effort">
+                <option value="">{t("settings.llm.effort.cli_default")}</option>
+                <option value="low">{t("settings.llm.effort.low")}</option>
+                <option value="medium">{t("settings.llm.effort.medium")}</option>
+                <option value="high">{t("settings.llm.effort.high")}</option>
+              </select>
+            </Field>
+          </div>
+          <Field
+            label={t("settings.llm.labels.base_url")}
+            for="prof-base-url"
+            optional
+            id="prof-base-url-field"
+          >
+            <input
+              id="prof-base-url"
+              type="url"
+              placeholder={t("settings.llm.placeholders.base_url")}
+              autocomplete="off"
+            />
+          </Field>
+          <Field
+            label={t("settings.llm.labels.auth_header")}
+            for="prof-auth-header"
+            id="prof-auth-header-field"
+          >
+            <select id="prof-auth-header">
+              <option value="">{t("settings.llm.auth_header.x_api_key")}</option>
+              <option value="bearer">{t("settings.llm.auth_header.bearer")}</option>
+            </select>
+          </Field>
+          <div id="prof-cloud-fields" class="form-stack">
+            <div class="form-row">
+              <Field label={t("settings.llm.labels.region")} for="prof-region" class="grow">
+                <input
+                  id="prof-region"
+                  type="text"
+                  placeholder={t("settings.llm.placeholders.region")}
+                  autocomplete="off"
+                />
+              </Field>
+              <Field
+                label={t("settings.llm.labels.project_id")}
+                for="prof-project"
+                id="prof-project-field"
+                class="grow"
+              >
+                <input id="prof-project" type="text" autocomplete="off" />
+              </Field>
+            </div>
+            <Field label={t("settings.llm.labels.small_model")} for="prof-small-model" optional>
+              <input
+                id="prof-small-model"
+                type="text"
+                placeholder={t("settings.llm.placeholders.small_model")}
+                autocomplete="off"
+              />
+            </Field>
+            <div id="prof-aws-fields" class="form-stack">
+              <div class="form-row">
+                <Field
+                  label={t("settings.llm.labels.aws_key_id")}
+                  for="prof-aws-key-id"
+                  optional
+                  class="grow"
+                >
+                  <input id="prof-aws-key-id" type="text" autocomplete="off" />
+                </Field>
+                <Field
+                  label={t("settings.llm.labels.aws_secret")}
+                  for="prof-aws-secret"
+                  class="grow"
+                >
+                  <input id="prof-aws-secret" type="password" autocomplete="off" />
+                </Field>
+              </div>
+              <Field label={t("settings.llm.labels.aws_session")} for="prof-aws-session" optional>
+                <input id="prof-aws-session" type="password" autocomplete="off" />
+              </Field>
+            </div>
+            <Field
+              label={t("settings.llm.labels.gcp_sa")}
+              for="prof-gcp-sa"
+              optional
+              id="prof-gcp-field"
+            >
+              <textarea id="prof-gcp-sa" class="mono" rows="4" autocomplete="off" spellcheck="false"
+              ></textarea>
+            </Field>
+            <p class="field-help" id="prof-cloud-hint"></p>
+            <div id="prof-clear-key-field">
+              <Check id="prof-clear-key" label={t("settings.llm.labels.clear_key")} />
+            </div>
+          </div>
+          <Field
+            label={t("settings.llm.labels.org_id")}
+            for="prof-org-id"
+            optional
+            id="prof-org-id-field"
+          >
+            <input
+              id="prof-org-id"
+              type="text"
+              placeholder={t("settings.llm.placeholders.org_id")}
+              autocomplete="off"
+            />
+          </Field>
+          <div class="form-row">
+            <Field
+              label={t("settings.llm.labels.credential")}
+              for="prof-kind"
+              id="prof-kind-field"
+              style="min-width:180px"
+            >
+              <select id="prof-kind"></select>
+            </Field>
+            <Field
+              label={t("settings.llm.labels.key")}
+              for="prof-key"
+              id="prof-key-field"
+              class="grow"
+            >
+              <input id="prof-key" type="password" autocomplete="off" />
+            </Field>
+          </div>
+          <div id="prof-fed-fields" class="form-stack" hidden>
+            <p class="field-help">{t("settings.llm.hints.federation")}</p>
+            <div class="form-row">
+              <Field label={t("settings.llm.labels.fed_rule")} for="prof-fed-rule" class="grow">
+                <input
+                  id="prof-fed-rule"
+                  type="text"
+                  class="mono"
+                  placeholder={t("settings.llm.placeholders.fed_rule")}
+                  autocomplete="off"
+                />
+              </Field>
+              <Field
+                label={t("settings.llm.labels.fed_service_account")}
+                for="prof-fed-svac"
+                class="grow"
+              >
+                <input
+                  id="prof-fed-svac"
+                  type="text"
+                  class="mono"
+                  placeholder={t("settings.llm.placeholders.fed_service_account")}
+                  autocomplete="off"
+                />
+              </Field>
+            </div>
+            <div class="form-row">
+              <Field label={t("settings.llm.labels.fed_org")} for="prof-fed-org" class="grow">
+                <input
+                  id="prof-fed-org"
+                  type="text"
+                  class="mono"
+                  placeholder={t("settings.llm.placeholders.fed_org")}
+                  autocomplete="off"
+                />
+              </Field>
+              <Field
+                label={t("settings.llm.labels.fed_workspace")}
+                for="prof-fed-ws"
+                optional
+                class="grow"
+              >
+                <input
+                  id="prof-fed-ws"
+                  type="text"
+                  class="mono"
+                  placeholder={t("settings.llm.placeholders.fed_workspace")}
+                  autocomplete="off"
+                />
+              </Field>
+            </div>
+            <Callout id="prof-fed-unconfigured" tone="warn" icon="warn" band role="note" hidden
+              ><span id="prof-fed-unconfigured-text"></span></Callout
+            >
+            <div id="prof-fed-issuer" class="form-stack" hidden>
+              <p class="field-help">{t("settings.llm.hints.federation_console")}</p>
+              <CodeBlock
+                textId="prof-fed-issuer-url"
+                copy
+                label={t("settings.llm.labels.fed_issuer")}
+              />
+              <CodeBlock
+                textId="prof-fed-subject"
+                copy
+                label={t("settings.llm.labels.fed_subject")}
+              />
+              <p class="field-help">{t("settings.llm.hints.federation_jwks")}</p>
+              <CodeBlock
+                textId="prof-fed-jwks"
+                multiline
+                maxHeight="sm"
+                copy
+                label={t("settings.llm.labels.fed_jwks")}
+              />
+            </div>
+          </div>
+          <Check id="prof-default" label={t("settings.llm.labels.default_for_engine")} />
+          <FormError id="prof-error" />
+        </form>
+      </Modal>
+    </div>
+
+    <div id="panel-health" class="settings-section panel-stack" hidden>
+      <Panel icon="server" title={t("settings.health.title")} pad="md">
+        <Badge id="health-badge" slot="status">{t("settings.health.checking")}</Badge>
+        <Button
+          slot="actions"
+          id="health-refresh"
+          size="sm"
+          iconOnly
+          icon="refresh"
+          label={t("settings.health.refresh_aria")}
+          title={t("common.buttons.refresh")}
+        />
+        <div id="health-grid">
+          <EmptyRow as="div" loading />
+        </div>
+      </Panel>
+
+      <Panel icon="settings" title={t("settings.health.license.title")} bodyClass="license-body">
+        <Badge id="license-badge" slot="status">{t("settings.health.checking")}</Badge>
+        <EmptyRow as="div" loading />
+      </Panel>
+
+      <Panel id="retention-panel" icon="trash" title={t("settings.health.retention.title")} hidden>
+        <p class="panel-lede">{t("settings.health.retention.intro")}</p>
+        <p id="ret-sweep" class="muted"></p>
+        <div id="ret-disk" class="muted"></div>
+        <form id="ret-form" novalidate>
+          <div id="ret-rows" class="ret-rows"></div>
+          <FormError id="ret-error" />
+          <div class="form-actions">
+            <Button id="ret-save" type="submit" variant="primary" size="sm"
+              >{t("common.buttons.save")}</Button
+            >
+          </div>
+        </form>
+      </Panel>
+    </div>
+
+    {
+      /* Read-only on purpose: the daemon never changes its own version. Every
+         row ends in a command the operator runs on the install's host. */
+    }
+    <div id="panel-updates" class="settings-section panel-stack" hidden>
+      <Panel icon="refresh" title={t("settings.updates.version.title")}>
+        <Badge id="upd-badge" slot="status">{t("settings.updates.status.checking")}</Badge>
+        <Button id="upd-check" slot="actions" size="sm" icon="refresh"
+          >{t("settings.updates.version.check_now")}</Button
+        >
+        <div id="upd-summary">
+          <EmptyRow as="div" loading />
+        </div>
+        <div id="upd-advisories" class="upd-advisories" hidden></div>
+      </Panel>
+
+      <Panel icon="arrow-up-right" title={t("settings.updates.available.title")}>
+        <p class="panel-lede">{t("settings.updates.available.intro")}</p>
+        <div id="upd-releases">
+          <EmptyRow as="div" loading />
+        </div>
+      </Panel>
+
+      <Panel id="upd-versions-panel" icon="list" title={t("settings.updates.going_back.title")}>
+        <p id="upd-versions-lede" class="panel-lede">
+          {t("settings.updates.going_back.lede_known")}
+        </p>
+        <Table cols={versionsColumns()} {...UPDATES_TABLE} bodyId="upd-versions" />
+      </Panel>
+
+      <Panel icon="file" title={t("settings.updates.backups.title")}>
+        <div id="upd-backups">
+          <EmptyRow as="div" loading />
+        </div>
+      </Panel>
+
+      <Panel icon="clock" title={t("settings.updates.history.title")}>
+        <div id="upd-unreported" hidden></div>
+        <Table cols={historyColumns()} {...UPDATES_TABLE} bodyId="upd-history" />
+        <EmptyRow as="div" id="upd-history-empty" hidden>
+          {t("settings.updates.history.empty")}
+        </EmptyRow>
+      </Panel>
+    </div>
+
+    <div id="panel-team" class="settings-section panel-stack" hidden>
+      <Panel icon="eye" title={t("settings.team.members.title")} flush>
+        <Count n={0} pill id="team-count" slot="status" />
+        <Count
+          n=""
+          pill
+          slot="status"
+          id="team-seats"
+          title={t("settings.team.members.seats_hint")}
+          hidden
+        />
+        <div class="invite-bar">
+          <Callout id="team-readonly" tone="warn" icon="lock" role="note" hidden>
+            {t("settings.team.members.readonly")}
+          </Callout>
+          <Callout id="team-seats-full" tone="warn" icon="warn" role="note" hidden>
+            <span id="team-seats-full-text"></span>{" "}
+            <a href="/usage/">{t("settings.team.members.seats_full_plan")}</a>
+          </Callout>
+          <Callout id="team-license" tone="info" icon="info" role="note" hidden>
+            <span id="team-license-text"></span>
+            <Fragment slot="actions">
+              <Button id="team-license-hide" size="sm" variant="ghost"
+                >{t("settings.team.members.license_hide")}</Button
+              >
+            </Fragment>
+          </Callout>
+          <form id="invite-form" class="form-stack" novalidate>
+            <div class="form-row">
+              <Field label={t("settings.team.invite.email")} for="invite-email" class="grow">
+                <input
+                  type="email"
+                  id="invite-email"
+                  placeholder={t("settings.team.invite.email_placeholder")}
+                  autocomplete="off"
+                />
+              </Field>
+              <Field label={t("settings.labels.role")} for="invite-role" style="min-width:140px">
+                <select id="invite-role">
+                  <option value="developer" selected>{t("settings.roles.developer")}</option>
+                  <option value="viewer">{t("settings.roles.viewer")}</option>
+                  <option value="admin">{t("settings.roles.admin")}</option>
+                </select>
+              </Field>
+            </div>
+            <p class="muted small invite-hint">{t("settings.team.invite.hint")}</p>
+            <FormError id="invite-error" />
+            <div class="form-actions">
+              <Button id="invite-submit" type="submit" variant="primary" icon="plus"
+                >{t("settings.team.invite.submit")}</Button
+              >
+            </div>
+          </form>
+        </div>
+        <div id="team-list" class="row-list">
+          <EmptyRow as="div" loading />
+        </div>
+        <div id="team-pending" hidden>
+          <GroupHead band level={3} title={t("settings.team.pending.title")}>
+            <Count n={0} pill id="team-pending-count" slot="extra" />
+          </GroupHead>
+          <div id="team-pending-list" class="row-list"></div>
+        </div>
+      </Panel>
+
+      <Panel icon="tt-shield" title={t("settings.team.beta.title")} id="beta-panel" flush hidden>
+        <Count n={0} pill id="beta-count" slot="status" />
+        <div class="invite-bar">
+          <p id="beta-mode" class="muted small"></p>
+          <form id="beta-form" class="form-stack" novalidate>
+            <div class="form-row">
+              <Field label={t("settings.team.invite.email")} for="beta-email" class="grow">
+                <input
+                  type="email"
+                  id="beta-email"
+                  placeholder={t("settings.team.invite.email_placeholder")}
+                  autocomplete="off"
+                />
+              </Field>
+              <Field label={t("settings.team.beta.note")} for="beta-note" class="grow">
+                <input
+                  type="text"
+                  id="beta-note"
+                  maxlength="200"
+                  placeholder={t("settings.team.beta.note_placeholder")}
+                  autocomplete="off"
+                />
+              </Field>
+            </div>
+            <FormError id="beta-error" />
+            <div class="form-actions">
+              <Button id="beta-submit" type="submit" variant="primary" icon="plus"
+                >{t("settings.team.beta.submit")}</Button
+              >
+            </div>
+          </form>
+        </div>
+        <div id="beta-list" class="row-list">
+          <EmptyRow as="div" loading />
+        </div>
+        <div id="beta-waiting" hidden>
+          <GroupHead band level={3} title={t("settings.team.beta.waiting_title")}>
+            <Count n={0} pill id="beta-waiting-count" slot="extra" />
+          </GroupHead>
+          <div id="beta-waiting-list" class="row-list"></div>
+        </div>
+      </Panel>
+
+      <Panel icon="lock" title={t("settings.team.login.title")} id="login-config-panel" hidden>
+        <p class="muted small">{t("settings.team.login.hint")}</p>
+        <div id="login-config-list" class="login-config"></div>
+      </Panel>
+
+      <Panel icon="zap" title={t("settings.team.delegation.title")}>
+        <Check
+          id="deleg-enabled"
+          disabled
+          label={t("settings.team.delegation.label")}
+          hint={t("settings.team.delegation.help")}
+        />
+      </Panel>
+    </div>
+
+    <div id="panel-language" class="settings-section" hidden>
+      <div class="settings-grid">
+        <Panel icon="settings" title={t("settings.language.title")}>
+          <Field
+            label={t("settings.language.label")}
+            for="locale-select"
+            help={t("settings.language.hint")}
+          >
+            <select id="locale-select" aria-describedby="locale-select-help">
+              {
+                LANGUAGES.map(({ code, name }) => (
+                  <option value={code} selected={code === locale}>
+                    {name}
+                  </option>
+                ))
+              }
+            </select>
+          </Field>
+        </Panel>
+      </div>
+    </div>
+
+    <div id="panel-account" class="settings-section panel-stack" hidden>
+      <div class="settings-grid">
+        <Panel icon="eye" title={t("settings.account.profile.title")}>
+          <div id="account-profile">
+            <EmptyRow as="div" loading />
+          </div>
+        </Panel>
+      </div>
+
+      <Panel icon="settings" title={t("settings.account.sessions.title")} flush>
+        <Button id="sessions-revoke-all" slot="actions" size="sm"
+          >{t("settings.account.sessions.revoke_all")}</Button
+        >
+        <div id="sessions-list" class="row-list">
+          <EmptyRow as="div" loading />
+        </div>
+      </Panel>
+
+      <AccountLifecycle />
+    </div>
+  </main>
+
+  <style is:global>
+    /* Page-owned styles.
+       `is:global` because the pollers build most of the rows below with
+       innerHTML, and a scoped rule never reaches markup no Astro template
+       saw. Shared pieces live elsewhere: `.page` (styles/page.css), the
+       `.page-head` trio (PageHead.astro), the tables (Table.astro), the list
+       rows (ListRow, listRowHTML()) and `.panel-head-actions`, `.form-error`,
+       `.code-inline`, `.select-sm` (styles/primitives/). */
+
+    /* ── Prose ── */
+    /* Secondary prose: the empty states, the one-line notes under a control.
+       Also written on credentials.astro, which declares it nowhere — see
+       COMPONENTS.md before promoting this to styles/base.css. */
+    .small {
+      font-size: var(--t-sm);
+    }
+
+    /* ── Form ── */
+    /* The fields are the form primitives (styles/primitives/form.css). */
+    /* styles/base.css already gives .grow its flex: 1. */
+    .form-row .grow {
+      min-width: 200px;
+    }
+    /* A help line under a row of controls that is not a field (the ingest
+       address, the key form): the gap a field would give it. */
+    .control-help {
+      margin-top: var(--s-2);
+    }
+    /* An input and the button that acts on it, wrapping on a narrow panel. */
+    .control-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--s-2);
+    }
+
+    /* ── Events ── */
+    .wh-events-pick {
+      min-width: 0;
+      margin: 0;
+      padding: 0;
+      border: 0;
+    }
+    .wh-events-pick > legend {
+      margin-bottom: var(--s-2);
+    }
+    /* The specific events sit under the wildcard; ticking it dims them. */
+    #events-specific {
+      margin-top: var(--s-3);
+    }
+
+    /* ── Webhook list ── */
+    /* The endpoints panel is flush, so the secret shown above the list brings
+       the row's own inset. */
+    .wh-callout {
+      margin: var(--s-3) var(--s-4);
+    }
+
+    /* ── Audit table ── */
+    /* The quieter cells of the log (columns in lib/audit-view.ts). */
+    td.audit-time {
+      font-size: var(--t-xs);
+      color: var(--fg-3);
+    }
+    td.audit-actor,
+    td.audit-resource {
+      font-size: var(--t-xs);
+      color: var(--fg-2);
+    }
+    td.audit-summary {
+      color: var(--fg-2);
+      line-height: var(--lh-snug);
+    }
+    .load-more-row {
+      display: flex;
+      justify-content: center;
+      padding: var(--s-3);
+    }
+
+    /* ── Settings grid ── */
+    .settings-grid {
+      display: grid;
+      gap: var(--s-4);
+      grid-template-columns: 1fr 1fr;
+    }
+    /* A panel whose rows carry a long second line (API keys, run keys) takes
+       the grid's whole width instead of wrapping it into five. */
+    .settings-grid > .grid-span {
+      grid-column: 1 / -1;
+    }
+    @media (max-width: 700px) {
+      .settings-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ── API keys ── */
+    .key-form {
+      margin-bottom: var(--s-3);
+    }
+    .perm-picker {
+      margin-bottom: var(--s-3);
+    }
+    .preset-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--s-2);
+      margin-bottom: var(--s-2);
+    }
+    .preset-label {
+      font-size: var(--t-xs);
+    }
+    .key-reveal {
+      margin-bottom: var(--s-4);
+    }
+
+    /* ── Updates ── */
+    .upd-facts {
+      margin: 0 0 var(--s-3);
+    }
+    .upd-advisories {
+      margin-top: var(--s-3);
+    }
+    /* The callouts the summary stacks under the facts. */
+    #upd-summary .callout {
+      margin-top: var(--s-3);
+    }
+    .upd-list {
+      margin: var(--s-1) 0 var(--s-2);
+      padding-left: var(--s-5);
+    }
+    .upd-rel + .upd-rel {
+      margin-top: var(--s-4);
+      padding-top: var(--s-4);
+      border-top: 1px solid var(--line);
+    }
+    .upd-rel-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--s-2);
+      margin-bottom: var(--s-2);
+    }
+    .upd-notes {
+      max-height: 320px;
+      overflow: auto;
+      margin: var(--s-2) 0;
+      font-size: var(--t-sm);
+    }
+    .upd-cmd {
+      margin: var(--s-2) 0;
+    }
+    .upd-rel-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--s-2);
+    }
+    .upd-detail {
+      margin-top: var(--s-1);
+    }
+    /* Stacked into cards on a phone (UPDATES_TABLE), the cell with a command
+       or a reported log takes the card's whole width. */
+    @media (max-width: 640px) {
+      .list-table-stack td.upd-wide {
+        grid-column: 1 / -1;
+      }
+    }
+    #upd-unreported .callout {
+      margin: 0 0 var(--s-3);
+    }
+    .upd-rel .callout {
+      margin: var(--s-2) 0;
+    }
+
+    /* ── Retention ── */
+    .ret-rows {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      gap: var(--s-2) var(--s-4);
+      align-items: center;
+      margin: var(--s-3) 0;
+    }
+    .ret-row {
+      display: contents;
+    }
+    .ret-input {
+      width: 6em;
+    }
+    .ret-default {
+      font-size: var(--t-sm);
+    }
+    /* A row's error spans the grid under the row it is about. */
+    .ret-row-error {
+      grid-column: 1 / -1;
+      margin-top: calc(-1 * var(--s-1));
+    }
+    @media (max-width: 640px) {
+      .ret-rows {
+        grid-template-columns: minmax(0, 1fr) auto;
+      }
+      .ret-default {
+        grid-column: 1 / -1;
+        margin-top: calc(-1 * var(--s-1));
+      }
+    }
+    .key-error {
+      margin-bottom: var(--s-3);
+    }
+    .key-warning {
+      margin-bottom: var(--s-2);
+    }
+    /* The strip a key's Rotate opens under its row: a small Field and its
+       buttons, lined up on the select. */
+    .key-rotate {
+      display: flex;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      gap: var(--s-2);
+    }
+    /* The specific events while the wildcard is ticked: still listed, plainly
+       not what gets sent. */
+    .is-dim {
+      opacity: 0.5;
+    }
+
+    /* ── EE / license ── */
+    .license-features {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--s-1);
+    }
+    .license-ce-note {
+      margin-top: var(--s-3);
+    }
+
+    /* ── AI engines ── */
+    .llm-intro {
+      font-size: var(--t-sm);
+      line-height: var(--lh-loose);
+      max-width: 72ch;
+      margin-bottom: var(--s-4);
+    }
+    .llm-cross {
+      margin-bottom: var(--s-4);
+    }
+    /* The lines under a profile's name: what it runs, what the provider
+       said when it refused the key (.text-warn or .text-danger), and who
+       uses it. */
+    .prof-line,
+    .prof-note {
+      display: block;
+    }
+    .prof-used {
+      color: var(--fg-4);
+    }
+
+    /* ── Team member rows ── */
+    /* The bar stacks its notes over the form with air between them, so a
+       callout (read-only, seats full) never sits on the first label. */
+    .invite-bar {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-3);
+      padding: var(--s-3);
+      border-bottom: 1px solid var(--line);
+    }
+    .login-config {
+      margin: var(--s-3) 0 0;
+    }
+    .invite-hint {
+      max-width: 72ch;
+    }
+    /* The owner's role, where the other rows have a selector: the words a
+       .select-sm would show, at its size and inset, so the column lines up. */
+    .member-role-fixed {
+      font-size: var(--t-sm);
+      color: var(--fg-2);
+      padding: 0 var(--s-3);
+    }
+    /* Why the owner's row has no selector, under its meta line. */
+    .member-owner-note {
+      color: var(--fg-2);
+    }
+  </style>
+
+  <script>
+    import { SLOT, locale, switchLocale, t, tParts } from "../i18n";
+    import { reconcile, startPoller, dirty, setText } from "../lib/reactive";
+    import { api, ApiError } from "../lib/api";
+    import {
+      apiBase,
+      authConfig,
+      authDisabled,
+      requireAuth,
+      sessionInfo,
+      type SessionInfo,
+    } from "../lib/auth";
+    import {
+      $,
+      avatarHTML,
+      badgeHTML,
+      buttonClasses,
+      buttonHTML,
+      calloutClasses,
+      calloutHTML,
+      checkHTML,
+      confirmDialog,
+      copyText,
+      downloadBlob,
+      emptyRowHTML,
+      emptyStateHTML,
+      esc,
+      factsHTML,
+      fieldHTML,
+      listRowHTML,
+      makeToast,
+      panelHTML,
+      setBadge,
+      setCount,
+      setFieldError,
+      setFormError,
+      tagHTML,
+    } from "../lib/ui";
+    import { fmtDate } from "../lib/time";
+    import { bindModal } from "../lib/modal";
+    import {
+      SETTINGS_SECTIONS,
+      resolveSection,
+      sectionDenial,
+      type SectionDenial,
+    } from "../lib/settings-sections";
+    import {
+      auditColumns,
+      auditRowHTML,
+      chainLine,
+      type AuditRow,
+      type ChainReport,
+    } from "../lib/audit-view";
+    import {
+      LEGACY_SIGNING_TITLE,
+      deliveriesPending,
+      deliveriesTableHTML,
+      eventDescription,
+      legacySigningNote,
+      secretRevealLabel,
+      testResultToast,
+      validateWebhookForm,
+      type Delivery,
+      type TestDelivery,
+    } from "../lib/webhooks";
+    import {
+      AUDIT_PAGE,
+      auditExportParams,
+      auditWindowLimit,
+      filenameFromDisposition,
+      mergeAuditPage,
+    } from "../lib/audit-export";
+    import {
+      defaultKeyDays,
+      expiresIn,
+      expiryHint,
+      expiryProblem,
+      graceLabel,
+      grantedLine,
+      keyActions,
+      keyDetails,
+      keyState,
+      maxKeyDays,
+      permissionChoices,
+      presetSelection,
+      ROTATE_GRACE_HOURS,
+      roleWithin,
+      rotatedLine,
+      type KeyState,
+    } from "../lib/api-keys";
+    import {
+      expiryState,
+      healthBadge,
+      healthTilesHTML,
+      healthView,
+      isEE,
+      type InfoResponse,
+      type HealthResponse,
+    } from "../lib/health";
+    import {
+      agentsOnDefault,
+      canRecheck,
+      engineLabel,
+      isCloudProvider,
+      keyBadge,
+      keyPlaceholder,
+      keyTrouble,
+      modelPlaceholder,
+      noDefaultText,
+      prefilledProfileName,
+      profileMeta,
+      profileModalTitle,
+      providerLabel,
+      usedByText,
+      validateFederationForm,
+      validateProfileForm,
+      type AgentLite,
+      type LLMProfile,
+    } from "../lib/llm-profiles";
+    import { deviceLabel, memberInitials } from "../lib/people";
+    import {
+      RUN_LIMIT_KEY,
+      RUN_LIMIT_PATH,
+      parseRunLimit,
+      runLimitHelp,
+      runLimitNow,
+      type RunLimit,
+      type WorkspaceSettings,
+    } from "../lib/run-limit";
+    import {
+      invitationLink,
+      liveKeysBy,
+      loginConfigLines,
+      revokeKeysOption,
+      licenseNoticeHidden,
+      licenseSeatsText,
+      seatsFull,
+      seatsText,
+      waitingMeta,
+      type KeyLite,
+      type LicenseSeats,
+      type LoginConfig,
+      type Seats,
+      type WaitingEntry,
+    } from "../lib/team";
+    import {
+      addMember,
+      canInvite,
+      cancelInvitation,
+      listInvitations,
+      listMemberships,
+      roleLabel,
+      setInvitationRole,
+      type Invitation,
+    } from "../lib/account";
+    import { loadAccountLifecycle } from "../lib/account-panel";
+    import { loadEngineLogins } from "../lib/engine-logins";
+    import {
+      OPERATOR_ENV,
+      isOperatorRefusal,
+      mayWriteInstallWide,
+      showReadOnly,
+    } from "../lib/operator";
+    import {
+      advisoriesHTML,
+      historyRowsHTML,
+      lastErrorHTML,
+      noReleasesLine,
+      packageFilename,
+      releaseHTML,
+      sourceLine,
+      unreportedNoteHTML,
+      updateBadge,
+      versionsRowsHTML,
+      type KeptVersions,
+      type UpdateHistoryEntry,
+      type UpdateStatus,
+    } from "../lib/updates";
+    import { backupHTML, type BackupStatus } from "../lib/backups";
+    import {
+      checkRetention,
+      diskLine,
+      diskLow,
+      refusedRetentionKey,
+      retentionProblemText,
+      retentionRowsHTML,
+      sweepLine,
+      type RetentionView,
+    } from "../lib/retention";
+    import { onPage, replaceURL } from "../lib/page";
+
+    onPage("/settings", (signal) => {
+      requireAuth();
+
+      const API_BASE = apiBase();
+
+      const toast = makeToast(3500);
+
+      function elFrom(html: string): HTMLElement {
+        const tpl = document.createElement("template");
+        tpl.innerHTML = html;
+        return tpl.content.firstElementChild as HTMLElement;
+      }
+
+      function bindError(el: HTMLElement) {
+        return {
+          show: (msg: string) => setFormError(el, msg),
+          hide: () => setFormError(el, ""),
+        };
+      }
+
+      const panels = Array.from(document.querySelectorAll<HTMLElement>(".settings-section"));
+      let activeSection: string | null = null;
+
+      function activateSection(tab: string) {
+        activeSection = tab;
+        panels.forEach((p) => {
+          p.hidden = p.id !== `panel-${tab}`;
+        });
+        if (tab === "webhooks") loadWebhooks();
+        if (tab === "audit") {
+          loadAudit();
+          applyEditionGate();
+        }
+        if (tab === "health") {
+          loadHealth();
+          loadLicense();
+          void loadRetention();
+        }
+        if (tab === "api") {
+          loadAPIKeys();
+          loadRunKeys();
+          loadIngestURL();
+        }
+        if (tab === "llm") {
+          loadLLM();
+          void loadEngineLogins();
+          void loadRunLimit();
+        }
+        if (tab === "updates") loadUpdates();
+        if (tab === "team") loadTeam();
+        if (tab === "account") {
+          loadAccount();
+          loadSessions();
+          void loadAccountLifecycle();
+        }
+      }
+
+      // Trusted catalog HTML that carries its own markup; never route user data through here.
+      $("llm-intro").innerHTML = t("settings.llm.intro_html");
+      $("llm-cross-text").innerHTML = t("settings.llm.cross_html");
+
+      $("locale-select").addEventListener("change", (e) => {
+        switchLocale((e.target as HTMLSelectElement).value);
+      });
+
+      const headTitle = $("settings-title");
+      const headSub = $("settings-sub");
+
+      let shownSection = "";
+      let workspaceName = "";
+      function sectionSubtitle(key: string): string {
+        if (key === "team" && workspaceName) {
+          return t("lib.settings_sections.team.subtitle_named", { workspace: workspaceName });
+        }
+        return SETTINGS_SECTIONS[key].subtitle;
+      }
+      async function loadWorkspaceName() {
+        try {
+          const current = (await listMemberships()).find((m) => m.current);
+          workspaceName = current?.name ?? "";
+        } catch {
+          return;
+        }
+        if (shownSection === "team") setText(headSub, sectionSubtitle("team"));
+      }
+
+      function showDenied(denial: SectionDenial, role: string | undefined) {
+        activeSection = null;
+        panels.forEach((p) => {
+          p.hidden = p.id !== "panel-denied";
+        });
+        setText(
+          $("denied-note"),
+          denial === "operator"
+            ? t("settings.updates.operator_only", { env: OPERATOR_ENV })
+            : t("settings.denied.role", { role: roleLabel(role ?? "") }),
+        );
+      }
+
+      async function syncSectionFromHash() {
+        const asked = window.location.hash.slice(1);
+        const key = resolveSection(asked, await authDisabled());
+        if (asked && asked !== key) replaceURL(`#${key}`);
+        const section = SETTINGS_SECTIONS[key];
+        shownSection = key;
+        setText(headTitle, section.title);
+        setText(headSub, sectionSubtitle(key));
+        document.title = t("settings.document_title", { section: section.title });
+        const session = await sessionInfo();
+        const denial = sectionDenial(key, session);
+        if (denial) showDenied(denial, session?.role);
+        else activateSection(key);
+        document.dispatchEvent(new CustomEvent("octopus:settings-section", { detail: { key } }));
+      }
+      window.addEventListener("hashchange", () => void syncSectionFromHash(), { signal });
+
+      async function loadIngestURL() {
+        const input = $("ingest-url") as HTMLInputElement;
+        try {
+          const v = await api.get<string>("/settings/ingest.public_url");
+          input.value = typeof v === "string" ? v : "";
+        } catch {
+          input.value = "";
+        }
+        showIngestHint();
+      }
+
+      function showIngestHint() {
+        const input = $("ingest-url") as HTMLInputElement;
+        const hint = $("ingest-url-hint");
+        const v = input.value.trim().replace(/\/+$/, "");
+        hint.textContent = v
+          ? t("settings.api.ingest.hint_set", { url: `${v}/ingest` })
+          : t("settings.api.ingest.hint_unset");
+      }
+
+      $("ingest-url").addEventListener("input", showIngestHint);
+
+      let ingestLocked = false;
+      function lockIngestURL() {
+        ingestLocked = true;
+        showReadOnly(
+          $("ingest-panel").querySelector<HTMLElement>(".panel-body")!,
+          t("settings.api.ingest.install_wide"),
+          [$("ingest-url"), $("ingest-url-save")],
+        );
+      }
+      void mayWriteInstallWide().then((ok) => {
+        if (!ok) lockIngestURL();
+      });
+
+      $("ingest-url-save").addEventListener("click", async () => {
+        const btn = $("ingest-url-save") as HTMLButtonElement;
+        const input = $("ingest-url") as HTMLInputElement;
+        btn.disabled = true;
+        try {
+          await api.put("/settings/ingest.public_url", input.value.trim());
+          toast(
+            input.value.trim() ? t("settings.api.ingest.saved") : t("settings.api.ingest.cleared"),
+            "ok",
+          );
+          await loadIngestURL();
+        } catch (e) {
+          if (isOperatorRefusal(e)) {
+            lockIngestURL();
+            await loadIngestURL();
+          } else {
+            toast(
+              e instanceof ApiError ? e.message : t("settings.api.ingest.save_failed"),
+              "err",
+              6000,
+            );
+          }
+        } finally {
+          btn.disabled = ingestLocked;
+        }
+      });
+
+      const allCheckbox = $("wh-all-events") as HTMLInputElement;
+      let specificCheckboxes: HTMLInputElement[] = [];
+
+      async function loadWebhookEvents() {
+        let events: string[] = [];
+        try {
+          events = await api.get<string[]>("/webhooks/events");
+        } catch {
+          return;
+        }
+        const host = $("events-specific");
+        host.innerHTML = events
+          .map((ev) =>
+            checkHTML({
+              value: ev,
+              labelHTML: `<code>${esc(ev)}</code>`,
+              hint: eventDescription(ev) || undefined,
+            }),
+          )
+          .join("");
+        specificCheckboxes = Array.from(host.querySelectorAll<HTMLInputElement>("input"));
+        updateEventsPick();
+      }
+
+      function updateEventsPick() {
+        const all = allCheckbox.checked;
+        specificCheckboxes.forEach((c) => {
+          if (all) c.checked = false;
+          c.disabled = all;
+        });
+        $("events-specific").classList.toggle("is-dim", all);
+      }
+
+      allCheckbox.addEventListener("change", updateEventsPick);
+      updateEventsPick();
+
+      function getSelectedEvents(): string[] {
+        if (allCheckbox.checked) return ["*"];
+        return specificCheckboxes.filter((c) => c.checked).map((c) => c.value);
+      }
+
+      const whForm = $("webhook-form") as HTMLFormElement;
+      const whUrl = $("wh-url") as HTMLInputElement;
+      const whError = $("wh-error") as HTMLElement;
+      const whSubmit = $("wh-submit") as HTMLButtonElement;
+
+      const { show: showWhError, hide: hideWhError } = bindError(whError);
+
+      whForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        hideWhError();
+        const url = whUrl.value.trim();
+        const events = getSelectedEvents();
+        const problem = validateWebhookForm(url, events);
+        if (problem) {
+          showWhError(problem);
+          return;
+        }
+
+        whSubmit.disabled = true;
+        try {
+          const created = await api.post<Webhook>("/webhooks", { url, events });
+          showWebhookSecret(created, false);
+          whUrl.value = "";
+          allCheckbox.checked = true;
+          updateEventsPick();
+          toast(t("settings.webhooks.toasts.added"), "ok");
+          await loadWebhooks();
+        } catch (err) {
+          showWhError(
+            err instanceof ApiError ? err.message : t("settings.webhooks.errors.add_failed"),
+          );
+        } finally {
+          whSubmit.disabled = false;
+        }
+      });
+
+      interface Webhook {
+        id: string;
+        url: string;
+        events: string[];
+        created_at?: string;
+        legacy_signing?: boolean;
+        secret?: string;
+      }
+
+      function showWebhookSecret(wh: Webhook, rotated: boolean) {
+        if (!wh.secret) return;
+        setText($("wh-secret-label"), secretRevealLabel(wh.url, rotated));
+        setText($("wh-secret-value"), wh.secret);
+        $("wh-secret-display").hidden = false;
+      }
+
+      async function rotateWebhookSecret(wh: Webhook, btn: HTMLButtonElement) {
+        const ok = await confirmDialog({
+          title: t("settings.webhooks.confirm.rotate_title"),
+          message: t("settings.webhooks.confirm.rotate_message", { url: wh.url }),
+          confirmLabel: t("settings.webhooks.confirm.rotate"),
+          danger: true,
+        });
+        if (!ok) return;
+        btn.disabled = true;
+        try {
+          const rotated = await api.post<Webhook>(`/webhooks/${wh.id}/rotate-secret`);
+          showWebhookSecret(rotated, true);
+          toast(t("settings.webhooks.toasts.secret_rotated"), "ok");
+          await loadWebhooks();
+        } catch (err) {
+          toast(
+            err instanceof ApiError ? err.message : t("settings.webhooks.errors.rotate_failed"),
+            "err",
+            6000,
+          );
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      function createWebhookRow(wh: Webhook): HTMLElement {
+        const row = document.createElement("div");
+        row.innerHTML =
+          listRowHTML({
+            title: wh.url,
+            mono: true,
+            badgesHTML: badgeHTML(t("settings.webhooks.row.legacy_signing"), "warn", {
+              cls: "wh-legacy",
+              title: LEGACY_SIGNING_TITLE,
+              attrs: { hidden: true },
+            }),
+            meta: wh.events.join(", "),
+            actions: [
+              {
+                label: t("settings.webhooks.row.test"),
+                cls: "wh-test-btn",
+                title: t("settings.webhooks.row.test_title"),
+              },
+              {
+                label: t("settings.webhooks.row.deliveries"),
+                cls: "wh-deliveries-btn",
+                title: t("settings.webhooks.row.deliveries_title"),
+                attrs: { "aria-expanded": "false" },
+              },
+              {
+                label: t("settings.webhooks.row.rotate"),
+                cls: "wh-rotate-btn",
+                title: t("settings.webhooks.row.rotate_title"),
+              },
+              {
+                label: t("settings.webhooks.row.delete_aria"),
+                title: t("common.buttons.delete"),
+                icon: "trash",
+                iconOnly: true,
+                variant: "danger",
+                cls: "wh-delete-btn",
+              },
+            ],
+          }) + `<div class="row-detail wh-deliveries" hidden></div>`;
+
+        const deliveriesBox = row.querySelector<HTMLElement>(".wh-deliveries")!;
+        const deliveriesBtn = row.querySelector<HTMLButtonElement>(".wh-deliveries-btn")!;
+        let deliveriesFollow: ReturnType<typeof setTimeout> | undefined;
+        async function loadDeliveries() {
+          clearTimeout(deliveriesFollow);
+          try {
+            const list = await api.get<Delivery[]>(`/webhooks/${wh.id}/deliveries`);
+            if (deliveriesBox.hidden) return;
+            if (!list.length) {
+              deliveriesBox.innerHTML = emptyStateHTML({
+                size: "inline",
+                title: t("settings.webhooks.deliveries.empty"),
+              });
+              return;
+            }
+            deliveriesBox.innerHTML = deliveriesTableHTML(list);
+            deliveriesBox.querySelectorAll<HTMLButtonElement>(".wh-retry-btn").forEach((b) => {
+              b.addEventListener("click", async () => {
+                b.disabled = true;
+                try {
+                  await api.post(`/webhooks/${wh.id}/deliveries/${b.dataset.id}/retry`, {});
+                  toast(t("settings.webhooks.deliveries.retried"), "ok");
+                  await loadDeliveries();
+                } catch (err) {
+                  toast(
+                    err instanceof ApiError
+                      ? err.message
+                      : t("settings.webhooks.deliveries.retry_failed"),
+                    "err",
+                  );
+                  // 409: another retry won the race; reload so this row stops offering one.
+                  if (err instanceof ApiError && err.status === 409) await loadDeliveries();
+                  else b.disabled = false;
+                }
+              });
+            });
+            if (deliveriesPending(list))
+              deliveriesFollow = setTimeout(() => void loadDeliveries(), 3000);
+          } catch {
+            deliveriesBox.innerHTML = emptyStateHTML({
+              size: "inline",
+              tone: "danger",
+              icon: "alert",
+              title: t("settings.webhooks.deliveries.load_failed"),
+            });
+          }
+        }
+        deliveriesBtn.addEventListener("click", () => {
+          deliveriesBox.hidden = !deliveriesBox.hidden;
+          deliveriesBtn.setAttribute("aria-expanded", String(!deliveriesBox.hidden));
+          if (!deliveriesBox.hidden) {
+            deliveriesBox.innerHTML = emptyStateHTML({ size: "inline", loading: true });
+            void loadDeliveries();
+          }
+        });
+
+        const rotateBtn = row.querySelector<HTMLButtonElement>(".wh-rotate-btn")!;
+        // The row outlives polls: read the endpoint it was last drawn with, not the closure's wh.
+        rotateBtn.addEventListener("click", () => {
+          void rotateWebhookSecret(webhookByRow.get(row) ?? wh, rotateBtn);
+        });
+
+        const testBtn = row.querySelector<HTMLButtonElement>(".wh-test-btn")!;
+        testBtn.addEventListener("click", async () => {
+          testBtn.disabled = true;
+          testBtn.textContent = "…";
+          try {
+            const result = await api.post<TestDelivery>(`/webhooks/${wh.id}/test`, {});
+            const shown = testResultToast(result);
+            toast(shown.text, shown.ok ? "ok" : "err", shown.ok ? 5000 : 8000);
+            if (!deliveriesBox.hidden) void loadDeliveries();
+          } catch (err) {
+            toast(
+              err instanceof ApiError ? err.message : testResultToast({ success: false }).text,
+              "err",
+            );
+          } finally {
+            testBtn.disabled = false;
+            testBtn.textContent = t("settings.webhooks.row.test");
+          }
+        });
+
+        const deleteBtn = row.querySelector<HTMLButtonElement>(".wh-delete-btn")!;
+        deleteBtn.addEventListener("click", async () => {
+          deleteBtn.disabled = true;
+          try {
+            await api.del(`/webhooks/${wh.id}`);
+            toast(t("settings.webhooks.toasts.deleted"), "ok");
+            await loadWebhooks();
+          } catch (err) {
+            toast(
+              err instanceof ApiError ? err.message : t("settings.webhooks.errors.delete_failed"),
+              "err",
+            );
+            deleteBtn.disabled = false;
+          }
+        });
+
+        updateWebhookRow(row, wh, null);
+        return row;
+      }
+
+      const webhookByRow = new WeakMap<HTMLElement, Webhook>();
+
+      function updateWebhookRow(el: HTMLElement, wh: Webhook, _prev: Webhook | null) {
+        webhookByRow.set(el, wh);
+        setText(el.querySelector(".row-title"), wh.url);
+        setText(el.querySelector(".row-meta"), wh.events.join(", "));
+        (el.querySelector(".wh-legacy") as HTMLElement).hidden = !wh.legacy_signing;
+        const rotate = el.querySelector(".wh-rotate-btn");
+        if (rotate) {
+          rotate.className = buttonClasses({
+            variant: wh.legacy_signing ? "primary" : "default",
+            size: "sm",
+            cls: "wh-rotate-btn",
+          });
+        }
+      }
+
+      function updateLegacyNote(whs: Webhook[]) {
+        const note = $("wh-legacy-note");
+        const text = legacySigningNote(whs.filter((w) => w.legacy_signing).length);
+        note.hidden = !text;
+        if (text) setText($("wh-legacy-note-text"), text);
+      }
+
+      // Fetched lazily on first open: below admin the daemon refuses /webhooks/events.
+      let webhookEventsAsked = false;
+      async function loadWebhooks() {
+        if (!webhookEventsAsked) {
+          webhookEventsAsked = true;
+          void loadWebhookEvents();
+        }
+        try {
+          const whs = await api.get<Webhook[]>("/webhooks");
+          setCount($("wh-count"), whs.length, { pill: true });
+          updateLegacyNote(whs);
+          const ct = $("webhooks-list");
+          const empty = ct.querySelector<HTMLElement>(".row-empty");
+          if (whs.length === 0) {
+            // The shipped .row-empty reads "Loading…"; test its text, not its presence, or an empty
+            // install loads forever.
+            const none = t("settings.webhooks.empty.none");
+            if (empty?.textContent?.trim() !== none) {
+              ct.innerHTML = emptyRowHTML(none, { as: "div" });
+            }
+            return;
+          }
+          if (empty) empty.remove();
+          reconcile<Webhook>({
+            container: ct,
+            items: whs,
+            key: (w) => w.id,
+            create: createWebhookRow,
+            update: updateWebhookRow,
+          });
+        } catch {
+          const ct = $("webhooks-list");
+          if (!ct.querySelector(".row-empty")) {
+            ct.innerHTML = emptyRowHTML(t("settings.webhooks.empty.load_failed"), {
+              as: "div",
+              tone: "danger",
+            });
+          }
+        }
+      }
+
+      interface AuditEntry extends AuditRow {
+        id: string;
+        created_at: string;
+      }
+
+      // Entries never change: redraw only when markup differs, so the "Go to the entry" tone mark
+      // survives polls.
+      const auditDrawn = new WeakMap<HTMLElement, string>();
+      function createAuditRow(entry: AuditEntry): HTMLElement {
+        const html = auditRowHTML(entry);
+        const tr = elFrom(html);
+        auditDrawn.set(tr, html);
+        return tr;
+      }
+
+      function updateAuditRow(el: HTMLElement, entry: AuditEntry, _prev: AuditEntry | null) {
+        const html = auditRowHTML(entry);
+        if (auditDrawn.get(el) === html) return;
+        el.innerHTML = elFrom(html).innerHTML;
+        auditDrawn.set(el, html);
+      }
+
+      async function initAuditChain() {
+        const box = $("audit-chain");
+        if (!(await mayWriteInstallWide())) return;
+        box.hidden = false;
+      }
+      void initAuditChain();
+
+      let brokenRow = "";
+      function auditRowOf(id: string): HTMLElement | null {
+        if (!id) return null;
+        return (
+          Array.from($("audit-tbody").children).find(
+            (tr): tr is HTMLElement => tr instanceof HTMLElement && tr.dataset.rckey === id,
+          ) ?? null
+        );
+      }
+      $("audit-chain-goto").addEventListener("click", () => {
+        const tr = auditRowOf(brokenRow);
+        if (!tr) return;
+        tr.dataset.tone = "danger";
+        tr.tabIndex = -1;
+        tr.scrollIntoView({ block: "center" });
+        tr.focus();
+      });
+
+      $("audit-verify").addEventListener("click", async () => {
+        const btn = $("audit-verify") as HTMLButtonElement;
+        const line = $("audit-chain-line");
+        btn.disabled = true;
+        setText(line, t("settings.audit.chain.verifying"));
+        try {
+          const report = await api.get<ChainReport>("/audit/verify");
+          setText(line, chainLine(report));
+          $("audit-chain").className = calloutClasses({
+            tone: report.ok ? "ok" : "danger",
+            band: true,
+          });
+          line.title = report.head ?? "";
+          brokenRow = report.ok ? "" : (report.broken_at ?? "");
+          // Verify covers the whole install's log; the table shows only this workspace, so the row
+          // may be absent.
+          $("audit-chain-goto").hidden = !auditRowOf(brokenRow);
+        } catch (err) {
+          setText(
+            line,
+            err instanceof ApiError ? err.message : t("settings.audit.chain.verify_failed"),
+          );
+          $("audit-chain").className = calloutClasses({ tone: "warn", band: true });
+        } finally {
+          btn.disabled = false;
+        }
+      });
+
+      let auditEntries: AuditEntry[] = [];
+      let auditHasMore = false;
+
+      function fetchAudit(limit: number, offset: number): Promise<AuditEntry[]> {
+        const kind = ($("audit-kind") as HTMLSelectElement).value;
+        const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+        if (kind) params.set("kind", kind);
+        return api.get<AuditEntry[]>(`/audit?${params}`);
+      }
+
+      function renderAudit() {
+        const tbody = $("audit-tbody") as HTMLElement;
+        const empty = $("audit-empty") as HTMLElement;
+        ($("audit-load-more") as HTMLButtonElement).hidden = !auditHasMore;
+        if (auditEntries.length === 0) {
+          tbody.innerHTML = "";
+          empty.hidden = false;
+          return;
+        }
+        empty.hidden = true;
+        reconcile<AuditEntry>({
+          container: tbody,
+          items: auditEntries,
+          key: (e) => e.id,
+          create: createAuditRow,
+          update: updateAuditRow,
+        });
+      }
+
+      async function loadAudit() {
+        // Refetch the whole paged window so the poller doesn't collapse "Load more" back to page
+        // one.
+        const limit = auditWindowLimit(auditEntries.length);
+        try {
+          const entries = await fetchAudit(limit, 0);
+          auditEntries = entries;
+          auditHasMore = entries.length >= limit;
+          renderAudit();
+        } catch (err) {
+          const tbody = $("audit-tbody") as HTMLElement;
+          const msg = err instanceof ApiError ? err.message : t("settings.audit.load_failed");
+          tbody.innerHTML = emptyRowHTML(msg, { cols: auditColumns().length, tone: "danger" });
+          ($("audit-load-more") as HTMLButtonElement).hidden = true;
+        }
+      }
+
+      async function loadMoreAudit() {
+        const btn = $("audit-load-more") as HTMLButtonElement;
+        btn.disabled = true;
+        try {
+          const more = await fetchAudit(AUDIT_PAGE, auditEntries.length);
+          auditEntries = mergeAuditPage(auditEntries, more);
+          auditHasMore = more.length >= AUDIT_PAGE;
+          renderAudit();
+        } catch (err) {
+          toast(
+            err instanceof ApiError ? err.message : t("settings.audit.load_more_failed"),
+            "err",
+          );
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      ($("audit-kind") as HTMLSelectElement).addEventListener("change", () => {
+        auditEntries = [];
+        auditHasMore = false;
+        loadAudit();
+      });
+      $("audit-refresh").addEventListener("click", () => loadAudit());
+      $("audit-load-more").addEventListener("click", () => loadMoreAudit());
+
+      async function exportAudit(format: "csv" | "json") {
+        const btn = $(`audit-export-${format}`) as HTMLButtonElement;
+        if (btn.dataset.eeLocked === "1") {
+          toast(t("settings.audit.export.needs_ee"), "err");
+          return;
+        }
+        btn.disabled = true;
+        try {
+          const params = auditExportParams(format, ($("audit-kind") as HTMLSelectElement).value);
+          const resp = await fetch(`${API_BASE}/audit/export?${params}`, {
+            method: "GET",
+            credentials: "include",
+          });
+          if (resp.status === 403) {
+            toast(t("settings.audit.export.needs_ee"), "err");
+            return;
+          }
+          if (!resp.ok) {
+            let msg = t("settings.audit.export.failed_status", { status: resp.status });
+            try {
+              const j = (await resp.json()) as { error?: string };
+              if (j.error) msg = j.error;
+            } catch {
+              /* body may not be JSON */
+            }
+            toast(msg, "err");
+            return;
+          }
+          const blob = await resp.blob();
+          // format=json streams NDJSON from the daemon.
+          const ext = format === "json" ? "ndjson" : "csv";
+          const fallback = `audit-${new Date().toISOString().slice(0, 10)}.${ext}`;
+          const filename = filenameFromDisposition(
+            resp.headers.get("Content-Disposition"),
+            fallback,
+          );
+          downloadBlob(blob, filename);
+          toast(t("settings.audit.export.done", { format: ext.toUpperCase() }), "ok");
+        } catch (err) {
+          toast(err instanceof Error ? err.message : t("settings.audit.export.failed"), "err");
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      $("audit-export-csv").addEventListener("click", () => exportAudit("csv"));
+      $("audit-export-json").addEventListener("click", () => exportAudit("json"));
+
+      interface APIKey {
+        id: string;
+        name: string;
+        prefix: string;
+        created_by: string;
+        created_by_email?: string;
+        created_at: string;
+        last_used_at?: string;
+        revoked_at?: string;
+        expires_at?: string;
+        scope_task_id?: string;
+        workspace_id?: string;
+        role?: string;
+        permissions?: string[];
+        replaced_by?: string;
+      }
+
+      const KEY_STATE_TAG: Record<KeyState, string> = {
+        live: "",
+        grace: t("settings.api.keys.replaced"),
+        replaced: t("settings.api.keys.replaced"),
+        expired: t("settings.api.keys.expired"),
+        revoked: t("settings.api.keys.revoked"),
+        task_scoped: t("settings.api.keys.task_scoped"),
+      };
+
+      async function loadAPIKeys() {
+        const list = $("api-keys-list");
+        try {
+          const keys = await api.get<APIKey[]>("/auth/api-keys");
+          if (!keys || keys.length === 0) {
+            list.innerHTML = emptyRowHTML(t("settings.api.keys.empty"), { as: "div" });
+            return;
+          }
+          const now = new Date();
+          list.innerHTML = keys
+            .map((k) => {
+              const state = keyState(k, now);
+              const actions = keyActions(state);
+              const tag = KEY_STATE_TAG[state];
+              const working = state === "live" || state === "grace";
+              const row = listRowHTML({
+                title: k.name,
+                badgesHTML:
+                  `<code class="code-inline">${esc(k.prefix)}…</code>` +
+                  (tag ? badgeHTML(tag, "muted") : ""),
+                meta: keyDetails(k, now),
+                dim: !working,
+                actions: [
+                  ...(actions.rotate
+                    ? [
+                        {
+                          label: t("settings.api.keys.rotate"),
+                          cls: "rotate-key-btn",
+                          title: t("settings.api.keys.rotate_title"),
+                        },
+                      ]
+                    : []),
+                  ...(actions.revoke
+                    ? [
+                        {
+                          label: t("settings.api.keys.revoke"),
+                          variant: "danger" as const,
+                          cls: "revoke-key-btn",
+                          attrs: { "data-id": k.id, "data-name": k.name },
+                        },
+                      ]
+                    : []),
+                ],
+              });
+              return `<div class="key-row" data-key-id="${esc(k.id)}">${row}
+                <div class="row-detail key-rotate" hidden>
+                  ${fieldHTML({
+                    label: t("settings.api.keys.rotate_grace"),
+                    for: `rotate-grace-${k.id}`,
+                    size: "sm",
+                    control: `<select id="rotate-grace-${esc(k.id)}" class="rotate-grace">${ROTATE_GRACE_HOURS.map(
+                      (h) =>
+                        `<option value="${h}"${h === 24 ? " selected" : ""}>${esc(graceLabel(h))}</option>`,
+                    ).join("")}</select>`,
+                  })}
+                  ${buttonHTML({ label: t("settings.api.keys.rotate_confirm"), variant: "primary", size: "sm", cls: "rotate-go-btn", attrs: { "data-id": k.id } })}
+                  ${buttonHTML({ label: t("common.buttons.cancel"), size: "sm", cls: "rotate-cancel-btn" })}
+                </div>
+              </div>`;
+            })
+            .join("");
+          list.querySelectorAll<HTMLButtonElement>(".revoke-key-btn").forEach((btn) => {
+            btn.addEventListener("click", async () => {
+              const ok = await confirmDialog({
+                title: t("settings.api.keys.revoke_title", { name: btn.dataset.name }),
+                message: t("settings.api.keys.revoke_message"),
+                confirmLabel: t("settings.api.keys.revoke"),
+                danger: true,
+              });
+              if (!ok) return;
+              btn.disabled = true;
+              try {
+                await api.del(`/auth/api-keys/${btn.dataset.id}`);
+                toast(t("settings.api.keys.revoked_toast"), "ok");
+                loadAPIKeys();
+              } catch (e: any) {
+                toast(e?.message ?? t("settings.api.keys.revoke_failed"), "err");
+                btn.disabled = false;
+              }
+            });
+          });
+          list.querySelectorAll<HTMLElement>(".key-row").forEach((row) => {
+            const strip = row.querySelector<HTMLElement>(".key-rotate");
+            const open = row.querySelector<HTMLButtonElement>(".rotate-key-btn");
+            if (!strip || !open) return;
+            open.addEventListener("click", () => {
+              strip.hidden = !strip.hidden;
+            });
+            row.querySelector(".rotate-cancel-btn")?.addEventListener("click", () => {
+              strip.hidden = true;
+            });
+            const go = row.querySelector<HTMLButtonElement>(".rotate-go-btn");
+            go?.addEventListener("click", async () => {
+              const grace = Number(
+                row.querySelector<HTMLSelectElement>(".rotate-grace")?.value ?? 24,
+              );
+              go.disabled = true;
+              keyError.hide();
+              try {
+                const result = await api.post<{
+                  key: string;
+                  expires_at?: string;
+                  role?: string;
+                  permissions?: string[];
+                  old_expires_at?: string;
+                }>(`/auth/api-keys/${go.dataset.id}/rotate`, { grace_hours: grace });
+                revealKey(
+                  result.key,
+                  `${grantedLine(result.role, result.permissions ?? [], result.expires_at)} ${rotatedLine(result.old_expires_at)}`,
+                );
+                toast(t("settings.api.keys.rotated"), "ok");
+                loadAPIKeys();
+              } catch (e) {
+                keyError.show(
+                  e instanceof ApiError
+                    ? t("settings.api.keys.rotate_refused", { error: e.message })
+                    : t("settings.api.keys.rotate_failed"),
+                );
+                go.disabled = false;
+              }
+            });
+          });
+        } catch {
+          list.innerHTML = emptyRowHTML(t("settings.api.keys.load_failed"), {
+            as: "div",
+            tone: "danger",
+          });
+        }
+      }
+
+      function revealKey(key: string, line: string) {
+        setText($("new-key-value"), key);
+        setText($("new-key-expiry"), line);
+        const box = $("new-key-display");
+        box.hidden = false;
+        box.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      }
+
+      interface RunKey extends APIKey {
+        scope_chat_id?: string;
+        scope_agent?: string;
+        scope_stage?: string;
+        stage_label?: string;
+        task_title?: string;
+      }
+
+      async function loadRunKeys() {
+        const list = $("run-keys-list");
+        try {
+          const keys = await api.get<RunKey[]>("/auth/run-keys");
+          if (!keys || keys.length === 0) {
+            list.innerHTML = emptyRowHTML(t("settings.api.run_keys.empty"), { as: "div" });
+            return;
+          }
+          const now = new Date();
+          list.innerHTML = keys
+            .map((k) => {
+              const what = k.scope_task_id
+                ? k.task_title || k.scope_task_id
+                : k.scope_chat_id
+                  ? t("settings.api.run_keys.chat")
+                  : k.name;
+              const who = [k.scope_agent, k.stage_label || k.scope_stage]
+                .filter(Boolean)
+                .join(" · ");
+              return listRowHTML({
+                title: what,
+                titleHref: k.scope_task_id
+                  ? `/tasks/#task-${encodeURIComponent(k.scope_task_id)}`
+                  : undefined,
+                meta: [who, expiresIn(k.expires_at, now)].filter(Boolean).join(" · "),
+                actions: [
+                  {
+                    label: t("settings.api.keys.revoke"),
+                    variant: "danger",
+                    cls: "revoke-run-key-btn",
+                    attrs: { "data-id": k.id },
+                  },
+                ],
+              });
+            })
+            .join("");
+          list.querySelectorAll<HTMLButtonElement>(".revoke-run-key-btn").forEach((btn) => {
+            btn.addEventListener("click", async () => {
+              const ok = await confirmDialog({
+                title: t("settings.api.run_keys.revoke_title"),
+                message: t("settings.api.run_keys.revoke_message"),
+                confirmLabel: t("settings.api.keys.revoke"),
+                danger: true,
+              });
+              if (!ok) return;
+              btn.disabled = true;
+              try {
+                await api.del(`/auth/api-keys/${btn.dataset.id}`);
+                toast(t("settings.api.keys.revoked_toast"), "ok");
+                loadRunKeys();
+              } catch (e: any) {
+                toast(e?.message ?? t("settings.api.keys.revoke_failed"), "err");
+                btn.disabled = false;
+              }
+            });
+          });
+        } catch {
+          list.innerHTML = emptyRowHTML(t("settings.api.run_keys.load_failed"), {
+            as: "div",
+            tone: "danger",
+          });
+        }
+      }
+
+      $("api-key-perms").innerHTML = permissionChoices()
+        .map((c) =>
+          checkHTML({
+            value: c.value,
+            label: c.label,
+            hint: c.hint || undefined,
+            inputCls: "perm-box",
+          }),
+        )
+        .join("");
+
+      function permBoxes(): HTMLInputElement[] {
+        return Array.from(document.querySelectorAll<HTMLInputElement>(".perm-box"));
+      }
+
+      function selectedPermissions(): string[] {
+        return permBoxes()
+          .filter((b) => b.checked)
+          .map((b) => b.value);
+      }
+
+      for (const btn of document.querySelectorAll<HTMLButtonElement>(".preset-btn")) {
+        btn.addEventListener("click", () => {
+          const boxes = permBoxes();
+          const wanted = new Set(
+            presetSelection(
+              btn.dataset.preset ?? "",
+              boxes.map((b) => b.value),
+            ),
+          );
+          for (const box of boxes) box.checked = wanted.has(box.value);
+        });
+      }
+
+      const keyError = bindError($("api-key-error"));
+      let keyMaxDays: number | null = null;
+
+      async function initKeyForm() {
+        const me = await sessionInfo();
+        // A no-login install has no session; the public auth config carries the same cap.
+        const capSeconds =
+          me?.api_key_max_ttl_seconds ?? (await authConfig()).api_key_max_ttl_seconds;
+        keyMaxDays = maxKeyDays(capSeconds);
+        const expiresInput = $("api-key-expires") as HTMLInputElement;
+        expiresInput.value = defaultKeyDays(keyMaxDays);
+        if (keyMaxDays && keyMaxDays > 0) expiresInput.max = String(keyMaxDays);
+        setText($("api-key-expiry-hint"), expiryHint(keyMaxDays, typeof capSeconds === "number"));
+        const roleInput = $("api-key-role") as HTMLSelectElement;
+        for (const opt of Array.from(roleInput.options)) {
+          opt.disabled = !roleWithin(opt.value, me?.role);
+        }
+        if (roleInput.selectedOptions[0]?.disabled) {
+          const allowed = Array.from(roleInput.options).filter((o) => !o.disabled);
+          if (allowed.length) roleInput.value = allowed[allowed.length - 1].value;
+        }
+      }
+      void initKeyForm();
+
+      $("gen-api-key").addEventListener("click", async () => {
+        const nameInput = $("api-key-name") as HTMLInputElement;
+        const expiresInput = $("api-key-expires") as HTMLInputElement;
+        const roleInput = $("api-key-role") as HTMLSelectElement;
+        const name = nameInput.value.trim() || t("settings.api.keys.default_name");
+        keyError.hide();
+        const permissions = selectedPermissions();
+        if (permissions.length === 0) {
+          keyError.show(t("settings.api.keys.no_permissions_picked"));
+          return;
+        }
+        const problem = expiryProblem(expiresInput.value, keyMaxDays);
+        if (problem) {
+          keyError.show(problem);
+          return;
+        }
+        const body: {
+          name: string;
+          role: string;
+          permissions: string[];
+          expires_in_days?: number;
+        } = { name, role: roleInput.value, permissions };
+        const expiresDays = Number(expiresInput.value.trim());
+        if (expiresInput.value.trim() && expiresDays > 0) {
+          body.expires_in_days = expiresDays;
+        }
+        const btn = $("gen-api-key") as HTMLButtonElement;
+        btn.disabled = true;
+        try {
+          const result = await api.post<{
+            id: string;
+            name: string;
+            prefix: string;
+            key: string;
+            expires_at?: string;
+            role?: string;
+            permissions?: string[];
+          }>("/auth/api-keys", body);
+          // Show what the server granted, which may differ from what was asked.
+          revealKey(
+            result.key,
+            grantedLine(result.role, result.permissions ?? [], result.expires_at),
+          );
+          nameInput.value = "";
+          expiresInput.value = defaultKeyDays(keyMaxDays);
+          toast(t("settings.api.keys.generated"), "ok");
+          loadAPIKeys();
+        } catch (e) {
+          keyError.show(
+            e instanceof ApiError
+              ? t("settings.api.keys.refused", { error: e.message })
+              : t("settings.api.keys.generate_failed"),
+          );
+        } finally {
+          btn.disabled = false;
+        }
+      });
+
+      interface KeyKindView {
+        id: string;
+        label: string;
+        prefix: string;
+        federated?: boolean;
+        owner_only?: boolean;
+      }
+      interface WorkloadIdentityView {
+        configured: boolean;
+        error?: string;
+        issuer?: string;
+        jwks?: unknown;
+        subject_prefix?: string;
+      }
+      interface EngineInfo {
+        name: string;
+        label: string;
+        provider: string;
+        key_kinds: KeyKindView[];
+        models?: string[];
+        is_default?: boolean;
+        effort?: boolean;
+        base_url?: boolean;
+        org_id?: boolean;
+        auth_header?: boolean;
+        providers?: string[];
+        has_key: boolean;
+        key_hint?: string;
+        default_profile_id?: string;
+        host_fallback?: boolean;
+        fallback_model?: string;
+      }
+
+      let llmEngines: EngineInfo[] = [];
+      let llmProfiles: LLMProfile[] = [];
+      let llmAgents: AgentLite[] = [];
+
+      async function loadLLM() {
+        const box = $("llm-engines");
+        try {
+          const [e, p, agents] = await Promise.all([
+            api.get<{ engines: EngineInfo[] }>("/engines"),
+            api.get<{ profiles: LLMProfile[] | null }>("/llm-profiles"),
+            api.get<AgentLite[]>("/types").catch((): AgentLite[] => []),
+          ]);
+          llmEngines = e?.engines ?? [];
+          llmProfiles = p?.profiles ?? [];
+          llmAgents = agents ?? [];
+          renderLLM();
+        } catch {
+          box.innerHTML = emptyRowHTML(t("settings.llm.errors.load_failed"), {
+            as: "div",
+            tone: "danger",
+          });
+        }
+      }
+
+      let runLimit: RunLimit | null = null;
+      let runLimitAdmin = false;
+
+      async function loadRunLimit() {
+        const panel = $("runlimit-panel");
+        let view: WorkspaceSettings;
+        try {
+          view = await api.get<WorkspaceSettings>("/workspace-settings");
+        } catch {
+          // Older daemons have no /workspace-settings: keep the panel hidden.
+          panel.hidden = true;
+          return;
+        }
+        const limit = view?.[RUN_LIMIT_KEY];
+        if (!limit) {
+          panel.hidden = true;
+          return;
+        }
+        runLimitAdmin = roleWithin("admin", (await sessionInfo())?.role);
+        runLimit = limit;
+        panel.hidden = false;
+        renderRunLimit();
+      }
+
+      function renderRunLimit() {
+        if (!runLimit) return;
+        const input = $("runlimit-minutes") as HTMLInputElement;
+        input.value = runLimit.value === null ? "" : String(runLimit.value);
+        input.max = String(runLimit.ceiling);
+        input.placeholder = runLimit.default > 0 ? String(runLimit.default) : "";
+        input.disabled = !runLimitAdmin;
+        setText($("runlimit-help"), runLimitHelp(runLimit));
+        setText($("runlimit-now"), runLimitNow(runLimit));
+        $("runlimit-readonly").hidden = runLimitAdmin;
+        $("runlimit-save").hidden = !runLimitAdmin;
+        $("runlimit-clear").hidden = !runLimitAdmin;
+        setFieldError(input, "");
+        setFormError($("runlimit-error"), "");
+        paintRunLimit();
+      }
+
+      function paintRunLimit() {
+        if (!runLimit) return;
+        const raw = ($("runlimit-minutes") as HTMLInputElement).value.trim();
+        const saved = runLimit.value === null ? "" : String(runLimit.value);
+        ($("runlimit-save") as HTMLButtonElement).disabled =
+          !runLimitAdmin || raw === "" || raw === saved;
+        ($("runlimit-clear") as HTMLButtonElement).disabled =
+          !runLimitAdmin || runLimit.value === null;
+      }
+
+      async function putRunLimit(minutes: number | null) {
+        const view = await api.put<WorkspaceSettings>(RUN_LIMIT_PATH, minutes);
+        const limit = view?.[RUN_LIMIT_KEY];
+        if (limit) {
+          runLimit = limit;
+          renderRunLimit();
+        } else {
+          await loadRunLimit();
+        }
+      }
+
+      $("runlimit-minutes").addEventListener("input", () => {
+        setFieldError($("runlimit-minutes"), "");
+        setFormError($("runlimit-error"), "");
+        paintRunLimit();
+      });
+      $("runlimit-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (!runLimit || !runLimitAdmin) return;
+        const input = $("runlimit-minutes") as HTMLInputElement;
+        const parsed = parseRunLimit(input.value, runLimit.ceiling);
+        if ("error" in parsed) {
+          setFieldError(input, parsed.error, { focus: true });
+          return;
+        }
+        const btn = $("runlimit-save") as HTMLButtonElement;
+        btn.disabled = true;
+        try {
+          await putRunLimit(parsed.minutes);
+          toast(t("settings.run_limit.saved"), "ok");
+        } catch (err) {
+          setFieldError(
+            input,
+            err instanceof ApiError ? err.message : t("settings.run_limit.save_failed"),
+          );
+          paintRunLimit();
+        }
+      });
+      $("runlimit-clear").addEventListener("click", async () => {
+        if (!runLimit || !runLimitAdmin) return;
+        const btn = $("runlimit-clear") as HTMLButtonElement;
+        btn.disabled = true;
+        try {
+          await putRunLimit(null);
+          toast(t("settings.run_limit.cleared"), "ok");
+        } catch (err) {
+          setFormError(
+            $("runlimit-error"),
+            err instanceof ApiError ? err.message : t("settings.run_limit.save_failed"),
+          );
+          paintRunLimit();
+        }
+      });
+
+      function followers(engineName: string): string[] {
+        return agentsOnDefault(engineName, llmProfiles, llmAgents, llmEngines);
+      }
+
+      function profileRowHTML(p: LLMProfile): string {
+        const users = p.is_default ? followers(p.engine) : (p.bound_agents ?? []);
+        const badge = keyBadge(p);
+        const trouble = keyTrouble(p);
+        // profileMeta() escapes its parts (some carry <code>), so it goes into metaHTML unescaped.
+        const meta = profileMeta(
+          p,
+          llmEngines.find((e) => e.name === p.engine)?.fallback_model,
+        ).join(" · ");
+        const note = trouble?.text
+          ? `<span class="prof-note text-${trouble.tone}">${esc(trouble.text)}</span>`
+          : "";
+        return listRowHTML({
+          boxed: true,
+          title: p.name,
+          badgesHTML:
+            (p.is_default ? badgeHTML(t("settings.llm.engine.default_badge"), "accent") : "") +
+            (badge ? badgeHTML(badge.label, badge.tone, { title: badge.title || undefined }) : ""),
+          metaHTML: `<span class="prof-line">${meta}</span>${note}<span class="prof-line prof-used">${esc(usedByText(users, !!p.is_default))}</span>`,
+          actions: [
+            ...(canRecheck(p)
+              ? [{ label: t("settings.llm.buttons.recheck"), attrs: { "data-prof-check": p.id } }]
+              : []),
+            ...(p.is_default
+              ? []
+              : [
+                  {
+                    label: t("settings.buttons.make_default"),
+                    attrs: { "data-prof-default": p.id },
+                  },
+                ]),
+            { label: t("common.buttons.edit"), attrs: { "data-prof-edit": p.id } },
+            {
+              label: t("common.buttons.delete"),
+              variant: "danger" as const,
+              attrs: { "data-prof-del": p.id },
+            },
+          ],
+        });
+      }
+
+      function renderLLM() {
+        const box = $("llm-engines");
+        if (llmEngines.length === 0) {
+          box.innerHTML = emptyRowHTML(t("settings.llm.engine.none"), { as: "div" });
+          return;
+        }
+        box.innerHTML = llmEngines
+          .map((e) => {
+            const mine = llmProfiles.filter((p) => p.engine === e.name);
+            const def = mine.find((p) => p.is_default);
+            const others = mine.filter((p) => !p.is_default);
+            const waiting = followers(e.name).length;
+            const defHTML = def
+              ? profileRowHTML(def)
+              : emptyStateHTML({
+                  size: "inline",
+                  dashed: true,
+                  title: noDefaultText(e, waiting),
+                  action: {
+                    label: t("settings.llm.engine.set_default_key"),
+                    variant: "primary",
+                    size: "sm",
+                    attrs: { "data-prof-new": e.name, "data-as-default": "1" },
+                  },
+                });
+            const fallback = e.is_default
+              ? badgeHTML(t("settings.llm.engine.fallback"), "neutral", {
+                  title: t("settings.llm.engine.fallback_title"),
+                })
+              : "";
+            const rest = others.length
+              ? others.map(profileRowHTML).join("")
+              : emptyStateHTML({ size: "inline", title: t("settings.llm.engine.others_none") });
+            return panelHTML({
+              icon: "zap",
+              title: e.label,
+              statusHTML: fallback || undefined,
+              actionsHTML: buttonHTML({
+                label: t("settings.llm.engine.new_profile"),
+                icon: "plus",
+                size: "sm",
+                attrs: { "data-prof-new": e.name },
+              }),
+              pad: "md",
+              bodyHTML:
+                `<h3 class="sub-head">${esc(t("settings.llm.engine.default_label"))}</h3>${defHTML}` +
+                `<h3 class="sub-head">${esc(t("settings.llm.engine.others_label"))}</h3>${rest}`,
+            });
+          })
+          .join("");
+      }
+
+      $("llm-engines").addEventListener("click", (ev) => {
+        const btn = (ev.target as HTMLElement).closest<HTMLButtonElement>("button");
+        if (!btn) return;
+        const d = btn.dataset;
+        if (d.profNew) openProfileModal(d.profNew, null, d.asDefault === "1");
+        const p = llmProfiles.find(
+          (x) => x.id === (d.profEdit || d.profDefault || d.profDel || d.profCheck),
+        );
+        if (!p) return;
+        if (d.profCheck) void recheckProfile(btn, p);
+        if (d.profEdit) openProfileModal(p.engine, p, false);
+        if (d.profDefault) void makeProfileDefault(btn, p);
+        if (d.profDel) void deleteProfile(btn, p);
+      });
+
+      async function makeProfileDefault(btn: HTMLButtonElement, p: LLMProfile) {
+        const n = followers(p.engine).length;
+        const engine = engineLabel(llmEngines, p.engine);
+        const ok = await confirmDialog({
+          title: t("settings.llm.confirm.make_default_title", { name: p.name, engine }),
+          message:
+            n > 0
+              ? p.model
+                ? t("settings.llm.confirm.make_default_switch_model", { count: n })
+                : t("settings.llm.confirm.make_default_switch", { count: n })
+              : t("settings.llm.confirm.make_default_none"),
+          confirmLabel: t("settings.buttons.make_default"),
+        });
+        if (!ok) return;
+        btn.disabled = true;
+        try {
+          await api.patch(`/llm-profiles/${p.id}`, { is_default: true });
+          toast(t("settings.llm.toasts.now_default", { name: p.name, engine }), "ok");
+          loadLLM();
+        } catch (err: any) {
+          toast(err?.message ?? t("settings.llm.errors.default_failed"), "err");
+          btn.disabled = false;
+        }
+      }
+
+      function keyCheckToast(name: string, saved: LLMProfile | null) {
+        if (saved?.key_state === "invalid")
+          toast(t("settings.llm.toasts.key_invalid", { name }), "err", 6000);
+        else if (saved?.key_state === "unreachable")
+          toast(t("settings.llm.toasts.key_unreachable", { name }), "err", 6000);
+      }
+
+      async function recheckProfile(btn: HTMLButtonElement, p: LLMProfile) {
+        btn.disabled = true;
+        try {
+          const out = await api.post<LLMProfile>(`/llm-profiles/${p.id}/check`, {});
+          if (out?.key_state === "valid")
+            toast(t("settings.llm.toasts.key_valid", { name: p.name }), "ok");
+          else keyCheckToast(p.name, out);
+          loadLLM();
+        } catch (err: any) {
+          toast(err?.message ?? t("settings.llm.errors.check_failed"), "err");
+          btn.disabled = false;
+        }
+      }
+
+      async function deleteProfile(btn: HTMLButtonElement, p: LLMProfile) {
+        const bound = p.bound_agents ?? [];
+        if (bound.length > 0) {
+          toast(
+            t("settings.llm.errors.profile_in_use", { name: p.name, agents: bound.join(", ") }),
+            "err",
+            5000,
+          );
+          return;
+        }
+        const ok = await confirmDialog({
+          title: t("settings.llm.confirm.delete_title", { name: p.name }),
+          message: p.is_default
+            ? llmEngines.find((e) => e.name === p.engine)?.host_fallback
+              ? t("settings.llm.confirm.delete_default", {
+                  engine: engineLabel(llmEngines, p.engine),
+                })
+              : t("settings.llm.confirm.delete_default_blocked", {
+                  engine: engineLabel(llmEngines, p.engine),
+                })
+            : t("settings.llm.confirm.delete_other"),
+          confirmLabel: t("common.buttons.delete"),
+          danger: true,
+        });
+        if (!ok) return;
+        btn.disabled = true;
+        try {
+          await api.del(`/llm-profiles/${p.id}`);
+          toast(t("settings.llm.toasts.deleted"), "ok");
+          loadLLM();
+        } catch (err: any) {
+          toast(err?.message ?? t("settings.llm.errors.delete_failed"), "err");
+          btn.disabled = false;
+        }
+      }
+
+      const profModal = $("prof-modal");
+      const profForm = $("profile-form") as HTMLFormElement;
+      const pf = {
+        name: $("prof-name") as HTMLInputElement,
+        model: $("prof-model") as HTMLInputElement,
+        effort: $("prof-effort") as HTMLSelectElement,
+        baseURL: $("prof-base-url") as HTMLInputElement,
+        orgID: $("prof-org-id") as HTMLInputElement,
+        provider: $("prof-provider") as HTMLSelectElement,
+        authHeader: $("prof-auth-header") as HTMLSelectElement,
+        region: $("prof-region") as HTMLInputElement,
+        project: $("prof-project") as HTMLInputElement,
+        smallModel: $("prof-small-model") as HTMLInputElement,
+        awsKeyID: $("prof-aws-key-id") as HTMLInputElement,
+        awsSecret: $("prof-aws-secret") as HTMLInputElement,
+        awsSession: $("prof-aws-session") as HTMLInputElement,
+        gcpSA: $("prof-gcp-sa") as HTMLTextAreaElement,
+        clearKey: $("prof-clear-key") as HTMLInputElement,
+        kind: $("prof-kind") as HTMLSelectElement,
+        key: $("prof-key") as HTMLInputElement,
+        fedRule: $("prof-fed-rule") as HTMLInputElement,
+        fedOrg: $("prof-fed-org") as HTMLInputElement,
+        fedSvac: $("prof-fed-svac") as HTMLInputElement,
+        fedWS: $("prof-fed-ws") as HTMLInputElement,
+        isDefault: $("prof-default") as HTMLInputElement,
+        error: $("prof-error"),
+        save: $("prof-save-btn") as HTMLButtonElement,
+      };
+      let profEditing: LLMProfile | null = null;
+      let profEngine: EngineInfo | null = null;
+
+      // Escape is handled here because this page has no initKeyboard() Esc cascade.
+      const profDialog = bindModal(profModal, {
+        onClose: () => {
+          profEditing = null;
+          profEngine = null;
+        },
+      });
+      document.addEventListener(
+        "keydown",
+        (ev) => {
+          if (ev.key === "Escape" && profDialog.isOpen()) profDialog.close();
+        },
+        { signal },
+      );
+
+      function syncKeyPlaceholder() {
+        const prefix = pf.kind.selectedOptions[0]?.dataset.prefix ?? "";
+        pf.key.placeholder = keyPlaceholder(profEditing, prefix);
+        pf.key.dataset.prefix = prefix;
+      }
+      pf.kind.addEventListener("change", () => {
+        pf.error.hidden = true;
+        syncKeyPlaceholder();
+        syncProviderFields();
+      });
+
+      function federating(): boolean {
+        return pf.kind.selectedOptions[0]?.dataset.federated === "1";
+      }
+
+      let workloadIdentity: Promise<WorkloadIdentityView | null> | null = null;
+      async function showWorkloadIdentity() {
+        workloadIdentity ??= api.get<WorkloadIdentityView>("/workload-identity").catch(() => null);
+        const wi = await workloadIdentity;
+        const ready = Boolean(wi?.configured);
+        $("prof-fed-issuer").hidden = !ready;
+        $("prof-fed-unconfigured").hidden = ready;
+        setText(
+          $("prof-fed-unconfigured-text"),
+          ready ? "" : (wi?.error ?? t("settings.llm.errors.federation_unavailable")),
+        );
+        if (!ready || !wi) return;
+        setText($("prof-fed-issuer-url"), wi.issuer ?? "");
+        setText($("prof-fed-subject"), wi.subject_prefix ?? "");
+        setText($("prof-fed-jwks"), JSON.stringify(wi.jwks ?? {}, null, 2));
+      }
+
+      function syncProviderFields() {
+        const eng = profEngine;
+        if (!eng) return;
+        const provider = pf.provider.value || eng.provider;
+        const cloud = isCloudProvider(provider);
+        const vertex = provider === "vertex";
+        $("prof-cloud-fields").hidden = !cloud;
+        $("prof-project-field").hidden = !vertex;
+        $("prof-aws-fields").hidden = provider !== "bedrock";
+        $("prof-gcp-field").hidden = !vertex;
+        $("prof-base-url-field").hidden = !eng.base_url || cloud;
+        $("prof-org-id-field").hidden = !eng.org_id || cloud;
+        $("prof-auth-header-field").hidden = !eng.auth_header || cloud || !pf.baseURL.value.trim();
+        const fed = !cloud && federating();
+        $("prof-key-field").hidden = vertex || fed;
+        $("prof-kind-field").hidden = cloud || (eng.key_kinds ?? []).length <= 1;
+        $("prof-fed-fields").hidden = !fed;
+        if (fed) {
+          $("prof-base-url-field").hidden = true;
+          $("prof-auth-header-field").hidden = true;
+          void showWorkloadIdentity();
+        }
+        setText(
+          $("prof-key-field").querySelector(".field-label"),
+          provider === "bedrock"
+            ? t("settings.llm.labels.bedrock_key")
+            : t("settings.llm.labels.key"),
+        );
+        if (cloud) {
+          pf.key.placeholder = t("settings.llm.placeholders.cloud_key");
+          pf.key.dataset.prefix = "";
+        } else {
+          syncKeyPlaceholder();
+        }
+        const stored = profEditing?.has_key && profEditing.provider === provider;
+        $("prof-clear-key-field").hidden = !cloud || !stored;
+        setText(
+          $("prof-cloud-hint"),
+          cloud
+            ? stored
+              ? t("settings.llm.hints.cloud_keep")
+              : t("settings.llm.hints.cloud_identity")
+            : "",
+        );
+      }
+      pf.provider.addEventListener("change", () => {
+        pf.error.hidden = true;
+        syncEngineLine();
+        syncProviderFields();
+      });
+      pf.baseURL.addEventListener("input", syncProviderFields);
+
+      function syncEngineLine() {
+        const eng = profEngine;
+        if (!eng) return;
+        setText(
+          $("prof-engine-line"),
+          t("settings.llm.modal.engine_line", {
+            engine: eng.label,
+            provider: providerLabel(pf.provider.value || eng.provider),
+          }),
+        );
+      }
+
+      function openProfileModal(engineName: string, p: LLMProfile | null, asDefault: boolean) {
+        const eng = llmEngines.find((e) => e.name === engineName);
+        if (!eng) return;
+        profEditing = p;
+        profEngine = eng;
+        const hasDefault = llmProfiles.some((x) => x.engine === eng.name && x.is_default);
+
+        setText($("prof-modal-title"), profileModalTitle(eng.label, p, asDefault, hasDefault));
+        pf.name.value = prefilledProfileName(eng.name, llmProfiles, p, asDefault, hasDefault);
+
+        pf.model.value = p?.model ?? "";
+        const models = eng.models ?? [];
+        pf.model.placeholder = modelPlaceholder(models);
+        $("prof-models").innerHTML = models
+          .map((m) => `<option value="${esc(m)}"></option>`)
+          .join("");
+
+        $("prof-effort-field").hidden = !eng.effort;
+        pf.effort.value = p?.effort ?? "";
+        pf.baseURL.value = p?.base_url ?? "";
+        pf.orgID.value = p?.org_id ?? "";
+
+        const providers = eng.providers?.length ? eng.providers : [eng.provider];
+        pf.provider.innerHTML = providers
+          .map((x) => `<option value="${esc(x)}">${esc(providerLabel(x))}</option>`)
+          .join("");
+        pf.provider.value = p?.provider || eng.provider;
+        $("prof-provider-field").hidden = providers.length <= 1;
+        pf.authHeader.value = p?.auth_header === "bearer" ? "bearer" : "";
+        pf.region.value = p?.region ?? "";
+        pf.project.value = p?.project_id ?? "";
+        pf.smallModel.value = p?.small_fast_model ?? "";
+        for (const el of [pf.awsKeyID, pf.awsSecret, pf.awsSession, pf.gcpSA]) el.value = "";
+        pf.clearKey.checked = false;
+
+        const kinds = eng.key_kinds ?? [];
+        pf.kind.innerHTML = kinds
+          .map(
+            (k) =>
+              `<option value="${esc(k.id)}" data-prefix="${esc(k.prefix)}"${k.federated ? ' data-federated="1"' : ""}>${esc(k.label)}</option>`,
+          )
+          .join("");
+        const fedKind = kinds.find((k) => k.federated);
+        if (p?.federation && fedKind) pf.kind.value = fedKind.id;
+        pf.fedRule.value = p?.federation?.federation_rule_id ?? "";
+        pf.fedOrg.value = p?.federation?.organization_id ?? "";
+        pf.fedSvac.value = p?.federation?.service_account_id ?? "";
+        pf.fedWS.value = p?.federation?.workspace_id ?? "";
+        pf.key.value = "";
+        syncEngineLine();
+        syncKeyPlaceholder();
+        syncProviderFields();
+
+        // The current default can't be unticked: it stops being default only when another profile
+        // takes over, else the engine falls back to the host credential.
+        pf.isDefault.checked = p ? !!p.is_default : asDefault || !hasDefault;
+        pf.isDefault.disabled = !!p?.is_default;
+        setText(
+          $("prof-default-label"),
+          p?.is_default
+            ? t("settings.llm.labels.default_for_locked", { engine: eng.label })
+            : t("settings.llm.labels.default_for", { engine: eng.label }),
+        );
+
+        pf.error.hidden = true;
+        setText(pf.save, p ? t("common.buttons.save") : t("settings.llm.modal.create"));
+        pf.save.disabled = false;
+        profDialog.open(p ? pf.model : pf.name);
+      }
+
+      function closeProfileModal() {
+        profDialog.close();
+      }
+
+      function profileFormError(msg: string) {
+        pf.error.textContent = msg;
+        pf.error.hidden = false;
+      }
+
+      profForm.addEventListener("submit", async (ev) => {
+        ev.preventDefault();
+        const eng = profEngine;
+        if (!eng) return;
+        const editing = profEditing;
+        const name = pf.name.value.trim();
+        const provider = pf.provider.value || eng.provider;
+        const cloud = isCloudProvider(provider);
+        const fed = !cloud && federating();
+        const key = provider === "vertex" || fed ? "" : pf.key.value.trim();
+        const baseURL = eng.base_url && !cloud && !fed ? pf.baseURL.value.trim() : "";
+        const cloudIn = {
+          region: cloud ? pf.region.value.trim() : "",
+          project_id: provider === "vertex" ? pf.project.value.trim() : "",
+          small_fast_model: cloud ? pf.smallModel.value.trim() : "",
+          aws_access_key_id: provider === "bedrock" ? pf.awsKeyID.value.trim() : "",
+          aws_secret_access_key: provider === "bedrock" ? pf.awsSecret.value.trim() : "",
+          aws_session_token: provider === "bedrock" ? pf.awsSession.value.trim() : "",
+          gcp_service_account_json: provider === "vertex" ? pf.gcpSA.value.trim() : "",
+        };
+        const federation = {
+          federation_rule_id: pf.fedRule.value.trim(),
+          organization_id: pf.fedOrg.value.trim(),
+          service_account_id: pf.fedSvac.value.trim(),
+          workspace_id: pf.fedWS.value.trim(),
+        };
+        const problem = fed
+          ? validateFederationForm(name, federation)
+          : validateProfileForm({
+              name,
+              key,
+              editing: Boolean(editing),
+              prefix: pf.key.dataset.prefix ?? "",
+              kindLabel: pf.kind.selectedOptions[0]?.textContent ?? "",
+              provider,
+              baseURL,
+              region: cloudIn.region,
+              projectID: cloudIn.project_id,
+              awsAccessKeyID: cloudIn.aws_access_key_id,
+              awsSecretAccessKey: cloudIn.aws_secret_access_key,
+              providerChanged: Boolean(editing) && (editing?.provider || eng.provider) !== provider,
+            });
+        if (problem) return profileFormError(problem);
+        // Send secret fields only when filled: an empty field keeps the stored credential.
+        const body: Record<string, unknown> = {
+          name,
+          provider,
+          model: pf.model.value.trim(),
+          effort: eng.effort ? pf.effort.value : "",
+          base_url: baseURL,
+          org_id: eng.org_id && !cloud ? pf.orgID.value.trim() : "",
+          auth_header: eng.auth_header && baseURL ? pf.authHeader.value : "",
+          region: cloudIn.region,
+          project_id: cloudIn.project_id,
+          small_fast_model: cloudIn.small_fast_model,
+        };
+        for (const k of [
+          "aws_access_key_id",
+          "aws_secret_access_key",
+          "aws_session_token",
+          "gcp_service_account_json",
+        ] as const) {
+          if (cloudIn[k]) body[k] = cloudIn[k];
+        }
+        if (key) {
+          body.key = key;
+          if (pf.kind.value && !cloud) body.kind = pf.kind.value;
+        }
+        if (fed) {
+          body.federation = federation;
+          body.kind = pf.kind.value;
+        }
+        if (editing && cloud && pf.clearKey.checked) body.clear_key = true;
+        pf.save.disabled = true;
+        try {
+          if (editing) {
+            if (pf.isDefault.checked !== !!editing.is_default)
+              body.is_default = pf.isDefault.checked;
+            const saved = await api.patch<LLMProfile>(`/llm-profiles/${editing.id}`, body);
+            toast(t("settings.llm.toasts.saved", { name }), "ok");
+            if (key) keyCheckToast(name, saved);
+          } else {
+            body.engine = eng.name;
+            body.is_default = pf.isDefault.checked;
+            const saved = await api.post<LLMProfile>("/llm-profiles", body);
+            toast(t("settings.llm.toasts.created", { name }), "ok");
+            keyCheckToast(name, saved);
+          }
+          closeProfileModal();
+          loadLLM();
+        } catch (err: any) {
+          profileFormError(err?.message ?? t("settings.llm.errors.save_failed"));
+          pf.save.disabled = false;
+        }
+      });
+
+      const openapiURL = `${API_BASE}/openapi.json`;
+      ($("openapi-link") as HTMLAnchorElement).href = openapiURL;
+
+      $("copy-openapi").addEventListener("click", async () => {
+        if (await copyText(openapiURL)) toast(t("settings.api.openapi.url_copied"), "ok");
+      });
+
+      async function loadHealth() {
+        const grid = $("health-grid") as HTMLElement;
+        const badge = $("health-badge") as HTMLElement;
+        try {
+          const h = await api.get<HealthResponse>("/health");
+          const view = healthView(h);
+          const { label, tone } = healthBadge(h.status);
+          setBadge(badge, label, tone);
+
+          const groups = [healthTilesHTML(view.tiles, t("settings.health.title"))];
+          if (view.hasSystem) {
+            groups.push(
+              `<h3 class="sub-head">${esc(t("settings.health.system"))}</h3>`,
+              healthTilesHTML(view.system, t("settings.health.system")),
+            );
+          }
+          grid.innerHTML =
+            view.tiles.length || view.hasSystem
+              ? groups.join("")
+              : emptyRowHTML(t("settings.health.empty"), { as: "div" });
+        } catch (err) {
+          setBadge(badge, t("settings.health.offline"), "danger");
+          const msg = err instanceof ApiError ? err.message : t("common.status.daemon_offline");
+          grid.innerHTML = emptyRowHTML(msg, { as: "div", tone: "danger" });
+        }
+      }
+
+      $("health-refresh").addEventListener("click", () => loadHealth());
+
+      async function loadRetention() {
+        const panel = $("retention-panel");
+        if (!(await mayWriteInstallWide())) {
+          panel.hidden = true;
+          return;
+        }
+        try {
+          const v = await api.get<RetentionView>("/infra/retention");
+          panel.hidden = false;
+          setText($("ret-sweep"), sweepLine(v));
+          const disk = $("ret-disk");
+          if (diskLow(v)) {
+            disk.className = "";
+            disk.innerHTML = calloutHTML({ tone: "danger", icon: "alert", body: diskLine(v) });
+          } else {
+            disk.className = "muted";
+            setText(disk, diskLine(v));
+          }
+          $("ret-rows").innerHTML = retentionRowsHTML(v);
+          $("ret-error").hidden = true;
+        } catch {
+          panel.hidden = true;
+        }
+      }
+
+      function showRetentionProblems(problems: Record<string, string>) {
+        for (const input of document.querySelectorAll<HTMLInputElement>("#ret-rows .ret-input")) {
+          const msg = problems[input.dataset.key ?? ""];
+          const line = document.getElementById(`${input.id}-error`);
+          if (msg) input.setAttribute("aria-invalid", "true");
+          else input.removeAttribute("aria-invalid");
+          if (line) {
+            line.hidden = !msg;
+            setText(line, msg ?? "");
+          }
+        }
+        const first = Object.keys(problems)[0];
+        if (first)
+          document
+            .querySelector<HTMLInputElement>(
+              `#ret-rows .ret-input[data-key="${CSS.escape(first)}"]`,
+            )
+            ?.focus();
+      }
+
+      $("ret-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const err = $("ret-error");
+        const btn = $("ret-save") as HTMLButtonElement;
+        const inputs = Array.from(
+          document.querySelectorAll<HTMLInputElement>("#ret-rows .ret-input"),
+        );
+        const check = checkRetention(
+          inputs.map((input) => ({
+            key: input.dataset.key ?? "",
+            raw: input.value,
+            default: Number(input.dataset.default),
+            value: Number(input.dataset.value),
+          })),
+        );
+        err.hidden = true;
+        if (!check.ok) {
+          showRetentionProblems(
+            Object.fromEntries(
+              Object.entries(check.problems).map(([k, p]) => [k, retentionProblemText(p)]),
+            ),
+          );
+          return;
+        }
+        showRetentionProblems({});
+        const count = Object.keys(check.changes).length;
+        if (count === 0) return;
+        btn.disabled = true;
+        try {
+          // One PATCH: the daemon applies all changes or none, so don't split per row.
+          await api.patch("/settings", check.changes);
+          toast(t("settings.health.retention.saved", { count }), "ok");
+          await loadRetention();
+        } catch (e2) {
+          const key =
+            e2 instanceof ApiError
+              ? refusedRetentionKey(
+                  e2.body,
+                  inputs.map((i) => i.dataset.key ?? ""),
+                )
+              : null;
+          if (key && e2 instanceof ApiError) {
+            showRetentionProblems({ [key]: e2.message });
+          } else {
+            err.hidden = false;
+            setText(
+              err,
+              e2 instanceof ApiError ? e2.message : t("settings.health.retention.save_failed"),
+            );
+          }
+        } finally {
+          btn.disabled = false;
+        }
+      });
+
+      let updCurrent = "";
+
+      async function loadUpdates() {
+        const badge = $("upd-badge") as HTMLElement;
+        try {
+          renderUpdateStatus(await api.get<UpdateStatus>("/updates/status"));
+        } catch (err) {
+          setBadge(badge, t("settings.updates.status.unavailable"), "muted");
+          ($("upd-check") as HTMLButtonElement).disabled = true;
+          const msg = isOperatorRefusal(err)
+            ? t("settings.updates.operator_only", { env: OPERATOR_ENV })
+            : err instanceof ApiError
+              ? err.message
+              : t("common.status.daemon_offline");
+          $("upd-summary").innerHTML = calloutHTML({
+            tone: "warn",
+            icon: "lock",
+            body: msg,
+            attrs: { role: "note" },
+          });
+          $("upd-releases").innerHTML = "";
+          $("upd-advisories").hidden = true;
+          return;
+        }
+        void loadUpdateVersions();
+        void loadUpdateHistory();
+        void loadBackups();
+      }
+
+      // Read from the status file deploy/backup.sh leaves in the data dir; the daemon never sees
+      // the archives.
+      async function loadBackups() {
+        const box = $("upd-backups");
+        try {
+          box.innerHTML = backupHTML(await api.get<BackupStatus>("/updates/backups"));
+        } catch (err) {
+          box.innerHTML = emptyRowHTML(
+            err instanceof ApiError ? err.message : t("settings.updates.backups.load_failed"),
+            { as: "div", tone: "danger" },
+          );
+        }
+      }
+
+      function renderUpdateStatus(st: UpdateStatus) {
+        updCurrent = st.version;
+        const badge = $("upd-badge") as HTMLElement;
+        const { label, tone } = updateBadge(st);
+        setBadge(badge, label, tone);
+        ($("upd-check") as HTMLButtonElement).disabled = st.source_off || !!st.source_error;
+
+        const rejectedList = st.rejected
+          .map((r) => `${esc(r.version)} (${esc(r.reason)})`)
+          .join("; ");
+        // Catalog text is trusted; versions and reasons were escaped above.
+        const rejected = st.rejected.length
+          ? calloutHTML({
+              tone: "danger",
+              icon: "alert",
+              bodyHTML: t("settings.updates.rejected", { versions: rejectedList }),
+              attrs: { role: "note" },
+            })
+          : "";
+        const runtime =
+          st.mode === "kubernetes"
+            ? t("settings.updates.runtime.kubernetes")
+            : t("settings.updates.runtime.docker");
+        const lastError = lastErrorHTML(st);
+        const facts = factsHTML(
+          [
+            { label: t("settings.updates.facts.running"), value: st.version, mono: true },
+            {
+              label: t("settings.updates.facts.channel"),
+              value: st.channel || t("settings.updates.facts.unknown"),
+            },
+            { label: t("settings.updates.facts.runs_on"), value: runtime },
+          ],
+          { cls: "upd-facts" },
+        );
+        $("upd-summary").innerHTML = `
+          ${facts}
+          <p class="muted">${esc(sourceLine(st))}</p>
+          ${lastError}
+          ${rejected}`;
+
+        const adv = $("upd-advisories") as HTMLElement;
+        adv.innerHTML = advisoriesHTML(st.advisories);
+        adv.hidden = st.advisories.length === 0;
+
+        const rel = $("upd-releases") as HTMLElement;
+        if (st.available.length) {
+          rel.innerHTML = st.available.map((r) => releaseHTML(r, st.version)).join("");
+        } else {
+          rel.innerHTML = emptyRowHTML(noReleasesLine(st), { as: "div" });
+        }
+      }
+
+      async function loadUpdateVersions() {
+        const lede = $("upd-versions-lede") as HTMLElement;
+        const body = $("upd-versions") as HTMLElement;
+        const wrap = body.closest<HTMLElement>(".table-wrap")!;
+        try {
+          const v = await api.get<KeptVersions>("/updates/versions");
+          if (v.mode === "kubernetes") {
+            setText(lede, t("settings.updates.going_back.lede_kubernetes"));
+            wrap.hidden = true;
+            return;
+          }
+          wrap.hidden = false;
+          setText(
+            lede,
+            v.rollback_known
+              ? t("settings.updates.going_back.lede_known")
+              : t("settings.updates.going_back.lede_unknown"),
+          );
+          body.innerHTML = versionsRowsHTML(v);
+        } catch {
+          wrap.hidden = true;
+        }
+      }
+
+      async function loadUpdateHistory() {
+        const body = $("upd-history") as HTMLElement;
+        const empty = $("upd-history-empty") as HTMLElement;
+        try {
+          const list = await api.get<UpdateHistoryEntry[]>("/updates/history?limit=100");
+          body.innerHTML = historyRowsHTML(list);
+          empty.hidden = list.length > 0;
+          const note = $("upd-unreported");
+          note.innerHTML = unreportedNoteHTML(list);
+          note.hidden = !note.innerHTML;
+        } catch {
+          body.innerHTML = "";
+          empty.hidden = false;
+        }
+      }
+
+      async function downloadUpdatePackage(btn: HTMLButtonElement) {
+        const to = btn.dataset.to ?? "";
+        const format = btn.dataset.format === "json" ? "json" : "md";
+        btn.disabled = true;
+        try {
+          const text = await api.getText(
+            `/updates/package?to=${encodeURIComponent(to)}&format=${format}`,
+          );
+          const type = format === "json" ? "application/json" : "text/markdown";
+          downloadBlob(new Blob([text], { type }), packageFilename(updCurrent, to, format));
+        } catch (err) {
+          toast(
+            err instanceof ApiError ? err.message : t("settings.updates.download_failed"),
+            "err",
+          );
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      $("panel-updates").addEventListener("click", (e) => {
+        const target = e.target as HTMLElement;
+        const pkg = target.closest<HTMLButtonElement>(".upd-pkg");
+        if (pkg) void downloadUpdatePackage(pkg);
+      });
+
+      $("upd-check").addEventListener("click", async () => {
+        const btn = $("upd-check") as HTMLButtonElement;
+        btn.disabled = true;
+        try {
+          const res = await api.post<UpdateStatus | { status: string }>("/updates/check");
+          if ("status" in res) {
+            btn.disabled = false;
+            toast(t("settings.updates.toasts.still_checking"), "info");
+          } else {
+            renderUpdateStatus(res);
+            toast(t("settings.updates.toasts.checked"), "ok");
+          }
+        } catch (err) {
+          btn.disabled = false;
+          toast(
+            err instanceof ApiError ? err.message : t("settings.updates.toasts.check_failed"),
+            "err",
+          );
+        }
+      });
+
+      // /info answers a lapsed token as no session (200 without licensee/features, never 401), so
+      // confirm the session first: sessionInfo() refreshes once.
+      let infoPromise: Promise<InfoResponse> | null = null;
+      function fetchInfo(): Promise<InfoResponse> {
+        infoPromise ??= sessionInfo()
+          .then(() => fetch(`${API_BASE}/info`, { credentials: "include" }))
+          .then((r) => (r.ok ? (r.json() as Promise<InfoResponse>) : Promise.reject(new Error())))
+          .catch(() => ({}) as InfoResponse);
+        return infoPromise;
+      }
+
+      async function applyEditionGate() {
+        const info = await fetchInfo();
+        const ee = isEE(info);
+        const note = $("audit-export-ce");
+        note.hidden = ee;
+        if (!ee) $("audit-export-ce-text").innerHTML = t("settings.audit.export.ce_note_html");
+        for (const format of ["csv", "json"] as const) {
+          const btn = $(`audit-export-${format}`) as HTMLButtonElement;
+          btn.disabled = !ee;
+          if (ee) {
+            delete btn.dataset.eeLocked;
+            btn.title =
+              format === "csv"
+                ? t("settings.audit.export.csv_title")
+                : t("settings.audit.export.json_title");
+          } else {
+            btn.dataset.eeLocked = "1";
+            btn.title = t("settings.audit.export.needs_ee");
+          }
+        }
+      }
+
+      async function loadLicense() {
+        const body = document.querySelector<HTMLElement>(".license-body")!;
+        const badge = $("license-badge") as HTMLElement;
+        try {
+          const info = await fetchInfo();
+          const ee = isEE(info);
+          setBadge(
+            badge,
+            ee ? t("settings.edition.enterprise") : t("settings.edition.community"),
+            ee ? "ok" : "neutral",
+          );
+
+          let expires: string | undefined;
+          if (info.license_expires_at) {
+            const { days, expired, warn } = expiryState(info.license_expires_at);
+            const dateStr = new Date(info.license_expires_at).toLocaleDateString(locale);
+            const suffix =
+              days === null
+                ? ""
+                : expired
+                  ? ` <span class="text-warn">${esc(t("settings.health.license.expired"))}</span>`
+                  : ` <span class="${warn ? "text-warn" : "muted"}">${esc(t("settings.health.license.expires_in", { count: days }))}</span>`;
+            expires = `${esc(dateStr)}${suffix}`;
+          }
+          const features = Array.isArray(info.features) ? info.features : [];
+          const chips = features.length
+            ? `<span class="license-features">${features.map((f) => tagHTML(f, { mono: true, size: "sm" })).join("")}</span>`
+            : undefined;
+
+          let html = factsHTML([
+            {
+              label: t("settings.health.license.edition"),
+              value: ee ? t("settings.edition.enterprise_ee") : t("settings.edition.community_ce"),
+            },
+            { label: t("settings.health.license.licensee"), value: info.licensee || null },
+            { label: t("settings.health.license.expires"), valueHTML: expires },
+            { label: t("settings.health.license.features"), valueHTML: chips },
+          ]);
+          if (!ee) {
+            html += calloutHTML({
+              icon: "info",
+              bodyHTML: t("settings.health.license.ce_note_html"),
+              cls: "license-ce-note",
+            });
+          }
+          body.innerHTML = html;
+        } catch {
+          setBadge(badge, t("settings.health.license.unknown"));
+          body.innerHTML = emptyRowHTML(t("settings.health.license.load_failed"), {
+            as: "div",
+            tone: "danger",
+          });
+        }
+      }
+
+      interface Member {
+        workspace_id: string;
+        user_id: string;
+        email: string;
+        name: string;
+        role: string;
+        invited_at: string;
+        owner?: boolean;
+      }
+
+      let currentWorkspaceID = "";
+      let teamManage = true;
+      let myUserID = "";
+
+      async function getWorkspaceID(): Promise<string> {
+        if (currentWorkspaceID) return currentWorkspaceID;
+        try {
+          const me = await api.get<{ workspace_id?: string }>("/auth/me");
+          currentWorkspaceID = me.workspace_id || "default";
+        } catch {
+          currentWorkspaceID = "default";
+        }
+        return currentWorkspaceID;
+      }
+
+      function memberMeta(m: Member): string {
+        const invAt = m.invited_at ? new Date(m.invited_at).toLocaleDateString(locale) : "";
+        return m.name
+          ? t("settings.team.members.joined_named", { name: m.name, date: invAt })
+          : t("settings.team.members.joined", { date: invAt });
+      }
+
+      function createMemberRow(m: Member): HTMLElement {
+        const base = {
+          leadHTML: avatarHTML({ size: "md", name: memberInitials(m) }),
+          title: m.email || m.user_id,
+          meta: memberMeta(m),
+        };
+        if (m.owner) {
+          const row = elFrom(
+            listRowHTML({
+              ...base,
+              actionsHTML: `<span class="member-role-fixed">${esc(t("settings.roles.owner"))}</span>`,
+            }),
+          );
+          row.querySelector(".row-main")!.appendChild(ownerNote(m));
+          updateMemberRow(row, m, null);
+          return row;
+        }
+        // "owner" appears only for members granted it by role before the daemon refused that, so
+        // the selector shows the truth.
+        const strayOwner =
+          m.role === "owner"
+            ? `<option value="owner" disabled>${esc(t("settings.roles.owner"))}</option>`
+            : "";
+        const row = elFrom(
+          listRowHTML({
+            ...base,
+            actionsHTML: `<span class="member-role-fixed" hidden></span>
+          <select class="select-sm member-role-select" aria-label="${esc(t("settings.labels.role"))}">
+            ${strayOwner}
+            <option value="admin">${esc(t("settings.roles.admin"))}</option>
+            <option value="developer">${esc(t("settings.roles.developer"))}</option>
+            <option value="viewer">${esc(t("settings.roles.viewer"))}</option>
+          </select>
+          ${buttonHTML({ label: t("settings.team.members.remove_aria"), title: t("common.buttons.remove"), icon: "trash", iconOnly: true, size: "sm", variant: "danger", cls: "remove-member-btn" })}`,
+          }),
+        );
+
+        const roleSelect = row.querySelector<HTMLSelectElement>(".member-role-select")!;
+        roleSelect.value = m.role;
+        roleSelect.addEventListener("change", async () => {
+          const who = m.email || m.user_id;
+          const ok = await confirmDialog({
+            title: t("settings.team.members.role_change_title", { email: who }),
+            message: t("settings.team.members.role_change_message", {
+              email: who,
+              role: roleLabel(roleSelect.value),
+            }),
+            confirmLabel: t("settings.team.members.role_change_confirm"),
+          });
+          if (!ok) {
+            roleSelect.value = m.role;
+            return;
+          }
+          const wsID = await getWorkspaceID();
+          try {
+            await api.patch(`/auth/workspaces/${wsID}/members/${m.user_id}`, {
+              role: roleSelect.value,
+            });
+            toast(t("settings.team.members.role_updated"), "ok");
+          } catch (err) {
+            toast(
+              err instanceof ApiError ? err.message : t("settings.team.members.role_failed"),
+              "err",
+            );
+            roleSelect.value = m.role;
+          }
+        });
+
+        const removeBtn = row.querySelector<HTMLButtonElement>(".remove-member-btn")!;
+        removeBtn.addEventListener("click", () => void openMemberRemove(m));
+
+        updateMemberRow(row, m, null);
+        return row;
+      }
+
+      function ownerNote(m: Member): HTMLElement {
+        const note = document.createElement("span");
+        note.className = "row-meta member-owner-note";
+        if (myUserID && m.user_id === myUserID) {
+          const [before, , after] = tParts("settings.team.members.owner_fixed_self", {
+            link: SLOT,
+          });
+          const link = document.createElement("a");
+          link.href = "#account";
+          link.textContent = t("settings.account.workspaces.transfer");
+          note.append(before ?? "", link, after ?? "");
+        } else {
+          note.textContent = t("settings.team.members.owner_fixed_other");
+        }
+        return note;
+      }
+
+      function updateMemberRow(el: HTMLElement, m: Member, _prev: Member | null) {
+        setText(el.querySelector(".avatar"), memberInitials(m));
+        setText(el.querySelector(".row-title"), m.email || m.user_id);
+        setText(el.querySelector(".row-meta"), memberMeta(m));
+        const sel = el.querySelector<HTMLSelectElement>(".member-role-select");
+        if (sel) {
+          sel.value = m.role;
+          sel.hidden = !teamManage;
+          (el.querySelector(".remove-member-btn") as HTMLElement).hidden = !teamManage;
+          const fixed = el.querySelector<HTMLElement>(".member-role-fixed")!;
+          fixed.hidden = teamManage;
+          setText(fixed, roleLabel(m.role));
+        }
+      }
+
+      async function openMemberRemove(m: Member) {
+        let live: number | null = null;
+        try {
+          live = liveKeysBy(await api.get<KeyLite[]>("/auth/api-keys"), m.user_id);
+        } catch {
+          // The key list is for admins with key management.
+        }
+        let revoked = false;
+        const remove = async (revoke: boolean) => {
+          const wsID = await getWorkspaceID();
+          try {
+            await api.del(
+              `/auth/workspaces/${wsID}/members/${m.user_id}${revoke ? "?revoke_keys=1" : ""}`,
+            );
+          } catch (err) {
+            throw new Error(
+              err instanceof ApiError ? err.message : t("settings.team.members.remove_failed"),
+              { cause: err },
+            );
+          }
+          revoked = revoke;
+        };
+        const ask = {
+          title: t("settings.team.members.remove_title"),
+          message: t("settings.team.members.remove_message", { user: m.email || m.user_id }),
+          confirmLabel: t("common.buttons.remove"),
+          danger: true,
+        };
+        const option = revokeKeysOption(live);
+        const ok = option
+          ? (
+              await confirmDialog({
+                ...ask,
+                option,
+                action: (values) => remove(values.revoke_keys === true),
+              })
+            ).ok
+          : await confirmDialog({ ...ask, action: () => remove(false) });
+        if (!ok) return;
+        toast(
+          revoked ? t("settings.team.members.removed_keys") : t("settings.team.members.removed"),
+          "ok",
+        );
+        await loadTeam();
+      }
+
+      let inviteSeatsFull = false;
+      async function loadSeats(wsID: string) {
+        const pill = $("team-seats") as HTMLElement;
+        let seats: Seats | null = null;
+        try {
+          seats = await api.get<Seats>(`/auth/workspaces/${encodeURIComponent(wsID)}/seats`);
+        } catch {
+          seats = null;
+        }
+        const text = seatsText(seats);
+        setCount(pill, text, { pill: true, title: t("settings.team.members.seats_hint") });
+        pill.hidden = !text;
+        const full = teamManage && seatsFull(seats);
+        inviteSeatsFull = full;
+        const note = $("team-seats-full") as HTMLElement;
+        note.hidden = !full;
+        if (full && seats) {
+          setText(
+            $("team-seats-full-text"),
+            t("settings.team.members.seats_full", { limit: seats.limit }),
+          );
+        }
+        $("invite-form")
+          .querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLButtonElement>(
+            "input, select, button",
+          )
+          .forEach((el) => {
+            el.disabled = full;
+          });
+      }
+
+      const LICENSE_HIDDEN_KEY = "octopus.license-notice.hidden-at";
+      async function loadLicenseSeats(wsID: string) {
+        const note = $("team-license") as HTMLElement;
+        note.hidden = true;
+        if (!teamManage) return;
+        if (
+          licenseNoticeHidden(Number(localStorage.getItem(LICENSE_HIDDEN_KEY)) || 0, Date.now())
+        ) {
+          return;
+        }
+        let seats: LicenseSeats | null = null;
+        try {
+          seats = await api.get<LicenseSeats>(
+            `/auth/workspaces/${encodeURIComponent(wsID)}/license-seats`,
+          );
+        } catch {
+          seats = null;
+        }
+        const text = licenseSeatsText(seats);
+        setText($("team-license-text"), text);
+        note.hidden = !text;
+      }
+      $("team-license-hide").addEventListener("click", () => {
+        localStorage.setItem(LICENSE_HIDDEN_KEY, String(Date.now()));
+        ($("team-license") as HTMLElement).hidden = true;
+      });
+
+      const delegBox = $("deleg-enabled") as HTMLInputElement;
+      async function loadDelegationPolicy() {
+        try {
+          const p = await api.get<{ enabled: boolean }>("/chat-delegation");
+          delegBox.checked = p.enabled;
+          delegBox.disabled = false;
+        } catch {
+          delegBox.disabled = true;
+        }
+      }
+      delegBox.addEventListener("change", async () => {
+        const want = delegBox.checked;
+        delegBox.disabled = true;
+        try {
+          await api.put("/chat-delegation", { enabled: want });
+          toast(
+            want ? t("settings.team.delegation.allowed") : t("settings.team.delegation.turned_off"),
+            "ok",
+          );
+        } catch (e) {
+          delegBox.checked = !want;
+          toast(
+            e instanceof ApiError ? e.message : t("settings.team.delegation.change_failed"),
+            "err",
+            6000,
+          );
+        } finally {
+          delegBox.disabled = false;
+        }
+      });
+
+      interface AllowlistEntry {
+        email: string;
+        note: string;
+        added_by: string;
+        created_at: string;
+        source: "list" | "env";
+      }
+
+      function createBetaRow(e: AllowlistEntry): HTMLElement {
+        const row = elFrom(
+          listRowHTML({
+            title: e.email,
+            meta: betaMeta(e),
+            actions: [
+              {
+                label: t("settings.team.beta.remove_aria"),
+                title: t("common.buttons.remove"),
+                icon: "trash",
+                iconOnly: true,
+                variant: "danger",
+              },
+            ],
+          }),
+        );
+        const removeBtn = row.querySelector<HTMLButtonElement>("button")!;
+        removeBtn.addEventListener("click", async () => {
+          const ok = await confirmDialog({
+            title: t("settings.team.beta.remove_title"),
+            message: t("settings.team.beta.remove_message", { email: e.email }),
+            confirmLabel: t("common.buttons.remove"),
+            danger: true,
+          });
+          if (!ok) return;
+          removeBtn.disabled = true;
+          try {
+            await api.del(`/auth/signup-allowlist/${encodeURIComponent(e.email)}`);
+            toast(t("settings.team.beta.removed"), "ok");
+            await loadBetaAccess();
+          } catch (err) {
+            toast(
+              err instanceof ApiError ? err.message : t("settings.team.beta.remove_failed"),
+              "err",
+            );
+            removeBtn.disabled = false;
+          }
+        });
+        updateBetaRow(row, e);
+        return row;
+      }
+
+      function betaMeta(e: AllowlistEntry): string {
+        if (e.source === "env") {
+          return t("settings.team.beta.from_env", { env: "OCTOPUS_SSO_ALLOWED_EMAILS" });
+        }
+        const date = e.created_at ? new Date(e.created_at).toLocaleDateString(locale) : "";
+        const meta = t("settings.team.beta.added", { by: e.added_by || "—", date });
+        return e.note ? `${e.note} · ${meta}` : meta;
+      }
+
+      function updateBetaRow(el: HTMLElement, e: AllowlistEntry) {
+        setText(el.querySelector(".row-title"), e.email);
+        setText(el.querySelector(".row-meta"), betaMeta(e));
+        // Env-seeded emails (OCTOPUS_SSO_ALLOWED_EMAILS) change only on restart; deleting them
+        // returns 409.
+        (el.querySelector("button") as HTMLButtonElement).hidden = e.source === "env";
+      }
+
+      function createWaitingRow(e: WaitingEntry): HTMLElement {
+        const row = elFrom(
+          listRowHTML({
+            leadHTML: avatarHTML({ size: "md", pending: true }),
+            title: e.email,
+            meta: waitingMetaOf(e),
+            actions: [
+              { label: t("settings.team.beta.grant"), cls: "waiting-grant" },
+              {
+                label: t("settings.team.beta.dismiss_aria"),
+                title: t("settings.team.beta.dismiss"),
+                icon: "x",
+                iconOnly: true,
+                cls: "waiting-dismiss",
+                attrs: { hidden: true },
+              },
+            ],
+          }),
+        );
+        const dismiss = row.querySelector<HTMLButtonElement>(".waiting-dismiss")!;
+        dismiss.addEventListener("click", async () => {
+          dismiss.disabled = true;
+          try {
+            await api.del(`/auth/signup-requests/${encodeURIComponent(e.email)}`);
+            toast(t("settings.team.beta.dismissed"), "ok");
+            await loadBetaAccess();
+          } catch (err) {
+            toast(
+              err instanceof ApiError ? err.message : t("settings.team.beta.dismiss_failed"),
+              "err",
+            );
+            dismiss.disabled = false;
+          }
+        });
+        const grant = row.querySelector<HTMLButtonElement>(".waiting-grant")!;
+        grant.addEventListener("click", async () => {
+          grant.disabled = true;
+          try {
+            await api.post("/auth/signup-allowlist", {
+              email: e.email,
+              note: e.requested
+                ? t("settings.team.beta.requested_note")
+                : t("settings.team.beta.waiting_meta", { workspaces: e.workspaces.join(", ") }),
+            });
+            toast(t("settings.team.beta.granted", { email: e.email }), "ok");
+            await loadBetaAccess();
+          } catch (err) {
+            toast(
+              err instanceof ApiError ? err.message : t("settings.team.beta.add_failed"),
+              "err",
+            );
+            grant.disabled = false;
+          }
+        });
+        updateWaitingRow(row, e);
+        return row;
+      }
+
+      function waitingMetaOf(e: WaitingEntry): string {
+        const date = e.invited_at ? new Date(e.invited_at).toLocaleDateString(locale) : "";
+        return waitingMeta(e, date);
+      }
+
+      function updateWaitingRow(el: HTMLElement, e: WaitingEntry) {
+        setText(el.querySelector(".row-title"), e.email);
+        setText(el.querySelector(".row-meta"), waitingMetaOf(e));
+        (el.querySelector(".waiting-dismiss") as HTMLElement).hidden = !e.requested;
+      }
+
+      function renderWaiting(waiting: WaitingEntry[]) {
+        ($("beta-waiting") as HTMLElement).hidden = waiting.length === 0;
+        setCount($("beta-waiting-count"), waiting.length, { pill: true });
+        reconcile<WaitingEntry>({
+          container: $("beta-waiting-list"),
+          items: waiting,
+          key: (e) => e.email,
+          create: createWaitingRow,
+          update: updateWaitingRow,
+        });
+      }
+
+      async function loadLoginConfig() {
+        const panel = $("login-config-panel") as HTMLElement;
+        if (!(await sessionInfo())?.operator) {
+          panel.hidden = true;
+          return;
+        }
+        panel.hidden = false;
+        const list = $("login-config-list");
+        try {
+          const lines = loginConfigLines(await api.get<LoginConfig>("/auth/login-config"));
+          list.innerHTML = factsHTML(
+            lines.map((l) => ({
+              label: l.label,
+              valueHTML: `${esc(l.value)}<span class="fact-list-note"><code>${esc(l.env)}</code></span>`,
+            })),
+          );
+        } catch (err) {
+          const msg = err instanceof ApiError ? err.message : t("settings.team.login.load_failed");
+          list.innerHTML = emptyRowHTML(msg, { as: "div", tone: "danger" });
+        }
+      }
+
+      async function loadBetaAccess() {
+        const panel = $("beta-panel") as HTMLElement;
+        if (!(await sessionInfo())?.operator) {
+          panel.hidden = true;
+          return;
+        }
+        panel.hidden = false;
+        const ct = $("beta-list");
+        try {
+          const res = await api.get<{
+            mode: string;
+            entries: AllowlistEntry[];
+            waiting?: WaitingEntry[];
+          }>("/auth/signup-allowlist");
+          renderWaiting(res.waiting ?? []);
+          setCount($("beta-count"), res.entries.length, { pill: true });
+          setText(
+            $("beta-mode"),
+            res.mode === "allowlist"
+              ? t("settings.team.beta.mode_allowlist")
+              : t("settings.team.beta.mode_open", { env: "OCTOPUS_SIGNUP_MODE" }),
+          );
+          if (res.entries.length === 0) {
+            ct.innerHTML = emptyRowHTML(t("settings.team.beta.empty"), { as: "div" });
+            return;
+          }
+          // reconcile only touches keyed rows; remove the shipped "Loading…" placeholder first.
+          ct.querySelector(".row-empty")?.remove();
+          reconcile<AllowlistEntry>({
+            container: ct,
+            items: res.entries,
+            key: (e) => e.email,
+            create: createBetaRow,
+            update: updateBetaRow,
+          });
+        } catch (err) {
+          const msg = err instanceof ApiError ? err.message : t("settings.team.beta.load_failed");
+          ct.innerHTML = emptyRowHTML(msg, { as: "div", tone: "danger" });
+        }
+      }
+
+      const betaEmail = $("beta-email") as HTMLInputElement;
+      const betaNote = $("beta-note") as HTMLInputElement;
+      const betaSubmit = $("beta-submit") as HTMLButtonElement;
+      const { show: showBetaError, hide: hideBetaError } = bindError(
+        $("beta-error") as HTMLElement,
+      );
+
+      ($("beta-form") as HTMLFormElement).addEventListener("submit", async (e) => {
+        e.preventDefault();
+        hideBetaError();
+        const email = betaEmail.value.trim();
+        if (!email) {
+          showBetaError(t("settings.team.invite.email_required"));
+          return;
+        }
+        betaSubmit.disabled = true;
+        try {
+          await api.post("/auth/signup-allowlist", { email, note: betaNote.value.trim() });
+          betaEmail.value = "";
+          betaNote.value = "";
+          toast(t("settings.team.beta.added_toast"), "ok");
+          await loadBetaAccess();
+        } catch (err) {
+          showBetaError(err instanceof ApiError ? err.message : t("settings.team.beta.add_failed"));
+        } finally {
+          betaSubmit.disabled = false;
+        }
+      });
+
+      async function loadTeam() {
+        void loadWorkspaceName();
+        void loadDelegationPolicy();
+        void loadBetaAccess();
+        void loadLoginConfig();
+        const info = await sessionInfo();
+        myUserID = info?.user?.id ?? "";
+        teamManage = !info?.role || canInvite(info.role);
+        ($("team-readonly") as HTMLElement).hidden = teamManage;
+        ($("invite-form") as HTMLElement).hidden = !teamManage;
+        const wsID = await getWorkspaceID();
+        void loadSeats(wsID);
+        void loadLicenseSeats(wsID);
+        try {
+          const members = await api.get<Member[]>(`/auth/workspaces/${wsID}/members`);
+          setCount($("team-count"), members.length, { pill: true });
+          const ct = $("team-list");
+          if (members.length === 0) {
+            ct.innerHTML = emptyRowHTML(t("settings.team.members.empty"), { as: "div" });
+            return;
+          }
+          ct.querySelector(".row-empty")?.remove();
+          reconcile<Member>({
+            container: ct,
+            items: members,
+            // The owner row is built differently, so the key changes on transfer to force a
+            // rebuild.
+            key: (m) => `${m.user_id}${m.owner ? ":owner" : ""}`,
+            create: createMemberRow,
+            update: updateMemberRow,
+          });
+          void loadPending(wsID);
+        } catch (err) {
+          const ct = $("team-list");
+          const msg =
+            err instanceof ApiError ? err.message : t("settings.team.members.load_failed");
+          ct.innerHTML = emptyRowHTML(msg, { as: "div", tone: "danger" });
+        }
+      }
+
+      function createPendingRow(inv: Invitation): HTMLElement {
+        const row = elFrom(
+          listRowHTML({
+            leadHTML: avatarHTML({ size: "md", pending: true }),
+            title: inv.email,
+            metaHTML: pendingMetaHTML(inv),
+            actionsHTML: `<select class="select-sm member-role-select" aria-label="${esc(t("settings.labels.role"))}">
+              <option value="admin">${esc(t("settings.roles.admin"))}</option>
+              <option value="developer">${esc(t("settings.roles.developer"))}</option>
+              <option value="viewer">${esc(t("settings.roles.viewer"))}</option>
+            </select>
+            ${buttonHTML({ label: t("settings.team.pending.copy_link"), icon: "link", size: "sm", cls: "pending-copy", attrs: { "aria-label": t("settings.team.pending.copy_link_named", { email: inv.email }) } })}
+            ${buttonHTML({ label: t("settings.team.pending.cancel"), icon: "x", iconOnly: true, size: "sm", variant: "danger", cls: "pending-cancel" })}`,
+          }),
+        );
+
+        const roleSelect = row.querySelector<HTMLSelectElement>(".member-role-select")!;
+        roleSelect.addEventListener("change", async () => {
+          const prev = roleSelect.dataset.role ?? "";
+          try {
+            await setInvitationRole(inv.workspace_id, inv.id, roleSelect.value);
+            roleSelect.dataset.role = roleSelect.value;
+            toast(t("settings.team.members.role_updated"), "ok");
+          } catch (err) {
+            toast(
+              err instanceof ApiError ? err.message : t("settings.team.members.role_failed"),
+              "err",
+            );
+            roleSelect.value = prev;
+          }
+        });
+
+        row
+          .querySelector<HTMLButtonElement>(".pending-copy")!
+          .addEventListener("click", async () => {
+            const ok = await copyText(invitationLink(window.location.origin, inv.id));
+            if (ok) toast(t("settings.team.pending.link_copied"), "ok");
+            else toast(t("settings.team.pending.copy_failed"), "err");
+          });
+
+        const cancelBtn = row.querySelector<HTMLButtonElement>(".pending-cancel")!;
+        cancelBtn.addEventListener("click", async () => {
+          const ok = await confirmDialog({
+            title: t("settings.team.pending.cancel_title", { email: inv.email }),
+            message: t("settings.team.pending.cancel_message", { email: inv.email }),
+            confirmLabel: t("settings.team.pending.cancel"),
+            danger: true,
+          });
+          if (!ok) return;
+          cancelBtn.disabled = true;
+          try {
+            await cancelInvitation(inv.workspace_id, inv.id);
+            toast(t("settings.team.pending.canceled"), "ok");
+            await loadTeam();
+          } catch (err) {
+            toast(
+              err instanceof ApiError ? err.message : t("settings.team.pending.cancel_failed"),
+              "err",
+            );
+            cancelBtn.disabled = false;
+          }
+        });
+
+        updatePendingRow(row, inv);
+        return row;
+      }
+
+      function pendingMetaHTML(inv: Invitation): string {
+        const date = inv.created_at ? new Date(inv.created_at).toLocaleDateString(locale) : "";
+        const badge = inv.awaiting_access
+          ? badgeHTML(t("settings.team.pending.awaiting"), "warn")
+          : badgeHTML(t("settings.team.pending.badge"));
+        const by = inv.invited_by
+          ? t("settings.team.pending.invited_by", { by: inv.invited_by, date })
+          : t("settings.team.pending.invited_on", { date });
+        return `${badge} ${esc(by)}`;
+      }
+
+      function updatePendingRow(el: HTMLElement, inv: Invitation) {
+        setText(el.querySelector(".row-title"), inv.email);
+        el.querySelector(".row-meta")!.innerHTML = pendingMetaHTML(inv);
+        const sel = el.querySelector<HTMLSelectElement>(".member-role-select")!;
+        sel.value = inv.role;
+        sel.dataset.role = inv.role;
+        sel.hidden = !teamManage;
+        (el.querySelector(".pending-copy") as HTMLElement).hidden = !teamManage;
+        (el.querySelector(".pending-cancel") as HTMLElement).hidden = !teamManage;
+      }
+
+      async function loadPending(wsID: string) {
+        const box = $("team-pending") as HTMLElement;
+        let invs: Invitation[];
+        try {
+          invs = await listInvitations(wsID);
+        } catch {
+          return;
+        }
+        box.hidden = invs.length === 0;
+        setCount($("team-pending-count"), invs.length, { pill: true });
+        reconcile<Invitation>({
+          container: $("team-pending-list"),
+          items: invs,
+          key: (i) => i.id,
+          create: createPendingRow,
+          update: updatePendingRow,
+        });
+      }
+
+      const inviteForm = $("invite-form") as HTMLFormElement;
+      const inviteEmail = $("invite-email") as HTMLInputElement;
+      const inviteRole = $("invite-role") as HTMLSelectElement;
+      const inviteError = $("invite-error") as HTMLElement;
+      const inviteSubmit = $("invite-submit") as HTMLButtonElement;
+
+      const { show: showInviteError, hide: hideInviteError } = bindError(inviteError);
+
+      inviteForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        hideInviteError();
+        const email = inviteEmail.value.trim();
+        if (!email) {
+          showInviteError(t("settings.team.invite.email_required"));
+          return;
+        }
+        const role = inviteRole.value || "developer";
+        inviteSubmit.disabled = true;
+        try {
+          const wsID = await getWorkspaceID();
+          const res = await addMember(wsID, email, role);
+          inviteEmail.value = "";
+          inviteRole.value = "developer";
+          if (res.status === "invited") {
+            const key = res.invitation.awaiting_access
+              ? "settings.team.invite.invited_waiting"
+              : "settings.team.invite.invited";
+            toast(t(key, { email: res.invitation.email }), "ok", 6000);
+          } else {
+            toast(t("settings.team.invite.added"), "ok");
+          }
+          await loadTeam();
+        } catch (err) {
+          showInviteError(err instanceof ApiError ? err.message : t("settings.team.invite.failed"));
+        } finally {
+          // The send may have taken the last seat: loadSeats (via loadTeam) decides whether the
+          // button stays off.
+          inviteSubmit.disabled = inviteSeatsFull;
+        }
+      });
+
+      async function loadAccount() {
+        const profileEl = $("account-profile") as HTMLElement;
+        try {
+          const me = await api.get<SessionInfo>("/auth/me");
+          profileEl.innerHTML = factsHTML([
+            { label: t("settings.account.profile.email"), value: me.user?.email || "—" },
+            { label: t("settings.account.profile.name"), value: me.user?.name || "—" },
+            {
+              label: t("settings.account.profile.workspace"),
+              value: me.workspace_name || me.workspace_id || "—",
+            },
+            { label: t("settings.labels.role"), value: me.role ? roleLabel(me.role) : "—" },
+          ]);
+        } catch {
+          profileEl.innerHTML = emptyRowHTML(t("settings.account.profile.signed_out"), {
+            as: "div",
+          });
+        }
+      }
+
+      interface Session {
+        family_id: string;
+        workspace_id: string;
+        started_at: string;
+        last_used_at: string;
+        device_ua: string;
+        device_ip: string;
+        is_current: boolean;
+      }
+
+      async function loadSessions() {
+        const body = $("sessions-list");
+        try {
+          const sessions = await api.get<Session[]>("/auth/sessions");
+          if (!sessions.length) {
+            body.innerHTML = emptyRowHTML(t("settings.account.sessions.empty"), { as: "div" });
+            return;
+          }
+          body.innerHTML = "";
+          for (const s of sessions) {
+            const when = t("settings.account.sessions.times", {
+              started: fmtDate(s.started_at),
+              last_used: fmtDate(s.last_used_at),
+            });
+            const row = elFrom(
+              listRowHTML({
+                title: deviceLabel(s.device_ua),
+                badgesHTML: s.is_current
+                  ? badgeHTML(t("settings.account.sessions.this_device"), "accent")
+                  : "",
+                meta: [s.device_ip, when].filter(Boolean).join(" · "),
+                actions: [{ label: t("settings.account.sessions.sign_out") }],
+              }),
+            );
+            const btn = row.querySelector<HTMLButtonElement>(".row-actions button")!;
+            btn.addEventListener("click", async () => {
+              btn.disabled = true;
+              try {
+                await api.del(`/auth/sessions/${s.family_id}`);
+                toast(t("settings.account.sessions.signed_out"), "ok");
+                loadSessions();
+              } catch (err) {
+                btn.disabled = false;
+                toast(
+                  err instanceof ApiError
+                    ? err.message
+                    : t("settings.account.sessions.sign_out_failed"),
+                  "err",
+                );
+              }
+            });
+            body.appendChild(row);
+          }
+        } catch {
+          body.innerHTML = emptyRowHTML(t("settings.account.sessions.signed_out_state"), {
+            as: "div",
+          });
+        }
+      }
+
+      const revokeAllBtn = $("sessions-revoke-all") as HTMLButtonElement;
+      revokeAllBtn.addEventListener("click", async () => {
+        revokeAllBtn.disabled = true;
+        try {
+          await api.post("/auth/sessions/revoke-all");
+          toast(t("settings.account.sessions.revoked_all"), "ok");
+          loadSessions();
+        } catch (err) {
+          toast(
+            err instanceof ApiError
+              ? err.message
+              : t("settings.account.sessions.revoke_all_failed"),
+            "err",
+          );
+        } finally {
+          revokeAllBtn.disabled = false;
+        }
+      });
+
+      startPoller({
+        interval: 15_000,
+        firstDelay: 0,
+        fetch: async () => {
+          if (activeSection === "webhooks") await loadWebhooks();
+          if (activeSection === "audit") await loadAudit();
+          if (activeSection === "health") await loadHealth();
+          if (activeSection === "team") await loadTeam();
+        },
+        skipWhen: () => dirty.isFocusInEditable() || dirty.hasOpenModal(),
+      });
+
+      void syncSectionFromHash();
+      applyEditionGate();
+    });
+  </script>
+</Layout>

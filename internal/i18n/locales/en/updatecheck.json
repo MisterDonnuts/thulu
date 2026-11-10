@@ -1,0 +1,14 @@
+{
+  "errors": {
+    "release_key": "release key",
+    "list_releases": "list releases from {source}"
+  },
+  "rejections": {
+    "channel_not_allowed": "signed for channel {channel:%q}, which {env} does not allow"
+  },
+  "log": {
+    "interval_not_duration": "{env}={value:%q} is not a duration (e.g. 12h); using {fallback}",
+    "interval_below_minimum": "{env}={value} is below the {minimum} minimum; using {minimum}",
+    "check_failed": "check: {err}"
+  }
+}

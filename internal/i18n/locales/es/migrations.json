@@ -1,0 +1,40 @@
+{
+  "errors": {
+    "unknown_command": "comando desconocido {command:%q}",
+    "base_lock": "lock de la rama base",
+    "lint_blocked": {
+      "one": "{count} sentencia destructiva rompe la regla expand/contract; mirá docs/migrations.md",
+      "other": "{count} sentencias destructivas rompen la regla expand/contract; mirá docs/migrations.md"
+    },
+    "version_required": "falta -version",
+    "lock_stale": "el lock no está al día; arreglá esto primero:\n{cause}"
+  },
+  "cli": {
+    "error": "migrations: {err}",
+    "usage": "uso: migrations list|lock|check|lint|release|ready|mode [flags]",
+    "flag_json": "imprimir JSON",
+    "flag_base_stdin": "leer de stdin el lock de la rama donde se mergea esta",
+    "flag_enforce": "bloquear aunque el lock todavía no liste {version}",
+    "flag_release_version": "release que se está cortando (1.1.0)",
+    "flag_ready_version": "release que se está tagueando (1.1.0)",
+    "relocked": "{path}: {count} migraciones, {unreleased} sin publicar",
+    "lock_not_canonical": "{path} no tiene la forma en que lo escribe cmd/migrations: corré `make migrations-lock`",
+    "check_ok": "lock de migraciones OK: {count} migraciones, {unreleased} sin publicar, última release {latest}",
+    "mode_report": "modo reporte (bloquea cuando el lock liste {version})",
+    "mode_enforcing": "bloqueante",
+    "lint_summary": {
+      "one": "lint de migraciones: {count} sentencia destructiva en migraciones sin publicar, {blocked} sin un Contract válido; {mode}",
+      "other": "lint de migraciones: {count} sentencias destructivas en migraciones sin publicar, {blocked} sin un Contract válido; {mode}"
+    },
+    "lint_annotation": {
+      "one": "{count} sentencia destructiva sin Contract (modo reporte hasta {version})",
+      "other": "{count} sentencias destructivas sin Contract (modo reporte hasta {version})"
+    },
+    "released": {
+      "one": "{path}: release {version}, {count} migración marcada como publicada en ella",
+      "other": "{path}: release {version}, {count} migraciones marcadas como publicadas en ella"
+    },
+    "ready": "lock de migraciones listo para {version}",
+    "none": "ninguna"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "errors": {
+    "read_dockerfiles": "leer los Dockerfiles",
+    "no_from_lines": "no se encontró ninguna línea FROM; corrélo desde la raíz del repositorio o pasá -root"
+  },
+  "cli": {
+    "flag_apply": "borrar las imágenes listadas (por defecto sólo las lista)",
+    "flag_kind": "borrar también las imágenes kindest/node cuando no hay ningún clúster de kind",
+    "flag_root": "repositorio cuyos Dockerfiles nombran las bases a conservar",
+    "error": "dockergc-bases: {err}",
+    "kind_cluster_exists": "Hay un clúster de kind, así que las imágenes kindest/node se quedan.",
+    "header_empty": "Bases de build (0)",
+    "header": "Bases de build ({count}, hasta {size})",
+    "nothing_removed": "No se borró nada. Corré `{command}` para borrarlas.",
+    "removed": {
+      "one": "Se borró {count} base de build, hasta {size}.",
+      "other": "Se borraron {count} bases de build, hasta {size}."
+    }
+  }
+}

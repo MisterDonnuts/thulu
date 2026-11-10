@@ -1,0 +1,23 @@
+---
+// Markup must match factHTML() in lib/ui/facts.ts.
+import { factValueClass } from "../lib/ui/facts";
+import type { Attrs } from "../lib/ui/dom";
+
+interface Props {
+  label: string;
+  value?: string | number;
+  mono?: boolean;
+  note?: string;
+  valueAttrs?: Attrs;
+  [key: string]: unknown;
+}
+const { label, value, mono = false, note, valueAttrs, ...rest } = Astro.props;
+---
+
+<div {...rest}>
+  <dt>{label}</dt>
+  <dd class={factValueClass({ mono })} {...valueAttrs}>
+    {value ?? <slot />}
+    {note && <span class="fact-list-note">{note}</span>}
+  </dd>
+</div>

@@ -1,0 +1,11 @@
+{
+  "group_count": "{pass}/{total} pasan",
+  "never_run": "Nunca se corrió",
+  "coverage": {
+    "covered": "Cubierto",
+    "not_covered": "Sin cubrir"
+  },
+  "open": "Abrir",
+  "add_to_library": "Agregar a la biblioteca",
+  "in_library": "En la biblioteca · {key}"
+}

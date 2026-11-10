@@ -1,0 +1,9 @@
+{
+  "errors": {
+    "session_not_found": "no existe la sesión",
+    "logs_unreadable": "no se puede leer el archivo de logs",
+    "no_output_dir": "esta sesión no tiene directorio de salida",
+    "invalid_path": "la ruta no es válida",
+    "file_not_found": "no existe el archivo"
+  }
+}

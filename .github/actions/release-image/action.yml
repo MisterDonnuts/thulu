@@ -1,0 +1,287 @@
+name: Release image
+description: >
+  One release image: build, scan, push, generate its SBOM, and (unless
+  sign is false) sign it, attach the SBOM as an attestation and, where GitHub
+  offers it, SLSA build provenance (.github/actions/sign-image).
+
+# Composite action, not a reusable workflow: keyless signing certifies the calling workflow
+# (octopus-release.yml at the tag),
+# the identity the Kyverno policy and install.sh pin. With sign: false the job needs no id-token or
+# attestations permission.
+inputs:
+  name:
+    description: Image name under ghcr.io/<owner>/ (e.g. octopus-sandbox)
+    required: true
+  file:
+    description: Dockerfile path
+    required: true
+  context:
+    description: Build context
+    required: true
+  base:
+    description: Value for the BASE build arg (images built FROM octopus-agent-base)
+    required: false
+    default: ""
+  build-args:
+    description: More build args, one KEY=value per line (e.g. ENGINES=codex)
+    required: false
+    default: ""
+  version:
+    description: Version stamped into the image; defaults to the tag being released
+    required: false
+    default: ""
+  platforms:
+    description: >
+      Comma-separated platforms to build and push (buildx syntax). A single
+      platform pushes a plain image; several push an index. QEMU is set up
+      only when one of them is not linux/amd64, the runner's own platform.
+    required: false
+    default: linux/amd64
+  tag:
+    description: >
+      The one tag to push instead of <version> (and latest). Preview builds
+      use it so a branch never moves a release tag.
+    required: false
+    default: ""
+  sign:
+    description: >
+      "true" pushes the tags and signs right after the push. "false" pushes by
+      digest only, untagged, and leaves signing and tagging to the caller
+      (the release workflow, after its CI gate).
+    required: false
+    default: "true"
+outputs:
+  image:
+    description: ghcr.io/<owner>/<name>
+    value: ${{ steps.meta.outputs.image }}
+  digest:
+    description: sha256 digest of what was pushed (an image, or an index when several platforms are built)
+    value: ${{ steps.push.outputs.digest }}
+
+runs:
+  using: composite
+  steps:
+    # Hosted runners start with ~14 GB free; thulu-browser's build, scan copy and SBOM export ran
+    # out of disk.
+    - name: Free disk space
+      shell: bash
+      run: |
+        sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+        df -h / | tail -1
+
+    # Before the first build: images FROM octopus-agent-base pull it from the registry.
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
+
+    - name: Check the requested platforms
+      id: platforms
+      shell: bash
+      env:
+        PLATFORMS: ${{ inputs.platforms }}
+      run: |
+        if [ -z "${PLATFORMS// /}" ]; then
+          echo "::error::the platforms input is empty"
+          exit 1
+        fi
+        emulated=false
+        IFS=',' read -r -a list <<< "$PLATFORMS"
+        for p in "${list[@]}"; do
+          p="${p// /}"
+          if [ "$p" != "linux/amd64" ]; then emulated=true; fi
+        done
+        echo "emulated=${emulated}" >> "$GITHUB_OUTPUT"
+
+    - name: Set up QEMU (for non-amd64 emulation)
+      if: steps.platforms.outputs.emulated == 'true'
+      uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+    # Same prerelease predicate as the GitHub Release step in octopus-release.yml.
+    # Previews (a tag input) keep their own build cache: a branch must not fill the cache a release
+    # build restores.
+    - name: Compute image name and tags
+      id: meta
+      shell: bash
+      env:
+        REF_NAME: ${{ github.ref_name }}
+        OWNER: ${{ github.repository_owner }}
+        NAME: ${{ inputs.name }}
+        BASE: ${{ inputs.base }}
+        BUILD_ARGS: ${{ inputs.build-args }}
+        VERSION: ${{ inputs.version }}
+        TAG: ${{ inputs.tag }}
+        PLATFORMS: ${{ inputs.platforms }}
+        REPO: ${{ github.repository }}
+      run: |
+        owner="$(echo "$OWNER" | tr '[:upper:]' '[:lower:]')"  # ghcr requires lowercase
+        image="ghcr.io/${owner}/${NAME}"
+        version="${VERSION:-${REF_NAME#v}}"
+        if [ -n "$TAG" ]; then
+          tags="${image}:${TAG}"
+        else
+          tags="${image}:${version}"
+          case "$REF_NAME" in
+            *-rc*|*-beta*|*-alpha*) ;;            # prerelease — no :latest
+            *) tags="${tags},${image}:latest" ;;
+          esac
+        fi
+        {
+          echo "image=${image}"
+          echo "version=${version}"
+          echo "tags=${tags}"
+          if [ -n "$TAG" ]; then echo "cache=preview-${NAME}"; else echo "cache=${NAME}"; fi
+          # OCI annotations on what is pushed (the registry links the package to the repository by
+          # them). Not image labels: dockergc reads a source label as "the daemon's own image".
+          levels=manifest
+          case "$PLATFORMS" in *,*) levels="index manifest" ;; esac
+          echo "annotations<<ANN"
+          for l in $levels; do
+            echo "${l}:org.opencontainers.image.source=https://github.com/${REPO}"
+            echo "${l}:org.opencontainers.image.version=${version}"
+            echo "${l}:org.opencontainers.image.licenses=AGPL-3.0-only WITH AdditionRef-Thulu-Enterprise-Modules-Exception-1.0 AND LicenseRef-Thulu-Enterprise"
+          done
+          echo "ANN"
+          echo "build-args<<ARGS"
+          echo "VERSION=${version}"
+          if [ -n "$BASE" ]; then echo "BASE=${BASE}"; fi
+          if [ -n "$BUILD_ARGS" ]; then printf '%s\n' "$BUILD_ARGS"; fi
+          echo "ARGS"
+        } >> "$GITHUB_OUTPUT"
+
+    # Single-arch build into the local daemon, only to scan it before anything
+    # reaches the registry. The push below reuses its layer cache, so with
+    # amd64 only it is a cache hit plus the upload. The two stay separate on
+    # purpose: build-push-action cannot push what `load: true` put in the
+    # daemon, and a `docker push` of it would make the digest the daemon's
+    # doing, not the one BuildKit signed off on. The scan gates the push.
+    - name: Build for scanning (linux/amd64)
+      uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+      with:
+        context: ${{ inputs.context }}
+        file: ${{ inputs.file }}
+        platforms: linux/amd64
+        load: true
+        push: false
+        provenance: false
+        tags: scan.local/${{ inputs.name }}:${{ steps.meta.outputs.version }}
+        build-args: ${{ steps.meta.outputs.build-args }}
+        cache-from: type=gha,scope=${{ steps.meta.outputs.cache }}
+        cache-to: type=gha,mode=max,scope=${{ steps.meta.outputs.cache }}
+
+    # The release gate: no image with a CRITICAL vulnerability that has a fix
+    # available is pushed. Same trivy, same flags as `make scan-image`. Only
+    # the amd64 variant is scanned; when arm64 is built too, it installs the
+    # same package versions.
+    - name: Scan (CRITICAL with a fix available fails the release)
+      shell: bash
+      env:
+        SCAN_IMAGE: scan.local/${{ inputs.name }}:${{ steps.meta.outputs.version }}
+      run: |
+        make scan-image SCAN_IMAGE="$SCAN_IMAGE"
+        docker image rm "$SCAN_IMAGE" >/dev/null
+
+    - name: Build and push (${{ inputs.platforms }})
+      id: push-tagged
+      if: inputs.sign == 'true'
+      uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+      with:
+        context: ${{ inputs.context }}
+        file: ${{ inputs.file }}
+        platforms: ${{ inputs.platforms }}
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        build-args: ${{ steps.meta.outputs.build-args }}
+        annotations: ${{ steps.meta.outputs.annotations }}
+        # Provenance comes from the signed GitHub attestation, not an
+        # unsigned BuildKit one inside the index.
+        provenance: false
+        cache-from: type=gha,scope=${{ steps.meta.outputs.cache }}
+        cache-to: type=gha,mode=max,scope=${{ steps.meta.outputs.cache }}
+
+    # sign: false (a release, before its CI gate): push by digest only, with
+    # no tag. Nobody can pull it by name, it carries no signature, and the
+    # release workflow tags it only after signing it, once CI has passed.
+    - name: Build and push by digest, untagged (${{ inputs.platforms }})
+      id: push-digest
+      if: inputs.sign != 'true'
+      uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+      with:
+        context: ${{ inputs.context }}
+        file: ${{ inputs.file }}
+        platforms: ${{ inputs.platforms }}
+        push: false
+        outputs: type=image,name=${{ steps.meta.outputs.image }},push-by-digest=true,name-canonical=true,push=true
+        build-args: ${{ steps.meta.outputs.build-args }}
+        annotations: ${{ steps.meta.outputs.annotations }}
+        provenance: false
+        cache-from: type=gha,scope=${{ steps.meta.outputs.cache }}
+        cache-to: type=gha,mode=max,scope=${{ steps.meta.outputs.cache }}
+
+    - name: Read the pushed digest
+      id: push
+      shell: bash
+      env:
+        DIGEST: ${{ steps.push-tagged.outputs.digest || steps.push-digest.outputs.digest }}
+      run: |
+        if ! [[ "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+          echo "::error::the push returned no digest (got '$DIGEST')"
+          exit 1
+        fi
+        echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"
+
+    - name: Generate SBOM (SPDX JSON)
+      uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
+      with:
+        image: ${{ steps.meta.outputs.image }}@${{ steps.push.outputs.digest }}
+        format: spdx-json
+        output-file: ${{ inputs.name }}-${{ steps.meta.outputs.version }}.spdx.json
+        syft-version: v1.52.0
+        upload-artifact: false
+        upload-release-assets: false
+
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: sbom-${{ inputs.name }}
+        path: ${{ inputs.name }}-${{ steps.meta.outputs.version }}.spdx.json
+
+    # The release manifest lists every image by this exact reference; the
+    # manifest job collects one <name>.ref per image, and the release's
+    # sign-images job signs what it names.
+    - name: Record the pushed reference
+      shell: bash
+      env:
+        REF: ${{ steps.meta.outputs.image }}@${{ steps.push.outputs.digest }}
+        NAME: ${{ inputs.name }}
+      run: |
+        mkdir -p image-ref
+        printf '%s\n' "$REF" > "image-ref/${NAME}.ref"
+
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: ref-${{ inputs.name }}
+        path: image-ref/${{ inputs.name }}.ref
+
+    - name: Sign
+      if: inputs.sign == 'true'
+      uses: ./.github/actions/sign-image
+      with:
+        image: ${{ steps.meta.outputs.image }}
+        digest: ${{ steps.push.outputs.digest }}
+        sbom: ${{ inputs.name }}-${{ steps.meta.outputs.version }}.spdx.json
+
+    - name: Record that signing is deferred
+      if: inputs.sign != 'true'
+      shell: bash
+      env:
+        REF: ${{ steps.meta.outputs.image }}@${{ steps.push.outputs.digest }}
+      run: |
+        {
+          echo "### \`$REF\`"
+          echo "- pushed by digest, untagged and unsigned; the sign-images job signs it once CI passes"
+        } >> "$GITHUB_STEP_SUMMARY"

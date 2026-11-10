@@ -1,0 +1,10 @@
+{
+  "errors": {
+    "stream_not_found": "no existe el stream",
+    "invalid_body": "el cuerpo no es JSON válido",
+    "too_many_topics": "demasiados topics en una sola solicitud"
+  },
+  "hints": {
+    "waiting_for_logs": "esperando a que la corrida empiece a escribir logs"
+  }
+}

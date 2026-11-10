@@ -1,0 +1,26 @@
+{
+  "errors": {
+    "bad_command": "comando inválido {command:%q}",
+    "bad_pkt_length": "largo de pkt-line inválido {length}",
+    "bad_pkt_length_text": "largo de pkt-line inválido {length:%q}",
+    "gzip": "gzip",
+    "malformed_push": "push mal formado",
+    "push_delete_ref": "una tarea no puede borrar {ref}",
+    "push_foreign_ref": "una tarea sólo puede pushear su propia rama ({allowed}), no {ref}",
+    "read_pkt_length": "leer el largo del pkt-line",
+    "read_pkt_line": "leer el pkt-line",
+    "signed_push_unsupported": "los push firmados no están soportados",
+    "too_many_ref_updates": "más de {max} actualizaciones de refs en un push"
+  },
+  "log": {
+    "enable_receivepack_failed": "activar receivepack en {dir}: {err}",
+    "publish_comment_failed": "comentar en la tarea {task} el publish fallido: {err}",
+    "publish_failed": "publicar la rama de la tarea {task} (proyecto {project}) después del push del agente: {err}",
+    "refresh_default_failed": "actualizar la rama principal del proyecto {project} para la tarea {task}: {err}",
+    "transport_disabled": "transporte de worktrees desactivado: {err}",
+    "transport_mounted": "transporte de worktrees montado en {path}"
+  },
+  "comments": {
+    "publish_failed": "Thulu recibió el push del agente pero no pudo publicar en GitHub la rama del proyecto {project}: {err}"
+  }
+}

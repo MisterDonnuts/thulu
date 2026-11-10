@@ -1,0 +1,42 @@
+.skeleton {
+  display: block;
+  background: var(--surface-4);
+  animation: octopus-pulse-soft calc(var(--dur-slow) * 4) ease-in-out infinite;
+}
+
+.skeleton-line {
+  width: 100%;
+  height: var(--s-3);
+  border-radius: var(--r-pill);
+}
+
+.skeleton-lines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.skeleton-lines > .skeleton-line:last-child:not(:only-child) {
+  width: 60%;
+}
+
+.skeleton-block {
+  width: 100%;
+  min-height: calc(var(--s-9) * 2);
+  align-self: stretch;
+  border-radius: var(--r-lg);
+  background: var(--surface-2);
+}
+
+.skeleton-chip {
+  display: inline-block;
+  width: calc(var(--s-9) + var(--s-5));
+  height: calc(var(--s-5) + var(--s-1));
+  vertical-align: middle;
+  border-radius: var(--r-pill);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}

@@ -1,0 +1,90 @@
+Thulu Enterprise Modules Exception
+Version 1.0
+
+Additional permission under GNU AGPL version 3 section 7
+
+The Thulu core is licensed under the GNU Affero General Public License,
+version 3 only (the "AGPL"), whose text is in the file LICENSE. This file
+adds one permission to the AGPL, as its section 7 allows. It does not change
+the text of the AGPL.
+
+SPDX license expression for the core:
+AGPL-3.0-only WITH AdditionRef-Thulu-Enterprise-Modules-Exception-1.0
+
+1. Definitions
+
+"Program" means the files of the Thulu repository
+(https://github.com/MisterDonnuts/thulu) outside the ee/ directory that
+are licensed under the AGPL, and any work based on them. This permission
+applies to each of those files whether or not the file itself carries a
+notice that names it. Files in the repository that state another license
+keep it.
+
+"Licensor" means Mister.D LLC, the licensor named in
+ee/LICENSE.
+
+"Enterprise License" means the license in the file ee/LICENSE, in the
+version that applies to your copy of the Enterprise Modules. Its current
+title is "Thulu Enterprise License" and its SPDX identifier is
+LicenseRef-Thulu-Enterprise.
+
+"Enterprise Modules" means the software that the Licensor makes available
+under the Enterprise License, such as the files in the ee/ directory of the
+Thulu repository, in any version, and modifications of that software made
+under the terms of the Enterprise License.
+
+2. Permission
+
+If you modify the Program, or any covered work, by linking or combining it
+with Enterprise Modules, containing parts covered by the terms of the
+Enterprise License, the licensors of the Program grant you additional
+permission to convey the resulting work, and to let users interact with it
+remotely through a computer network, without licensing the Enterprise
+Modules under the AGPL.
+
+In the resulting work, the Enterprise Modules stay under the Enterprise
+License, and you must comply with it for them. The Corresponding Source that
+the AGPL requires for the resulting work, under its sections 6 and 13,
+consists of the source code of every part covered by the AGPL, including
+the code of the Program that connects the Program to the Enterprise
+Modules, and need not include the source code of the Enterprise Modules.
+
+3. What this permission does not do
+
+(a) It gives no right to use, copy, modify or distribute the Enterprise
+    Modules. Those rights come only from the Enterprise License.
+
+(b) It covers only the Enterprise Modules. Linking or combining the Program
+    with any other software is governed by the AGPL alone, and this
+    permission does not imply that any other software combined with the
+    Program is free of the AGPL's conditions.
+
+(c) It does not change the license of the parts of the resulting work that
+    come from the Program. Those parts, and your modifications of them,
+    remain under the AGPL with this permission, with all of the AGPL's
+    conditions, including section 13.
+
+(d) Code that is or was licensed under the AGPL as part of the Program does
+    not become an Enterprise Module by being moved or copied into ee/, or by
+    being published under the Enterprise License, unless every copyright
+    holder of that code agrees.
+
+(e) It gives no right to the names, logos or trademarks of Thulu or
+    Mister.D.
+
+4. Who grants this permission
+
+Every copyright holder of the Program grants this permission for its own
+part: the Licensor for its code, and each contributor for the contributions
+they submit to the Thulu repository, which are licensed under the AGPL with
+this permission (see CONTRIBUTING.md).
+
+5. Removing this permission
+
+As section 7 of the AGPL provides, when you convey a copy of the Program you
+may remove this permission from that copy, or from any part of it. A part
+from which the permission was removed can no longer be combined with the
+Enterprise Modules under it. If you modify the Program, you may extend this
+permission to your version, but you are not obliged to; if you do not, delete
+this file from your version and remove the reference to it from the
+license notices.

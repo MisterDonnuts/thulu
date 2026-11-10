@@ -1,0 +1,23 @@
+{
+  "throughput": {
+    "aria": "Tasks created and completed per day",
+    "created": "created",
+    "completed": "completed",
+    "created_count": {
+      "one": "{count} created",
+      "other": "{count} created"
+    },
+    "completed_count": {
+      "one": "{count} completed",
+      "other": "{count} completed"
+    },
+    "bar_title": "{date}: {created}, {completed}",
+    "summary": {
+      "one": "Tasks over {count} day: {created}, {completed}",
+      "other": "Tasks over {count} days: {created}, {completed}"
+    }
+  },
+  "spend": {
+    "aria": "Spend over time"
+  }
+}

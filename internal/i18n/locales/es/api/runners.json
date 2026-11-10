@@ -1,0 +1,35 @@
+{
+  "errors": {
+    "unavailable": "los runners no están disponibles en esta instancia",
+    "runner_revoked": "el runner {runner} fue revocado",
+    "protocol": "este runner habla el protocolo {got} y el daemon el {want}. Actualizá el runner",
+    "log_too_large": "un pedazo de log puede pesar hasta 4 MB",
+    "no_output_dir": "esta corrida no tiene directorio de salida en el daemon",
+    "task_mixes_projects": "el proyecto {project} no corre sus agentes en un runner: los proyectos de una tarea tienen que correr todos en el mismo runner",
+    "task_mixes_runners": "todos los proyectos de una tarea tienen que correr en el mismo runner",
+    "task_without_runner": "la tarea no tiene ningún proyecto en un runner",
+    "engine_not_supported": "este runner sólo corre Claude Code; {engine} necesita un contenedor",
+    "no_steering": "esta corrida no recibe mensajes mientras corre; el mensaje espera a la próxima",
+    "no_kill": "este runtime no puede frenar una corrida",
+    "push_on_runner": "el proyecto {project} corre sus agentes en un runner, que empuja la rama de la tarea desde su máquina; el daemon no la empuja"
+  },
+  "log": {
+    "output_dir": "crear el directorio de salida {dir}",
+    "queued": "en cola para el runner {runner}; esperando que la tome",
+    "expire_failed": "cerrar las corridas que nadie atendió: {err}",
+    "expired": "{count} corridas de runner terminaron sin respuesta",
+    "settle_failed": "leer las corridas de runner terminadas: {err}",
+    "lost": "el runner {runner} dejó de responder (o nunca tomó la corrida); la corrida queda como fallida",
+    "reap_failed": "marcar procesada la corrida de runner {job}",
+    "read_log_failed": "leer el log de la corrida de runner {job}; la sesión registrada queda sin log",
+    "write_log_failed": "escribir el log de la corrida de runner {job}"
+  },
+  "audit": {
+    "token_created": "Token de registro creado para el runner {name}",
+    "registered": "Runner {runner} registrado desde {host}",
+    "revoked": "Runner {runner} revocado",
+    "project_created": "Proyecto {project} agregado en el runner {runner}",
+    "project_runner_set": "El proyecto {project} ahora corre sus agentes en el runner {runner}",
+    "project_runner_cleared": "El proyecto {project} vuelve a correr sus agentes en esta instancia"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "reasons": {
+    "no_agent": "No agent answers mentions, so nobody can run the cases.",
+    "no_browser": "No agent has thulu-browser on the stage it answers mentions with. Add it to one in Agents."
+  },
+  "missing": "{agent} has no {servers} on its {stage} stage, so it cannot open the browser. Add it in Agents.",
+  "stage_mention": "mention",
+  "stage_chat": "chat",
+  "comment": "@{agent} run test cases {keys} of this task on {url}.",
+  "comment_compare": "@{agent} run test cases {keys} of this task on {url} and compare with {compare}.",
+  "instructions_summary": "Instructions for the agent",
+  "instructions": "Use thulu-browser: film each case with evidence_start … evidence_finish, check each expected result with evidence_verify using the case key, and publish with evidence_publish so each case records its run.",
+  "instructions_compare": "Use thulu-browser: film each case with evidence_start … evidence_finish, check each expected result with evidence_verify using the case key, film the before and after with evidence_render and compare_base_url, and publish with evidence_publish so each case records its run."
+}

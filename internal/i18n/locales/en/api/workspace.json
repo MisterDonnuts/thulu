@@ -1,0 +1,16 @@
+{
+  "errors": {
+    "not_found": "workspace not found",
+    "owner_only": "only the workspace owner can delete it",
+    "confirmation_required": "confirmation required: send {\"confirm\":\"<workspace-slug>\"}",
+    "erasure_failed": "erasure failed: {cause}",
+    "tenant_teardown": "tenant runtime teardown: {cause}"
+  },
+  "audit": {
+    "erased": "Workspace permanently erased: {slug}"
+  },
+  "log": {
+    "purge_failed": "workspace {workspace}: {err}",
+    "destroy_sandbox_failed": "[purge] destroy sandbox {owner}"
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "errors": {
+    "schema": "esquema de auditoría",
+    "lock_chain": "bloquear la cadena",
+    "read_chain_head": "leer la cabeza de la cadena",
+    "write_csv_header": "escribir el encabezado del CSV",
+    "write_csv_row": "escribir una fila del CSV",
+    "flush_csv": "volcar el CSV",
+    "sink_file_needs_path": "OCTOPUS_AUDIT_SINK={value:%q}: file: falta la ruta",
+    "sink_open": "OCTOPUS_AUDIT_SINK: abrir {path}",
+    "sink_unknown": "OCTOPUS_AUDIT_SINK={value:%q}: se esperaba stdout, stderr o file:/ruta",
+    "record_version_empty": "registrar la versión: la versión está vacía",
+    "record_version": "registrar la versión",
+    "record_version_lock": "registrar la versión: bloquear",
+    "record_version_read_last": "registrar la versión: leer la última",
+    "record_version_parse_last": "registrar la versión: interpretar la última",
+    "update_history": "historial de actualizaciones",
+    "export_unavailable": "exportar la auditoría requiere la Enterprise Edition con la función audit_export"
+  },
+  "log": {
+    "marshal_metadata": "auditoría: serializar la metadata (kind={kind} resource={resource})",
+    "insert_failed": "falló la inserción (kind={kind} resource={resource}): {err}",
+    "unmarshal_metadata": "auditoría: leer la metadata de la entrada {id}",
+    "sink_marshal_failed": "sink: serializar {id}: {err}",
+    "sink_write_failed": "sink: escribir {id}: {err}",
+    "record_version_release_conn": "registrar la versión: liberar la conexión",
+    "record_version_unlock": "registrar la versión: desbloquear",
+    "update_history_unmarshal": "historial de actualizaciones: leer la metadata de la entrada {id}"
+  },
+  "chain": {
+    "broken_at": "{reason} (fila {id})",
+    "unhashed_row": "fila sin hash después de que empezó la cadena",
+    "prev_hash_mismatch": "prev_hash no coincide con la fila anterior",
+    "content_mismatch": "el contenido de la fila no coincide con su hash"
+  },
+  "labels": {
+    "retention_policy": "política de retención"
+  },
+  "comments": {
+    "retention_purged": {
+      "one": "La retención borró {count} entrada de auditoría anterior a {cutoff}",
+      "other": "La retención borró {count} entradas de auditoría anteriores a {cutoff}"
+    },
+    "version_first_recorded": "Thulu {version}, primer registro",
+    "version_changed": "Thulu {from} → {to}"
+  }
+}

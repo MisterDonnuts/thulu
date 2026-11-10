@@ -1,0 +1,18 @@
+{
+  "errors": {
+    "run_key_required": "run bundle requires the run-scoped API key the dispatcher injects into the run",
+    "agent_not_in_catalog": "agent type {agent:%q} is not in the catalog",
+    "stage_not_slug": "stage must be a slug ([a-z0-9_], max 32 chars)",
+    "task_not_found": "task {task} not found",
+    "no_agent_for_stage": "task {task} has no agent assigned for stage {stage:%q}, and this key predates run-scoped identity — relaunch the run to mint one that names its agent",
+    "close_tar": "close tar: {cause}",
+    "close_gzip": "close gzip: {cause}",
+    "read_owner": "read {kind} {owner:%q}: {cause}",
+    "too_large": "bundle exceeds {max} bytes at {path}",
+    "tar_header": "tar header {path}: {cause}",
+    "tar_body": "tar body {path}: {cause}"
+  },
+  "log": {
+    "write_failed": "run bundle for run {run:%q} (agent {agent:%q}): {err}"
+  }
+}

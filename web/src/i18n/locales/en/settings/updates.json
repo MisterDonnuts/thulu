@@ -1,0 +1,63 @@
+{
+  "version": {
+    "title": "Version",
+    "check_now": "Check now"
+  },
+  "status": {
+    "checking": "checking",
+    "unavailable": "unavailable",
+    "up_to_date": "up to date",
+    "misconfigured": "misconfigured",
+    "update_available": "update available",
+    "lookups_off": "lookups off",
+    "dev_build": "dev build"
+  },
+  "operator_only": "The install's version and its updates are shown only to an admin of the operator workspace, the one {env} names on the daemon.",
+  "rejected": "Not offered because they failed verification: {versions}",
+  "facts": {
+    "running": "Running",
+    "channel": "Channel",
+    "runs_on": "Runs on",
+    "unknown": "unknown"
+  },
+  "runtime": {
+    "kubernetes": "Kubernetes",
+    "docker": "Docker"
+  },
+  "available": {
+    "title": "Available versions",
+    "intro": "Thulu does not update itself. Run the command on the machine that manages this install; the change package lists everything the update does, for review or a change ticket.",
+    "lookups_off": "Nothing to compare with while lookups are off.",
+    "newest": "This is the newest version in the allowed channels.",
+    "no_check": "No check has finished yet."
+  },
+  "going_back": {
+    "title": "Going back",
+    "lede_known": "The versions this host keeps, with the command that returns to each one.",
+    "lede_unknown": "The versions this host keeps. The running release's manifest was not read, so every command restores the database.",
+    "lede_kubernetes": "In Kubernetes the registry keeps the images and Helm keeps the revisions. Run thulu update -to <version> to go back to any version in the history below."
+  },
+  "columns": {
+    "version": "Version",
+    "ran": "Ran",
+    "command": "Command",
+    "time": "Time",
+    "event": "Event",
+    "versions": "Versions",
+    "by": "By"
+  },
+  "history": {
+    "title": "History",
+    "empty": "No version changes recorded yet."
+  },
+  "backups": {
+    "title": "Backups",
+    "load_failed": "Could not read the backup status."
+  },
+  "download_failed": "Download failed",
+  "toasts": {
+    "still_checking": "Still checking. Open this section again in a minute.",
+    "checked": "Checked for updates",
+    "check_failed": "Check failed"
+  }
+}

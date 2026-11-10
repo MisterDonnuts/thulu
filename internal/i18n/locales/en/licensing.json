@@ -1,0 +1,26 @@
+{
+  "errors": {
+    "malformed_token": "licensing: malformed token",
+    "signature_mismatch": "licensing: signature does not verify (tampered or wrong key)",
+    "marshal_claims": "licensing: marshal claims",
+    "public_key_size": "licensing: public key is {size} bytes, want {want}",
+    "private_key_size": "licensing: private key is {size} bytes, want {want}",
+    "generate_keypair": "licensing: generate keypair",
+    "decode_private_key": "licensing: decode private key hex",
+    "decode_public_key": "licensing: decode public key hex",
+    "no_public_key": "licensing: no public key configured"
+  },
+  "log": {
+    "community_edition": "community edition (no license configured)",
+    "vendor_key_invalid": "embedded vendor key invalid, running as community edition: {err}",
+    "verification_failed": "license verification failed, running as community edition: {err}",
+    "expired_in_grace": "license EXPIRED but within grace — renew soon ({licensed})",
+    "expired": "license expired beyond the grace window; running as community edition until it is renewed",
+    "not_yet_valid": "license is not yet valid (NotBefore in the future); running as community edition",
+    "licensed": "licensed",
+    "licensed_perpetual": "licensed to {org:%q} ({edition}, perpetual)",
+    "licensed_until": "licensed to {org:%q} ({edition}, expires {expires})",
+    "no_vendor_key": "a license is set but this build has no vendor key to check it; running as community edition",
+    "saas_needs_license": "OCTOPUS_SAAS_MODE is on but the license does not include saas: the Stripe webhook answers 503"
+  }
+}

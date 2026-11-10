@@ -1,0 +1,137 @@
+.seg-progress,
+.meter-bar {
+  --progress-h: var(--s-2);
+  display: flex;
+  height: var(--progress-h);
+  overflow: hidden;
+  border-radius: var(--r-pill);
+  background: var(--surface-4);
+}
+.seg-progress-xs,
+.meter-bar-xs {
+  --progress-h: var(--s-1);
+}
+.seg-progress-md,
+.meter-bar-md {
+  --progress-h: var(--s-3);
+}
+
+.seg-progress-seg {
+  flex: 0 1 auto;
+  min-width: 0;
+  height: 100%;
+  background: var(--seg-fill, var(--surface-4));
+}
+.seg-progress-split {
+  gap: calc(var(--s-1) / 2);
+}
+.seg-progress-split:not(:empty) {
+  background: transparent;
+}
+.seg-progress-split .seg-progress-seg {
+  border-radius: var(--r-pill);
+}
+.seg-progress-outline {
+  background: var(--surface-4);
+  box-shadow: inset 0 0 0 1px var(--seg-fill);
+}
+
+.meter-bar-fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: var(--r-pill);
+  background: var(--seg-fill, var(--accent));
+  transition: width var(--dur-normal) var(--ease-out);
+}
+.meter-bar-inline {
+  display: inline-flex;
+  width: var(--s-8);
+  vertical-align: middle;
+}
+
+[data-tone].seg-progress-seg,
+[data-tone].meter-bar {
+  --seg-fill: var(--accent);
+}
+.seg-progress-seg[data-tone="ok"],
+.meter-bar[data-tone="ok"] {
+  --seg-fill: var(--ok);
+}
+.seg-progress-seg[data-tone="warn"],
+.meter-bar[data-tone="warn"] {
+  --seg-fill: var(--warn);
+}
+.seg-progress-seg[data-tone="danger"],
+.meter-bar[data-tone="danger"] {
+  --seg-fill: var(--danger);
+}
+.seg-progress-seg[data-tone="info"],
+.meter-bar[data-tone="info"] {
+  --seg-fill: var(--info);
+}
+.seg-progress-seg[data-tone="special"],
+.meter-bar[data-tone="special"] {
+  --seg-fill: var(--color-special-solid);
+}
+.seg-progress-seg[data-tone="muted"],
+.meter-bar[data-tone="muted"] {
+  --seg-fill: var(--fg-4);
+}
+.seg-progress-seg[data-tone="faint"],
+.meter-bar[data-tone="faint"] {
+  --seg-fill: var(--fg-5);
+}
+.seg-progress-seg[data-tone="track"],
+.meter-bar[data-tone="track"] {
+  --seg-fill: var(--surface-4);
+}
+.seg-progress-seg[data-tone="viz-1"],
+.meter-bar[data-tone="viz-1"] {
+  --seg-fill: var(--viz-1);
+}
+.seg-progress-seg[data-tone="viz-2"],
+.meter-bar[data-tone="viz-2"] {
+  --seg-fill: var(--viz-2);
+}
+.seg-progress-seg[data-tone="viz-3"],
+.meter-bar[data-tone="viz-3"] {
+  --seg-fill: var(--viz-3);
+}
+.seg-progress-seg[data-tone="viz-4"],
+.meter-bar[data-tone="viz-4"] {
+  --seg-fill: var(--viz-4);
+}
+.seg-progress-seg[data-tone="viz-5"],
+.meter-bar[data-tone="viz-5"] {
+  --seg-fill: var(--viz-5);
+}
+.seg-progress-seg[data-tone="viz-6"],
+.meter-bar[data-tone="viz-6"] {
+  --seg-fill: var(--viz-6);
+}
+.seg-progress-seg[data-tone="viz-7"],
+.meter-bar[data-tone="viz-7"] {
+  --seg-fill: var(--viz-7);
+}
+.seg-progress-seg[data-tone="viz-8"],
+.meter-bar[data-tone="viz-8"] {
+  --seg-fill: var(--viz-8);
+}
+
+.progress-line {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-width: 0;
+}
+.progress-line > .seg-progress {
+  flex: 1 1 var(--s-8);
+  min-width: var(--s-7);
+}
+.progress-line-text {
+  font-size: var(--t-xs);
+  color: var(--fg-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
