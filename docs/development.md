@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- **Go 1.26.10** (the version in `go.mod`)
+- **Go 1.26.11** (the version in `go.mod`)
 - **Node.js 22.23.4 or later** and npm
 - **Docker** with Compose 2.24 or later (Docker Engine, Docker Desktop or Colima)
 - **gcc**, for the race detector (`make test` runs with `-race`)

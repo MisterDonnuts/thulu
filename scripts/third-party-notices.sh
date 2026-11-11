@@ -244,11 +244,14 @@ while IFS='	' read -r name version declared; do
 	elect=
 	case $declared in *" OR "*Apache-2.0* | *Apache-2.0*" OR "*) elect=Apache-2.0 ;; esac
 	entry "npm:$name" "$version" "$dir" "$elect"
-	# The copyright banner of the shipped file, for packages whose license file has none.
-	banner=$(grep -rhoE -m1 '@license [^*]*' "$dir/dist" 2>/dev/null | head -n 1 | sed 's/[[:space:]]*$//' || true)
+	# The license banners of the shipped files, for packages whose license file has none.
+	# Every distinct one, sorted: grep -r walks a directory in the file system's order, so
+	# "the first banner" differed between APFS and ext4.
+	banners=$(grep -rhoE '@license [^*]*' "$dir/dist" 2>/dev/null | sed 's/[[:space:]]*$//' |
+		LC_ALL=C sort -u | awk 'NR > 1 { printf ", " } { printf "%s", $0 }' || true)
 	{
 		printf 'Declared in package.json: %s\n' "$declared"
-		if [ -n "$banner" ]; then printf 'Banner in the shipped file: %s\n' "$banner"; fi
+		if [ -n "$banners" ]; then printf 'License banners in the shipped files: %s\n' "$banners"; fi
 		if [ -n "$elect" ]; then printf 'Thulu uses this package under: %s\n' "$elect"; fi
 		echo
 	} >>"$tmp/body"

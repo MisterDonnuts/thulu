@@ -15,7 +15,7 @@ web/package-lock.json. Do not edit by hand.
 
 SUMMARY
 
-  Go standard library and runtime                                go1.26.10                              BSD-3-Clause
+  Go standard library and runtime                                go1.26.11                              BSD-3-Clause
   github.com/atotto/clipboard                                    v0.1.4                                 BSD-3-Clause
   github.com/aymanbagabas/go-osc52/v2                            v2.0.1                                 MIT
   github.com/beorn7/perks                                        v1.0.1                                 MIT
@@ -128,7 +128,7 @@ SUMMARY
   npm:dompurify                                                  3.4.17                                 Apache-2.0
 
 ================================================================================
-Go standard library and runtime go1.26.10
+Go standard library and runtime go1.26.11
 License: BSD-3-Clause
 --------------------------------------------------------------------------------
 LICENSE
@@ -7593,7 +7593,7 @@ SOFTWARE.
 """
 
 Declared in package.json: MIT
-Banner in the shipped file: @license ISC
+License banners in the shipped files: @license ISC, @license MIT
 
 ================================================================================
 npm:dompurify 3.4.17
@@ -7605,7 +7605,7 @@ The standard text of the Apache License, Version 2.0, reproduced once
 under "APACHE LICENSE 2.0" at the end of this file.
 
 Declared in package.json: (MPL-2.0 OR Apache-2.0)
-Banner in the shipped file: @license DOMPurify 3.4.17 | (c) Cure53 and other contributors | Released under the Apache license 2.0 and Mozilla Public License 2.0 | github.com/cure53/DOMPurify/blob/3.4.17/LICENSE
+License banners in the shipped files: @license DOMPurify 3.4.17 | (c) Cure53 and other contributors | Released under the Apache license 2.0 and Mozilla Public License 2.0 | github.com/cure53/DOMPurify/blob/3.4.17/LICENSE
 Thulu uses this package under: Apache-2.0
 
 ================================================================================
