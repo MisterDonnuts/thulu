@@ -177,9 +177,7 @@ export function readPayload(kind: KindSpec | undefined, idPrefix: string): Recor
   const out: Record<string, string> = {};
   for (const f of kind?.fields ?? []) {
     const el = document.getElementById(`${idPrefix}${f.name}`) as
-      | HTMLInputElement
-      | HTMLTextAreaElement
-      | null;
+      HTMLInputElement | HTMLTextAreaElement | null;
     const v = (el?.value ?? "").trim();
     if (v) out[f.name] = v;
   }

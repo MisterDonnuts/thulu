@@ -38,14 +38,7 @@ export interface StreamChild {
 }
 
 export type RunState =
-  | "running"
-  | "queued"
-  | "done"
-  | "failed"
-  | "ended"
-  | "not_started"
-  | "stopped"
-  | "out_of_turns";
+  "running" | "queued" | "done" | "failed" | "ended" | "not_started" | "stopped" | "out_of_turns";
 
 export interface RunInfo {
   id: string;

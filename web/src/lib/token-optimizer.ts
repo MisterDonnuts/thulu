@@ -12,8 +12,7 @@ export interface AgentTokenOptimizer {
 }
 
 export type TokenOptimizerPayload =
-  | { level: "off" }
-  | { level: Exclude<OptimizerLevel, "off">; engine: string; model: string };
+  { level: "off" } | { level: Exclude<OptimizerLevel, "off">; engine: string; model: string };
 
 export type WorkerReason = "" | "no_default_profile" | "unsupported_credential";
 

@@ -84,24 +84,24 @@ export const stepSchema = z.discriminatedUnion("kind", [
   step("note", { text: text.max(300), level: z.enum(["step", "fact", "issue"]).default("step") }),
   // Runs only inside the page (page.evaluate), never in the server process.
   step("script", { code: text.max(20_000) }),
-  step("use", { flow: text, params: z.record(z.string()).optional() }),
+  step("use", { flow: text, params: z.record(z.string(), z.string()).optional() }),
 ]).superRefine((s, ctx) => {
   if (s.kind === "fill" && s.value === undefined && !s.secret) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: t("errors.fill_needs_value") });
+    ctx.addIssue({ code: "custom", message: t("errors.fill_needs_value") });
   }
   if (s.kind === "fill" && s.value !== undefined && s.secret) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: t("errors.fill_value_and_secret") });
+    ctx.addIssue({ code: "custom", message: t("errors.fill_value_and_secret") });
   }
   if (s.kind === "verify") {
     if (s.observed === undefined && !s.check) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: t("errors.verify_needs_observed") });
+      ctx.addIssue({ code: "custom", message: t("errors.verify_needs_observed") });
     }
     if (s.check && !["url", "title"].includes(s.check) && !s.target) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: t("errors.verify_needs_target", { check: s.check }) });
+      ctx.addIssue({ code: "custom", message: t("errors.verify_needs_target", { check: s.check }) });
     }
   }
   if (s.kind === "scroll" && !s.direction && !s.target) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: t("errors.scroll_needs_direction") });
+    ctx.addIssue({ code: "custom", message: t("errors.scroll_needs_direction") });
   }
 });
 
@@ -127,8 +127,8 @@ const flowSchema = z.object({
 }).strict();
 
 export const librarySchema = z.object({
-  targets: z.record(text).default({}),
-  flows: z.record(flowSchema).default({}),
+  targets: z.record(z.string(), text).default({}),
+  flows: z.record(z.string(), flowSchema).default({}),
 }).strict().default({});
 
 export class TakeError extends Error {

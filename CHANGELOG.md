@@ -8,9 +8,13 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Security
+
+- Dependency updates for published advisories: the MCP SDK 1.32 and its transitive packages (`body-parser`, `qs`, `hono`, `@hono/node-server`, `fast-uri`, `ip-address`) in every MCP server, zod 4 in the browser MCP server, `go-jose` 4.1.9 and the OpenTelemetry exporters 1.47. govulncheck and `npm audit --omit=dev` report nothing reachable.
+
 ### Fixed
 
-- Release images no longer carry the SLSA provenance as a registry referrer. cosign 2.6 and later verified that referrer instead of the image signature, so `cosign verify --key` and `cosign verify-attestation --type spdxjson` failed on correctly signed 1.0.0 images. The provenance stays in GitHub's attestation store: `gh attestation verify oci://ghcr.io/misterdonnuts/<image>:<version> -R MisterDonnuts/thulu`.
+- Release images no longer carry the SLSA provenance as a registry referrer. cosign 2.6 and later verified that referrer instead of the image signature, so `cosign verify --key` and `cosign verify-attestation --type spdxjson` failed on correctly signed 1.0.0 images until those referrers were removed from ghcr.io on 2026-11-11; 1.0.0 verifies with the documented commands again. The provenance stays in GitHub's attestation store: `gh attestation verify oci://ghcr.io/misterdonnuts/<image>:<version> -R MisterDonnuts/thulu`.
 
 ## [1.0.0] - 2026-11-11
 
