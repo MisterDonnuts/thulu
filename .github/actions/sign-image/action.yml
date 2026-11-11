@@ -60,6 +60,10 @@ runs:
         SBOM: ${{ inputs.sbom }}
       run: cosign attest --yes --type spdxjson --predicate "$SBOM" "$REF"
 
+    # Kept in GitHub's attestation store only (`gh attestation verify oci://...` reads it from there).
+    # Pushed to the registry it becomes an OCI referrer that cosign 2.6 and later verify instead
+    # of the .sig/.att tags, so `cosign verify --key` and `verify-attestation --type spdxjson`
+    # fail on a correctly signed image (seen on 1.0.0).
     - name: Attest build provenance
       id: provenance
       continue-on-error: true
@@ -67,7 +71,7 @@ runs:
       with:
         subject-name: ${{ inputs.image }}
         subject-digest: ${{ inputs.digest }}
-        push-to-registry: true
+        push-to-registry: false
 
     - name: Record what this image carries
       shell: bash
