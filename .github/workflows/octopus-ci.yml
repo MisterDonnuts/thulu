@@ -262,7 +262,7 @@ jobs:
       # continue-on-error: the upload fails on repos without Code Scanning enabled; the scan step is
       # the gate.
       - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@3ea06614dafe36dec890db3446326e0d40ce53d4 # v3.38.1
+        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         if: always()  # still publish results even when the scan failed
         continue-on-error: true
         with:
@@ -317,7 +317,7 @@ jobs:
         run: make trivy-fs TRIVY_FS_ARGS="--format sarif --output trivy-fs.sarif --exit-code 0"
 
       - name: Upload Trivy SARIF
-        uses: github/codeql-action/upload-sarif@3ea06614dafe36dec890db3446326e0d40ce53d4 # v3.38.1
+        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         if: always()
         continue-on-error: true
         with:
