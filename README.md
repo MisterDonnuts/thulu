@@ -140,7 +140,7 @@ Run `thulu init` and choose **Custom Docker** (a domain with HTTPS, SSO or GitHu
 
 Building needs:
 
-- Go 1.26.10 (`go.mod`)
+- Go 1.26.11 (`go.mod`)
 - Node.js 22.23.4 or later, with npm
 - Docker with Compose 2.24 or later
 - gcc, for the race detector in `make test`

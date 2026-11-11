@@ -15,7 +15,7 @@ web/package-lock.json. Do not edit by hand.
 
 SUMMARY
 
-  Go standard library and runtime                                go1.26.10                              BSD-3-Clause
+  Go standard library and runtime                                go1.26.11                              BSD-3-Clause
   github.com/atotto/clipboard                                    v0.1.4                                 BSD-3-Clause
   github.com/aymanbagabas/go-osc52/v2                            v2.0.1                                 MIT
   github.com/beorn7/perks                                        v1.0.1                                 MIT
@@ -128,7 +128,7 @@ SUMMARY
   npm:dompurify                                                  3.4.17                                 Apache-2.0
 
 ================================================================================
-Go standard library and runtime go1.26.10
+Go standard library and runtime go1.26.11
 License: BSD-3-Clause
 --------------------------------------------------------------------------------
 LICENSE
