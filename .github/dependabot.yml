@@ -7,14 +7,17 @@ updates:
       interval: weekly
       day: monday
       time: "09:00"
-    open-pull-requests-limit: 0
-    rebase-strategy: disabled
+    open-pull-requests-limit: 5
     cooldown:
       default-days: 7
     labels:
       - dependencies
       - go
     groups:
+      # k8s.io modules only resolve at matching versions.
+      k8s:
+        patterns:
+          - k8s.io/*
       go-minor-patch:
         update-types:
           - minor
@@ -26,8 +29,7 @@ updates:
       interval: weekly
       day: monday
       time: "09:00"
-    open-pull-requests-limit: 0
-    rebase-strategy: disabled
+    open-pull-requests-limit: 5
     cooldown:
       default-days: 7
     labels:
@@ -50,8 +52,7 @@ updates:
       interval: weekly
       day: monday
       time: "09:00"
-    open-pull-requests-limit: 0
-    rebase-strategy: disabled
+    open-pull-requests-limit: 5
     cooldown:
       default-days: 7
     labels:
@@ -72,8 +73,7 @@ updates:
       interval: weekly
       day: monday
       time: "09:00"
-    open-pull-requests-limit: 0
-    rebase-strategy: disabled
+    open-pull-requests-limit: 5
     cooldown:
       default-days: 7
     labels:
@@ -102,13 +102,17 @@ updates:
       interval: weekly
       day: monday
       time: "09:00"
-    open-pull-requests-limit: 0
-    rebase-strategy: disabled
+    open-pull-requests-limit: 5
     cooldown:
       default-days: 7
     labels:
       - dependencies
       - docker
+    # The project targets Node's LTS line; a major bump is a decision, not a chore.
+    ignore:
+      - dependency-name: node
+        update-types:
+          - version-update:semver-major
     groups:
       docker-minor-patch:
         update-types:
