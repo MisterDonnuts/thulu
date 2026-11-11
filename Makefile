@@ -476,8 +476,10 @@ notices: $(WEB_DEPS)
 notices-check: $(WEB_DEPS)
 	@go mod download
 	@tmp=$$(mktemp); trap 'rm -f "$$tmp"' EXIT; \
-	scripts/third-party-notices.sh "$$tmp" && cmp -s "$$tmp" THIRD_PARTY_NOTICES \
-	  || { echo "ERROR: THIRD_PARTY_NOTICES is out of date: run make notices" >&2; exit 1; }
+	scripts/third-party-notices.sh "$$tmp" || { echo "ERROR: scripts/third-party-notices.sh failed" >&2; exit 1; }; \
+	cmp -s "$$tmp" THIRD_PARTY_NOTICES || { \
+	  echo "ERROR: THIRD_PARTY_NOTICES is out of date: run make notices" >&2; \
+	  diff -u THIRD_PARTY_NOTICES "$$tmp" | head -80 >&2; exit 1; }
 	@echo "==> THIRD_PARTY_NOTICES is current."
 
 # grep treats a file with a NUL as binary and reports no matches.

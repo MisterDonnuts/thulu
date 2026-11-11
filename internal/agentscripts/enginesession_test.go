@@ -416,7 +416,7 @@ func TestCodexAdapter_SessionRoundTrip(t *testing.T) {
 
 	next := newAdapterRun(t, "codex", fakeCodex)
 	out := next.run(t, "codex.sh", "engine_run", "continue", "SESSION_ID="+testSID, "SESSION_STATE_DIR="+dir)
-	if got := firstLine(out); got != `{"type":"octopus.session","mode":"native"}` {
+	if got := firstLine(out); got != `{"type":"octopus.session","mode":"native","model":"gpt-5.4-mini"}` {
 		t.Errorf("first line = %q", got)
 	}
 	if _, err := os.Stat(filepath.Join(next.home, ".codex", "sessions", rollout)); err != nil {
@@ -443,7 +443,7 @@ func TestCodexAdapter_FailedResumeStartsOver(t *testing.T) {
 		t.Errorf("session lines = %q", got)
 	}
 	args, stdin := r.call(t, 2)
-	if hasArg(args, "resume") || !hasArg(args, "--model", "gpt-4o-mini") || !strings.Contains(stdin, "listo") {
+	if hasArg(args, "resume") || !hasArg(args, "--model", "gpt-5.4-mini") || !strings.Contains(stdin, "listo") {
 		t.Errorf("fallback args = %q stdin = %q", args, stdin)
 	}
 }
