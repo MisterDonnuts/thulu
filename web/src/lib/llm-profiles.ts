@@ -54,12 +54,7 @@ export interface FederationSettings {
 
 // Codes the daemon stores; the page translates them, so this list must match the daemon's reasons.
 export type KeyReason =
-  | "no_upstream"
-  | "not_checkable"
-  | "endpoint_refused"
-  | "no_answer"
-  | "rejected"
-  | "unexpected";
+  "no_upstream" | "not_checkable" | "endpoint_refused" | "no_answer" | "rejected" | "unexpected";
 
 export interface AgentLite {
   name: string;

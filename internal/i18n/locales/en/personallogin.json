@@ -10,6 +10,7 @@
     "no_agent_image": "no agent image to run the CLI from: set {env}",
     "no_pending_login": "no sign-in is waiting for a code; start again",
     "no_url": "the CLI did not print a sign-in link",
+    "still_preparing": "the sign-in is still getting ready; wait for its link",
     "unsupported_engine": "engine {engine} has no personal login",
     "volume": "the personal login volume could not be read or changed",
     "volume_in_use": "a run is still using this login; disconnect it when your runs end",

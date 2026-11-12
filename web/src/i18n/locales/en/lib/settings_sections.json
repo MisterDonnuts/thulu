@@ -10,7 +10,7 @@
   },
   "llm": {
     "title": "AI engines",
-    "subtitle": "The key and model each engine runs with, the profiles agents can pick, and how long a run may take."
+    "subtitle": "The key and model each engine runs with, the profiles agents can pick, how long a run may take and the cap on extra hours."
   },
   "webhooks": {
     "title": "Webhooks",

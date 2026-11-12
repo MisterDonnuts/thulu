@@ -7,13 +7,13 @@ image, unmodified, and Claude Code stores what it gets in a Docker volume that
 belongs to that person. Thulu never reads, copies, logs or exports that
 volume.
 
-Docker mode only. On Kubernetes the routes answer 404, the panel does not show
-and the pod launcher refuses a run that asks for a login volume.
+Docker mode only. On Kubernetes the routes answer 404, the section does not
+show and the pod launcher refuses a run that asks for a login volume.
 
 ## Warning
 
 Any agent container that starts a run for that person mounts the volume and
-can read the session. The panel says so before connecting. Connecting a
+can read the session. The section says so before connecting. Connecting a
 personal account only makes sense on an install of your own that you control.
 
 Using a Claude subscription this way has to comply with the terms of that
@@ -22,17 +22,28 @@ Amazon Bedrock or Google Vertex AI, set up as a workspace credential.
 
 ## How it connects
 
-Settings → AI engines → "Your own engine login".
+Settings → AI engines → the Claude Code card → "Your own account" → "Use my
+account". The section lives in the card of each engine that has a personal
+login (today only Claude Code).
 
-1. `POST /me/engine-logins/claude-code`: the daemon creates the volume
+1. `POST /me/engine-logins/claude-code` answers `202` at once and the daemon
+   prepares the sign-in on its own, detached from the request: a reload or a
+   closed tab does not stop it, and the card offers "Continue" afterwards. The
+   dialog polls `GET /me/engine-logins/claude-code/flow` every second and
+   shows the elapsed seconds while the phase is `preparing`: the agent image
+   installs Claude Code into the person's engine volume on first use (about
+   12 s), then later sign-ins take a couple of seconds. The daemon creates the volume
    `octopus-login-<install>-claude-code-<user>` if it does not exist (the
    first 8 characters of the install id, so two installs on the same Docker do
    not share a volume; if one with that name exists and does not belong to
    this install it answers 409 and leaves it alone) and starts a container
    with a terminal (`claude auth login --claudeai`, `CLAUDE_CONFIG_DIR`
    pointing at the volume). It reads the terminal until it finds the
-   authorization URL and returns it. The container keeps no log
-   (`LogConfig: none`).
+   authorization URL; the phase turns `waiting_code` and the flow carries the
+   URL, only to that person and only while the sign-in is open. If anything
+   fails before that (no image, no URL in 60 s), the phase is `failed` with the
+   error, reported once, and whatever the attempt created is removed. The
+   container keeps no log (`LogConfig: none`).
 2. The person opens the URL, approves with their account and copies the code.
 3. `POST /me/engine-logins/claude-code/code`: the daemon writes the code into
    the CLI's terminal, waits for it to finish and runs
@@ -44,6 +55,12 @@ Settings → AI engines → "Your own engine login".
 5. If the CLI rejects the code (exits with an error), or 10 minutes go by
    without a code, the container is deleted. If this attempt created the
    volume, it is deleted too: an empty volume does not count as connected.
+   Closing the dialog (`POST .../cancel`) does the same, also halfway
+   through the preparation.
+
+`claude auth status --json` exits 1 when nothing is stored yet, with
+`"loggedIn": false` on stdout. The daemon reads the JSON whatever the exit
+code, so a volume left empty reads as "Not connected", never as an error.
 
 The container starts as root only to hand the volume to `node` and drops to
 that user with `gosu`, like the agent's entrypoint.

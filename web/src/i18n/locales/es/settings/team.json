@@ -14,7 +14,7 @@
     "load_failed": "No se pudo cargar el equipo.",
     "seats": "{used} de {limit} asientos",
     "seats_hint": "Miembros más invitaciones pendientes, contra el límite del plan",
-    "seats_full": "Ya se usaron los {limit} asientos del plan, contando las invitaciones pendientes. Para invitar a alguien más, quitá un miembro o cancelá una invitación.",
+    "seats_full": "Ya se usaron los {limit} asientos del plan. Para invitar a alguien más, quitá un miembro. Las invitaciones pendientes no ocupan asiento hasta que alguien acepta, y entran sólo si en ese momento queda uno libre.",
     "seats_full_plan": "Ver el plan",
     "license_free": "A los equipos de más de {included} personas les pedimos que compren un plan; nada se limita. Esta instalación tiene {people}.",
     "license_over": "Esta licencia cubre hasta {included} personas. Esta instalación tiene {people}, {over} de más.",

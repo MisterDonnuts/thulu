@@ -119,7 +119,7 @@
     "aria": "Workspace plan",
     "title": "Plan",
     "unlimited": "This plan has no limits.",
-    "runs_month": "Runs this month"
+    "hours_month": "Agent hours this month"
   },
   "estimated": {
     "mark": "≈{amount}",

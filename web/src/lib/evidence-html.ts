@@ -387,12 +387,10 @@ export function batchStatusHTML(b: EvBatch): string {
 
 export function sandboxStepsHTML(b: EvBatch): string {
   const now = SANDBOX_STEPS.indexOf(sandboxStep(b.sandbox_phase));
-  const steps = SANDBOX_STEPS.map(
-    (step, i): StepItem => ({
-      title: sandboxStepLabel(step),
-      state: i < now ? "done" : i === now ? "now" : "pending",
-    }),
-  );
+  const steps = SANDBOX_STEPS.map((step, i): StepItem => ({
+    title: sandboxStepLabel(step),
+    state: i < now ? "done" : i === now ? "now" : "pending",
+  }));
   return stepListHTML(steps, {
     inline: true,
     attrs: { "aria-label": t("evidence.sandbox.steps_aria") },
@@ -823,18 +821,16 @@ export function checksTableHTML(checks: EvCheck[]): string {
     { label: t("evidence.detail.col_result"), width: "shrink" },
     { label: t("evidence.detail.col_how"), cls: "ev-dim" },
   ];
-  const rows = checks.map(
-    (c): TableRow => ({
-      tone: c.pass ? undefined : "danger",
-      cells: [
-        c.label,
-        c.expected,
-        c.observed,
-        { html: statusPillHTML(c.pass ? "pass" : "fail") },
-        c.measured ? t("evidence.detail.measured") : t("evidence.detail.observed_by_agent"),
-      ],
-    }),
-  );
+  const rows = checks.map((c): TableRow => ({
+    tone: c.pass ? undefined : "danger",
+    cells: [
+      c.label,
+      c.expected,
+      c.observed,
+      { html: statusPillHTML(c.pass ? "pass" : "fail") },
+      c.measured ? t("evidence.detail.measured") : t("evidence.detail.observed_by_agent"),
+    ],
+  }));
   return tableHTML(cols, rows, { compact: true, top: true, stack: true, cls: "ev-checks" });
 }
 

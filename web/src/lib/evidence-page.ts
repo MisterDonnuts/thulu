@@ -2280,9 +2280,9 @@ export function startEvidencePage(signal: AbortSignal): void {
     );
     clearFormErrors(ef.form);
     ef.form
-      .querySelectorAll<
-        HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-      >("input, textarea, select")
+      .querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(
+        "input, textarea, select",
+      )
       .forEach((x) => {
         x.disabled = !formCanEdit;
       });

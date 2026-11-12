@@ -3,6 +3,7 @@ package auth
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"testing"
 )
@@ -169,22 +170,85 @@ func TestInvitation_AllowlistStillGates(t *testing.T) {
 	}
 }
 
-func TestInvitation_SeatCapCountsPending(t *testing.T) {
+// Pending invitations take no place; the cap applies when someone accepts. A refused invitation
+// stays pending and goes through on a later sign-in once a place frees.
+func TestInvitation_SeatCapAppliesOnAccept(t *testing.T) {
 	f := newInvitationFixture(t)
 	f.h.WithSeatLimit(func(string) int { return 2 })
+	ctx := t.Context()
 
-	if res := f.invite(t, "one@example.com", RoleDeveloper); res.StatusCode != http.StatusCreated {
-		t.Fatalf("first invite: status %d", res.StatusCode)
+	for _, email := range []string{"one@example.com", "two@example.com"} {
+		if res := f.invite(t, email, RoleDeveloper); res.StatusCode != http.StatusCreated {
+			t.Fatalf("invite %s: status %d, want 201 (invitations take no place)", email, res.StatusCode)
+		}
 	}
-	if res := f.invite(t, "two@example.com", RoleDeveloper); res.StatusCode != http.StatusPaymentRequired {
-		t.Errorf("second invite past the cap: status %d, want 402", res.StatusCode)
+	invs := f.list(t)
+	previewTwo := ""
+	for _, inv := range invs {
+		if inv.Email == "two@example.com" {
+			previewTwo = inv.ID
+		}
 	}
-	if res := f.invite(t, "one@example.com", RoleViewer); res.StatusCode != http.StatusCreated {
-		t.Errorf("re-invite within the cap: status %d, want 201", res.StatusCode)
+
+	if _, ws, _, err := f.h.provisionSSOUser(ssoRequest(), "oidc",
+		ssoIdentity{Email: "one@example.com", Sub: "one-sub", EmailVerified: true}); err != nil || ws != f.wsID {
+		t.Fatalf("first to accept: ws=%q err=%v, want %q", ws, err, f.wsID)
 	}
-	ssoUser(t, f.store, "three@example.com", "Three")
+
+	w := signupDo(t, f.wrapped, http.MethodGet, "/auth/invitation?id="+previewTwo, "", nil)
+	var preview InvitationPreview
+	if err := json.NewDecoder(w.Body).Decode(&preview); err != nil || !preview.SeatsFull {
+		t.Fatalf("preview of the second invitation = %+v (%v), want seats_full", preview, err)
+	}
+
+	two, ws, _, err := f.h.provisionSSOUser(ssoRequest(), "oidc",
+		ssoIdentity{Email: "two@example.com", Sub: "two-sub", EmailVerified: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ws == f.wsID {
+		t.Fatal("second person got into a full workspace")
+	}
+	if role, _ := f.store.GetMemberRole(ctx, f.wsID, two.ID); role != "" {
+		t.Fatalf("second person is a member as %q", role)
+	}
+	if got := f.list(t); len(got) != 1 || got[0].Email != "two@example.com" {
+		t.Fatalf("the refused invitation must stay pending, got %+v", got)
+	}
 	if res := f.invite(t, "three@example.com", RoleDeveloper); res.StatusCode != http.StatusPaymentRequired {
-		t.Errorf("existing account past the cap: status %d, want 402", res.StatusCode)
+		t.Errorf("invite into a full workspace: status %d, want 402", res.StatusCode)
+	}
+
+	one, err := f.store.GetUserByEmail(ctx, "one@example.com")
+	if err != nil || one == nil {
+		t.Fatal(err)
+	}
+	if err := f.store.RemoveMember(ctx, f.wsID, one.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := f.store.AcceptInvitationsWithin(ctx, two.ID, two.Email, f.h.seatLimit); err != nil {
+		t.Fatal(err)
+	}
+	if role, _ := f.store.GetMemberRole(ctx, f.wsID, two.ID); role != RoleDeveloper {
+		t.Errorf("after a place freed, role = %q, want developer", role)
+	}
+	if got := f.list(t); len(got) != 0 {
+		t.Errorf("accepted invitation still pending: %+v", got)
+	}
+}
+
+// Without a cap (self-hosted) every invitation goes through.
+func TestInvitation_NoCapAcceptsAll(t *testing.T) {
+	f := newInvitationFixture(t)
+	for i := range 6 {
+		email := fmt.Sprintf("p%d@example.com", i)
+		if res := f.invite(t, email, RoleViewer); res.StatusCode != http.StatusCreated {
+			t.Fatalf("invite %s: %d", email, res.StatusCode)
+		}
+		if _, ws, _, err := f.h.provisionSSOUser(ssoRequest(), "oidc",
+			ssoIdentity{Email: email, Sub: email, EmailVerified: true}); err != nil || ws != f.wsID {
+			t.Fatalf("%s: ws=%q err=%v", email, ws, err)
+		}
 	}
 }
 

@@ -38,14 +38,7 @@ export interface StreamChild {
 }
 
 export type RunState =
-  | "running"
-  | "queued"
-  | "done"
-  | "failed"
-  | "ended"
-  | "not_started"
-  | "stopped"
-  | "out_of_turns";
+  "running" | "queued" | "done" | "failed" | "ended" | "not_started" | "stopped" | "out_of_turns";
 
 export interface RunInfo {
   id: string;
@@ -281,6 +274,11 @@ const CARD_NOTES = new Set([
   "task.comments.launch_failed",
   "task.comments.launch_blocked",
   "task.comments.run_quota_exceeded",
+  "task.comments.hours_spent",
+  "task.comments.hours_cap_reached",
+  "task.comments.trial_ended",
+  "task.comments.trial_hours_spent",
+  "task.comments.plan_inactive",
   "task.comments.agent_type_not_found",
   "task.comments.agent_invalid_for_stage",
   "task.comments.stage_no_agent",

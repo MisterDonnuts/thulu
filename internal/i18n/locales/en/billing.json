@@ -5,6 +5,9 @@
     "invalid_signature_timestamp": "invalid signature timestamp",
     "signature_timestamp_out_of_tolerance": "signature timestamp outside tolerance",
     "signature_mismatch": "signature mismatch",
-    "parse_event": "parse stripe event"
+    "parse_event": "parse stripe event",
+    "meter_request": "build the Stripe meter event request",
+    "meter_send": "send the Stripe meter event",
+    "meter_status": "Stripe rejected the meter event ({status}): {body}"
   }
 }

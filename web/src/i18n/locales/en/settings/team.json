@@ -14,7 +14,7 @@
     "load_failed": "Could not load team.",
     "seats": "{used} of {limit} seats",
     "seats_hint": "Members plus pending invitations, against the plan's limit",
-    "seats_full": "All {limit} seats of the plan are taken, counting pending invitations. To invite someone else, remove a member or cancel an invitation.",
+    "seats_full": "All {limit} seats of the plan are taken. To invite someone else, remove a member. Pending invitations take no seat until someone accepts, and get in only if a seat is free then.",
     "seats_full_plan": "See the plan",
     "license_free": "Teams of more than {included} people are asked to buy a plan; nothing is limited. This install has {people}.",
     "license_over": "This license covers up to {included} people. This install has {people}, {over} over.",

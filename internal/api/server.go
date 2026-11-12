@@ -972,6 +972,7 @@ func (s *Server) registerOpsRoutes(mux *http.ServeMux, rr roleGate) {
 
 	mux.HandleFunc("GET /entitlements", rr(auth.RoleViewer, s.handleGetEntitlements))
 	mux.HandleFunc("PUT /entitlements", rr(auth.RoleAdmin, s.handleSetEntitlementPlan))
+	mux.HandleFunc("PUT /entitlements/extra-hours-cap", rr(auth.RoleAdmin, s.handleSetExtraHoursCap))
 
 	mux.HandleFunc("DELETE /workspaces/{id}", rr(auth.RoleAdmin,
 		gated(s.authStore != nil, "api.server.errors.auth_disabled", s.handleDeleteWorkspace)))
@@ -1011,6 +1012,7 @@ func (s *Server) registerChatRoutes(mux *http.ServeMux, rr roleGate) {
 	mux.HandleFunc("PUT /me/preferences/{key}", rr(auth.RoleViewer, gated(hasPeople, "api.server.errors.auth_disabled", s.handlePutPreference)))
 	mux.HandleFunc("GET /me/engine-logins", rr(auth.RoleViewer, s.handleListEngineLogins))
 	mux.HandleFunc("POST /me/engine-logins/{engine}", rr(auth.RoleDeveloper, s.handleStartEngineLogin))
+	mux.HandleFunc("GET /me/engine-logins/{engine}/flow", rr(auth.RoleDeveloper, s.handleEngineLoginFlow))
 	mux.HandleFunc("POST /me/engine-logins/{engine}/code", rr(auth.RoleDeveloper, s.handleCompleteEngineLogin))
 	mux.HandleFunc("POST /me/engine-logins/{engine}/cancel", rr(auth.RoleDeveloper, s.handleCancelEngineLogin))
 	mux.HandleFunc("DELETE /me/engine-logins/{engine}", rr(auth.RoleDeveloper, s.handleDisconnectEngineLogin))

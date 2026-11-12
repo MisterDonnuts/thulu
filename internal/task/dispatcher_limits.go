@@ -3,17 +3,19 @@ package task
 import (
 	"context"
 	"log"
+	"strconv"
 	"time"
 
+	"github.com/MisterDonnuts/thulu/internal/apperr"
 	"github.com/MisterDonnuts/thulu/internal/entitlements"
 	"github.com/MisterDonnuts/thulu/internal/i18n"
 	"github.com/MisterDonnuts/thulu/internal/logx"
 )
 
-type RunQuota interface {
-	// ok=false must count nothing: a refused run is never refunded.
-	ConsumeRun(ctx context.Context, workspaceID string) (entitlements.RunUsage, bool, error)
-	RefundRun(ctx context.Context, workspaceID, period string) error
+// HourQuota decides whether a workspace may start one more agent run. It counts nothing: the hour
+// meter counts pod time while pods run, so a failed launch needs no refund.
+type HourQuota interface {
+	AdmitRun(ctx context.Context, workspaceID string) (entitlements.Admission, error)
 }
 
 // Stopping must make the launcher's OnExit callback fire as for any other exit.
@@ -21,7 +23,7 @@ type RunKiller interface {
 	KillRun(ctx context.Context, runID string) error
 }
 
-func (d *Dispatcher) WithRunQuota(q RunQuota) *Dispatcher {
+func (d *Dispatcher) WithHourQuota(q HourQuota) *Dispatcher {
 	d.quota = q
 	return d
 }
@@ -31,38 +33,80 @@ func (d *Dispatcher) WithRunDeadline(fn func(workspaceID string) time.Duration) 
 	return d
 }
 
-type quotaTicket struct {
-	workspaceID string
-	period      string
-}
-
 // A quota that cannot be read lets the run through: a database hiccup in a billing check must not
-// stop every board.
-func (d *Dispatcher) consumeRun(ctx context.Context, t *Task) (quotaTicket, entitlements.RunUsage, bool) {
+// stop every board. The first launch past 80% or 100% of the included hours tells people on the task.
+func (d *Dispatcher) admitRun(ctx context.Context, t *Task) (entitlements.Admission, bool) {
 	if d.quota == nil {
-		return quotaTicket{}, entitlements.RunUsage{}, true
+		return entitlements.Admission{OK: true}, true
 	}
-	usage, ok, err := d.quota.ConsumeRun(ctx, t.WorkspaceID)
+	a, err := d.quota.AdmitRun(ctx, t.WorkspaceID)
 	if err != nil {
-		logx.Warn(err, "task.log.run_quota_check", "task", t.ID)
-		return quotaTicket{}, entitlements.RunUsage{}, true
+		logx.Warn(err, "task.log.hour_quota_check", "task", t.ID)
+		return entitlements.Admission{OK: true}, true
 	}
-	if !ok {
-		return quotaTicket{}, usage, false
+	if a.Notice > 0 {
+		d.systemComment(ctx, t.ID, hoursNotice(a))
 	}
-	return quotaTicket{workspaceID: t.WorkspaceID, period: usage.Period}, usage, true
+	return a, a.OK
 }
 
-func (d *Dispatcher) refund(ctx context.Context, taskID string, tk quotaTicket) {
-	if d.quota == nil || tk.period == "" {
-		return
+func hoursNotice(a entitlements.Admission) Note {
+	u := a.Usage
+	args := []any{"included", u.IncludedHours, "period", u.Period, "used", u.UsedHours,
+		"cap", fmtUSD(u.CapUSD), "resets", u.ResetsAt.Format("2006-01-02")}
+	switch {
+	case u.Trial:
+		return NoteOf("task.comments.hours_notice_80_trial", args...)
+	case a.Notice >= 100:
+		return NoteOf("task.comments.hours_notice_100", args...)
+	case u.CapUSD > 0:
+		return NoteOf("task.comments.hours_notice_80", args...)
+	default:
+		return NoteOf("task.comments.hours_notice_80_no_extra", args...)
 	}
-	logx.Warn(d.quota.RefundRun(ctx, tk.workspaceID, tk.period), "task.log.run_quota_refund", "task", taskID)
 }
 
-func quotaSpentArgs(u entitlements.RunUsage) []any {
-	return []any{"limit", u.Limit, "period", u.Period, "resets", u.ResetsAt.Format("2006-01-02")}
+// The keys are spelled out so the catalog guard can see every one of them.
+func refusalNote(a entitlements.Admission) Note {
+	key := "task.comments.hours_spent"
+	switch a.Refusal {
+	case entitlements.RefusedHours:
+	case entitlements.RefusedCap:
+		key = "task.comments.hours_cap_reached"
+	case entitlements.RefusedTrialEnded:
+		key = "task.comments.trial_ended"
+	case entitlements.RefusedTrialHours:
+		key = "task.comments.trial_hours_spent"
+	case entitlements.RefusedPlanInactive:
+		key = "task.comments.plan_inactive"
+	}
+	return NoteOf(key, refusalArgs(a)...)
 }
+
+func refusalErr(a entitlements.Admission) error {
+	key := "task.errors.hours_spent"
+	switch a.Refusal {
+	case entitlements.RefusedHours:
+	case entitlements.RefusedCap:
+		key = "task.errors.hours_cap_reached"
+	case entitlements.RefusedTrialEnded:
+		key = "task.errors.trial_ended"
+	case entitlements.RefusedTrialHours:
+		key = "task.errors.trial_hours_spent"
+	case entitlements.RefusedPlanInactive:
+		key = "task.errors.plan_inactive"
+	}
+	return apperr.Precondition(key, refusalArgs(a)...)
+}
+
+func refusalArgs(a entitlements.Admission) []any {
+	u := a.Usage
+	return []any{"included", u.IncludedHours, "period", u.Period, "extra", u.ExtraHours,
+		"cap", fmtUSD(u.CapUSD), "resets", u.ResetsAt.Format("2006-01-02"),
+		"trial_end", u.TrialEndsAt.Format("2006-01-02")}
+}
+
+func fmtUSD(v float64) string { return strconv.FormatFloat(v, 'f', -1, 64) }
 
 // KillRun relies on the run's exit callback to record the end; that callback must call the returned
 // stop so a run that ends in time disarms the timer.

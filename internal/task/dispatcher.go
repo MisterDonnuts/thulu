@@ -112,7 +112,7 @@ type Dispatcher struct {
 
 	conv *convLane
 
-	quota       RunQuota
+	quota       HourQuota
 	runDeadline func(workspaceID string) time.Duration
 	workloadID  WorkloadIdentity
 

@@ -8,11 +8,13 @@
     "apply_plan_failed": "could not apply plan",
     "entitlements_disabled": "entitlements not enabled",
     "unknown_plan": "unknown plan",
-    "negative_limit": "a limit cannot be negative; use 0 for unlimited"
+    "negative_limit": "a limit cannot be negative; use 0 for unlimited",
+    "bad_extra_cap": "cap_usd must be a number between 0 and {max}"
   },
   "audit": {
     "plan_set": "Plan set to {plan}",
-    "plan_set_stripe": "Plan set to {plan} via Stripe"
+    "plan_set_stripe": "Plan set to {plan} via Stripe",
+    "extra_cap_set": "Extra hours cap set to ${cap}"
   },
   "log": {
     "apply_plan_failed": "apply plan {plan} to {workspace}: {err}"

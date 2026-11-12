@@ -8,11 +8,13 @@
     "apply_plan_failed": "no se pudo aplicar el plan",
     "entitlements_disabled": "los planes no están activados",
     "unknown_plan": "no existe ese plan",
-    "negative_limit": "un límite no puede ser negativo; usá 0 para sin límite"
+    "negative_limit": "un límite no puede ser negativo; usá 0 para sin límite",
+    "bad_extra_cap": "cap_usd tiene que ser un número entre 0 y {max}"
   },
   "audit": {
     "plan_set": "Plan cambiado a {plan}",
-    "plan_set_stripe": "Plan cambiado a {plan} desde Stripe"
+    "plan_set_stripe": "Plan cambiado a {plan} desde Stripe",
+    "extra_cap_set": "Tope de horas extra en ${cap}"
   },
   "log": {
     "apply_plan_failed": "aplicar el plan {plan} a {workspace}: {err}"

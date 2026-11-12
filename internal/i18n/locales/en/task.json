@@ -144,7 +144,6 @@
     "pr_repo_mismatch": "repo {repo:%q} does not match the pull request URL {url:%q}",
     "bad_stage_id": "stage id {stage:%q} is not a valid slug",
     "credentials_unusable": "a credential its tools need is expired or was rejected: {names}",
-    "run_quota_spent": "the workspace used its {limit} agent runs for {period}; they renew on {resets}",
     "slots_line": {
       "one": "{count} run of this workspace is ahead in line",
       "other": "{count} runs of this workspace are ahead in line"
@@ -159,7 +158,12 @@
     "list_titles": "read task titles",
     "llm_federation_unsupported": "LLM profile {profile:%q} federates, which {engine} cannot do on this provider or endpoint",
     "llm_federation_no_issuer": "LLM profile {profile:%q} federates, but this daemon has no workload identity issuer",
-    "engine_without_personal_login": "engine {engine} has no personal login"
+    "engine_without_personal_login": "engine {engine} has no personal login",
+    "hours_spent": "the workspace used its {included} agent hours for {period}; they renew on {resets}",
+    "hours_cap_reached": "the workspace reached its ${cap} cap on extra hours for {period}",
+    "trial_ended": "the trial ended on {trial_end}",
+    "trial_hours_spent": "the trial's {included} agent hours are used; pick a plan to keep running agents",
+    "plan_inactive": "the workspace has no active plan"
   },
   "log": {
     "get_comments": "get task {id}: list comments",
@@ -212,8 +216,6 @@
     "update_run_state": "dispatcher: update run state for task {task}",
     "record_run_started": "record agent run started event for task {task}",
     "credential_gate": "credential gate for task {task}",
-    "run_quota_check": "monthly run quota check for task {task} (launching anyway)",
-    "run_quota_refund": "refund a monthly run for task {task}",
     "run_deadline_kill": "stop run {run} of task {task} past its deadline",
     "run_deadline_no_killer": "run {run} of task {task} is past its {minutes}-minute deadline but this runtime cannot stop it",
     "record_credential_blocked": "record credential-blocked event for task {task}",
@@ -275,7 +277,8 @@
     "stage_without_agent": "settle task {task} with no agent for its stage",
     "host_llm_credential_off": "{agent} has no LLM profile for {engine} in workspace {workspace}; OCTOPUS_ALLOW_HOST_LLM_CREDENTIAL=1 lets runs use the operator's own credential",
     "status_reasons": "read why the listed tasks wait",
-    "runner_no_per_run_browser": "task {task} runs on a runner and this daemon runs thulu-browser per run, which a runner cannot host: the run gets no browser"
+    "runner_no_per_run_browser": "task {task} runs on a runner and this daemon runs thulu-browser per run, which a runner cannot host: the run gets no browser",
+    "hour_quota_check": "agent hours check for task {task} (launching anyway)"
   },
   "prompts": {
     "earlier_messages_trimmed": "…(earlier messages trimmed)\n\n",
@@ -303,8 +306,6 @@
     "auditor_run_started_event": "{stage} · audits {agent}",
     "launch_bad_stage_id": "Cannot launch: stage id {stage:%q} is not a valid slug ([a-z0-9_], max 32 chars).",
     "launch_failed": "Did not start: {err}",
-    "run_quota_exceeded": "Did not start: this workspace has used all {limit} agent runs its plan includes for {period}. The quota resets on {resets}. Ask the operator of this install for a larger plan, or relaunch after the reset.",
-    "mention_quota_exceeded": "@{agent} did not answer — this workspace has used all {limit} agent runs its plan includes for {period}. The quota resets on {resets}.",
     "run_deadline_exceeded": "Stage **{stage}** — **{agent}** ran past the {minutes}-minute limit (`agent.max_run_minutes`) and was stopped (instance `{instance}`).",
     "mention_deadline_exceeded": "@{agent} ran past the {minutes}-minute limit (`agent.max_run_minutes`) and was stopped (instance `{instance}`).",
     "launched": "Stage **{stage}** — launched **{agent}** (instance `{instance}`).",
@@ -400,7 +401,17 @@
     "runner_branch_pushed": "Runner {runner} pushed the task branch",
     "runner_failed": "Runner {runner} could not run the agent: {err}",
     "runner_lost": "Runner {runner} stopped answering (or never took the run), so the run failed. Check that `thulu runner run` is up on that machine",
-    "runner_warning": "Runner {runner}: {warning}"
+    "runner_warning": "Runner {runner}: {warning}",
+    "hours_spent": "Did not start: this workspace used the {included} agent hours its plan includes for {period}, and the plan has no extra hours. New runs can start again on {resets}, or a workspace admin can raise the cap on extra hours in Settings.",
+    "hours_cap_reached": "Did not start: this workspace reached its ${cap} cap on extra hours for {period} ({extra} extra hours). A workspace admin can raise the cap in Settings, or new runs can start again on {resets}.",
+    "trial_ended": "Did not start: the 30-day trial ended on {trial_end}. Pick a plan to keep running agents. The workspace stays readable, and `octopus export` works for 30 more days.",
+    "trial_hours_spent": "Did not start: this workspace used the {included} agent hours of its 30-day trial. Trial hours do not renew with the month. Pick a plan to keep running agents; everything in the workspace stays as it is.",
+    "plan_inactive": "Did not start: this workspace has no active plan (the subscription ended or a payment failed). The workspace stays readable; runs start again once the plan is active.",
+    "mention_not_started": "@{agent} did not answer.",
+    "hours_notice_80": "This workspace used 80% of the {included} agent hours its plan includes for {period} ({used} h so far). Runs keep going: after the included hours, each extra hour costs $0.05, up to the workspace's ${cap} cap.",
+    "hours_notice_80_no_extra": "This workspace used 80% of the {included} agent hours its plan includes for {period} ({used} h so far). When they run out, runs already going finish and new runs wait until {resets}.",
+    "hours_notice_80_trial": "This workspace used 80% of the {included} agent hours of its trial ({used} h so far). When they run out, runs already going finish and new runs need a paid plan. The trial ends on {resets}.",
+    "hours_notice_100": "This workspace used all {included} agent hours its plan includes for {period}. From now on each extra hour costs $0.05, up to the workspace's ${cap} cap; past the cap, new runs wait until {resets}."
   },
   "hints": {
     "steered_after_turn": "The agent reads it when the current turn ends.",

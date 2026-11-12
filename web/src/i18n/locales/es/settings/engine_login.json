@@ -1,20 +1,33 @@
 {
-  "title": "Tu propia sesión de motor",
-  "lede": "Iniciá sesión con tu propia cuenta en la página de inicio de sesión del motor. Las corridas que arranques usan esa sesión en lugar de la key del workspace, de a una por vez. Thulu nunca ve lo que guarda el inicio de sesión.",
+  "title": "Tu propia cuenta",
+  "lede": "En vez de la key del workspace, las corridas que arranques pueden usar tu propia sesión de {engine}, de a una por vez. Thulu nunca ve lo que guarda el inicio de sesión.",
   "warning": "Cualquier contenedor de agente que arranque una corrida tuya puede leer esta sesión. Conectá una cuenta personal sólo en una instalación propia que controles.",
+  "row_title": "Tu sesión de {engine}",
   "connected": "Conectada",
   "not_connected": "Sin conectar",
+  "preparing": "Preparando…",
   "pending": "Esperando tu código",
   "meta_connected": "{who} · las corridas que arranques usan esta sesión",
   "meta_none": "Las corridas que arranques usan la key del workspace",
-  "connect": "Conectar",
+  "meta_preparing": "Preparando {engine} para iniciar sesión",
+  "meta_pending": "Falta pegar el código de la página de inicio de sesión",
+  "connect": "Usar mi cuenta",
+  "resume": "Continuar",
+  "cancel": "Cancelar",
   "disconnect": "Desconectar",
   "modal": {
     "title": "Iniciar sesión en {engine}",
-    "lede": "Abrí la página de inicio de sesión, aprobá el acceso con tu cuenta y pegá acá el código que te muestra.",
+    "prepare_title": "Preparar {engine}",
+    "preparing": "Preparando… {seconds} s",
+    "prepare_note": "La primera vez Thulu lo instala, y eso puede tardar hasta un minuto.",
+    "open_title": "Iniciá sesión con tu cuenta",
+    "open_detail": "Se abre en otra pestaña. Aprobá el acceso y copiá el código que te muestra.",
     "open": "Abrir la página de inicio de sesión",
+    "code_title": "Pegá el código acá",
     "code": "Código",
-    "submit": "Conectar"
+    "submit": "Conectar",
+    "verifying": "Verificando…",
+    "retry": "Probar de nuevo"
   },
   "confirm": {
     "title": "¿Desconectar tu sesión de {engine}?",
@@ -26,9 +39,11 @@
     "disconnected": "Sesión desconectada"
   },
   "errors": {
-    "load": "No se pudieron cargar tus sesiones de motor.",
+    "load": "No se pudo cargar tu sesión propia.",
     "start": "No se pudo iniciar el inicio de sesión.",
     "complete": "El inicio de sesión no terminó.",
+    "lost": "El inicio de sesión se cerró antes de terminar. Probá de nuevo.",
+    "cancel": "No se pudo cancelar el inicio de sesión.",
     "disconnect": "No se pudo desconectar la sesión."
   }
 }

@@ -189,16 +189,14 @@ export function stageChoicesHTML(
 ): string {
   return menuItemsHTML([
     subHead(t("lib.card_menu.move_to"), opts.back ?? true),
-    ...stages.map(
-      (s): MenuEntry => ({
-        title: s.label,
-        dot: isHexColor(s.color) ? s.color : undefined,
-        indent: !isHexColor(s.color),
-        checked: s.id === current,
-        cls: "cm-item",
-        attrs: { "data-cm-stage": s.id },
-      }),
-    ),
+    ...stages.map((s): MenuEntry => ({
+      title: s.label,
+      dot: isHexColor(s.color) ? s.color : undefined,
+      indent: !isHexColor(s.color),
+      checked: s.id === current,
+      cls: "cm-item",
+      attrs: { "data-cm-stage": s.id },
+    })),
   ]);
 }
 

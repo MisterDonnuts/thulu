@@ -1,0 +1,9 @@
+{
+  "title": "Horas extra",
+  "intro": "Cuánto acepta gastar este workspace por mes en horas de agente más allá de las que incluye su plan. Cada hora extra cuesta $0,05. Al llegar al tope, las corridas que están andando terminan y las nuevas esperan hasta el 1.º.",
+  "read_only": "Sólo un admin del workspace puede cambiar el tope de horas extra.",
+  "label": "Tope mensual",
+  "unit": "dólares, 0 = sin horas extra",
+  "saved": "Tope de horas extra guardado",
+  "save_failed": "No se pudo guardar el tope de horas extra."
+}

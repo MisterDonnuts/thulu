@@ -8,9 +8,21 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **SaaS: agent hours replace runs.** A workspace's plan includes agent hours per calendar month (UTC) instead of a run quota: 200 on Starter and 100 per agent on Team; the 30-day trial includes 50 hours for the whole trial. With `OCTOPUS_SAAS_MODE=1` on Kubernetes, the daemon samples agent, chat, auditor and Evidence pods every 30 seconds (a sandbox counts half), from the first container starting to the last one stopping; waiting for a node and pulling images don't count. Stage runs, mentions, chats and Evidence batches ask before they start, and a run already going when the hours run out finishes. The task explains a refused launch, and the first launch past 80% and 100% of the included hours posts a notice.
+- **SaaS: extra hours with a spending cap.** Past the included hours each extra hour costs $0.05, up to a monthly cap a workspace admin sets in Settings → AI engines (`PUT /entitlements/extra-hours-cap`; $5 per agent by default, 0 turns extra hours off). Closed months go to Stripe as meter events in whole hours, never past the cap, billed with the terms the month had while it was paid.
+- **SaaS: plans.** `trial`, `starter`, `team`, `enterprise` (by agents or dedicated nodes) and `inactive`. Old `free` rows read as `trial` and `business` as `team`. The Stripe webhook reads plan, agents and nodes from the subscription metadata; `past_due` keeps the plan while Stripe retries, `incomplete` waits for the first payment, and `canceled`, `unpaid` or `incomplete_expired` stop new runs.
+- **SaaS: seats count members only.** The trial's and Starter's cap of 4 is checked when someone accepts an invitation; a pending invitation takes no seat. If the workspace is full, the person doesn't get in, the login page says so, and the invitation stays pending for a later sign-in. Self-hosted never applies a seat limit, on Docker or Kubernetes.
+
+### Security
+
+- Dependency updates for published advisories: the MCP SDK 1.32 and its transitive packages (`body-parser`, `qs`, `hono`, `@hono/node-server`, `fast-uri`, `ip-address`) in every MCP server, zod 4 in the browser MCP server, `go-jose` 4.1.9 and the OpenTelemetry exporters 1.47. govulncheck and `npm audit --omit=dev` report nothing reachable.
+
 ### Fixed
 
-- Release images no longer carry the SLSA provenance as a registry referrer. cosign 2.6 and later verified that referrer instead of the image signature, so `cosign verify --key` and `cosign verify-attestation --type spdxjson` failed on correctly signed 1.0.0 images. The provenance stays in GitHub's attestation store: `gh attestation verify oci://ghcr.io/misterdonnuts/<image>:<version> -R MisterDonnuts/thulu`.
+- **Your own Claude Code login.** The personal sign-in moved into the Claude Code card in Settings → AI engines ("Your own account"). "Use my account" opens a three-step dialog that counts the seconds while Thulu gets Claude Code ready (the first time it installs it, about 12 s), then shows the link and asks for the code. `POST /me/engine-logins/{engine}` now answers `202` at once and the daemon keeps preparing on its own, so a reload no longer aborts it or leaves an empty login volume behind; the card offers "Continue", and the link comes from the new `GET /me/engine-logins/{engine}/flow`. An empty login volume read as "the CLI command ended with code 1", because `claude auth status` exits 1 when nothing is stored; it now reads as "Not connected".
+- Release images no longer carry the SLSA provenance as a registry referrer. cosign 2.6 and later verified that referrer instead of the image signature, so `cosign verify --key` and `cosign verify-attestation --type spdxjson` failed on correctly signed 1.0.0 images until those referrers were removed from ghcr.io on 2026-11-11; 1.0.0 verifies with the documented commands again. The provenance stays in GitHub's attestation store: `gh attestation verify oci://ghcr.io/misterdonnuts/<image>:<version> -R MisterDonnuts/thulu`.
 
 ## [1.0.0] - 2026-11-11
 
