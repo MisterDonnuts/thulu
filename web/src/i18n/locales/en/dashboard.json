@@ -25,8 +25,8 @@
       "low": "plenty of room",
       "none": "no data from the engine"
     },
-    "runs_month": "Runs this month",
-    "aria": "Workspace at a glance"
+    "aria": "Workspace at a glance",
+    "hours_month": "Agent hours this month"
   },
   "panels": {
     "runs": "Runs",

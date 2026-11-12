@@ -72,6 +72,7 @@ type Manager struct {
 	augment AgentAugmentFunc
 
 	workspaceLimit func(workspaceID string) int
+	admit          func(ctx context.Context, workspaceID string) error
 
 	keys RunKeyMinter
 
@@ -117,9 +118,12 @@ type ManagerConfig struct {
 	GitBaseURL     string
 	APIBaseURL     string
 	WorkspaceLimit func(workspaceID string) int
-	MCPForwarder   *mcp.Forwarder
-	Browser        browserrun.Config
-	Launch         launchFunc
+	// Admit refuses a new chat container when the workspace has no hours left, its trial ended or its
+	// plan is inactive. nil admits everything (self-hosted).
+	Admit        func(ctx context.Context, workspaceID string) error
+	MCPForwarder *mcp.Forwarder
+	Browser      browserrun.Config
+	Launch       launchFunc
 }
 
 func NewManager(store *Store, sett *settings.Store, docker *client.Client, cfg ManagerConfig) *Manager {
@@ -131,6 +135,7 @@ func NewManager(store *Store, sett *settings.Store, docker *client.Client, cfg M
 		apiBaseURL:     cfg.APIBaseURL,
 		mcpFwd:         cfg.MCPForwarder,
 		workspaceLimit: cfg.WorkspaceLimit,
+		admit:          cfg.Admit,
 	}
 	switch {
 	case docker != nil || cfg.Launch != nil:
@@ -349,6 +354,12 @@ func (m *Manager) acquireLocked(ctx context.Context, c *chat.Chat, at *types.Age
 }
 
 func (m *Manager) reserveCapacity(ctx context.Context, workspaceID string) (func(), error) {
+	// Asked before capMu: it reads the database, and every other chat's reservation waits on capMu.
+	if m.admit != nil {
+		if err := m.admit(ctx, workspaceID); err != nil {
+			return nil, err
+		}
+	}
 	m.capMu.Lock()
 	defer m.capMu.Unlock()
 	if err := m.ensureCapacity(ctx, workspaceID); err != nil {

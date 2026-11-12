@@ -144,7 +144,6 @@
     "pr_repo_mismatch": "el repo {repo:%q} no coincide con la URL del pull request {url:%q}",
     "bad_stage_id": "el id de etapa {stage:%q} no es un slug válido",
     "credentials_unusable": "una credencial que necesitan sus herramientas venció o fue rechazada: {names}",
-    "run_quota_spent": "el workspace usó sus {limit} corridas de agente de {period}; se renuevan el {resets}",
     "slots_line": {
       "one": "hay {count} corrida de este workspace antes en la cola",
       "other": "hay {count} corridas de este workspace antes en la cola"
@@ -159,7 +158,12 @@
     "list_titles": "leer los títulos de las tareas",
     "llm_federation_unsupported": "el perfil de LLM {profile:%q} usa federación, que {engine} no puede usar con este proveedor o endpoint",
     "llm_federation_no_issuer": "el perfil de LLM {profile:%q} usa federación, pero este daemon no tiene emisor de identidad de carga de trabajo",
-    "engine_without_personal_login": "el engine {engine} no tiene sesión personal"
+    "engine_without_personal_login": "el engine {engine} no tiene sesión personal",
+    "hours_spent": "el workspace usó sus {included} horas de agente de {period}; se renuevan el {resets}",
+    "hours_cap_reached": "el workspace llegó a su tope de ${cap} en horas extra de {period}",
+    "trial_ended": "la prueba terminó el {trial_end}",
+    "trial_hours_spent": "se usaron las {included} horas de agente de la prueba; elegí un plan para seguir corriendo agentes",
+    "plan_inactive": "el workspace no tiene un plan activo"
   },
   "log": {
     "get_comments": "leer la tarea {id}: listar los comentarios",
@@ -212,8 +216,6 @@
     "update_run_state": "dispatcher: actualizar el estado del run de la tarea {task}",
     "record_run_started": "registrar el arranque del agente en la tarea {task}",
     "credential_gate": "chequeo de credenciales de la tarea {task}",
-    "run_quota_check": "chequeo de la cuota mensual de runs de la tarea {task} (se lanza igual)",
-    "run_quota_refund": "devolver un run mensual de la tarea {task}",
     "run_deadline_kill": "frenar el run {run} de la tarea {task} que pasó su límite de tiempo",
     "run_deadline_no_killer": "el run {run} de la tarea {task} pasó su límite de {minutes} minutos pero este runtime no lo puede frenar",
     "record_credential_blocked": "registrar el bloqueo por credenciales de la tarea {task}",
@@ -275,7 +277,8 @@
     "stage_without_agent": "dejar la tarea {task} sin agente para su etapa",
     "host_llm_credential_off": "{agent} no tiene perfil de LLM para {engine} en el workspace {workspace}; OCTOPUS_ALLOW_HOST_LLM_CREDENTIAL=1 deja que las corridas usen la credencial del operador",
     "status_reasons": "leer por qué esperan las tareas listadas",
-    "runner_no_per_run_browser": "la tarea {task} corre en un runner y este daemon usa un thulu-browser por corrida, que un runner no puede alojar: la corrida no tiene navegador"
+    "runner_no_per_run_browser": "la tarea {task} corre en un runner y este daemon usa un thulu-browser por corrida, que un runner no puede alojar: la corrida no tiene navegador",
+    "hour_quota_check": "chequeo de horas de agente de la tarea {task} (se lanza igual)"
   },
   "prompts": {
     "earlier_messages_trimmed": "…(mensajes anteriores recortados)\n\n",
@@ -303,8 +306,6 @@
     "auditor_run_started_event": "{stage} · audita a {agent}",
     "launch_bad_stage_id": "No se puede lanzar: el id de etapa {stage:%q} no es un slug válido ([a-z0-9_], máximo 32 caracteres).",
     "launch_failed": "No arrancó: {err}",
-    "run_quota_exceeded": "No arrancó: este workspace ya usó las {limit} corridas de agente que incluye su plan para {period}. La cuota se renueva el {resets}. Pedile un plan más grande al operador de esta instalación, o relanzá después de la renovación.",
-    "mention_quota_exceeded": "@{agent} no contestó: este workspace ya usó las {limit} corridas de agente que incluye su plan para {period}. La cuota se renueva el {resets}.",
     "run_deadline_exceeded": "**{stage}**: **{agent}** pasó el límite de {minutes} minutos (`agent.max_run_minutes`) y se lo frenó (instancia `{instance}`).",
     "mention_deadline_exceeded": "@{agent} pasó el límite de {minutes} minutos (`agent.max_run_minutes`) y se lo frenó (instancia `{instance}`).",
     "launched": "**{stage}**: arrancó **{agent}** (instancia `{instance}`).",
@@ -400,7 +401,17 @@
     "runner_branch_pushed": "El runner {runner} empujó la rama de la tarea",
     "runner_failed": "El runner {runner} no pudo correr el agente: {err}",
     "runner_lost": "El runner {runner} dejó de responder (o nunca tomó la corrida) y la corrida falló. Revisá que `thulu runner run` esté levantado en esa máquina",
-    "runner_warning": "Runner {runner}: {warning}"
+    "runner_warning": "Runner {runner}: {warning}",
+    "hours_spent": "No arrancó: este workspace usó las {included} horas de agente que incluye su plan para {period}, y el plan no tiene horas extra. Las corridas nuevas vuelven a arrancar el {resets}, o un admin del workspace puede subir el tope de horas extra en Settings.",
+    "hours_cap_reached": "No arrancó: este workspace llegó a su tope de ${cap} en horas extra para {period} ({extra} horas extra). Un admin del workspace puede subir el tope en Settings, o las corridas nuevas vuelven a arrancar el {resets}.",
+    "trial_ended": "No arrancó: la prueba de 30 días terminó el {trial_end}. Elegí un plan para seguir corriendo agentes. El workspace se sigue pudiendo mirar, y `octopus export` anda 30 días más.",
+    "trial_hours_spent": "No arrancó: este workspace usó las {included} horas de agente de su prueba de 30 días. Las horas de la prueba no se renuevan con el mes. Elegí un plan para seguir corriendo agentes; todo lo del workspace queda como está.",
+    "plan_inactive": "No arrancó: este workspace no tiene un plan activo (la suscripción terminó o falló un pago). El workspace se sigue pudiendo mirar; las corridas vuelven a arrancar cuando el plan esté activo.",
+    "mention_not_started": "@{agent} no respondió.",
+    "hours_notice_80": "Este workspace usó el 80% de las {included} horas de agente que incluye su plan para {period} ({used} h hasta ahora). Las corridas siguen: pasadas las horas incluidas, cada hora extra cuesta $0,05, hasta el tope de ${cap} del workspace.",
+    "hours_notice_80_no_extra": "Este workspace usó el 80% de las {included} horas de agente que incluye su plan para {period} ({used} h hasta ahora). Cuando se acaben, las corridas que estén andando terminan y las nuevas esperan hasta el {resets}.",
+    "hours_notice_80_trial": "Este workspace usó el 80% de las {included} horas de agente de su prueba ({used} h hasta ahora). Cuando se terminen, las corridas que están andando terminan y las nuevas necesitan un plan pago. La prueba termina el {resets}.",
+    "hours_notice_100": "Este workspace usó las {included} horas de agente que incluye su plan para {period}. Desde ahora cada hora extra cuesta $0,05, hasta el tope de ${cap} del workspace; pasado el tope, las corridas nuevas esperan hasta el {resets}."
   },
   "hints": {
     "steered_after_turn": "El agente lo lee al terminar el turno en curso.",

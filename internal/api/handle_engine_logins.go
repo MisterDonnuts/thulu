@@ -16,8 +16,8 @@ import (
 )
 
 // Only a person may reach these routes; any API key, a run's included, gets 403.
-// Never return, log or record the code, the URL after it reaches the browser, or anything the CLI
-// keeps in the volume.
+// Never return, log or record the code or anything the CLI keeps in the volume. The URL goes only
+// to the person whose sign-in it is, while that sign-in is open, and is never logged.
 
 func (s *Server) wirePersonalLogins() {
 	if s.kube != nil || s.docker == nil || s.taskDispatcher == nil {
@@ -95,12 +95,35 @@ func (s *Server) handleStartEngineLogin(w http.ResponseWriter, r *http.Request) 
 	if !ok {
 		return
 	}
-	url, err := s.personalLogins.Start(r.Context(), id, name)
-	if err != nil {
+	if err := s.personalLogins.Begin(r.Context(), id, name); err != nil {
 		writeError(w, r, 0, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]string{"url": url})
+	writeJSON(w, http.StatusAccepted, flowBody(r, s.personalLogins.Flow(id, name)))
+}
+
+// The dashboard polls this while the CLI is prepared: the first sign-in installs it, which takes
+// several seconds before there is a link to show.
+func (s *Server) handleEngineLoginFlow(w http.ResponseWriter, r *http.Request) {
+	id, name, ok := s.engineLoginCaller(w, r, true)
+	if !ok {
+		return
+	}
+	writeJSON(w, http.StatusOK, flowBody(r, s.personalLogins.Flow(id, name)))
+}
+
+type engineLoginFlow struct {
+	Phase personallogin.Phase `json:"phase"`
+	URL   string              `json:"url,omitempty"`
+	Error string              `json:"error,omitempty"`
+}
+
+func flowBody(r *http.Request, fs personallogin.FlowState) engineLoginFlow {
+	out := engineLoginFlow{Phase: fs.Phase, URL: fs.URL}
+	if fs.Err != nil {
+		out.Error = apperr.BodyFor(r, fs.Err).Error
+	}
+	return out
 }
 
 func (s *Server) handleCompleteEngineLogin(w http.ResponseWriter, r *http.Request) {

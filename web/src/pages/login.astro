@@ -486,10 +486,14 @@ const CODE: Record<string, string> = {
             workspace: string;
             email: string;
             awaiting_access?: boolean;
+            seats_full?: boolean;
           };
           text.textContent = t("login.invite.for", { workspace: inv.workspace, email: inv.email });
-          if (inv.awaiting_access) {
-            const note = document.getElementById("invite-banner-note")!;
+          const note = document.getElementById("invite-banner-note")!;
+          if (inv.seats_full) {
+            note.textContent = t("login.invite.full", { workspace: inv.workspace });
+            note.hidden = false;
+          } else if (inv.awaiting_access) {
             note.textContent = t("login.invite.awaiting");
             note.hidden = false;
           }

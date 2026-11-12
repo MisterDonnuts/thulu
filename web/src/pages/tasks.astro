@@ -9292,15 +9292,13 @@ const paneAttrs: Record<string, ReturnType<typeof tabPanelAttrs>> = Object.fromE
         const paintStages = (list: Stage[]) =>
           paint([
             { head: t("tasks.drawer.subtasks.menu.move_to") },
-            ...list.map(
-              (s): MenuEntry => ({
-                title: s.label,
-                dot: s.color,
-                indent: true,
-                checked: s.id === c.stage,
-                attrs: { "data-row-stage": s.id },
-              }),
-            ),
+            ...list.map((s): MenuEntry => ({
+              title: s.label,
+              dot: s.color,
+              indent: true,
+              checked: s.id === c.stage,
+              attrs: { "data-row-stage": s.id },
+            })),
           ]);
         const paintWaits = async () => {
           const head: MenuEntry = { head: t("tasks.drawer.subtasks.menu.waits_for") };
@@ -9325,14 +9323,12 @@ const paneAttrs: Record<string, ReturnType<typeof tabPanelAttrs>> = Object.fromE
                 : t("tasks.drawer.subtasks.waits_soft"),
             },
             ...(sibs.length
-              ? sibs.map(
-                  (s): MenuEntry => ({
-                    title: s.title,
-                    role: "menuitemcheckbox",
-                    checked: current.some((d) => d.task_id === s.id),
-                    attrs: { "data-row-wait": s.id },
-                  }),
-                )
+              ? sibs.map((s): MenuEntry => ({
+                  title: s.title,
+                  role: "menuitemcheckbox",
+                  checked: current.some((d) => d.task_id === s.id),
+                  attrs: { "data-row-wait": s.id },
+                }))
               : [{ note: t("tasks.drawer.subtasks.no_siblings") }]),
           ]);
         };

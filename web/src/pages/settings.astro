@@ -330,6 +330,34 @@ const LANGUAGES = locales.map((code) => ({
       </Panel>
 
       {
+        /* Extra hours: how much the workspace accepts to spend past its included
+           agent hours (PUT /entitlements/extra-hours-cap). Hidden on plans
+           without extra hours (trial, inactive, self-hosted). */
+      }
+      <Panel id="extracap-panel" icon="clock" title={t("settings.extra_hours.title")} hidden>
+        <p class="panel-lede">{t("settings.extra_hours.intro")}</p>
+        <form id="extracap-form" class="form-stack" novalidate>
+          <Callout id="extracap-readonly" icon="lock" hidden
+            >{t("settings.extra_hours.read_only")}</Callout
+          >
+          <Field
+            label={t("settings.extra_hours.label")}
+            for="extracap-usd"
+            hint={t("settings.extra_hours.unit")}
+            errorId="extracap-usd-error"
+          >
+            <input id="extracap-usd" type="number" min="0" step="1" inputmode="decimal" />
+          </Field>
+          <p id="extracap-now" class="muted"></p>
+          <div class="form-actions">
+            <Button id="extracap-save" type="submit" variant="primary" size="sm" disabled
+              >{t("common.buttons.save")}</Button
+            >
+          </div>
+        </form>
+      </Panel>
+
+      {
         /*
           The banded skin. Modal.astro owns the head, body and foot bands, so the
           form lives inside the body and the footer's submit
@@ -1255,6 +1283,13 @@ const LANGUAGES = locales.map((code) => ({
       type WorkspaceSettings,
     } from "../lib/run-limit";
     import {
+      extraCapEditable,
+      extraCapNow,
+      parseExtraCap,
+      MAX_EXTRA_CAP_USD,
+      type Entitlements,
+    } from "../lib/plan";
+    import {
       invitationLink,
       liveKeysBy,
       loginConfigLines,
@@ -1281,7 +1316,7 @@ const LANGUAGES = locales.map((code) => ({
       type Invitation,
     } from "../lib/account";
     import { loadAccountLifecycle } from "../lib/account-panel";
-    import { loadEngineLogins } from "../lib/engine-logins";
+    import { loadEngineLogins, paintEngineLogins } from "../lib/engine-logins";
     import {
       OPERATOR_ENV,
       isOperatorRefusal,
@@ -1363,6 +1398,7 @@ const LANGUAGES = locales.map((code) => ({
           loadLLM();
           void loadEngineLogins();
           void loadRunLimit();
+          void loadExtraCap();
         }
         if (tab === "updates") loadUpdates();
         if (tab === "team") loadTeam();
@@ -2528,6 +2564,78 @@ const LANGUAGES = locales.map((code) => ({
         }
       });
 
+      let extraCapEnt: Entitlements | null = null;
+      let extraCapAdmin = false;
+
+      async function loadExtraCap() {
+        const panel = $("extracap-panel");
+        try {
+          extraCapEnt = await api.get<Entitlements>("/entitlements");
+        } catch {
+          panel.hidden = true;
+          return;
+        }
+        if (!extraCapEditable(extraCapEnt)) {
+          panel.hidden = true;
+          return;
+        }
+        extraCapAdmin = roleWithin("admin", (await sessionInfo())?.role);
+        panel.hidden = false;
+        renderExtraCap();
+      }
+
+      function savedExtraCap(): string {
+        return String(extraCapEnt?.hours?.cap_usd ?? extraCapEnt?.extra_hours_cap_usd ?? 0);
+      }
+
+      function renderExtraCap() {
+        if (!extraCapEnt) return;
+        const input = $("extracap-usd") as HTMLInputElement;
+        input.value = savedExtraCap();
+        input.max = String(MAX_EXTRA_CAP_USD);
+        input.disabled = !extraCapAdmin;
+        setText($("extracap-now"), extraCapNow(extraCapEnt));
+        $("extracap-readonly").hidden = extraCapAdmin;
+        $("extracap-save").hidden = !extraCapAdmin;
+        setFieldError(input, "");
+        paintExtraCap();
+      }
+
+      function paintExtraCap() {
+        const raw = ($("extracap-usd") as HTMLInputElement).value.trim();
+        ($("extracap-save") as HTMLButtonElement).disabled =
+          !extraCapAdmin || raw === "" || raw === savedExtraCap();
+      }
+
+      $("extracap-usd").addEventListener("input", () => {
+        setFieldError($("extracap-usd"), "");
+        paintExtraCap();
+      });
+      $("extracap-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (!extraCapEnt || !extraCapAdmin) return;
+        const input = $("extracap-usd") as HTMLInputElement;
+        const parsed = parseExtraCap(input.value);
+        if ("error" in parsed) {
+          setFieldError(input, parsed.error, { focus: true });
+          return;
+        }
+        ($("extracap-save") as HTMLButtonElement).disabled = true;
+        try {
+          extraCapEnt = await api.put<Entitlements>("/entitlements/extra-hours-cap", {
+            cap_usd: parsed.usd,
+          });
+          renderExtraCap();
+          toast(t("settings.extra_hours.saved"), "ok");
+        } catch (err) {
+          setFieldError(
+            input,
+            err instanceof ApiError ? err.message : t("settings.extra_hours.save_failed"),
+          );
+          paintExtraCap();
+        }
+      });
+
       function followers(engineName: string): string[] {
         return agentsOnDefault(engineName, llmProfiles, llmAgents, llmEngines);
       }
@@ -2619,10 +2727,12 @@ const LANGUAGES = locales.map((code) => ({
               pad: "md",
               bodyHTML:
                 `<h3 class="sub-head">${esc(t("settings.llm.engine.default_label"))}</h3>${defHTML}` +
-                `<h3 class="sub-head">${esc(t("settings.llm.engine.others_label"))}</h3>${rest}`,
+                `<h3 class="sub-head">${esc(t("settings.llm.engine.others_label"))}</h3>${rest}` +
+                `<div class="el-slot" data-el-slot="${esc(e.name)}"></div>`,
             });
           })
           .join("");
+        paintEngineLogins(Object.fromEntries(llmEngines.map((e) => [e.name, e.label])));
       }
 
       $("llm-engines").addEventListener("click", (ev) => {

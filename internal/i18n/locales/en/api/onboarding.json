@@ -41,7 +41,8 @@
       "effect": "agent runs fail at dispatch: there is no model to call",
       "finish": "set the engine's default profile in Settings → AI engines",
       "store_unavailable": "secrets store unavailable",
-      "no_key": "no key for {engine}"
+      "no_key": "no key for {engine}",
+      "no_key_personal": "no key for {engine}. Until there is one, the runs you start yourself can use your own account: Settings → AI engines → Your own account"
     },
     "project": {
       "title": "First project",

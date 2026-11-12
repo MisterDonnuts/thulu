@@ -63,34 +63,66 @@ type Config struct {
 }
 
 type Manager struct {
-	cfg   Config
-	mu    sync.Mutex
-	flows map[flowKey]*flow
-	ready map[flowKey]bool
+	cfg    Config
+	mu     sync.Mutex
+	flows  map[flowKey]*flow
+	failed map[flowKey]error
+	ready  map[flowKey]bool
 }
 
 func NewManager(cfg Config) *Manager {
-	return &Manager{cfg: cfg, flows: map[flowKey]*flow{}, ready: map[flowKey]bool{}}
+	return &Manager{cfg: cfg, flows: map[flowKey]*flow{}, failed: map[flowKey]error{}, ready: map[flowKey]bool{}}
 }
 
 type flowKey struct{ user, engine string }
 
+// Phase is where an open sign-in is. Preparing covers everything before the CLI prints its link:
+// pulling the image, creating the volume and, the first time, installing the CLI (several seconds).
+type Phase string
+
+const (
+	PhaseNone        Phase = ""
+	PhasePreparing   Phase = "preparing"
+	PhaseWaitingCode Phase = "waiting_code"
+	PhaseFailed      Phase = "failed"
+)
+
+// A flow outlives the request that began it: a reload or a closed tab must neither abort the
+// preparation halfway nor leave its container and volume behind. Only Cancel, the TTL or the
+// end of the sign-in close it.
 type flow struct {
+	ctx    context.Context
+	cancel context.CancelFunc
+	timer  *time.Timer
+	once   sync.Once
+
+	mu          sync.Mutex
+	phase       Phase
+	url         string
+	vol         string
+	created     bool
 	containerID string
 	hj          dockertypes.HijackedResponse
 	term        *terminal
 	done        chan struct{}
 	exitCode    int64
-	created     bool
-	timer       *time.Timer
-	once        sync.Once
+	ended       bool
 }
 
 type Status struct {
 	Engine    string `json:"engine"`
 	Connected bool   `json:"connected"`
 	Pending   bool   `json:"pending"`
+	Phase     Phase  `json:"phase,omitempty"`
 	engine.LoginStatus
+}
+
+// FlowState is what the person who opened a sign-in sees of it. The URL goes only to that person,
+// and only while the sign-in is open.
+type FlowState struct {
+	Phase Phase
+	URL   string
+	Err   error
 }
 
 // A volume alone is not a login: it exists before the code is pasted, or stays empty after a
@@ -136,7 +168,10 @@ func (m *Manager) Status(ctx context.Context, userID, engineName string) (Status
 	if err != nil {
 		return Status{}, err
 	}
-	st := Status{Engine: engineName, Pending: m.pending(userID, engineName)}
+	st := Status{Engine: engineName}
+	if fs := m.peek(userID, engineName); fs.Phase == PhasePreparing || fs.Phase == PhaseWaitingCode {
+		st.Pending, st.Phase = true, fs.Phase
+	}
 	vol, ok, err := lookupVolume(ctx, m.cfg.Docker, engineName, userID)
 	if err != nil {
 		return st, apperr.Wrap(err, "personallogin.errors.volume")
@@ -151,11 +186,14 @@ func (m *Manager) Status(ctx context.Context, userID, engineName string) (Status
 	if err != nil {
 		return st, err
 	}
-	if code != 0 {
-		return st, apperr.Unavailable("personallogin.errors.command_failed", "code", code)
-	}
+	// Claude Code exits 1 when nothing is stored yet, with "loggedIn": false on stdout: a volume
+	// left empty by a sign-in that never finished. Output that parses is the answer, whatever the
+	// exit code.
 	ls, err := pl.ParseStatus(out)
 	if err != nil {
+		if code != 0 {
+			return st, commandErr(nil, code)
+		}
 		return st, err
 	}
 	st.LoginStatus = ls
@@ -164,66 +202,142 @@ func (m *Manager) Status(ctx context.Context, userID, engineName string) (Status
 	return st, nil
 }
 
-func (m *Manager) Start(ctx context.Context, userID, engineName string) (string, error) {
+// Begin opens a sign-in and returns at once; the preparation runs on its own and Flow reports it.
+// A sign-in already open for this person and engine is closed first.
+func (m *Manager) Begin(ctx context.Context, userID, engineName string) error {
 	pl, err := loginOf(engineName)
 	if err != nil {
-		return "", err
+		return err
 	}
-	m.Cancel(context.WithoutCancel(ctx), userID, engineName)
-	m.forget(flowKey{userID, engineName})
-	vol, existed, err := m.ensureVolume(ctx, engineName, userID)
-	if err != nil {
-		return "", err
-	}
-	f := &flow{done: make(chan struct{}), created: !existed}
 	key := flowKey{userID, engineName}
-	fail := func(err error) (string, error) {
-		m.finish(context.WithoutCancel(ctx), key, f, vol, false)
-		return "", err
+	fctx, cancel := context.WithCancel(context.WithoutCancel(ctx))
+	f := &flow{ctx: fctx, cancel: cancel, phase: PhasePreparing}
+	m.mu.Lock()
+	old := m.flows[key]
+	m.flows[key] = f
+	delete(m.failed, key)
+	delete(m.ready, key)
+	m.mu.Unlock()
+	if old != nil {
+		m.finish(context.WithoutCancel(ctx), key, old, false)
 	}
+	f.mu.Lock()
+	f.timer = time.AfterFunc(flowTTL, func() { m.finish(context.WithoutCancel(fctx), key, f, false) })
+	f.mu.Unlock()
+	go m.prepare(key, f, pl)
+	return nil
+}
 
-	id, err := m.create(ctx, userID, engineName, pl, vol, pl.Login, true)
-	if err != nil {
-		return fail(err)
+func (m *Manager) prepare(key flowKey, f *flow, pl *engine.PersonalLogin) {
+	ctx := f.ctx
+	// Cleanup must still run once the flow is cancelled, so it drops the cancel but keeps the values.
+	cleanup := context.WithoutCancel(ctx)
+	fail := func(err error) {
+		m.mu.Lock()
+		if m.flows[key] == f && ctx.Err() == nil {
+			m.failed[key] = err
+		}
+		m.mu.Unlock()
+		m.finish(cleanup, key, f, false)
 	}
-	f.containerID = id
+	vol, existed, err := m.ensureVolume(ctx, key.engine, key.user)
+	if err != nil {
+		fail(err)
+		return
+	}
+	if !f.set(func() { f.vol, f.created = vol, !existed }) {
+		if !existed {
+			logx.Warn(m.cfg.Docker.VolumeRemove(cleanup, vol, true), "personallogin.log.remove_volume_failed", "volume", vol)
+		}
+		return
+	}
+	id, err := m.create(ctx, key.user, key.engine, pl, vol, pl.Login, true)
+	if err != nil {
+		fail(err)
+		return
+	}
+	if !f.set(func() { f.containerID = id }) {
+		logx.Warn(m.cfg.Docker.ContainerRemove(cleanup, id, container.RemoveOptions{Force: true}),
+			"personallogin.log.remove_container_failed", "id", id)
+		return
+	}
 	hj, err := m.cfg.Docker.ContainerAttach(ctx, id, container.AttachOptions{Stream: true, Stdin: true, Stdout: true, Stderr: true})
 	if err != nil {
-		return fail(apperr.Wrap(err, "personallogin.errors.container"))
+		fail(apperr.Wrap(err, "personallogin.errors.container"))
+		return
 	}
-	f.hj = hj
-	waitC, errC := m.cfg.Docker.ContainerWait(context.WithoutCancel(ctx), id, container.WaitConditionNextExit)
-	if err := m.cfg.Docker.ContainerStart(ctx, id, container.StartOptions{}); err != nil {
+	term := newTerminal()
+	if !f.set(func() { f.hj, f.term = hj, term }) {
 		hj.Close()
-		return fail(apperr.Wrap(err, "personallogin.errors.container"))
+		return
 	}
+	waitC, errC := m.cfg.Docker.ContainerWait(ctx, id, container.WaitConditionNextExit)
+	if err := m.cfg.Docker.ContainerStart(ctx, id, container.StartOptions{}); err != nil {
+		fail(apperr.Wrap(err, "personallogin.errors.container"))
+		return
+	}
+	done := make(chan struct{})
 	go func() {
-		defer close(f.done)
+		defer close(done)
 		select {
 		case r := <-waitC:
+			f.mu.Lock()
 			f.exitCode = r.StatusCode
+			f.mu.Unlock()
 		case <-errC:
+			f.mu.Lock()
 			f.exitCode = -1
+			f.mu.Unlock()
 		}
 	}()
-
-	term := newTerminal()
-	f.term = term
+	f.set(func() { f.done = done })
 	go term.read(hj.Reader)
 	select {
 	case url := <-term.found:
-		f.timer = time.AfterFunc(flowTTL, func() { m.finish(context.Background(), key, f, vol, false) })
-		m.mu.Lock()
-		m.flows[key] = f
-		m.mu.Unlock()
-		return url, nil
-	case <-f.done:
-		return fail(apperr.Unavailable("personallogin.errors.no_url"))
+		f.set(func() { f.phase, f.url = PhaseWaitingCode, url })
+	case <-done:
+		fail(apperr.Unavailable("personallogin.errors.no_url"))
 	case <-time.After(urlWait):
-		return fail(apperr.Unavailable("personallogin.errors.no_url"))
+		fail(apperr.Unavailable("personallogin.errors.no_url"))
 	case <-ctx.Done():
-		return fail(ctx.Err())
 	}
+}
+
+// set runs fn under the flow's lock unless the flow already ended, and says whether it ran: what
+// prepare makes after finish has run is prepare's to clean up.
+func (f *flow) set(fn func()) bool {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.ended {
+		return false
+	}
+	fn()
+	return true
+}
+
+// Flow reports this person's open sign-in. A failed preparation is reported once, then forgotten.
+func (m *Manager) Flow(userID, engineName string) FlowState {
+	key := flowKey{userID, engineName}
+	m.mu.Lock()
+	if err, ok := m.failed[key]; ok {
+		delete(m.failed, key)
+		m.mu.Unlock()
+		return FlowState{Phase: PhaseFailed, Err: err}
+	}
+	m.mu.Unlock()
+	return m.peek(userID, engineName)
+}
+
+func (m *Manager) peek(userID, engineName string) FlowState {
+	m.mu.Lock()
+	f := m.flows[flowKey{userID, engineName}]
+	m.mu.Unlock()
+	if f == nil {
+		return FlowState{}
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return FlowState{Phase: f.phase, URL: f.url}
 }
 
 func (m *Manager) Complete(ctx context.Context, userID, engineName, code string) (Status, error) {
@@ -238,10 +352,15 @@ func (m *Manager) Complete(ctx context.Context, userID, engineName, code string)
 	if f == nil {
 		return Status{}, apperr.Conflict("personallogin.errors.no_pending_login")
 	}
-	vol := VolumeName(engineName, userID)
-	f.term.reset()
-	if _, err := io.WriteString(f.hj.Conn, code+"\r"); err != nil {
-		m.finish(context.WithoutCancel(ctx), key, f, vol, false)
+	f.mu.Lock()
+	phase, conn, term, done := f.phase, f.hj.Conn, f.term, f.done
+	f.mu.Unlock()
+	if phase != PhaseWaitingCode {
+		return Status{}, apperr.Conflict("personallogin.errors.still_preparing")
+	}
+	term.reset()
+	if _, err := io.WriteString(conn, code+"\r"); err != nil {
+		m.finish(context.WithoutCancel(ctx), key, f, false)
 		return Status{}, apperr.Wrap(err, "personallogin.errors.login_failed")
 	}
 	// For a paste it cannot read, the CLI prints and keeps running instead of exiting; output plus
@@ -252,22 +371,24 @@ func (m *Manager) Complete(ctx context.Context, userID, engineName, code string)
 wait:
 	for {
 		select {
-		case <-f.done:
+		case <-done:
 			break wait
-		case <-f.term.said:
+		case <-term.said:
 			grace = time.After(promptGrace)
 		case <-grace:
-			f.term.reset()
+			term.reset()
 			return Status{}, apperr.Invalid("personallogin.errors.code_not_accepted")
 		case <-overall.C:
-			m.finish(context.WithoutCancel(ctx), key, f, vol, false)
+			m.finish(context.WithoutCancel(ctx), key, f, false)
 			return Status{}, apperr.Unavailable("personallogin.errors.login_timeout")
 		case <-ctx.Done():
 			return Status{}, ctx.Err()
 		}
 	}
+	f.mu.Lock()
 	ok := f.exitCode == 0
-	m.finish(context.WithoutCancel(ctx), key, f, vol, ok)
+	f.mu.Unlock()
+	m.finish(context.WithoutCancel(ctx), key, f, ok)
 	if !ok {
 		return Status{}, apperr.Invalid("personallogin.errors.login_failed")
 	}
@@ -278,9 +399,10 @@ func (m *Manager) Cancel(ctx context.Context, userID, engineName string) {
 	key := flowKey{userID, engineName}
 	m.mu.Lock()
 	f := m.flows[key]
+	delete(m.failed, key)
 	m.mu.Unlock()
 	if f != nil {
-		m.finish(ctx, key, f, VolumeName(engineName, userID), false)
+		m.finish(ctx, key, f, false)
 	}
 }
 
@@ -317,7 +439,7 @@ func (m *Manager) pending(userID, engineName string) bool {
 	return m.flows[flowKey{userID, engineName}] != nil
 }
 
-func (m *Manager) finish(ctx context.Context, key flowKey, f *flow, vol string, loggedIn bool) {
+func (m *Manager) finish(ctx context.Context, key flowKey, f *flow, loggedIn bool) {
 	f.once.Do(func() {
 		m.mu.Lock()
 		if m.flows[key] == f {
@@ -325,23 +447,28 @@ func (m *Manager) finish(ctx context.Context, key flowKey, f *flow, vol string, 
 		}
 		delete(m.ready, key)
 		m.mu.Unlock()
-		if f.timer != nil {
-			f.timer.Stop()
+		f.cancel()
+		f.mu.Lock()
+		f.ended = true
+		timer, hj, id, done, vol, created := f.timer, f.hj, f.containerID, f.done, f.vol, f.created
+		f.mu.Unlock()
+		if timer != nil {
+			timer.Stop()
 		}
-		if f.hj.Conn != nil {
-			f.hj.Close()
+		if hj.Conn != nil {
+			hj.Close()
 		}
-		if f.containerID != "" {
-			logx.Warn(m.cfg.Docker.ContainerRemove(ctx, f.containerID, container.RemoveOptions{Force: true}),
-				"personallogin.log.remove_container_failed", "id", f.containerID)
-			if f.done != nil {
+		if id != "" {
+			logx.Warn(m.cfg.Docker.ContainerRemove(ctx, id, container.RemoveOptions{Force: true}),
+				"personallogin.log.remove_container_failed", "id", id)
+			if done != nil {
 				select {
-				case <-f.done:
+				case <-done:
 				case <-time.After(commandWait):
 				}
 			}
 		}
-		if f.created && !loggedIn {
+		if created && !loggedIn && vol != "" {
 			logx.Warn(m.cfg.Docker.VolumeRemove(ctx, vol, true), "personallogin.log.remove_volume_failed", "volume", vol)
 		}
 	})

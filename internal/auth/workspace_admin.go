@@ -77,7 +77,7 @@ func (h *Handler) handleWorkspaceSeats(w http.ResponseWriter, r *http.Request) {
 	if !h.requireWorkspaceRole(w, r, wsID, RoleViewer, PermMembersRead) {
 		return
 	}
-	s, err := h.seats(r.Context(), wsID, "")
+	s, err := h.seats(r.Context(), wsID)
 	if err != nil {
 		logx.Warn(err, "auth.log.seats_failed", "workspace", wsID)
 		apperr.WriteJSON(w, r, http.StatusInternalServerError, apperr.Internal("auth.errors.internal"))

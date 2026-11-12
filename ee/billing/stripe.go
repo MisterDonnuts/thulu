@@ -85,6 +85,7 @@ type Event struct {
 type Subscription struct {
 	ID       string            `json:"id"`
 	Status   string            `json:"status"`
+	Customer string            `json:"customer"`
 	Metadata map[string]string `json:"metadata"`
 }
 
@@ -102,38 +103,62 @@ func ResolvePlanChange(payload []byte) (PlanChange, bool, error) {
 		return PlanChange{}, false, nil
 	}
 
+	inactive := PlanChange{WorkspaceID: wsID, Plan: entitlements.PlanInactive, Customer: sub.Customer}
 	switch e.Type {
 	case "customer.subscription.deleted":
-		return PlanChange{WorkspaceID: wsID, Plan: entitlements.PlanFree}, true, nil
+		return inactive, true, nil
 	case "customer.subscription.created", "customer.subscription.updated":
 		if isInactiveStatus(sub.Status) {
-			return PlanChange{WorkspaceID: wsID, Plan: entitlements.PlanFree}, true, nil
+			return inactive, true, nil
 		}
-		plan := planFromMetadata(sub.Metadata["octopus_plan"])
-		return PlanChange{WorkspaceID: wsID, Plan: plan}, true, nil
+		if sub.Status == "incomplete" {
+			// The first payment has not gone through yet: the paid plan waits for it. Stripe sends
+			// another update when it does, or incomplete_expired after 23 hours.
+			return PlanChange{}, false, nil
+		}
+		return PlanChange{
+			WorkspaceID: wsID,
+			Plan:        planFromMetadata(sub.Metadata["octopus_plan"]),
+			Agents:      countFromMetadata(sub.Metadata["octopus_agents"]),
+			Nodes:       countFromMetadata(sub.Metadata["octopus_nodes"]),
+			Customer:    sub.Customer,
+		}, true, nil
 	default:
 		return PlanChange{}, false, nil
 	}
 }
 
+// A count Stripe sends badly reads as 0, the plan's default, rather than failing the webhook: Stripe
+// would retry a 4xx forever.
+func countFromMetadata(v string) int {
+	n, err := strconv.Atoi(strings.TrimSpace(v))
+	if err != nil || n < 0 || n > maxCount {
+		return 0
+	}
+	return n
+}
+
+const maxCount = 10000
+
+// past_due is not here: Stripe retries a failed renewal for the window set in its dashboard (14 days,
+// as the terms promise) and keeps the plan meanwhile. When the retries run out Stripe moves the
+// subscription to unpaid or canceled, and that stops new runs.
 func isInactiveStatus(status string) bool {
 	switch status {
-	case "canceled", "unpaid", "incomplete_expired", "past_due":
+	case "canceled", "unpaid", "incomplete_expired":
 		return true
 	}
 	return false
 }
 
 func planFromMetadata(p string) entitlements.Plan {
-	switch entitlements.Plan(strings.ToLower(strings.TrimSpace(p))) {
+	switch plan := entitlements.Plan(strings.ToLower(strings.TrimSpace(p))); plan {
+	case entitlements.PlanTrial, entitlements.PlanStarter, entitlements.PlanTeam, entitlements.PlanEnterprise:
+		return plan
 	case entitlements.PlanFree:
-		return entitlements.PlanFree
-	case entitlements.PlanTeam:
-		return entitlements.PlanTeam
+		return entitlements.PlanTrial
 	case entitlements.PlanBusiness:
-		return entitlements.PlanBusiness
-	case entitlements.PlanEnterprise:
-		return entitlements.PlanEnterprise
+		return entitlements.PlanTeam
 	default:
 		return entitlements.PlanTeam
 	}

@@ -87,7 +87,7 @@ func TestRenameWorkspace(t *testing.T) {
 	}
 }
 
-func TestWorkspaceSeats_CountsInvitations(t *testing.T) {
+func TestWorkspaceSeats_IgnoresInvitations(t *testing.T) {
 	f := newInvitationFixture(t)
 	f.h.WithSeatLimit(func(string) int { return 5 })
 	if res := f.invite(t, "new@acme.io", RoleDeveloper); res.StatusCode != http.StatusCreated {
@@ -98,8 +98,8 @@ func TestWorkspaceSeats_CountsInvitations(t *testing.T) {
 	if err := json.NewDecoder(w.Body).Decode(&s); err != nil {
 		t.Fatal(err)
 	}
-	if s.Used != 2 || s.Limit != 5 {
-		t.Errorf("seats = %+v, want 2 of 5 (owner + pending invitation)", s)
+	if s.Used != 1 || s.Limit != 5 {
+		t.Errorf("seats = %+v, want 1 of 5 (the owner; a pending invitation takes no place)", s)
 	}
 }
 

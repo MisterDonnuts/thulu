@@ -41,7 +41,8 @@
       "effect": "las corridas de agentes fallan al despacharse: no hay modelo al que llamar",
       "finish": "elegí el perfil default del motor en Configuración → Motores de IA",
       "store_unavailable": "el almacén de secretos no está disponible",
-      "no_key": "no hay key para {engine}"
+      "no_key": "no hay key para {engine}",
+      "no_key_personal": "no hay key para {engine}. Mientras tanto, las corridas que arranques vos pueden usar tu propia cuenta: Configuración → Motores de IA → Tu propia cuenta"
     },
     "project": {
       "title": "Primer proyecto",

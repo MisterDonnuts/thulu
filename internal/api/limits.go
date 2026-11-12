@@ -17,7 +17,7 @@ func (s *Server) wireLimits(ctx context.Context) {
 	saas := entitlements.SaaSMode()
 	cpus := runtime.NumCPU()
 	s.taskDispatcher.WithWorkspaceConcurrency(s.concurrencyLimitForWorkspace)
-	s.taskDispatcher.WithRunQuota(serverRunQuota{s})
+	s.taskDispatcher.WithHourQuota(serverHourQuota{s})
 	s.taskDispatcher.WithRunDeadline(s.runDeadline)
 	s.taskDispatcher.WithMaxQueueMinutes(func() int {
 		if s.settingsStore == nil {
@@ -70,20 +70,26 @@ func (s *Server) storageQuotaForWorkspace(workspaceID string) int64 {
 	return ent.StorageQuotaBytes
 }
 
-type serverRunQuota struct{ s *Server }
+type serverHourQuota struct{ s *Server }
 
-func (q serverRunQuota) ConsumeRun(ctx context.Context, workspaceID string) (entitlements.RunUsage, bool, error) {
+func (q serverHourQuota) AdmitRun(ctx context.Context, workspaceID string) (entitlements.Admission, error) {
 	if q.s.entitlements == nil {
-		return entitlements.RunUsage{}, true, nil
+		return entitlements.Admission{OK: true}, nil
 	}
-	return q.s.entitlements.ConsumeRun(ctx, workspaceID)
+	return q.s.entitlements.AdmitRun(ctx, workspaceID)
 }
 
-func (q serverRunQuota) RefundRun(ctx context.Context, workspaceID, period string) error {
-	if q.s.entitlements == nil {
+// admitWorkspaceRun gates pods that start outside the task board (Evidence batches). A billing read
+// error lets the run through, like the board's check.
+func (s *Server) admitWorkspaceRun(ctx context.Context, workspaceID string) error {
+	if s.entitlements == nil {
 		return nil
 	}
-	return q.s.entitlements.RefundRun(ctx, workspaceID, period)
+	a, err := s.entitlements.AdmitRun(ctx, workspaceID)
+	if err != nil {
+		return nil //nolint:nilerr // fail open: a billing hiccup must not stop every batch
+	}
+	return a.Err()
 }
 
 func (s *Server) runDeadline(workspaceID string) time.Duration {

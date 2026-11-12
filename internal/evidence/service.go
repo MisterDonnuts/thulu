@@ -49,6 +49,9 @@ type Service struct {
 	MaxRunners    int
 	BatchDeadline time.Duration
 	Sandbox       SandboxStarter
+	// Admit refuses a batch when the workspace has no hours left, its trial ended or its plan is
+	// inactive. nil admits everything (self-hosted).
+	Admit func(ctx context.Context, workspaceID string) error
 
 	mu      sync.Mutex
 	running map[string]string
@@ -143,6 +146,14 @@ func (s *Service) startQueued(ctx context.Context) {
 		b := &queued[i]
 		if !s.reserve(b) {
 			continue
+		}
+		if s.Admit != nil {
+			if err := s.Admit(ctx, b.WorkspaceID); err != nil {
+				s.release(b.ID)
+				logx.Warn(s.Store.CloseBatch(ctx, b.ID, apperr.Localize(err, i18n.SourceLocale)),
+					"evidence.log.close_failed", "batch", b.ID)
+				continue
+			}
 		}
 		if err := s.launch(ctx, b); err != nil {
 			s.release(b.ID)

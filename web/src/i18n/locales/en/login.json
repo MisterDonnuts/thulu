@@ -37,7 +37,8 @@
   "invite": {
     "for": "You were invited to {workspace}. Sign in with {email}.",
     "awaiting": "That email doesn't have access yet. After you sign in you can ask for it.",
-    "gone": "This invitation was already used or canceled. Sign in to see where you have access."
+    "gone": "This invitation was already used or canceled. Sign in to see where you have access.",
+    "full": "{workspace} has no places left right now. Ask an admin there to free one or upgrade the plan; your invitation stays saved and goes through the next time you sign in."
   },
   "not_invited": {
     "page_title": "No access yet",

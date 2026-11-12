@@ -149,7 +149,8 @@
     "reattribute_failed": "re-attribute sessions: {err}",
     "reattributed": "re-attributed the cost of {count} sessions",
     "reconcile_namespaces_failed": "list workspaces to bring their namespaces to the current labels: {err}",
-    "reconcile_namespaces_done": "{count} tenant namespaces checked against the current labels"
+    "reconcile_namespaces_done": "{count} tenant namespaces checked against the current labels",
+    "hour_meter_started": "agent hours meter started (every {interval}; extra hours to billing: {billing})"
   },
   "comments": {
     "worktree_parked": "This task's worktree was idle for a long time, so Thulu freed its disk. Pending changes were committed to the task branch; the next run checks it out again.",

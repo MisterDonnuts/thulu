@@ -10,7 +10,7 @@
   },
   "llm": {
     "title": "Motores de IA",
-    "subtitle": "La clave y el modelo con que corre cada motor, los perfiles que pueden elegir los agentes y cuánto puede durar una corrida."
+    "subtitle": "La clave y el modelo con que corre cada motor, los perfiles que pueden elegir los agentes, cuánto puede durar una corrida y el tope de horas extra."
   },
   "webhooks": {
     "title": "Webhooks",

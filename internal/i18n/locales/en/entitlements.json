@@ -2,6 +2,19 @@
   "errors": {
     "schema": "entitlements schema",
     "workspace_id_required": "workspace_id required",
-    "marshal_features": "marshal features"
+    "marshal_features": "marshal features",
+    "negative_cap": "the extra hours cap can't be negative",
+    "refused_hours": "this workspace used the {included} agent hours its plan includes for {period}; new runs can start again on {resets}",
+    "refused_cap": "this workspace reached its ${cap} cap on extra hours for {period}; a workspace admin can raise it in Settings",
+    "refused_trial_ended": "the 30-day trial ended on {trial_end}; pick a plan to keep running agents",
+    "refused_trial_hours": "this workspace used the {included} agent hours of its trial, and trial hours do not renew; pick a plan to keep running agents",
+    "refused_plan_inactive": "this workspace has no active plan; runs start again once it is active",
+    "bad_period": "month {period} is not a valid YYYY-MM period"
+  },
+  "log": {
+    "meter_list": "agent hours: list the pods to meter",
+    "meter_count": "agent hours: count pod time",
+    "meter_prune": "agent hours: prune old pod counters",
+    "meter_report": "agent hours: send last month's extra hours to billing"
   }
 }

@@ -1,27 +1,17 @@
 ---
-import Callout from "./Callout.astro";
-import EmptyRow from "./EmptyRow.astro";
+// The personal sign-in lives inside each engine's card in Settings → AI engines (lib/engine-logins.ts
+// fills the card's [data-el-slot]); this holds only the dialog that walks through the sign-in.
 import Field from "./Field.astro";
 import FormError from "./FormError.astro";
 import Modal from "./Modal.astro";
-import Panel from "./Panel.astro";
 import { t } from "../i18n";
 ---
-
-<Panel id="el-panel" icon="user" title={t("settings.engine_login.title")} hidden>
-  <p class="panel-lede">{t("settings.engine_login.lede")}</p>
-  <Callout tone="warn" icon="alert">{t("settings.engine_login.warning")}</Callout>
-  <div id="el-list" class="row-list">
-    <EmptyRow as="div" loading />
-  </div>
-</Panel>
 
 <Modal
   id="el-modal"
   title={t("settings.engine_login.modal.title", { engine: "" })}
   icon="lock"
   size="sm"
-  lede={t("settings.engine_login.modal.lede")}
   cancel
   primary={{
     label: t("settings.engine_login.modal.submit"),
@@ -31,14 +21,32 @@ import { t } from "../i18n";
   }}
 >
   <form id="el-form" class="form-stack" novalidate>
-    <p>
-      <a id="el-url" href="#" target="_blank" rel="noopener noreferrer"
-        >{t("settings.engine_login.modal.open")}</a
-      >
-    </p>
-    <Field label={t("settings.engine_login.modal.code")} for="el-code">
-      <input id="el-code" type="text" autocomplete="off" spellcheck="false" autocapitalize="off" />
-    </Field>
+    <div id="el-steps" aria-live="polite"></div>
+    <div id="el-code-field" hidden>
+      <Field label={t("settings.engine_login.modal.code")} for="el-code">
+        <input
+          id="el-code"
+          type="text"
+          autocomplete="off"
+          spellcheck="false"
+          autocapitalize="off"
+          disabled
+        />
+      </Field>
+    </div>
     <FormError id="el-error" />
   </form>
 </Modal>
+
+<style is:global>
+  .el-slot:empty {
+    display: none;
+  }
+  .el-lede {
+    margin: 0 0 var(--s-3);
+    font-size: var(--t-sm);
+  }
+  .el-warning {
+    margin-top: var(--s-3);
+  }
+</style>
