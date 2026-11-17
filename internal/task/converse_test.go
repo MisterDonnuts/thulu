@@ -293,7 +293,7 @@ func TestCaptureSessionReadsTheRunsSessionFile(t *testing.T) {
 
 func TestApplyConversationEnvArmsSteering(t *testing.T) {
 	env := map[string]string{}
-	applyConversationEnv(env, &types.AgentType{Name: "developer"}, launchOpts{
+	applyConversationEnv(env, launchOpts{
 		Session: "sess-2", Message: "dale de nuevo",
 	}, true)
 	if env["SESSION_ID"] != "sess-2" || env["RESUME_MESSAGE"] != "dale de nuevo" {
@@ -306,7 +306,7 @@ func TestApplyConversationEnvArmsSteering(t *testing.T) {
 
 func TestApplyConversationEnvNeedsASteeringLauncher(t *testing.T) {
 	env := map[string]string{}
-	applyConversationEnv(env, &types.AgentType{Name: "developer"}, launchOpts{Message: "continue"}, false)
+	applyConversationEnv(env, launchOpts{Message: "continue"}, false)
 	if _, armed := env["STEER_ENABLED"]; armed {
 		t.Errorf("STEER_ENABLED = %q on a launcher without SteerRun", env["STEER_ENABLED"])
 	}

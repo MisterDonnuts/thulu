@@ -14,11 +14,13 @@ import (
 
 	"github.com/MisterDonnuts/thulu/internal/apperr"
 	"github.com/MisterDonnuts/thulu/internal/auth"
+	"github.com/MisterDonnuts/thulu/internal/engine"
 	"github.com/MisterDonnuts/thulu/internal/project"
 	"github.com/MisterDonnuts/thulu/internal/runner"
 	"github.com/MisterDonnuts/thulu/internal/runner/hostrun"
 	"github.com/MisterDonnuts/thulu/internal/task"
 	"github.com/MisterDonnuts/thulu/internal/task/launchercontract"
+	"github.com/MisterDonnuts/thulu/internal/testgit"
 	"github.com/MisterDonnuts/thulu/internal/testpg"
 	"github.com/MisterDonnuts/thulu/internal/types"
 )
@@ -73,9 +75,11 @@ func newRunnerFixture(t *testing.T, ws string) *runnerFixture {
 	return f
 }
 
+// onProject plays the dispatcher: it puts every task on the fixture's project and machine.
 type onProject struct {
 	*runnerLauncher
 	projectID string
+	runnerID  string
 }
 
 func (l onProject) LaunchForStage(ctx context.Context, t *task.Task, stage task.Stage, at *types.AgentType,
@@ -83,6 +87,8 @@ func (l onProject) LaunchForStage(ctx context.Context, t *task.Task, stage task.
 ) (string, string, string, error) {
 	cp := *t
 	cp.ProjectIDs = []string{l.projectID}
+	env = copyEnv(env)
+	env[runner.RunnerIDEnv] = l.runnerID
 	return l.runnerLauncher.LaunchForStage(ctx, &cp, stage, at, env, wt, sp, ro)
 }
 
@@ -94,7 +100,7 @@ func (d runnerContractDriver) AgentType() *types.AgentType {
 
 func (d runnerContractDriver) ForceExit(containerID string, code int) {
 	ctx := context.Background()
-	if _, err := d.f.store.Claim(ctx, d.f.reg.RunnerID, []string{d.f.project.ID}, time.Minute); err != nil {
+	if _, err := d.f.store.Claim(ctx, d.f.reg.RunnerID, runner.ProtocolVersion, []string{d.f.project.ID}, time.Minute); err != nil {
 		return
 	}
 	_ = d.f.store.Finish(ctx, d.f.reg.RunnerID, runner.JobIDFromRun(containerID), runner.FinishRequest{ExitCode: code})
@@ -103,41 +109,53 @@ func (d runnerContractDriver) ForceExit(containerID string, code int) {
 
 func TestRunnerLauncher_Contract(t *testing.T) {
 	f := newRunnerFixture(t, launchercontract.Workspace)
-	launchercontract.RunSuite(t, onProject{f.launcher, f.project.ID}, runnerContractDriver{f})
+	launchercontract.RunSuite(t, onProject{f.launcher, f.project.ID, f.reg.RunnerID}, runnerContractDriver{f})
 }
 
+// Case 22: only a run the dispatcher placed on a machine goes to it.
 func TestRoutedLauncherSendsOnlyRunnerTasksToTheRunner(t *testing.T) {
 	f := newRunnerFixture(t, "ws1")
 	base, _ := launchercontract.NewFake()
-	route, l := newRoutedLauncher(base, f.projects)
-	route.runner = f.launcher
+	l := newRoutedLauncher(base, f.projects)
+	l.runner = f.launcher
 	ctx := context.Background()
 	at := &types.AgentType{Name: "dev", Type: "dev"}
+	placed := func(instance string) map[string]string {
+		return map[string]string{"INSTANCE_ID": instance, runner.RunnerIDEnv: f.reg.RunnerID}
+	}
 
 	cid, _, _, err := l.LaunchForStage(ctx, &task.Task{ID: "t1", WorkspaceID: "ws1", ProjectIDs: []string{f.project.ID}},
-		types.StageInProgress, at, map[string]string{"INSTANCE_ID": "dev-task-t1-in_progress-1"}, nil, nil, false)
+		types.StageInProgress, at, placed("dev-task-t1-in_progress-1"), nil, nil, false)
 	if err != nil || !runner.IsRunnerRun(cid) {
 		t.Fatalf("runner task launched as %q, %v; want a runner run", cid, err)
+	}
+	cid, _, _, err = l.LaunchForStage(ctx, &task.Task{ID: "t3", WorkspaceID: "ws1"},
+		types.StageInProgress, at, placed("dev-task-t3-in_progress-1"), nil, nil, false)
+	if err != nil || !runner.IsRunnerRun(cid) {
+		t.Fatalf("a task without projects placed by its profile launched as %q, %v; want a runner run", cid, err)
 	}
 	cid, _, _, err = l.LaunchForStage(ctx, &task.Task{ID: "t2", WorkspaceID: "ws1"},
 		types.StageInProgress, at, map[string]string{"INSTANCE_ID": "dev-task-t2-in_progress-1"}, nil, nil, false)
 	if err != nil || runner.IsRunnerRun(cid) {
 		t.Fatalf("plain task launched as %q, %v; want the base launcher", cid, err)
 	}
-	if _, steers := l.(task.RunSteerer); steers {
-		t.Error("the routed launcher steers although its base does not")
+	_, _, _, err = l.LaunchForStage(ctx, &task.Task{ID: "t4", WorkspaceID: "ws1", ProjectIDs: []string{f.project.ID}},
+		types.StageInProgress, at, map[string]string{"INSTANCE_ID": "dev-task-t4-in_progress-1"}, nil, nil, false)
+	if apperr.Code(err) != "api.runners.errors.task_not_on_runner" {
+		t.Fatalf("a machine task the dispatcher did not place: err = %v, want it refused", err)
 	}
 }
 
 func TestRoutedLauncherWithRunnersOffRefusesRunnerTasks(t *testing.T) {
 	f := newRunnerFixture(t, "ws1")
 	base, _ := launchercontract.NewFake()
-	_, l := newRoutedLauncher(base, f.projects)
+	l := newRoutedLauncher(base, f.projects)
 	ctx := context.Background()
 	at := &types.AgentType{Name: "dev", Type: "dev"}
 
 	_, _, _, err := l.LaunchForStage(ctx, &task.Task{ID: "t1", WorkspaceID: "ws1", ProjectIDs: []string{f.project.ID}},
-		types.StageInProgress, at, map[string]string{"INSTANCE_ID": "dev-task-t1-in_progress-1"}, nil, nil, false)
+		types.StageInProgress, at, map[string]string{"INSTANCE_ID": "dev-task-t1-in_progress-1", runner.RunnerIDEnv: f.reg.RunnerID},
+		nil, nil, false)
 	if !errors.Is(err, apperr.Precondition("api.runners.errors.unavailable")) {
 		t.Fatalf("runner task with runners off: err = %v, want runners unavailable", err)
 	}
@@ -166,10 +184,7 @@ func TestRunnerEndToEnd(t *testing.T) {
 	gitT(t, tmp, "clone", "--quiet", remote, checkout)
 	gitT(t, checkout, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "--quiet", "--allow-empty", "-m", "root")
 	gitT(t, checkout, "push", "--quiet", "origin", "HEAD:main")
-	t.Setenv("GIT_AUTHOR_NAME", "t")
-	t.Setenv("GIT_AUTHOR_EMAIL", "t@t")
-	t.Setenv("GIT_COMMITTER_NAME", "t")
-	t.Setenv("GIT_COMMITTER_EMAIL", "t@t")
+	machineEnv(t)
 
 	entry := filepath.Join(tmp, "agent.sh")
 	script := `set -eu
@@ -189,7 +204,7 @@ echo "done" > "$OCTOPUS_ROOT/runs/$INSTANCE_ID/comment.md"
 		Concurrency: 1, Entrypoint: entry}
 
 	instance := "dev-task-t1-in_progress-1"
-	env := map[string]string{"INSTANCE_ID": instance, "TASK_ID": "t1",
+	env := map[string]string{"INSTANCE_ID": instance, "TASK_ID": "t1", runner.RunnerIDEnv: f.reg.RunnerID,
 		"OCTOPUS_API": "http://host.docker.internal:8585", task.EnvStagePush: "1"}
 	cid, _, outDir, err := f.launcher.LaunchForStage(context.Background(),
 		&task.Task{ID: "t1", WorkspaceID: "ws1", ProjectIDs: []string{f.project.ID}},
@@ -251,11 +266,66 @@ func gitT(t *testing.T, dir string, args ...string) string {
 	return strings.TrimSpace(string(out))
 }
 
+// Case 24: the launcher takes the engines that declare a machine login and refuses the rest.
 func TestRunnerLauncherRefusesOtherEngines(t *testing.T) {
 	l := &runnerLauncher{}
-	_, _, _, err := l.LaunchForStage(t.Context(), &task.Task{}, "done", &types.AgentType{},
-		map[string]string{"ENGINE": "codex", "INSTANCE_ID": "i"}, nil, nil, true)
-	if err == nil || !strings.Contains(apperr.Text(err), "codex") {
-		t.Fatalf("err = %v, want the engine refused", err)
+	launch := func(eng string) error {
+		_, _, _, err := l.LaunchForStage(t.Context(), &task.Task{}, "done", &types.AgentType{},
+			map[string]string{"ENGINE": eng, "INSTANCE_ID": "i"}, nil, nil, true)
+		return err
+	}
+	for _, eng := range []string{"codex", "opencode", "no-such-engine"} {
+		if err := launch(eng); apperr.Code(err) != "api.runners.errors.engine_not_supported" || !strings.Contains(apperr.Text(err), eng) {
+			t.Errorf("%s: err = %v, want the engine refused", eng, err)
+		}
+	}
+	if err := launch(engine.DefaultName); apperr.Code(err) == "api.runners.errors.engine_not_supported" {
+		t.Errorf("claude-code refused: %v", err)
+	}
+}
+
+// Case 23: a project kept by Thulu reaches the machine through /git/. The job names it as the /git/
+// path does, carries the result branch, needs no folder mapped on the machine and no runner older
+// than the protocol that fetches from the daemon.
+func TestRunnerJobCarriesAThuluProjectFromTheDaemon(t *testing.T) {
+	t.Setenv("OCTOPUS_GIT_ALLOW_LOCAL_REMOTES", "1")
+	f := newRunnerFixture(t, "ws")
+	ctx := t.Context()
+	web, err := f.projects.Create(ctx, "web", testgit.BareRepo(t), project.CreateOpts{WorkspaceID: "ws"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sub := &task.Task{ID: "sub", ParentID: "root", WorkspaceID: "ws", ProjectIDs: []string{web.ID},
+		WorktreePaths: map[string]string{web.ID: "/daemon/worktree"}}
+	want := runner.JobProject{ID: web.ID, Name: filepath.Base(web.Path), DefaultBranch: web.DefaultBranch,
+		Branch: project.TaskBranchName("root"), Source: runner.SourceDaemon}
+	got, err := f.launcher.runnerFor(ctx, sub, f.reg.RunnerID, false)
+	if err != nil || len(got) != 1 || got[0] != want {
+		t.Fatalf("runnerFor = %+v, %v; want %+v", got, err, want)
+	}
+	if spec := (runner.JobSpec{Projects: got}); !spec.SelfContained() || spec.MinProtocol() != runner.ProtocolDaemonCode {
+		t.Errorf("self-contained %v, min protocol %d; want a self-contained job for protocol %d",
+			spec.SelfContained(), spec.MinProtocol(), runner.ProtocolDaemonCode)
+	}
+	mention := &task.Task{ID: "plain", WorkspaceID: "ws", ProjectIDs: []string{web.ID}}
+	if got, err := f.launcher.runnerFor(ctx, mention, f.reg.RunnerID, true); err != nil || got[0].Branch != "" {
+		t.Errorf("read-only run on a task without a worktree = %+v, %v; want the default branch", got, err)
+	}
+
+	env := map[string]string{"INSTANCE_ID": "dev-task-sub-1", runner.RunnerIDEnv: f.reg.RunnerID}
+	at := &types.AgentType{Name: "dev", Type: "dev"}
+	if _, _, _, err := f.launcher.LaunchForStage(ctx, sub, types.StageInProgress, at, env, nil, nil, false); apperr.Code(err) != "api.runners.errors.runner_outdated" {
+		t.Errorf("launch on a protocol 1 runner: err = %v, want runner_outdated", err)
+	}
+	if _, err := f.store.Authenticate(ctx, f.reg.Credential, "test", runner.ProtocolVersion); err != nil {
+		t.Fatal(err)
+	}
+	cid, _, _, err := f.launcher.LaunchForStage(ctx, sub, types.StageInProgress, at, env, nil, nil, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	job, err := f.store.GetJob(ctx, runner.JobIDFromRun(cid))
+	if err != nil || job.Spec.ResultRef != project.ResultBranchName("root") {
+		t.Errorf("job = %+v, %v; want the root's result branch", job, err)
 	}
 }

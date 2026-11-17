@@ -1,0 +1,61 @@
+{
+  "lede": "A runner runs agents on a person's machine, with its git and its claude login. The code stays there: Thulu only sees the folders the runner reports and what each run returns.",
+  "add": "Add this machine",
+  "add_another": "Add another machine",
+  "empty": {
+    "title": "No machines yet",
+    "body": "Add one to create projects from a folder on it."
+  },
+  "status": {
+    "online": "connected",
+    "never": "never connected",
+    "seen": "last seen {when}",
+    "revoked": "revoked"
+  },
+  "row": {
+    "version": "version {version}",
+    "projects": {
+      "one": "{count} project",
+      "other": "{count} projects"
+    },
+    "folders": "Allowed folders: {folders}",
+    "no_folders": "No allowed folders: run thulu runner allow on that machine.",
+    "not_reported": "It hasn't reported its folders yet: start it with thulu runner run.",
+    "revoke": "Revoke",
+    "no_projects": "no projects"
+  },
+  "setup": {
+    "register_title": "Register the machine",
+    "register_detail": "The token works once and expires in {minutes} min.",
+    "allow_title": "Allow the folders with your code",
+    "allow_detail": "Change ~/code for your folder. The runner only touches repositories inside it.",
+    "start_title": "Start it",
+    "start_detail": "As a service it starts with the session; thulu runner run keeps it in the terminal.",
+    "copy": "Copy commands",
+    "waiting": "Waiting for the machine to connect…"
+  },
+  "confirm": {
+    "title": "Revoke {name}?",
+    "message": "Its projects stop running until you move them to another machine, and runs with AI-engine profiles on it are refused until you edit those profiles. To use it again, register it with a new token.",
+    "profiles": "Profiles on it: {names}.",
+    "default_profile": "{name} (default)",
+    "button": "Revoke"
+  },
+  "toast": {
+    "registered": "{name} connected",
+    "revoked": "{name} revoked"
+  },
+  "errors": {
+    "load": "Couldn't load the machines: {error}",
+    "token": "Couldn't create the token: {error}",
+    "revoke": "Couldn't revoke it: {error}",
+    "unknown": "unknown error"
+  },
+  "badge": {
+    "on": "On {name}",
+    "unknown": "a machine"
+  },
+  "mix": {
+    "machines": "A task runs on one machine, and these projects are on {machines}. Split it into one task per machine."
+  }
+}

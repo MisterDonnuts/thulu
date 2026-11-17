@@ -2,7 +2,6 @@ package initwizard
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"os"
 	"os/exec"
@@ -18,10 +17,13 @@ import (
 )
 
 type RunnerPlan struct {
-	Enabled       bool     `json:"enabled"`
-	Service       bool     `json:"service,omitempty"`
-	Folders       []string `json:"folders,omitempty"`
-	InstallClaude bool     `json:"-"`
+	Enabled bool     `json:"enabled"`
+	Service bool     `json:"service,omitempty"`
+	Folders []string `json:"folders,omitempty"`
+	// MachineProfile creates the "Login on a machine" profile for this runner as Claude Code's
+	// default, so runs pay with this machine's claude session.
+	MachineProfile bool `json:"machine_profile,omitempty"`
+	InstallClaude  bool `json:"-"`
 }
 
 type hostTool struct {
@@ -51,21 +53,10 @@ var lookTools = func(ctx context.Context) []hostTool {
 	return out
 }
 
+// claudeLogin reads the session the runner's probe would report.
 var claudeLogin = func(ctx context.Context) (loggedIn bool, email string, ok bool) {
-	cctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-	b, err := exec.CommandContext(cctx, "claude", "auth", "status").Output()
-	if err != nil {
-		return false, "", false
-	}
-	var st struct {
-		LoggedIn bool   `json:"loggedIn"`
-		Email    string `json:"email"`
-	}
-	if json.Unmarshal(b, &st) != nil {
-		return false, "", false
-	}
-	return st.LoggedIn, st.Email, true
+	st := hostrun.ProbeEngine(ctx, engineClaude)
+	return st.LoggedIn, st.Email, st.Installed && st.Error == ""
 }
 
 var npmPresent = func() bool {
@@ -100,8 +91,14 @@ func (iv *Interviewer) askRunner() error {
 	}
 	iv.Cfg.Runner.Enabled = true
 	iv.P.Printf("")
-	if err := iv.checkRunnerHost(); err != nil {
+	claude, err := iv.checkRunnerHost()
+	if err != nil {
 		return err
+	}
+	if claude {
+		if err := iv.askMachineProfile(); err != nil {
+			return err
+		}
 	}
 	if slices.ContainsFunc(iv.Cfg.Engines, func(e string) bool { return e != engineClaude }) {
 		iv.P.narrate("initwizard.cli.runner_claude_only")
@@ -113,7 +110,8 @@ func (iv *Interviewer) askRunner() error {
 	return iv.askRunnerService()
 }
 
-func (iv *Interviewer) checkRunnerHost() error {
+// checkRunnerHost reports whether claude is installed or about to be.
+func (iv *Interviewer) checkRunnerHost() (bool, error) {
 	iv.P.narrate("initwizard.cli.runner_host_check")
 	var missing []string
 	claudeMissing := false
@@ -153,7 +151,7 @@ func (iv *Interviewer) checkRunnerHost() error {
 			i18n.Text("initwizard.deferred.runner_tools.finish"))
 	}
 	if !claudeMissing {
-		return nil
+		return true, nil
 	}
 	//i18n:ignore shell command, not a message
 	install := "npm install -g " + hostrun.ClaudeCodePackage + "@" + hostrun.ClaudeCodeVersion
@@ -163,11 +161,11 @@ func (iv *Interviewer) checkRunnerHost() error {
 		iv.Cfg.Defer(i18n.Text("initwizard.deferred.runner_claude.step"),
 			i18n.Text("initwizard.deferred.runner_claude.effect"),
 			i18n.Text("initwizard.deferred.runner_claude.finish", "command", install))
-		return nil
+		return false, nil
 	}
 	yes, err := iv.P.YesNo(i18n.Text("initwizard.prompts.install_claude", "version", hostrun.ClaudeCodeVersion), true)
 	if err != nil {
-		return err
+		return false, err
 	}
 	iv.Cfg.Runner.InstallClaude = yes
 	if !yes {
@@ -175,6 +173,25 @@ func (iv *Interviewer) checkRunnerHost() error {
 			i18n.Text("initwizard.deferred.runner_claude.effect"),
 			i18n.Text("initwizard.deferred.runner_claude.finish", "command", install))
 	}
+	return yes, nil
+}
+
+// askMachineProfile offers this machine's claude session as Claude Code's default. The default
+// answer is yes unless the person just gave a Claude key, which would otherwise lose the default.
+func (iv *Interviewer) askMachineProfile() error {
+	if !slices.Contains(iv.Cfg.Engines, engineClaude) {
+		return nil
+	}
+	def := !slices.ContainsFunc(iv.Cfg.Credentials, func(c EngineCredential) bool { return c.Engine == engineClaude })
+	if iv.PreviousRunner.Enabled {
+		def = iv.PreviousRunner.MachineProfile
+	}
+	yes, err := iv.P.YesNo(i18n.Text("initwizard.prompts.runner_machine_profile"), def)
+	if err != nil {
+		return err
+	}
+	iv.Cfg.Runner.MachineProfile = yes
+	iv.P.Printf("")
 	return nil
 }
 
@@ -270,8 +287,18 @@ func (w *run) setupRunner(ctx context.Context, client *APIClient) {
 		w.deferRunner(apperr.Text(err))
 		return
 	}
+	// Allowed as well as mapped: the dashboard then shows them, and other repos the person adds
+	// under them, in New project.
+	if len(plan.Folders) > 0 {
+		if err := hostrun.Allow(path, plan.Folders); err != nil {
+			w.warn(apperr.Text(err))
+		}
+	}
 	for _, dir := range plan.Folders {
 		w.addRunnerFolder(ctx, client, path, cfg, dir)
+	}
+	if plan.MachineProfile {
+		w.addMachineProfile(ctx, client, cfg)
 	}
 	if plan.Service {
 		w.startRunnerService(ctx, path)
@@ -315,6 +342,24 @@ func (w *run) addRunnerFolder(ctx context.Context, client *APIClient, path strin
 		w.cfg.Defer(i18n.Text("initwizard.deferred.runner_project.step", "name", name),
 			i18n.Text("initwizard.deferred.runner_project.effect"),
 			i18n.Text("initwizard.deferred.runner_project.finish", "dir", dir))
+	}
+}
+
+// addMachineProfile keeps a Claude Code profile already on this runner (a rerun) instead of adding
+// a second one.
+func (w *run) addMachineProfile(ctx context.Context, client *APIClient, cfg *hostrun.Config) {
+	name := i18n.Text("initwizard.labels.machine_profile_name", "runner", cfg.Name)
+	err := w.task(ctx, i18n.Text("initwizard.tasks.runner_machine_profile", "name", name), func(ctx context.Context) error {
+		existing, err := client.MachineProfile(ctx, engineClaude, cfg.RunnerID)
+		if err != nil || existing != "" {
+			return err
+		}
+		return client.CreateMachineProfile(ctx, name, engineClaude, cfg.RunnerID)
+	})
+	if err != nil {
+		w.cfg.Defer(i18n.Text("initwizard.deferred.runner_machine_profile.step"),
+			i18n.Text("initwizard.deferred.runner_machine_profile.effect"),
+			i18n.Text("initwizard.deferred.runner_machine_profile.finish"))
 	}
 }
 

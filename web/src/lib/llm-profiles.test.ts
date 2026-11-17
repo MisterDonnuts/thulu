@@ -16,6 +16,7 @@ import {
   modelPlaceholder,
   noDefaultText,
   prefilledProfileName,
+  profileFields,
   profileMeta,
   profileModalTitle,
   profileModelText,
@@ -432,5 +433,78 @@ describe("federation profiles", () => {
     expect(profileMeta(p).join(" ")).toContain("fdrl_01");
     expect(keyBadge(p)).toBeNull();
     expect(keyBadge({ ...p, refused_status: 401 })?.tone).toBe("danger");
+  });
+});
+
+describe("profileFields", () => {
+  const claude = { base_url: true, auth_header: true };
+  const base = {
+    engine: claude,
+    provider: "anthropic",
+    providers: 3,
+    kinds: 4,
+    federated: false,
+    machine: false,
+    baseURL: "",
+  };
+
+  it("shows a key profile's key, endpoint and credential kind", () => {
+    const f = profileFields(base);
+    expect(f).toMatchObject({
+      key: true,
+      baseURL: true,
+      kind: true,
+      provider: true,
+      runner: false,
+    });
+    expect(f.authHeader).toBe(false);
+    expect(profileFields({ ...base, baseURL: "https://gw" }).authHeader).toBe(true);
+  });
+
+  // Design case 47: a machine profile has no key, endpoint or cloud field.
+  it("keeps only the machine, the model and the kind for a machine profile", () => {
+    for (const provider of ["anthropic", "bedrock", "vertex"]) {
+      const f = profileFields({ ...base, provider, machine: true, baseURL: "https://gw" });
+      expect(f).toEqual({
+        provider: false,
+        cloud: false,
+        project: false,
+        aws: false,
+        gcp: false,
+        baseURL: false,
+        orgID: false,
+        authHeader: false,
+        key: false,
+        kind: true,
+        federation: false,
+        runner: true,
+      });
+    }
+  });
+
+  it("hides the kind select when there is nothing to switch to", () => {
+    expect(profileFields({ ...base, machine: true, kinds: 1 }).kind).toBe(false);
+    expect(profileFields({ ...base, provider: "bedrock" }).kind).toBe(false);
+  });
+
+  it("swaps the key for the federation fields", () => {
+    const f = profileFields({ ...base, federated: true, baseURL: "https://gw" });
+    expect(f).toMatchObject({ key: false, federation: true, baseURL: false, authHeader: false });
+  });
+
+  it("shows the cloud fields of the chosen cloud", () => {
+    expect(profileFields({ ...base, provider: "vertex" })).toMatchObject({
+      cloud: true,
+      project: true,
+      gcp: true,
+      aws: false,
+      key: false,
+      baseURL: false,
+    });
+    expect(profileFields({ ...base, provider: "bedrock" })).toMatchObject({
+      cloud: true,
+      aws: true,
+      key: true,
+    });
   });
 });

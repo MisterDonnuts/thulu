@@ -282,6 +282,7 @@ const paneAttrs: Record<string, ReturnType<typeof tabPanelAttrs>> = Object.fromE
       <Field label={t("tasks.new_task.labels.repos")} hint={t("tasks.new_task.hints.repos")}>
         <div id="nt-projects"></div>
         <p id="nt-agents" class="field-help nt-agents" aria-live="polite"></p>
+        <div id="nt-runner-note" aria-live="polite" hidden></div>
       </Field>
       <div id="nt-board-note" hidden></div>
       <Field
@@ -3425,11 +3426,13 @@ const paneAttrs: Record<string, ReturnType<typeof tabPanelAttrs>> = Object.fromE
       wipStatsHTML,
       withColumnWidth,
     } from "../lib/board";
+    import { loadRunners, mixWarning, type Runner } from "../lib/runners";
     import {
       agoLabel,
       blockedLabel,
       cardFootHTML,
       cardMetaHTML,
+      machineTagHTML,
       cardPRs,
       cardProgressHTML,
       cardStateHTML,
@@ -3737,6 +3740,7 @@ const paneAttrs: Record<string, ReturnType<typeof tabPanelAttrs>> = Object.fromE
         default_board_id?: string;
         source?: string;
         clone_status?: string;
+        runner_id?: string;
       }
       interface Attachment {
         id: string;
@@ -3821,6 +3825,7 @@ const paneAttrs: Record<string, ReturnType<typeof tabPanelAttrs>> = Object.fromE
       let agentTypes: AgentType[] = [];
       let agentTypesLoaded = false;
       let projects: Project[] = [];
+      let runners: Runner[] = [];
       let allTasks: Task[] = [];
       let tasks: Task[] = [];
       let grouped: Grouped<Task> = { top: [], children: new Map() };
@@ -3848,6 +3853,10 @@ const paneAttrs: Record<string, ReturnType<typeof tabPanelAttrs>> = Object.fromE
         agentTypes = typesRes.status === "fulfilled" ? typesRes.value || [] : [];
         agentTypesLoaded = typesRes.status === "fulfilled";
         projects = projsRes.status === "fulfilled" ? projsRes.value || [] : [];
+        if (projects.some((p) => p.runner_id)) {
+          // Only the badge needs it; a failed list leaves the cards without it.
+          runners = await loadRunners().catch(() => []);
+        }
         if (typesRes.status === "rejected") {
           toast(
             t("tasks.toasts.agents_load_failed", {
@@ -4563,6 +4572,16 @@ const paneAttrs: Record<string, ReturnType<typeof tabPanelAttrs>> = Object.fromE
       }
       function projectName(id: string): string {
         return projects.find((p) => p.id === id)?.name || "—";
+      }
+      // The machines a task's agents run on, one per distinct runner among its projects.
+      function taskMachines(ids: string[]): string[] {
+        const names = new Set<string>();
+        for (const id of ids) {
+          const rid = projects.find((p) => p.id === id)?.runner_id;
+          if (!rid) continue;
+          names.add(runners.find((r) => r.id === rid)?.name ?? t("lib.runners.badge.unknown"));
+        }
+        return [...names];
       }
       function uploadProjectIDs(x: Task): string[] {
         return (x.project_ids || []).filter(
@@ -5330,6 +5349,7 @@ const paneAttrs: Record<string, ReturnType<typeof tabPanelAttrs>> = Object.fromE
         const meta = card.querySelector<HTMLElement>(".task-card-meta");
         const metaHTML = cardMetaHTML({
           repos: (x.project_ids || []).map(projectName),
+          machines: taskMachines(x.project_ids || []),
           tags: x.tags ?? [],
           blocked: isBlockedCard(x, init)
             ? blockedLabel(
@@ -6694,6 +6714,12 @@ const paneAttrs: Record<string, ReturnType<typeof tabPanelAttrs>> = Object.fromE
           .join("");
         el.innerHTML = esc(newTaskAgentsText(picked, stages)) + links;
         el.hidden = projects.length === 0;
+        const note = $("nt-runner-note");
+        const warning = mixWarning(picked, runners);
+        note.innerHTML = warning
+          ? calloutHTML({ tone: "warn", icon: "i-warn", body: warning })
+          : "";
+        note.hidden = !warning;
       }
 
       function boardLabel(id: string): string {
@@ -8263,7 +8289,11 @@ const paneAttrs: Record<string, ReturnType<typeof tabPanelAttrs>> = Object.fromE
             key: "projects",
             label: t("tasks.drawer.props.projects"),
             icon: "i-folder",
-            value: projectChipsHTML(task.project_ids || [], projectName),
+            value:
+              projectChipsHTML(task.project_ids || [], projectName) +
+              taskMachines(task.project_ids || [])
+                .map((name) => machineTagHTML(name))
+                .join(""),
             edit: "",
           },
           {
@@ -9292,15 +9322,13 @@ const paneAttrs: Record<string, ReturnType<typeof tabPanelAttrs>> = Object.fromE
         const paintStages = (list: Stage[]) =>
           paint([
             { head: t("tasks.drawer.subtasks.menu.move_to") },
-            ...list.map(
-              (s): MenuEntry => ({
-                title: s.label,
-                dot: s.color,
-                indent: true,
-                checked: s.id === c.stage,
-                attrs: { "data-row-stage": s.id },
-              }),
-            ),
+            ...list.map((s): MenuEntry => ({
+              title: s.label,
+              dot: s.color,
+              indent: true,
+              checked: s.id === c.stage,
+              attrs: { "data-row-stage": s.id },
+            })),
           ]);
         const paintWaits = async () => {
           const head: MenuEntry = { head: t("tasks.drawer.subtasks.menu.waits_for") };
@@ -9325,14 +9353,12 @@ const paneAttrs: Record<string, ReturnType<typeof tabPanelAttrs>> = Object.fromE
                 : t("tasks.drawer.subtasks.waits_soft"),
             },
             ...(sibs.length
-              ? sibs.map(
-                  (s): MenuEntry => ({
-                    title: s.title,
-                    role: "menuitemcheckbox",
-                    checked: current.some((d) => d.task_id === s.id),
-                    attrs: { "data-row-wait": s.id },
-                  }),
-                )
+              ? sibs.map((s): MenuEntry => ({
+                  title: s.title,
+                  role: "menuitemcheckbox",
+                  checked: current.some((d) => d.task_id === s.id),
+                  attrs: { "data-row-wait": s.id },
+                }))
               : [{ note: t("tasks.drawer.subtasks.no_siblings") }]),
           ]);
         };

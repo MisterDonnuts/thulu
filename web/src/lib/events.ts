@@ -197,9 +197,10 @@ export class EventChannel {
     if (!streamId) return;
     this.streamId = streamId;
     this.retryDelay = RETRY_MIN;
-    // An error in hello means the query-string subscribe failed as a batch: the server holds no
-    // topics.
-    if (str(payload?.error)) this.serverTopics.clear();
+    // A hello also follows the browser's own reconnect, which reuses the opening URL: the new stream
+    // holds only the URL's topics, not the ones pushed since. An error in hello means the
+    // query-string subscribe failed as a batch: the server holds no topics.
+    this.serverTopics = str(payload?.error) ? new Set() : topicsInURL(this.es?.url ?? "");
     this.setStatus("live");
 
     const missing = [...this.handlers.keys()].filter((topic) => !this.serverTopics.has(topic));
@@ -311,6 +312,12 @@ export const events = new EventChannel();
 
 export function logsTopic(runID: string): string {
   return `logs:${runID}`;
+}
+
+function topicsInURL(url: string): Set<string> {
+  const query = url.includes("?") ? url.slice(url.indexOf("?") + 1) : "";
+  const list = new URLSearchParams(query).get("topics") ?? "";
+  return new Set(list.split(",").filter(Boolean));
 }
 
 export const CHAT_TOPIC = "chat";

@@ -98,7 +98,7 @@ func (s *Server) handleSetLLMKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.secretsStore.SetLLMKey(r.Context(), wsID, engineName, desc.Provider, key); err != nil {
-		writeError(w, r, http.StatusBadRequest, err)
+		writeError(w, r, 0, err)
 		return
 	}
 	st, err := s.secretsStore.StatusLLMKey(r.Context(), wsID, engineName)

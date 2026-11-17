@@ -420,6 +420,9 @@ func (w *run) runnerRow() string {
 	if len(r.Folders) > 0 {
 		parts = append(parts, i18n.Text("initwizard.review.runner_folders", "count", len(r.Folders)))
 	}
+	if r.MachineProfile {
+		parts = append(parts, i18n.Text("initwizard.review.runner_machine_profile"))
+	}
 	if r.Service {
 		parts = append(parts, i18n.Text("initwizard.review.runner_service"))
 	} else {

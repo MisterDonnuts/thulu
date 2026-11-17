@@ -30,19 +30,21 @@ type LLMProfile struct {
 	ProjectID      string                   `json:"project_id,omitempty"`
 	SmallFastModel string                   `json:"small_fast_model,omitempty"`
 	Federation     *engine.FederationConfig `json:"federation,omitempty"`
-	KeyHint        string                   `json:"key_hint,omitempty"`
-	HasKey         bool                     `json:"has_key"`
-	IsDefault      bool                     `json:"is_default"`
-	CreatedAt      time.Time                `json:"created_at"`
-	UpdatedAt      time.Time                `json:"updated_at"`
-	LastUsedAt     time.Time                `json:"last_used_at,omitzero"`
-	KeyState       string                   `json:"key_state,omitempty"`
-	KeyCheckedAt   time.Time                `json:"key_checked_at,omitzero"`
-	KeyReason      string                   `json:"key_reason,omitempty"`
-	KeyStatus      int                      `json:"key_status,omitempty"`
-	KeyHost        string                   `json:"key_host,omitempty"`
-	RefusedStatus  int                      `json:"refused_status,omitempty"`
-	RefusedAt      time.Time                `json:"refused_at,omitzero"`
+	// Set on a profile that runs on a registered machine with that machine's CLI login; it holds no key.
+	RunnerID      string    `json:"runner_id,omitempty"`
+	KeyHint       string    `json:"key_hint,omitempty"`
+	HasKey        bool      `json:"has_key"`
+	IsDefault     bool      `json:"is_default"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+	LastUsedAt    time.Time `json:"last_used_at,omitzero"`
+	KeyState      string    `json:"key_state,omitempty"`
+	KeyCheckedAt  time.Time `json:"key_checked_at,omitzero"`
+	KeyReason     string    `json:"key_reason,omitempty"`
+	KeyStatus     int       `json:"key_status,omitempty"`
+	KeyHost       string    `json:"key_host,omitempty"`
+	RefusedStatus int       `json:"refused_status,omitempty"`
+	RefusedAt     time.Time `json:"refused_at,omitzero"`
 }
 
 const (
@@ -82,7 +84,9 @@ type LLMProfileInput struct {
 	ProjectID      string
 	SmallFastModel string
 	// A federating profile stores no key: set ClearKey (update) or KeyOptional (create) with it.
-	Federation  engine.FederationConfig
+	Federation engine.FederationConfig
+	// A machine profile stores no key: set KeyOptional with it.
+	RunnerID    string
 	RawKey      string
 	KeyHint     string
 	KeyOptional bool
@@ -115,6 +119,7 @@ type ResolvedLLM struct {
 	ProjectID      string
 	SmallFastModel string
 	Federation     engine.FederationConfig
+	RunnerID       string
 
 	Credential string
 }
@@ -174,11 +179,11 @@ func (s *Store) CreateLLMProfile(ctx context.Context, workspaceID string, in LLM
 		`INSERT INTO llm_profiles
 		   (id, workspace_id, name, engine, model, effort, base_url, org_id,
 		    provider, key_encrypted, key_hint, created_at, updated_at, is_default,
-		    auth_header, region, project_id, small_fast_model, federation)
-		 VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`),
+		    auth_header, region, project_id, small_fast_model, federation, runner_id)
+		 VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`),
 		id, workspaceID, in.Name, in.Engine, in.Model, in.Effort, in.BaseURL,
 		in.OrgID, in.Provider, enc, hint, now, now, in.IsDefault,
-		in.AuthHeader, in.Region, in.ProjectID, in.SmallFastModel, in.Federation.Encode())
+		in.AuthHeader, in.Region, in.ProjectID, in.SmallFastModel, in.Federation.Encode(), in.RunnerID)
 	if err != nil {
 		return nil, err
 	}
@@ -208,11 +213,12 @@ func (s *Store) UpdateLLMProfile(ctx context.Context, workspaceID, id string, in
 			       project_id = ?,
 			       small_fast_model = ?,
 			       federation = ?,
+			       runner_id = ?,
 			       updated_at = ?
 			 WHERE workspace_id = ? AND id = ?`),
 			in.Name, in.Engine, in.Model, in.Effort, in.BaseURL, in.OrgID,
 			in.Provider, in.AuthHeader, in.Region, in.ProjectID, in.SmallFastModel,
-			in.Federation.Encode(), now, workspaceID, id)
+			in.Federation.Encode(), in.RunnerID, now, workspaceID, id)
 		if err != nil {
 			return nil, err
 		}
@@ -236,13 +242,14 @@ func (s *Store) UpdateLLMProfile(ctx context.Context, workspaceID, id string, in
 			       project_id = ?,
 			       small_fast_model = ?,
 			       federation = ?,
+			       runner_id = ?,
 			       key_encrypted = ?,
 			       key_hint = ?,
 			       updated_at = ?
 			 WHERE workspace_id = ? AND id = ?`),
 			in.Name, in.Engine, in.Model, in.Effort, in.BaseURL, in.OrgID,
 			in.Provider, in.AuthHeader, in.Region, in.ProjectID, in.SmallFastModel,
-			in.Federation.Encode(), enc, hint, now, workspaceID, id)
+			in.Federation.Encode(), in.RunnerID, enc, hint, now, workspaceID, id)
 		if err != nil {
 			return nil, err
 		}
@@ -608,6 +615,7 @@ func profileToResolved(p *LLMProfile, cred, source string) ResolvedLLM {
 		ProjectID:      p.ProjectID,
 		SmallFastModel: p.SmallFastModel,
 		Federation:     p.FederationConfig(),
+		RunnerID:       p.RunnerID,
 		Credential:     cred,
 	}
 }
@@ -626,7 +634,7 @@ const profileColumns = `id, workspace_id, name, engine, model, effort, base_url,
 		        provider, key_hint, created_at, updated_at, last_used_at, is_default,
 		        auth_header, region, project_id, small_fast_model, key_encrypted <> '',
 		        key_state, key_checked_at, key_reason, key_status, key_host, refused_status, refused_at,
-		        federation`
+		        federation, runner_id`
 
 func keyHint(in LLMProfileInput) string {
 	switch {
@@ -656,7 +664,7 @@ func scanProfile(r rowScanner) (*LLMProfile, error) {
 		&p.CreatedAt, &p.UpdatedAt, &lastUsedRaw, &p.IsDefault,
 		&p.AuthHeader, &p.Region, &p.ProjectID, &p.SmallFastModel, &p.HasKey,
 		&p.KeyState, &checkedRaw, &p.KeyReason, &p.KeyStatus, &p.KeyHost, &p.RefusedStatus, &refusedRaw,
-		&federationRaw,
+		&federationRaw, &p.RunnerID,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound

@@ -159,6 +159,10 @@ if [ "${STAGE:-}" = "chat" ]; then
   msg_en agent.log.chat_banner agent "$AGENT_NAME" chat "${CHAT_ID:-?}" model "${MODEL:-$(msg_en agent.log.default)}" \
     tools "${MCP_TOOLS:-$(msg_en agent.log.none)}" args "$MCP_CONFIG_ARGS"
   echo "============================================"
+  # A runner's machine runs one job per turn: the turn runs now, with the message the runner wrote.
+  if [ -n "$_octopus_host_run" ]; then
+    exec "${OCTOPUS_ROOT}/snippets/chat-turn.sh" < "${CHAT_INPUT_FILE:-/dev/null}"
+  fi
   if [ -n "${OCTOPUS_EXEC_TOKEN:-}" ] && command -v sandbox-execagent >/dev/null 2>&1; then
     msg_en agent.log.chat_serving_execagent addr "${OCTOPUS_EXEC_ADDR:-:8587}"
     exec sandbox-execagent
@@ -278,11 +282,12 @@ fi
 cp "$PROMPT_FILE" "$OUTPUT_DIR/.thulu-prompt.md" 2>/dev/null || true
 
 # Created before the engine starts so steer-driver.js never watches a missing file; the daemon
-# appends to it via docker exec.
+# appends to it via docker exec (a runner, from its steer loop). Never truncated: the run is armed at
+# launch, so a message can land before this line.
 STEER_QUEUE="${STEER_QUEUE:-${OCTOPUS_ROOT}/.steer/queue.jsonl}"
 if [ "${STEER_ENABLED:-0}" = "1" ]; then
   mkdir -p "$(dirname "$STEER_QUEUE")"
-  : > "$STEER_QUEUE"
+  [ -e "$STEER_QUEUE" ] || : > "$STEER_QUEUE"
   chown -R node:node "$(dirname "$STEER_QUEUE")" 2>/dev/null || true
   chmod 666 "$STEER_QUEUE" 2>/dev/null || true
   msg_en agent.log.steering_on queue "$STEER_QUEUE"

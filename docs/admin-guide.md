@@ -117,7 +117,12 @@ Notes:
   allowlist. Until the operator adds the email, the invitation shows as
   waiting for access, and the operator sees it under **Settings → Team → Access
   list**.
-- Pending invitations hold seats under the plan's seat limit.
+- On SaaS, the plan's seat limit counts members only. A pending invitation
+  takes a seat when it is accepted at sign-in; if the workspace is full then,
+  the person does not get in, the invitation stays pending and the login
+  page's invitation banner says there are no places left
+  (`GET /auth/invitation` answers `seats_full: true`). Self-hosted never
+  applies a seat limit, on Docker or on Kubernetes.
 - List, re-role or cancel them with `GET /auth/workspaces/{id}/invitations`,
   `PATCH` or `DELETE /auth/workspaces/{id}/invitations/{invitationId}`.
 - `role` defaults to `developer` if omitted.
@@ -738,21 +743,53 @@ chat limit gets the same treatment within its own chats.
 
 ### Plan limits and quotas
 
-With `OCTOPUS_SAAS_MODE=1` every workspace has a plan. Its
-limits:
+With `OCTOPUS_SAAS_MODE=1` every workspace has a plan. Its limits:
 
-| Plan | Seats | Concurrent agents | Runs / month | Attachment storage |
-|------|-------|-------------------|--------------|--------------------|
-| Free | 4 | 1 | 100 | 2 GiB |
-| Team | 20 | 5 | 1000 | 20 GiB |
-| Business | unlimited | 15 | 5000 | 100 GiB |
-| Enterprise | unlimited | unlimited | unlimited | unlimited |
+| Plan | Seats | Agents at once | Agent hours / month | Extra hours | Attachment storage |
+|------|-------|----------------|---------------------|-------------|--------------------|
+| `trial` | 4 | 2 | 50 | none | 2 GiB |
+| `starter` | 4 | 2 (+1 per extra agent) | 100 per agent | up to the cap | 20 GiB + 10 GiB per extra agent |
+| `team` | unlimited | the contracted agents | 100 per agent | up to the cap | 10 GiB per agent |
+| `enterprise` on dedicated nodes | unlimited | 8 per node | unlimited | n/a | 100 GiB per node |
+| `enterprise` on the shared cluster | unlimited | the contracted agents | 100 per agent | up to the cap | 10 GiB per agent |
+| `inactive` | 4 | none | none | none | 2 GiB |
 
-- **Runs.** Every stage run and mention run counts when it launches; a run
-  that fails to launch is refunded. Auditor runs and chat turns don't count.
-  Once a workspace has used its month (UTC calendar months), the next stage
-  run is not launched: the task is marked blocked with a comment saying when
-  the quota resets. A mention gets the same answer in its thread.
+Rows written before agent hours keep working: `free` reads as `trial` and
+`business` as `team` with 15 agents.
+
+- **Agent hours.** The daemon that holds the singleton lease samples every
+  pod in the tenant namespaces every 30 s and counts the time since its first
+  container started (`pod_meter` keeps how far each pod was counted, so a
+  restart counts nothing twice). Sandbox pods count half. Scheduling, image
+  pulls and init containers are not counted, nor the tail after the last
+  sample. Only the Kubernetes runtime meters; Docker mode has no hour count.
+- **Admission.** Stage runs, mention runs, chats and Evidence batches ask
+  before they start. A run already going when the hours run out finishes.
+  Refusals: `hours` (included hours spent and cap 0), `cap` (extra hours
+  reached the cap), `trial_ended` (30 days after the first run),
+  `trial_hours` (the trial's 50 hours are spent: they cover the whole trial
+  and do not renew on the 1st) and `plan_inactive`. Stage runs and mentions
+  explain the refusal on the task; the first launch past 80% and past 100% of
+  the included hours posts a notice, and moving to a plan with more hours
+  re-arms both notices for the month. If the entitlements table can't be
+  read, the run goes through. A run still going when the subscription ends
+  keeps counting under the terms the month had while it was paid.
+- **Extra hours.** $0.05 each, up to `extra_hours_cap_usd` a month ($5 per agent the
+  workspace pays for by default: $10 on Starter, $50 on a 10-agent Team). A workspace admin sets it with
+  `PUT /entitlements/extra-hours-cap` `{"cap_usd": 120}` (0 to 10,000).
+  Every hour the daemon reports closed months to Stripe as a meter event
+  (`OCTOPUS_STRIPE_SECRET_KEY`, meter `OCTOPUS_STRIPE_EXTRA_HOURS_METER`,
+  default `thulu_extra_hours`) with the identifier
+  `thulu-extra-hours-<workspace>-<YYYY-MM>`, whole hours rounded down and
+  never past the cap. A workspace without a Stripe customer is retried later.
+- **Stripe webhook.** `customer.subscription.created/updated` sets the plan
+  from the metadata `octopus_plan`, `octopus_agents` and `octopus_nodes`, and
+  stores the subscription's `customer`. A deleted subscription, or the status
+  `canceled`, `unpaid` or `incomplete_expired`, sets `inactive`. `past_due`
+  keeps the plan while Stripe retries the payment, and `incomplete` (first
+  payment pending) changes nothing. In the Stripe dashboard, set the retry
+  window to 14 days (the terms promise that grace) and, when all retries
+  fail, mark the subscription as unpaid.
 - **Storage.** The total size of a workspace's task attachments: uploads,
   files an agent attaches from the sandbox, and screenshots it leaves in its
   output. An upload that doesn't fit is refused with `413` and a message that
@@ -761,20 +798,23 @@ limits:
 - The workspace named by `OCTOPUS_OPERATOR_WORKSPACE` is unlimited unless the
   operator assigns it a plan explicitly.
 
-`GET /entitlements` shows a workspace its limits plus its usage: `runs`
-(`used`, `limit`, `remaining`, `resets_at`; `remaining` is `-1` when
-unlimited) and `storage` (`used_bytes`, `quota_bytes`, `remaining_bytes`).
+`GET /entitlements` shows a workspace its limits plus its usage: `hours`
+(`period`, `used_hours`, `included_hours`, `extra_hours`, `extra_usd`,
+`cap_usd`, `ratio`, `resets_at`, `trial_ends_at`) and `storage`
+(`used_bytes`, `quota_bytes`, `remaining_bytes`).
 
 The operator changes a plan, or sets per-workspace overrides, with
 `PUT /entitlements?workspace=<id>`:
 
 ```json
-{"plan": "team", "storage_quota_bytes": 53687091200, "run_quota_monthly": 2000}
+{"plan": "team", "agents": 6, "hour_quota_monthly": 800}
 ```
 
-Each of `seat_limit`, `concurrency_limit`, `run_quota_monthly` and
-`storage_quota_bytes` is optional and replaces the plan's default; `0` means
-unlimited. Without `plan` the workspace keeps its current plan.
+`agents` and `nodes` size the plan (hours and storage follow them). Each of
+`seat_limit`, `concurrency_limit`, `hour_quota_monthly`,
+`storage_quota_bytes` and `extra_hours_cap_usd` is optional and replaces the
+plan's default; `0` means unlimited (no extra hours, for the cap). Without
+`plan` the workspace keeps its current plan.
 
 ### Kubernetes pod sizing
 

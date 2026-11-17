@@ -78,6 +78,15 @@ import { t } from "../i18n";
               label={t("projects.source.upload_title")}
               hint={t("projects.source.upload_desc")}
             />
+            <Check
+              type="radio"
+              card
+              name="m-source"
+              value="runner"
+              icon="monitor"
+              label={t("projects.source.runner_title")}
+              hint={t("projects.source.runner_desc")}
+            />
           </CheckGroup>
         </Field>
 
@@ -209,6 +218,11 @@ import { t } from "../i18n";
             <span class="muted" id="m-progress-text"></span>
           </div>
           <p class="upload-rules">{t("projects.upload.rules")}</p>
+        </div>
+
+        <div class="field form-stack" id="m-src-runner" hidden>
+          <div id="m-runner-slot" class="form-stack"></div>
+          <span class="field-error" id="m-runner-slot-error" role="alert" hidden></span>
         </div>
 
         <Field
@@ -400,6 +414,8 @@ import { t } from "../i18n";
     import { registerCreate, takeNewParam } from "../lib/create";
     import type { Board, BoardsResponse, Stage } from "../lib/stages";
     import { boardOptions, stageTemplateTable } from "../lib/pickers";
+    import { runnerSource } from "../lib/project-runner-source";
+    import { loadRunners, runnerBadgeHTML, type Runner } from "../lib/runners";
     import type { AgentType } from "../lib/pickers";
     import { t } from "../i18n";
     import { navigate } from "astro:transitions/client";
@@ -439,6 +455,8 @@ import { t } from "../i18n";
         stage_template: Record<string, string>;
         github_installation_id?: number;
         source?: string;
+        runner_id?: string;
+        runner_path?: string;
         clone_status?: "cloning" | "failed";
         clone_error?: string;
       }
@@ -473,6 +491,7 @@ import { t } from "../i18n";
       let projects: Project[] = [];
       let searchQuery = "";
       let workspace = "";
+      let runners: Runner[] = [];
       let returnTask = "";
 
       const toast = makeToast();
@@ -511,6 +530,13 @@ import { t } from "../i18n";
           projects = await api.get<Project[]>("/projects");
         } catch {
           projects = [];
+        }
+        if (projects.some((p) => p.runner_id)) {
+          try {
+            runners = await loadRunners();
+          } catch {
+            runners = [];
+          }
         }
         render();
         if (clonePoll !== null) window.clearTimeout(clonePoll);
@@ -589,7 +615,11 @@ import { t } from "../i18n";
         $("list").innerHTML = visible
           .map((p) => {
             const tplCount = Object.keys(p.stage_template || {}).length;
-            const source = p.source === "upload" ? t("projects.labels.uploaded") : p.repo_url;
+            const source = p.runner_id
+              ? (p.runner_path ?? p.repo_url)
+              : p.source === "upload"
+                ? t("projects.labels.uploaded")
+                : p.repo_url;
             const failed =
               p.clone_status === "failed" && p.clone_error
                 ? `<p class="proj-clone-error" title="${esc(p.clone_error)}">${esc(t("projects.labels.clone_failed_reason", { reason: p.clone_error }))}</p>`
@@ -602,7 +632,7 @@ import { t } from "../i18n";
                 `<p class="proj-repo">${esc(source)}</p>` +
                 (p.description ? `<p>${esc(p.description)}</p>` : "") +
                 failed +
-                `<div class="proj-meta">${cloneBadge(p)}${branchBadge(p)}${
+                `<div class="proj-meta">${runnerBadgeHTML(p.runner_id, runners)}${cloneBadge(p)}${branchBadge(p)}${
                   tplCount > 0
                     ? badgeHTML(t("projects.labels.defaults", { count: tplCount }), "accent")
                     : ""
@@ -918,7 +948,8 @@ import { t } from "../i18n";
       }
 
       // Esc is not bound here: initKeyboard below runs the single Esc cascade for the page.
-      const newProject = bindModal($("modal"));
+      // Closing the modal stops the runner picker's polling; leaving the page does the same below.
+      const newProject = bindModal($("modal"), { onClose: () => runnerPick.close() });
 
       async function openNew(fill: Partial<NewProjectDraft> = {}) {
         ($("m-name") as HTMLInputElement).value = fill.name ?? "";
@@ -939,12 +970,12 @@ import { t } from "../i18n";
         newProject.open($("m-name").matches(":placeholder-shown") ? $("m-name") : $("m-repo"));
       }
 
-      const SOURCES = { git: "m-src-git", upload: "m-src-upload" } as const;
+      const SOURCES = { git: "m-src-git", upload: "m-src-upload", runner: "m-src-runner" } as const;
       type Source = keyof typeof SOURCES;
 
       function sourceMode(): Source {
         const v = document.querySelector<HTMLInputElement>('input[name="m-source"]:checked')?.value;
-        return v === "upload" ? "upload" : "git";
+        return v === "upload" || v === "runner" ? v : "git";
       }
       function selectSource(src: Source) {
         document.querySelectorAll<HTMLInputElement>('input[name="m-source"]').forEach((el) => {
@@ -956,6 +987,60 @@ import { t } from "../i18n";
         const mode = sourceMode();
         for (const [src, id] of Object.entries(SOURCES))
           ($(id) as HTMLElement).hidden = src !== mode;
+        if (mode === "runner") void runnerPick.open();
+        else runnerPick.close();
+      }
+
+      const runnerPick = runnerSource({
+        slot: $("m-runner-slot"),
+        nameInput: $("m-name") as HTMLInputElement,
+        workspace: () => workspace,
+        // `thulu add` on the machine: the card shows up behind the form.
+        onCreated: () => void refresh(),
+      });
+      signal.addEventListener("abort", () => runnerPick.close());
+
+      async function saveRunner() {
+        clearFormErrors($("m-step-form"));
+        const choice = runnerPick.read();
+        if ("field" in choice) {
+          setFieldError($(choice.field), choice.message, { focus: true });
+          return;
+        }
+        const body = {
+          name: ($("m-name") as HTMLInputElement).value.trim(),
+          path: choice.path,
+          description: ($("m-desc") as HTMLTextAreaElement).value.trim(),
+          default_board_id: ($("m-board") as HTMLSelectElement).value,
+        };
+        const saveBtn = $("m-save") as HTMLButtonElement;
+        saveBtn.disabled = true;
+        try {
+          let created: Project;
+          try {
+            created = await api.post<Project>(
+              withWorkspace(`/runners/${encodeURIComponent(choice.runnerID)}/projects`, workspace),
+              body,
+            );
+          } catch (e) {
+            setFormError(
+              $("m-error"),
+              t("projects.errors.save_failed", {
+                error: e instanceof ApiError ? e.message : t("projects.errors.unknown"),
+              }),
+            );
+            return;
+          }
+          closeModal();
+          toast(t("projects.toasts.created", { name: created.name }), "ok", 4500);
+          if (await linkReturnTask(created.id)) {
+            void navigate(`/tasks/#task-${encodeURIComponent(returnTask)}`);
+            return;
+          }
+          await refresh();
+        } finally {
+          saveBtn.disabled = false;
+        }
       }
 
       function showStep(step: "form" | "result") {
@@ -1132,6 +1217,7 @@ import { t } from "../i18n";
 
       async function save() {
         if (sourceMode() === "upload") return saveUpload();
+        if (sourceMode() === "runner") return saveRunner();
         const stage_template = stageTemplate();
         const body: Record<string, unknown> = {
           name: ($("m-name") as HTMLInputElement).value.trim(),

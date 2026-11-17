@@ -45,7 +45,8 @@
     "fed_workspace": "ID del workspace",
     "fed_issuer": "la URL del emisor",
     "fed_subject": "el prefijo del subject",
-    "fed_jwks": "el JWKS"
+    "fed_jwks": "el JWKS",
+    "machine": "Máquina"
   },
   "placeholders": {
     "name": "team-anthropic, gpt5-research, …",
@@ -74,7 +75,9 @@
     "cloud_identity": "Dejá vacíos los campos de credencial para usar la identidad de nube propia de esta instalación (IRSA, Workload Identity), si el operador lo permite.",
     "federation": "Sin clave: cada corrida recibe un token de identidad que firma este daemon, y Anthropic lo cambia por un token de acceso corto según tu regla de federación. Copiá los IDs de la configuración de workload identity de la Claude Console.",
     "federation_console": "En la Claude Console, registrá este daemon como emisor con esta URL, y en la regla filtrá por subject. Toda corrida de este workspace tiene un subject que empieza con el prefijo de abajo.",
-    "federation_jwks": "Si la Console no llega a este daemon, elegí la opción de JWKS inline y pegá este conjunto de claves. Volvé a pegarlo cuando el dueño de la instalación rote la clave de firma."
+    "federation_jwks": "Si la Console no llega a este daemon, elegí la opción de JWKS inline y pegá este conjunto de claves. Volvé a pegarlo cuando el dueño de la instalación rote la clave de firma.",
+    "machine": "Las corridas con este perfil van a la máquina y usan la sesión de su CLI, así que el perfil no lleva key. La máquina tiene que estar conectada cuando arranca la corrida.",
+    "no_machines": "No hay máquinas registradas en este workspace. Agregá una en Configuración → Runners."
   },
   "confirm": {
     "make_default_title": "¿Hacer \"{name}\" el predeterminado de {engine}?",

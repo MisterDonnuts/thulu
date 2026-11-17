@@ -3,6 +3,7 @@
     "bad_command": "bad command {command:%q}",
     "bad_pkt_length": "bad pkt-line length {length}",
     "bad_pkt_length_text": "bad pkt-line length {length:%q}",
+    "chat_push": "a chat reads its task's code and cannot push",
     "gzip": "gzip",
     "malformed_push": "malformed push",
     "push_delete_ref": "a task may not delete {ref}",
@@ -14,9 +15,11 @@
   },
   "log": {
     "enable_receivepack_failed": "enable receivepack on {dir}: {err}",
+    "integrate_failed": "integrate the result of task {task} (project {project}) as it arrived; the end of the run tries again: {err}",
     "publish_comment_failed": "comment the failed publish on task {task}: {err}",
     "publish_failed": "publish the branch of task {task} (project {project}) after the agent's push: {err}",
     "refresh_default_failed": "refresh the default branch of project {project} for task {task}: {err}",
+    "refresh_default_slow": "the refresh of the default branch of project {project} for task {task} is taking longer than {wait}; the fetch gets what Thulu has and the refresh goes on",
     "transport_disabled": "worktree transport disabled: {err}",
     "transport_mounted": "worktree transport mounted at {path}"
   },

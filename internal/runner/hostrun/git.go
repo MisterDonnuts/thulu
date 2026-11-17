@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -14,11 +15,19 @@ import (
 )
 
 func git(ctx context.Context, dir string, args ...string) (string, error) {
+	return gitEnv(ctx, os.Environ(), dir, args...)
+}
+
+// gitEnv runs git with env instead of the runner's own: a job's carries the run key its credential
+// helper reads.
+func gitEnv(ctx context.Context, env []string, dir string, args ...string) (string, error) {
 	cmd := exec.CommandContext(ctx, "git", args...) //nolint:gosec // G204: fixed git verbs; refs come from the daemon's job and are checked
 	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0")
+	cmd.Env = append(slices.Clip(env), "GIT_TERMINAL_PROMPT=0")
 	var out, errb bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &out, &errb
+	// A helper git started (a signer, a credential helper) may hold the output open after git is killed.
+	cmd.WaitDelay = killGrace
 	if err := cmd.Run(); err != nil {
 		return "", apperr.Wrap(err, "hostrun.errors.git", "args", strings.Join(args, " "),
 			"output", strings.TrimSpace(errb.String()))
@@ -46,7 +55,8 @@ func validRef(ctx context.Context, repo, ref string) error {
 	return nil
 }
 
-const fetchTimeout = 60 * time.Second
+// For a fetch that brings little: a folder's origin, a daemon's branch listing.
+var fetchTimeout = 60 * time.Second
 
 func baseRef(ctx context.Context, repo, defaultBranch string) string {
 	fctx, cancel := context.WithTimeout(ctx, fetchTimeout)
@@ -156,18 +166,22 @@ func removeWorktree(ctx context.Context, repo, wt string) {
 	logx.Warn(err, "hostrun.log.worktree_remove_failed", "path", wt)
 }
 
-func commitAll(ctx context.Context, wt, msg string) (bool, error) {
+// A commit signer waiting on a touch or a dialog nobody answers would hold the run, and its lease,
+// forever.
+var commitTimeout = 2 * time.Minute
+
+func commitAll(ctx context.Context, wt, msg string) error {
+	ctx, cancel := context.WithTimeout(ctx, commitTimeout)
+	defer cancel()
 	status, err := git(ctx, wt, "status", "--porcelain")
 	if err != nil || status == "" {
-		return false, err
+		return err
 	}
-	if _, err := git(ctx, wt, "add", "-A"); err != nil {
-		return false, err
+	if _, err = git(ctx, wt, "add", "-A"); err != nil {
+		return err
 	}
-	if _, err := git(ctx, wt, "commit", "--quiet", "--no-verify", "-m", msg); err != nil {
-		return false, err
-	}
-	return true, nil
+	_, err = git(ctx, wt, "commit", "--quiet", "--no-verify", "-m", msg)
+	return err
 }
 
 const pushTimeout = 2 * time.Minute

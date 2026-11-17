@@ -46,6 +46,10 @@ const LANGUAGES = locales.map((code) => ({
       <Callout tone="warn" icon="lock" role="note"><span id="denied-note"></span></Callout>
     </div>
 
+    <div id="panel-runners" class="settings-section" hidden>
+      <div id="runners-slot" class="form-stack"></div>
+    </div>
+
     <div id="panel-webhooks" class="settings-section panel-stack" hidden>
       <Panel icon="plus" title={t("settings.webhooks.add.title")}>
         <form id="webhook-form" class="form-stack" novalidate>
@@ -330,6 +334,34 @@ const LANGUAGES = locales.map((code) => ({
       </Panel>
 
       {
+        /* Extra hours: how much the workspace accepts to spend past its included
+           agent hours (PUT /entitlements/extra-hours-cap). Hidden on plans
+           without extra hours (trial, inactive, self-hosted). */
+      }
+      <Panel id="extracap-panel" icon="clock" title={t("settings.extra_hours.title")} hidden>
+        <p class="panel-lede">{t("settings.extra_hours.intro")}</p>
+        <form id="extracap-form" class="form-stack" novalidate>
+          <Callout id="extracap-readonly" icon="lock" hidden
+            >{t("settings.extra_hours.read_only")}</Callout
+          >
+          <Field
+            label={t("settings.extra_hours.label")}
+            for="extracap-usd"
+            hint={t("settings.extra_hours.unit")}
+            errorId="extracap-usd-error"
+          >
+            <input id="extracap-usd" type="number" min="0" step="1" inputmode="decimal" />
+          </Field>
+          <p id="extracap-now" class="muted"></p>
+          <div class="form-actions">
+            <Button id="extracap-save" type="submit" variant="primary" size="sm" disabled
+              >{t("common.buttons.save")}</Button
+            >
+          </div>
+        </form>
+      </Panel>
+
+      {
         /*
           The banded skin. Modal.astro owns the head, body and foot bands, so the
           form lives inside the body and the footer's submit
@@ -506,6 +538,17 @@ const LANGUAGES = locales.map((code) => ({
               class="grow"
             >
               <input id="prof-key" type="password" autocomplete="off" />
+            </Field>
+            <Field
+              label={t("settings.llm.labels.machine")}
+              for="prof-runner"
+              id="prof-runner-field"
+              class="grow"
+              help={t("settings.llm.hints.machine")}
+              warnId="prof-runner-warn"
+              hidden
+            >
+              <select id="prof-runner"></select>
             </Field>
           </div>
           <div id="prof-fed-fields" class="form-stack" hidden>
@@ -1130,6 +1173,19 @@ const LANGUAGES = locales.map((code) => ({
     import { reconcile, startPoller, dirty, setText } from "../lib/reactive";
     import { api, ApiError } from "../lib/api";
     import {
+      loadRunnersOrOff,
+      loadRunnersPanel,
+      stopRunnersPanel,
+      type Runner,
+    } from "../lib/runners";
+    import {
+      MACHINE_KIND,
+      credentialKinds,
+      machineChoices,
+      machineRow,
+      validateMachineForm,
+    } from "../lib/llm-machine";
+    import {
       apiBase,
       authConfig,
       authDisabled,
@@ -1167,8 +1223,10 @@ const LANGUAGES = locales.map((code) => ({
     import { bindModal } from "../lib/modal";
     import {
       SETTINGS_SECTIONS,
+      isPolledSection,
       resolveSection,
       sectionDenial,
+      type PolledSection,
       type SectionDenial,
     } from "../lib/settings-sections";
     import {
@@ -1235,6 +1293,7 @@ const LANGUAGES = locales.map((code) => ({
       modelPlaceholder,
       noDefaultText,
       prefilledProfileName,
+      profileFields,
       profileMeta,
       profileModalTitle,
       providerLabel,
@@ -1254,6 +1313,13 @@ const LANGUAGES = locales.map((code) => ({
       type RunLimit,
       type WorkspaceSettings,
     } from "../lib/run-limit";
+    import {
+      extraCapEditable,
+      extraCapNow,
+      parseExtraCap,
+      MAX_EXTRA_CAP_USD,
+      type Entitlements,
+    } from "../lib/plan";
     import {
       invitationLink,
       liveKeysBy,
@@ -1281,7 +1347,7 @@ const LANGUAGES = locales.map((code) => ({
       type Invitation,
     } from "../lib/account";
     import { loadAccountLifecycle } from "../lib/account-panel";
-    import { loadEngineLogins } from "../lib/engine-logins";
+    import { loadEngineLogins, paintEngineLogins } from "../lib/engine-logins";
     import {
       OPERATOR_ENV,
       isOperatorRefusal,
@@ -1363,9 +1429,12 @@ const LANGUAGES = locales.map((code) => ({
           loadLLM();
           void loadEngineLogins();
           void loadRunLimit();
+          void loadExtraCap();
         }
         if (tab === "updates") loadUpdates();
         if (tab === "team") loadTeam();
+        if (tab === "runners") void loadRunnersPanel($("runners-slot"));
+        else stopRunnersPanel();
         if (tab === "account") {
           loadAccount();
           loadSessions();
@@ -2397,23 +2466,29 @@ const LANGUAGES = locales.map((code) => ({
         default_profile_id?: string;
         host_fallback?: boolean;
         fallback_model?: string;
+        machine_login?: boolean;
+        machine_login_command?: string;
       }
 
       let llmEngines: EngineInfo[] = [];
       let llmProfiles: LLMProfile[] = [];
       let llmAgents: AgentLite[] = [];
+      // null: this daemon runs nothing on machines (GET /runners answers 503).
+      let llmRunners: Runner[] | null = null;
 
       async function loadLLM() {
         const box = $("llm-engines");
         try {
-          const [e, p, agents] = await Promise.all([
+          const [e, p, agents, runners] = await Promise.all([
             api.get<{ engines: EngineInfo[] }>("/engines"),
             api.get<{ profiles: LLMProfile[] | null }>("/llm-profiles"),
             api.get<AgentLite[]>("/types").catch((): AgentLite[] => []),
+            loadRunnersOrOff(),
           ]);
           llmEngines = e?.engines ?? [];
           llmProfiles = p?.profiles ?? [];
           llmAgents = agents ?? [];
+          llmRunners = runners;
           renderLLM();
         } catch {
           box.innerHTML = emptyRowHTML(t("settings.llm.errors.load_failed"), {
@@ -2528,21 +2603,111 @@ const LANGUAGES = locales.map((code) => ({
         }
       });
 
+      let extraCapEnt: Entitlements | null = null;
+      let extraCapAdmin = false;
+
+      async function loadExtraCap() {
+        const panel = $("extracap-panel");
+        try {
+          extraCapEnt = await api.get<Entitlements>("/entitlements");
+        } catch {
+          panel.hidden = true;
+          return;
+        }
+        if (!extraCapEditable(extraCapEnt)) {
+          panel.hidden = true;
+          return;
+        }
+        extraCapAdmin = roleWithin("admin", (await sessionInfo())?.role);
+        panel.hidden = false;
+        renderExtraCap();
+      }
+
+      function savedExtraCap(): string {
+        return String(extraCapEnt?.hours?.cap_usd ?? extraCapEnt?.extra_hours_cap_usd ?? 0);
+      }
+
+      function renderExtraCap() {
+        if (!extraCapEnt) return;
+        const input = $("extracap-usd") as HTMLInputElement;
+        input.value = savedExtraCap();
+        input.max = String(MAX_EXTRA_CAP_USD);
+        input.disabled = !extraCapAdmin;
+        setText($("extracap-now"), extraCapNow(extraCapEnt));
+        $("extracap-readonly").hidden = extraCapAdmin;
+        $("extracap-save").hidden = !extraCapAdmin;
+        setFieldError(input, "");
+        paintExtraCap();
+      }
+
+      function paintExtraCap() {
+        const raw = ($("extracap-usd") as HTMLInputElement).value.trim();
+        ($("extracap-save") as HTMLButtonElement).disabled =
+          !extraCapAdmin || raw === "" || raw === savedExtraCap();
+      }
+
+      $("extracap-usd").addEventListener("input", () => {
+        setFieldError($("extracap-usd"), "");
+        paintExtraCap();
+      });
+      $("extracap-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (!extraCapEnt || !extraCapAdmin) return;
+        const input = $("extracap-usd") as HTMLInputElement;
+        const parsed = parseExtraCap(input.value);
+        if ("error" in parsed) {
+          setFieldError(input, parsed.error, { focus: true });
+          return;
+        }
+        ($("extracap-save") as HTMLButtonElement).disabled = true;
+        try {
+          extraCapEnt = await api.put<Entitlements>("/entitlements/extra-hours-cap", {
+            cap_usd: parsed.usd,
+          });
+          renderExtraCap();
+          toast(t("settings.extra_hours.saved"), "ok");
+        } catch (err) {
+          setFieldError(
+            input,
+            err instanceof ApiError ? err.message : t("settings.extra_hours.save_failed"),
+          );
+          paintExtraCap();
+        }
+      });
+
       function followers(engineName: string): string[] {
         return agentsOnDefault(engineName, llmProfiles, llmAgents, llmEngines);
       }
 
+      // A machine profile shows its machine and the engine's login there in place of the key.
+      function profileStatus(p: LLMProfile) {
+        if (!p.runner_id) {
+          const trouble = keyTrouble(p);
+          return {
+            badge: keyBadge(p),
+            meta: [],
+            trouble: trouble && { tone: trouble.tone, html: esc(trouble.text) },
+          };
+        }
+        const eng = llmEngines.find((e) => e.name === p.engine);
+        return machineRow(p, {
+          runner: llmRunners?.find((r) => r.id === p.runner_id),
+          runnersOff: llmRunners === null,
+          engineLabel: engineLabel(llmEngines, p.engine),
+          loginCommand: eng?.machine_login_command,
+        });
+      }
+
       function profileRowHTML(p: LLMProfile): string {
         const users = p.is_default ? followers(p.engine) : (p.bound_agents ?? []);
-        const badge = keyBadge(p);
-        const trouble = keyTrouble(p);
+        const { badge, meta: where, trouble } = profileStatus(p);
         // profileMeta() escapes its parts (some carry <code>), so it goes into metaHTML unescaped.
-        const meta = profileMeta(
-          p,
-          llmEngines.find((e) => e.name === p.engine)?.fallback_model,
-        ).join(" · ");
-        const note = trouble?.text
-          ? `<span class="prof-note text-${trouble.tone}">${esc(trouble.text)}</span>`
+        const meta = [
+          ...where,
+          ...profileMeta(p, llmEngines.find((e) => e.name === p.engine)?.fallback_model),
+        ].join(" · ");
+        const note = trouble?.html
+          ? `<span class="prof-note text-${trouble.tone}">${trouble.html}</span>`
           : "";
         return listRowHTML({
           boxed: true,
@@ -2619,10 +2784,12 @@ const LANGUAGES = locales.map((code) => ({
               pad: "md",
               bodyHTML:
                 `<h3 class="sub-head">${esc(t("settings.llm.engine.default_label"))}</h3>${defHTML}` +
-                `<h3 class="sub-head">${esc(t("settings.llm.engine.others_label"))}</h3>${rest}`,
+                `<h3 class="sub-head">${esc(t("settings.llm.engine.others_label"))}</h3>${rest}` +
+                `<div class="el-slot" data-el-slot="${esc(e.name)}"></div>`,
             });
           })
           .join("");
+        paintEngineLogins(Object.fromEntries(llmEngines.map((e) => [e.name, e.label])));
       }
 
       $("llm-engines").addEventListener("click", (ev) => {
@@ -2742,6 +2909,7 @@ const LANGUAGES = locales.map((code) => ({
         clearKey: $("prof-clear-key") as HTMLInputElement,
         kind: $("prof-kind") as HTMLSelectElement,
         key: $("prof-key") as HTMLInputElement,
+        runner: $("prof-runner") as HTMLSelectElement,
         fedRule: $("prof-fed-rule") as HTMLInputElement,
         fedOrg: $("prof-fed-org") as HTMLInputElement,
         fedSvac: $("prof-fed-svac") as HTMLInputElement,
@@ -2777,10 +2945,15 @@ const LANGUAGES = locales.map((code) => ({
         pf.error.hidden = true;
         syncKeyPlaceholder();
         syncProviderFields();
+        syncEngineLine();
       });
 
       function federating(): boolean {
         return pf.kind.selectedOptions[0]?.dataset.federated === "1";
+      }
+
+      function onMachine(): boolean {
+        return pf.kind.value === MACHINE_KIND;
       }
 
       let workloadIdentity: Promise<WorkloadIdentityView | null> | null = null;
@@ -2803,25 +2976,33 @@ const LANGUAGES = locales.map((code) => ({
       function syncProviderFields() {
         const eng = profEngine;
         if (!eng) return;
+        const machine = onMachine();
+        // A machine profile runs on the engine's own provider: the daemon refuses any other.
+        if (machine) pf.provider.value = eng.provider;
         const provider = pf.provider.value || eng.provider;
-        const cloud = isCloudProvider(provider);
-        const vertex = provider === "vertex";
+        const show = profileFields({
+          engine: eng,
+          provider,
+          providers: pf.provider.options.length,
+          kinds: pf.kind.options.length,
+          federated: federating(),
+          machine,
+          baseURL: pf.baseURL.value,
+        });
+        const cloud = show.cloud;
+        $("prof-provider-field").hidden = !show.provider;
         $("prof-cloud-fields").hidden = !cloud;
-        $("prof-project-field").hidden = !vertex;
-        $("prof-aws-fields").hidden = provider !== "bedrock";
-        $("prof-gcp-field").hidden = !vertex;
-        $("prof-base-url-field").hidden = !eng.base_url || cloud;
-        $("prof-org-id-field").hidden = !eng.org_id || cloud;
-        $("prof-auth-header-field").hidden = !eng.auth_header || cloud || !pf.baseURL.value.trim();
-        const fed = !cloud && federating();
-        $("prof-key-field").hidden = vertex || fed;
-        $("prof-kind-field").hidden = cloud || (eng.key_kinds ?? []).length <= 1;
-        $("prof-fed-fields").hidden = !fed;
-        if (fed) {
-          $("prof-base-url-field").hidden = true;
-          $("prof-auth-header-field").hidden = true;
-          void showWorkloadIdentity();
-        }
+        $("prof-project-field").hidden = !show.project;
+        $("prof-aws-fields").hidden = !show.aws;
+        $("prof-gcp-field").hidden = !show.gcp;
+        $("prof-base-url-field").hidden = !show.baseURL;
+        $("prof-org-id-field").hidden = !show.orgID;
+        $("prof-auth-header-field").hidden = !show.authHeader;
+        $("prof-key-field").hidden = !show.key;
+        $("prof-kind-field").hidden = !show.kind;
+        $("prof-fed-fields").hidden = !show.federation;
+        $("prof-runner-field").hidden = !show.runner;
+        if (show.federation) void showWorkloadIdentity();
         setText(
           $("prof-key-field").querySelector(".field-label"),
           provider === "bedrock"
@@ -2891,7 +3072,6 @@ const LANGUAGES = locales.map((code) => ({
           .map((x) => `<option value="${esc(x)}">${esc(providerLabel(x))}</option>`)
           .join("");
         pf.provider.value = p?.provider || eng.provider;
-        $("prof-provider-field").hidden = providers.length <= 1;
         pf.authHeader.value = p?.auth_header === "bearer" ? "bearer" : "";
         pf.region.value = p?.region ?? "";
         pf.project.value = p?.project_id ?? "";
@@ -2900,7 +3080,7 @@ const LANGUAGES = locales.map((code) => ({
         pf.clearKey.checked = false;
 
         const kinds = eng.key_kinds ?? [];
-        pf.kind.innerHTML = kinds
+        pf.kind.innerHTML = credentialKinds(kinds, eng.machine_login, p, llmRunners)
           .map(
             (k) =>
               `<option value="${esc(k.id)}" data-prefix="${esc(k.prefix)}"${k.federated ? ' data-federated="1"' : ""}>${esc(k.label)}</option>`,
@@ -2908,6 +3088,7 @@ const LANGUAGES = locales.map((code) => ({
           .join("");
         const fedKind = kinds.find((k) => k.federated);
         if (p?.federation && fedKind) pf.kind.value = fedKind.id;
+        fillMachines(eng, p);
         pf.fedRule.value = p?.federation?.federation_rule_id ?? "";
         pf.fedOrg.value = p?.federation?.organization_id ?? "";
         pf.fedSvac.value = p?.federation?.service_account_id ?? "";
@@ -2934,6 +3115,17 @@ const LANGUAGES = locales.map((code) => ({
         profDialog.open(p ? pf.model : pf.name);
       }
 
+      function fillMachines(eng: EngineInfo, p: LLMProfile | null) {
+        const choices = machineChoices(llmRunners, eng.name, eng.label, llmProfiles, p);
+        pf.runner.innerHTML = choices
+          .map((c) => `<option value="${esc(c.id)}">${esc(c.label)}</option>`)
+          .join("");
+        if (p?.runner_id) pf.runner.value = p.runner_id;
+        const warn = $("prof-runner-warn");
+        setText(warn, choices.length ? "" : t("settings.llm.hints.no_machines"));
+        warn.hidden = choices.length > 0;
+      }
+
       function closeProfileModal() {
         profDialog.close();
       }
@@ -2943,12 +3135,57 @@ const LANGUAGES = locales.map((code) => ({
         pf.error.hidden = false;
       }
 
+      // POSTs a new profile or PATCHes the one being edited; key is the key just typed, if any.
+      async function saveProfile(
+        eng: EngineInfo,
+        editing: LLMProfile | null,
+        body: Record<string, unknown>,
+        key: string,
+      ) {
+        const name = String(body.name);
+        pf.save.disabled = true;
+        try {
+          if (editing) {
+            if (pf.isDefault.checked !== !!editing.is_default)
+              body.is_default = pf.isDefault.checked;
+            const saved = await api.patch<LLMProfile>(`/llm-profiles/${editing.id}`, body);
+            toast(t("settings.llm.toasts.saved", { name }), "ok");
+            if (key) keyCheckToast(name, saved);
+          } else {
+            body.engine = eng.name;
+            body.is_default = pf.isDefault.checked;
+            const saved = await api.post<LLMProfile>("/llm-profiles", body);
+            toast(t("settings.llm.toasts.created", { name }), "ok");
+            keyCheckToast(name, saved);
+          }
+          closeProfileModal();
+          loadLLM();
+        } catch (err: any) {
+          profileFormError(err?.message ?? t("settings.llm.errors.save_failed"));
+          pf.save.disabled = false;
+        }
+      }
+
+      // A machine profile carries no credential: only the machine, the model and the effort.
+      function saveMachineProfile(eng: EngineInfo, editing: LLMProfile | null, name: string) {
+        const problem = validateMachineForm(name, pf.runner.value);
+        if (problem) return profileFormError(problem);
+        const body = {
+          name,
+          runner_id: pf.runner.value,
+          model: pf.model.value.trim(),
+          effort: eng.effort ? pf.effort.value : "",
+        };
+        return saveProfile(eng, editing, body, "");
+      }
+
       profForm.addEventListener("submit", async (ev) => {
         ev.preventDefault();
         const eng = profEngine;
         if (!eng) return;
         const editing = profEditing;
         const name = pf.name.value.trim();
+        if (onMachine()) return void saveMachineProfile(eng, editing, name);
         const provider = pf.provider.value || eng.provider;
         const cloud = isCloudProvider(provider);
         const fed = !cloud && federating();
@@ -3016,27 +3253,7 @@ const LANGUAGES = locales.map((code) => ({
           body.kind = pf.kind.value;
         }
         if (editing && cloud && pf.clearKey.checked) body.clear_key = true;
-        pf.save.disabled = true;
-        try {
-          if (editing) {
-            if (pf.isDefault.checked !== !!editing.is_default)
-              body.is_default = pf.isDefault.checked;
-            const saved = await api.patch<LLMProfile>(`/llm-profiles/${editing.id}`, body);
-            toast(t("settings.llm.toasts.saved", { name }), "ok");
-            if (key) keyCheckToast(name, saved);
-          } else {
-            body.engine = eng.name;
-            body.is_default = pf.isDefault.checked;
-            const saved = await api.post<LLMProfile>("/llm-profiles", body);
-            toast(t("settings.llm.toasts.created", { name }), "ok");
-            keyCheckToast(name, saved);
-          }
-          closeProfileModal();
-          loadLLM();
-        } catch (err: any) {
-          profileFormError(err?.message ?? t("settings.llm.errors.save_failed"));
-          pf.save.disabled = false;
-        }
+        await saveProfile(eng, editing, body, key);
       });
 
       const openapiURL = `${API_BASE}/openapi.json`;
@@ -4248,14 +4465,18 @@ const LANGUAGES = locales.map((code) => ({
         }
       });
 
+      const pollLoaders: Record<PolledSection, () => Promise<void>> = {
+        webhooks: loadWebhooks,
+        audit: loadAudit,
+        health: loadHealth,
+        team: loadTeam,
+        llm: loadLLM,
+      };
       startPoller({
         interval: 15_000,
         firstDelay: 0,
         fetch: async () => {
-          if (activeSection === "webhooks") await loadWebhooks();
-          if (activeSection === "audit") await loadAudit();
-          if (activeSection === "health") await loadHealth();
-          if (activeSection === "team") await loadTeam();
+          if (isPolledSection(activeSection)) await pollLoaders[activeSection]();
         },
         skipWhen: () => dirty.isFocusInEditable() || dirty.hasOpenModal(),
       });

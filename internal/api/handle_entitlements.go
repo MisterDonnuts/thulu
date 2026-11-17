@@ -14,8 +14,8 @@ import (
 // Entitlement is embedded so the limits stay top-level for clients that predate usage.
 type entitlementView struct {
 	entitlements.Entitlement
-	Runs    entitlements.RunUsage `json:"runs"`
-	Storage task.StorageUsage     `json:"storage"`
+	Hours   entitlements.HourUsage `json:"hours"`
+	Storage task.StorageUsage      `json:"storage"`
 }
 
 func (s *Server) entitlementViewFor(r *http.Request, workspaceID string) (entitlementView, error) {
@@ -23,21 +23,23 @@ func (s *Server) entitlementViewFor(r *http.Request, workspaceID string) (entitl
 		ent := entitlements.DefaultFor(entitlements.PlanSelfHosted)
 		ent.WorkspaceID = workspaceID
 		storage, err := s.taskStore.WorkspaceStorage(r.Context(), workspaceID)
-		return entitlementView{Entitlement: ent, Runs: entitlements.RunUsage{Remaining: -1}, Storage: storage}, err
+		return entitlementView{Entitlement: ent, Storage: storage}, err
 	}
 	ent, err := s.entitlements.Get(workspaceID)
 	if err != nil {
 		return entitlementView{}, err
 	}
-	runs, err := s.entitlements.RunUsage(r.Context(), workspaceID)
+	hours, err := s.entitlements.HourUsage(r.Context(), workspaceID)
 	if err != nil {
 		return entitlementView{}, err
 	}
+	// Clients read the resolved cap from hours.cap_usd; -1 ("the plan's default") would only confuse them.
+	ent.ExtraHoursCapUSD = hours.CapUSD
 	storage, err := s.taskStore.WorkspaceStorage(r.Context(), workspaceID)
 	if err != nil {
 		return entitlementView{}, err
 	}
-	return entitlementView{Entitlement: ent, Runs: runs, Storage: storage}, nil
+	return entitlementView{Entitlement: ent, Hours: hours, Storage: storage}, nil
 }
 
 func (s *Server) handleGetEntitlements(w http.ResponseWriter, r *http.Request) {
@@ -53,18 +55,22 @@ func (s *Server) handleGetEntitlements(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, view)
 }
 
-// A limit of 0 means unlimited.
+// A limit of 0 means unlimited. Agents and nodes size the plan (hours and storage follow them); the
+// other fields override single limits for a custom deal.
 type setPlanReq struct {
-	Plan              string `json:"plan"`
-	SeatLimit         *int   `json:"seat_limit,omitempty"`
-	ConcurrencyLimit  *int   `json:"concurrency_limit,omitempty"`
-	RunQuotaMonthly   *int   `json:"run_quota_monthly,omitempty"`
-	StorageQuotaBytes *int64 `json:"storage_quota_bytes,omitempty"`
+	Plan              string   `json:"plan"`
+	Agents            *int     `json:"agents,omitempty"`
+	Nodes             *int     `json:"nodes,omitempty"`
+	SeatLimit         *int     `json:"seat_limit,omitempty"`
+	ConcurrencyLimit  *int     `json:"concurrency_limit,omitempty"`
+	HourQuotaMonthly  *int     `json:"hour_quota_monthly,omitempty"`
+	StorageQuotaBytes *int64   `json:"storage_quota_bytes,omitempty"`
+	ExtraHoursCapUSD  *float64 `json:"extra_hours_cap_usd,omitempty"`
 }
 
 func (req setPlanReq) hasOverrides() bool {
-	return req.SeatLimit != nil || req.ConcurrencyLimit != nil ||
-		req.RunQuotaMonthly != nil || req.StorageQuotaBytes != nil
+	return req.Agents != nil || req.Nodes != nil || req.SeatLimit != nil || req.ConcurrencyLimit != nil ||
+		req.HourQuotaMonthly != nil || req.StorageQuotaBytes != nil || req.ExtraHoursCapUSD != nil
 }
 
 func (req setPlanReq) entitlementFor(current entitlements.Entitlement) (entitlements.Entitlement, error) {
@@ -72,21 +78,29 @@ func (req setPlanReq) entitlementFor(current entitlements.Entitlement) (entitlem
 	if plan == "" && req.hasOverrides() {
 		plan = current.Plan
 	}
-	switch plan {
-	case entitlements.PlanFree, entitlements.PlanTeam, entitlements.PlanBusiness,
-		entitlements.PlanEnterprise, entitlements.PlanSelfHosted:
-	default:
+	if !entitlements.KnownPlan(plan) {
 		return entitlements.Entitlement{}, apperr.Invalid("api.billing.errors.unknown_plan")
 	}
-	ent := entitlements.DefaultFor(plan)
-	ent.WorkspaceID = current.WorkspaceID
-	for _, v := range []*int{req.SeatLimit, req.ConcurrencyLimit, req.RunQuotaMonthly} {
+	for _, v := range []*int{req.Agents, req.Nodes, req.SeatLimit, req.ConcurrencyLimit, req.HourQuotaMonthly} {
 		if v != nil && *v < 0 {
 			return entitlements.Entitlement{}, apperr.Invalid("api.billing.errors.negative_limit")
 		}
 	}
-	if req.StorageQuotaBytes != nil && *req.StorageQuotaBytes < 0 {
+	if (req.StorageQuotaBytes != nil && *req.StorageQuotaBytes < 0) ||
+		(req.ExtraHoursCapUSD != nil && *req.ExtraHoursCapUSD < 0) {
 		return entitlements.Entitlement{}, apperr.Invalid("api.billing.errors.negative_limit")
+	}
+	deref := func(v *int) int {
+		if v == nil {
+			return 0
+		}
+		return *v
+	}
+	ent := entitlements.ForPlan(plan, deref(req.Agents), deref(req.Nodes))
+	ent.WorkspaceID = current.WorkspaceID
+	ent.TrialEndsAt = current.TrialEndsAt
+	if current.ExtraHoursCapUSD >= 0 {
+		ent.ExtraHoursCapUSD = current.ExtraHoursCapUSD
 	}
 	if req.SeatLimit != nil {
 		ent.SeatLimit = *req.SeatLimit
@@ -94,14 +108,59 @@ func (req setPlanReq) entitlementFor(current entitlements.Entitlement) (entitlem
 	if req.ConcurrencyLimit != nil {
 		ent.ConcurrencyLimit = *req.ConcurrencyLimit
 	}
-	if req.RunQuotaMonthly != nil {
-		ent.RunQuotaMonthly = *req.RunQuotaMonthly
+	if req.HourQuotaMonthly != nil {
+		ent.HourQuotaMonthly = *req.HourQuotaMonthly
 	}
 	if req.StorageQuotaBytes != nil {
 		ent.StorageQuotaBytes = *req.StorageQuotaBytes
 	}
+	if req.ExtraHoursCapUSD != nil {
+		ent.ExtraHoursCapUSD = *req.ExtraHoursCapUSD
+	}
 	return ent, nil
 }
+
+type extraCapReq struct {
+	CapUSD *float64 `json:"cap_usd"`
+}
+
+// Workspace admins choose how much they accept to spend on extra hours: it is their money, and the
+// operator never has to be asked to raise it.
+func (s *Server) handleSetExtraHoursCap(w http.ResponseWriter, r *http.Request) {
+	if s.entitlements == nil {
+		writeErrKey(w, r, http.StatusServiceUnavailable, "api.billing.errors.entitlements_disabled")
+		return
+	}
+	wid, ok := s.workspaceIDFromRequest(w, r)
+	if !ok {
+		return
+	}
+	var req extraCapReq
+	if !decodeBody(w, r, &req) {
+		return
+	}
+	if req.CapUSD == nil || *req.CapUSD < 0 || *req.CapUSD > maxExtraCapUSD {
+		writeErrKey(w, r, http.StatusBadRequest, "api.billing.errors.bad_extra_cap", "max", maxExtraCapUSD)
+		return
+	}
+	if err := s.entitlements.SetExtraHoursCap(wid, *req.CapUSD); err != nil {
+		writeError(w, r, http.StatusInternalServerError, err)
+		return
+	}
+	if s.auditStore != nil {
+		s.auditStore.LogRequest(r, "workspace.extra_hours_cap_changed", wid, "workspace",
+			i18n.Text("api.billing.audit.extra_cap_set", "cap", *req.CapUSD), nil)
+	}
+	view, err := s.entitlementViewFor(r, wid)
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, view)
+}
+
+// A typo of three extra zeros should not let a workspace run up a five-figure bill.
+const maxExtraCapUSD = 10000
 
 // Operator-only: when any workspace admin could call it, a free tenant could upgrade itself to
 // Enterprise.
@@ -154,8 +213,10 @@ func (s *Server) handleSetEntitlementPlan(w http.ResponseWriter, r *http.Request
 	writeJSON(w, http.StatusOK, view)
 }
 
+// seatLimitForWorkspace caps people per workspace in the SaaS only. Self-hosted never blocks anyone,
+// on Docker or on Kubernetes: its license counts people and the contract settles the rest.
 func (s *Server) seatLimitForWorkspace(workspaceID string) int {
-	if s.entitlements == nil {
+	if s.entitlements == nil || !entitlements.SaaSMode() {
 		return 0
 	}
 	ent, err := s.entitlements.Get(workspaceID)

@@ -45,7 +45,8 @@
     "audit_log": "Registro de auditoría",
     "language": "Idioma",
     "account": "Cuenta",
-    "settings": "Configuración"
+    "settings": "Configuración",
+    "runners": "Runners"
   },
   "version": {
     "update_available": "Hay una actualización disponible"

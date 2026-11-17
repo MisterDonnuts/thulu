@@ -80,7 +80,7 @@ import {
       <StatTile
         id="plan-quota"
         size="sm"
-        label={t("usage.plan.runs_month")}
+        label={t("usage.plan.hours_month")}
         value=""
         meter={{ value: 0, tone: "ok", attrs: { id: "plan-bar" } }}
         hidden
@@ -274,7 +274,14 @@ import {
       usageSeries,
       type UsageDay,
     } from "../lib/usage-chart";
-    import { planFacts, planName, runQuota, unlimited, type Entitlements } from "../lib/plan";
+    import {
+      hourQuota,
+      planFacts,
+      planName,
+      trialEnds,
+      unlimited,
+      type Entitlements,
+    } from "../lib/plan";
     import { fmtMs, isoLocal } from "../lib/time";
     import { buildCSV, type CSVSection } from "../lib/csv";
     import { locale, t } from "../i18n";
@@ -1066,13 +1073,13 @@ import {
         const free = unlimited(ent);
         setStat($("plan-tile"), {
           value: planName(ent.plan),
-          sub: free ? t("usage.plan.unlimited") : "",
+          sub: free ? t("usage.plan.unlimited") : trialEnds(ent),
         });
-        const q = runQuota(ent);
+        const q = hourQuota(ent);
         const quota = $("plan-quota");
         quota.hidden = !q;
         if (q) {
-          setStat(quota, { value: q.value, sub: q.resets });
+          setStat(quota, { value: q.value, sub: q.sub });
           setMeter($("plan-bar"), q.ratio * 100, {
             tone: q.tone === "full" ? "danger" : q.tone,
             valueText: q.value,
@@ -1083,7 +1090,7 @@ import {
         if (!free) {
           strip.insertAdjacentHTML(
             "beforeend",
-            factRows(planFacts(ent).filter((f) => !(q && f.id === "runs")))
+            factRows(planFacts(ent).filter((f) => !(q && f.id === "hours")))
               .map((f) =>
                 statTileHTML({
                   label: f.label,

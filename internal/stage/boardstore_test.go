@@ -102,8 +102,8 @@ func TestBoardsCarryIndependentFlags(t *testing.T) {
 	if next := store.Board("bugfix").Next(types.StageInProgress); next != types.StageReview {
 		t.Errorf("bugfix Next(in_progress) = %q, want review", next)
 	}
-	if next := store.Board(DefaultBoardID).Next(types.StageInProgress); next != types.StageDone {
-		t.Errorf("default Next(in_progress) = %q, want done", next)
+	if next := store.Board(DefaultBoardID).Next(types.StageInProgress); next != types.StageReview {
+		t.Errorf("default Next(in_progress) = %q, want review", next)
 	}
 }
 

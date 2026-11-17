@@ -48,7 +48,11 @@ func (s *Server) handleStripeWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if setErr := s.entitlements.SetPlan(change.WorkspaceID, change.Plan); setErr != nil {
+	setErr := s.entitlements.ApplyPlan(change.WorkspaceID, change.Plan, change.Agents, change.Nodes)
+	if setErr == nil && change.Customer != "" {
+		setErr = s.entitlements.SetBillingCustomer(change.WorkspaceID, change.Customer)
+	}
+	if setErr != nil {
 		log.Printf("[billing] %s", i18n.Log("api.billing.log.apply_plan_failed",
 			"plan", change.Plan, "workspace", logx.Safe(change.WorkspaceID), "err", setErr))
 		writeErrKey(w, r, http.StatusInternalServerError, "api.billing.errors.apply_plan_failed")

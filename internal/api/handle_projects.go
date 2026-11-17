@@ -207,7 +207,7 @@ func (s *Server) handleUpdateProject(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	runnerName, allowed := s.patchRunnerAllowed(w, r, current, p.RunnerID)
-	if !allowed {
+	if !allowed || !s.patchRunnerFolder(w, r, current, &p) {
 		return
 	}
 	proj, err := s.projectStore.Update(r.Context(), id, p)
@@ -219,7 +219,7 @@ func (s *Server) handleUpdateProject(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, status, err)
 		return
 	}
-	if proj.RunnerID != current.RunnerID {
+	if proj.RunnerID != current.RunnerID || proj.RunnerPath != current.RunnerPath {
 		s.auditRunnerChange(r, proj, current.RunnerID, runnerName)
 	}
 	writeJSON(w, http.StatusOK, proj)

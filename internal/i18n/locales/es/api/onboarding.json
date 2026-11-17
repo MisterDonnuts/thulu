@@ -41,7 +41,10 @@
       "effect": "las corridas de agentes fallan al despacharse: no hay modelo al que llamar",
       "finish": "elegí el perfil default del motor en Configuración → Motores de IA",
       "store_unavailable": "el almacén de secretos no está disponible",
-      "no_key": "no hay key para {engine}"
+      "machine": "{engine} usa el login de una máquina: su perfil default es de máquina",
+      "no_key": "no hay key para {engine}",
+      "no_key_personal": "no hay key para {engine}. Mientras tanto, las corridas que arranques vos pueden usar tu propia cuenta: Configuración → Motores de IA → Tu propia cuenta",
+      "no_key_runner": "por ahora no hace falta key: todos los proyectos corren sus agentes en un runner, que usa la sesión de claude de esa máquina; un proyecto que corra acá necesita una key de {engine}"
     },
     "project": {
       "title": "Primer proyecto",

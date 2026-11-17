@@ -2,14 +2,7 @@ import { t } from "../i18n";
 import type { TableColumn } from "./ui/table";
 
 export type DimMetric =
-  | "sessions"
-  | "tokens"
-  | "turns"
-  | "cost"
-  | "cache"
-  | "perSess"
-  | "perTurn"
-  | "p95";
+  "sessions" | "tokens" | "turns" | "cost" | "cache" | "perSess" | "perTurn" | "p95";
 
 export const DIM_TABLES = {
   "t-engine": { key: "engine", metrics: ["sessions", "tokens", "cost", "cache"] },

@@ -15,7 +15,7 @@ import (
 
 func setStorageQuota(t *testing.T, rig *operatorRig, quota int64) {
 	t.Helper()
-	ent := entitlements.DefaultFor(entitlements.PlanFree)
+	ent := entitlements.DefaultFor(entitlements.PlanTrial)
 	ent.WorkspaceID = rig.tenantWS
 	ent.StorageQuotaBytes = quota
 	if err := rig.srv.entitlements.Set(ent); err != nil {
@@ -42,13 +42,11 @@ func uploadMultipart(t *testing.T, h http.Handler, token, taskID string, content
 }
 
 type entitlementsBody struct {
-	Plan              string `json:"plan"`
-	StorageQuotaBytes int64  `json:"storage_quota_bytes"`
-	Runs              struct {
-		Limit     int `json:"limit"`
-		Remaining int `json:"remaining"`
-	} `json:"runs"`
-	Storage struct {
+	Plan              string                 `json:"plan"`
+	StorageQuotaBytes int64                  `json:"storage_quota_bytes"`
+	ExtraHoursCapUSD  float64                `json:"extra_hours_cap_usd"`
+	Hours             entitlements.HourUsage `json:"hours"`
+	Storage           struct {
 		UsedBytes      int64 `json:"used_bytes"`
 		QuotaBytes     int64 `json:"quota_bytes"`
 		RemainingBytes int64 `json:"remaining_bytes"`
@@ -94,8 +92,8 @@ func TestStorageQuota_UploadsStopAtTheQuota(t *testing.T) {
 	if b.Storage.UsedBytes != 8 || b.Storage.QuotaBytes != 10 || b.Storage.RemainingBytes != 2 {
 		t.Errorf("storage usage = %+v, want 8 used of 10", b.Storage)
 	}
-	if b.Plan != "free" || b.Runs.Limit != 100 || b.Runs.Remaining != 100 {
-		t.Errorf("plan/runs = %s %+v, want free with 100 runs left", b.Plan, b.Runs)
+	if b.Plan != "trial" || b.Hours.IncludedHours != 50 || b.Hours.UsedHours != 0 || b.Hours.ResetsAt.IsZero() {
+		t.Errorf("plan/hours = %s %+v, want the trial with 50 h unused", b.Plan, b.Hours)
 	}
 }
 
@@ -122,26 +120,51 @@ func TestStorageQuota_OperatorOverride(t *testing.T) {
 		t.Fatalf("operator override = %d: %s", w.Code, w.Body.String())
 	}
 	b := decodeEntitlements(t, w)
-	if b.Plan != "free" || b.StorageQuotaBytes != 1<<20 || b.Storage.QuotaBytes != 1<<20 {
+	if b.Plan != "trial" || b.StorageQuotaBytes != 1<<20 || b.Storage.QuotaBytes != 1<<20 {
 		t.Errorf("after override = %+v", b)
 	}
 	ent, _ := rig.srv.entitlements.Get(rig.tenantWS)
-	if ent.SeatLimit != 4 || ent.RunQuotaMonthly != 100 {
+	if ent.SeatLimit != 4 || ent.HourQuotaMonthly != 50 {
 		t.Errorf("other limits changed: %+v", ent)
 	}
 
 	w = callAs(t, rig.h, http.MethodPut, path, "", rig.opKey,
-		map[string]any{"plan": "team", "run_quota_monthly": 50})
+		map[string]any{"plan": "team", "agents": 3, "hour_quota_monthly": 250})
 	if w.Code != http.StatusOK {
 		t.Fatalf("plan + override = %d: %s", w.Code, w.Body.String())
 	}
 	if ent, _ := rig.srv.entitlements.Get(rig.tenantWS); ent.Plan != entitlements.PlanTeam ||
-		ent.RunQuotaMonthly != 50 || ent.StorageQuotaBytes != 20*entitlements.GiB {
-		t.Errorf("team with run override = %+v", ent)
+		ent.ConcurrencyLimit != 3 || ent.HourQuotaMonthly != 250 || ent.StorageQuotaBytes != 30*entitlements.GiB {
+		t.Errorf("team with an hour override = %+v", ent)
 	}
 
 	w = callAs(t, rig.h, http.MethodPut, path, "", rig.opKey, map[string]any{"storage_quota_bytes": -1})
 	if w.Code != http.StatusBadRequest || !strings.Contains(w.Body.String(), "negative_limit") {
 		t.Errorf("negative override = %d, want 400 negative_limit: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestExtraHoursCap_WorkspaceAdminSetsIt(t *testing.T) {
+	rig := newOperatorRig(t)
+	if err := rig.srv.entitlements.ApplyPlan(rig.tenantWS, entitlements.PlanStarter, 0, 0); err != nil {
+		t.Fatal(err)
+	}
+	w := callAs(t, rig.h, http.MethodPut, "/entitlements/extra-hours-cap", "", rig.tenantAdminKey,
+		map[string]any{"cap_usd": 120})
+	if w.Code != http.StatusOK {
+		t.Fatalf("set cap = %d: %s", w.Code, w.Body.String())
+	}
+	if b := decodeEntitlements(t, w); b.Hours.CapUSD != 120 || b.ExtraHoursCapUSD != 120 {
+		t.Errorf("cap after set = %+v / %v", b.Hours, b.ExtraHoursCapUSD)
+	}
+	for _, bad := range []any{-1, 1e9, nil} {
+		w = callAs(t, rig.h, http.MethodPut, "/entitlements/extra-hours-cap", "", rig.tenantAdminKey,
+			map[string]any{"cap_usd": bad})
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("cap %v = %d, want 400", bad, w.Code)
+		}
+	}
+	if ent, _ := rig.srv.entitlements.Get(rig.tenantWS); ent.ExtraCap() != 120 || ent.Plan != entitlements.PlanStarter {
+		t.Errorf("stored = %+v", ent)
 	}
 }

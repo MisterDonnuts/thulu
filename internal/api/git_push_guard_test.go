@@ -190,6 +190,21 @@ func TestGitTransport_PushConfinedToTheTasksBranch(t *testing.T) {
 	if out, _ := runGitCmd(proj.Path, "log", "-1", "--format=%s", "main"); strings.TrimSpace(out) == "agent result" {
 		t.Errorf("main was overwritten by a refused push")
 	}
+
+	// A chat's key, delegated or not, reads the task's code and never pushes it.
+	chatKey, _, err := srv.authStore.CreateRunScopedAPIKey(t.Context(), auth.RunScope{TaskID: taskID, ChatID: "chat-1",
+		Agent: "manager", Stage: "chat", DelegatedBy: "gitpush@test.com"}, ws, time.Hour)
+	if err != nil {
+		t.Fatalf("mint chat key: %v", err)
+	}
+	chatURL := strings.Replace(cloneURL, key, chatKey, 1)
+	if out, ferr := runGitCmd(work, "fetch", chatURL); ferr != nil {
+		t.Errorf("a chat key could not read the task's code: %v: %s", ferr, out)
+	}
+	mustGit("commit", "--allow-empty", "-m", "chat change")
+	if out, perr := runGitCmd(work, "push", "--force", chatURL, "HEAD:refs/heads/"+own); perr == nil {
+		t.Errorf("a chat key pushed the task's branch: %s", out)
+	}
 }
 
 func runGitCmd(dir string, args ...string) (string, error) {

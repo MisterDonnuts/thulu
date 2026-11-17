@@ -11,15 +11,15 @@
     "test": "node --test --test-timeout=30000"
   },
   "dependencies": {
-    "@aws-sdk/client-api-gateway": "^3.1101.0",
-    "@aws-sdk/client-apigatewayv2": "^3.1101.0",
-    "@aws-sdk/client-cloudwatch": "^3.700.0",
-    "@aws-sdk/client-cloudwatch-logs": "^3.700.0",
-    "@aws-sdk/client-ecs": "^3.700.0",
-    "@aws-sdk/client-elastic-load-balancing-v2": "^3.700.0",
-    "@aws-sdk/client-lambda": "^3.700.0",
-    "@aws-sdk/client-rds": "^3.700.0",
-    "@modelcontextprotocol/sdk": "^1.0.4",
+    "@aws-sdk/client-api-gateway": "^3.1161.0",
+    "@aws-sdk/client-apigatewayv2": "^3.1161.0",
+    "@aws-sdk/client-cloudwatch": "^3.1161.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.1161.0",
+    "@aws-sdk/client-ecs": "^3.1161.0",
+    "@aws-sdk/client-elastic-load-balancing-v2": "^3.1161.0",
+    "@aws-sdk/client-lambda": "^3.1161.0",
+    "@aws-sdk/client-rds": "^3.1161.0",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "express": "^4.21.1",
     "google-auth-library": "^10.9.1"
   }

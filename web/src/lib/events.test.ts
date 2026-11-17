@@ -112,6 +112,27 @@ describe("EventChannel", () => {
     expect(posts[0].topics).toEqual(["logs:a"]);
   });
 
+  // The browser reconnects an EventSource on its own, with the opening URL: a topic pushed after the
+  // open is gone from the new stream and has to be pushed again (the chat stopped updating live
+  // after a daemon restart).
+  it("re-subscribes pushed topics after the browser reconnects on its own", async () => {
+    const ch = newChannel();
+    ch.subscribe("tasks", noop);
+    ch.subscribe("chat", noop);
+    last().hello("stream-1");
+    await flush();
+    expect(posts.map((p) => p.topics)).toEqual([["chat"]]);
+
+    last().readyState = FakeEventSource.CONNECTING;
+    last().onerror?.();
+    last().hello("stream-2");
+    await flush();
+
+    expect(FakeEventSource.instances).toHaveLength(1);
+    expect(posts[1].url).toContain("/events/stream-2/subscribe");
+    expect(posts[1].topics).toEqual(["chat"]);
+  });
+
   it("re-subscribes everything when the server rejected the opening batch", async () => {
     const ch = newChannel();
     ch.subscribe("chat", noop);

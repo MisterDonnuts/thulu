@@ -107,6 +107,9 @@ type Capabilities struct {
 	NonessentialTrafficEnv map[string]string
 
 	PersonalLogin *PersonalLogin
+
+	// Nil when the engine's script cannot run on a runner with OCTOPUS_LLM_SOURCE=runner_login.
+	MachineLogin *MachineLogin
 }
 
 // Field names mirror usage.Pricing, which is seeded from these rows.

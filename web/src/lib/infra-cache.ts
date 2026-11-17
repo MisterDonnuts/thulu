@@ -86,12 +86,7 @@ export interface CacheToolRow {
 }
 
 export type SignalKind =
-  | "cache_growth"
-  | "cache_full"
-  | "low_hit_rate"
-  | "prewarm_failing"
-  | "key_churn"
-  | "tool_unused";
+  "cache_growth" | "cache_full" | "low_hit_rate" | "prewarm_failing" | "key_churn" | "tool_unused";
 
 export interface CacheSignal {
   kind: SignalKind;

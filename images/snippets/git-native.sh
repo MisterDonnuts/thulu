@@ -20,6 +20,7 @@ if [ -n "${OCTOPUS_RESULT_REF:-}" ]; then
   export OCTOPUS_GIT_NATIVE=1
 fi
 
-# On a host the worktree is a real checkout with the machine's credentials; the runner pushes the
-# task branch when the run ends.
+# On a host the worktree is a real checkout with the machine's credentials, or, for a project Thulu
+# keeps, a clone whose origin is the daemon's /git/ (set up by the runner). The runner pushes when the
+# run ends.
 [ "${OCTOPUS_HOST_RUN:-}" = "1" ] && export OCTOPUS_GIT_NATIVE=1

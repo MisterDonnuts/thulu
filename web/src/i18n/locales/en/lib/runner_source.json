@@ -1,0 +1,35 @@
+{
+  "lede": "Agents work in that folder with the machine's git and claude login. Thulu doesn't clone anything or store a model key.",
+  "none_title": "No machine registered",
+  "none_body": "Add it here and run the commands on it: the list updates when it connects.",
+  "machine": "Machine",
+  "folder": "Folder",
+  "loading": "Loading the machine's folders…",
+  "not_reported_title": "The machine hasn't reported its folders",
+  "not_reported_body": "Start the runner on that machine (thulu runner run, or thulu runner service install to have it start by itself). The list updates within a minute.",
+  "no_roots": "The machine has no allowed folders.",
+  "scanned": "Updated {when}",
+  "truncated": "Only the first 500 repositories are listed; if yours is missing, run thulu add in its folder.",
+  "filter": "Filter repositories",
+  "add_title": "Repository not listed? Run this in its folder:",
+  "add_title_lead": "Run this in the repository's folder, on that machine:",
+  "add_body": "It creates the project directly, without coming back here. If the folder wasn't allowed, it allows it.",
+  "add_copy": "the thulu add command",
+  "created": "{project} was created from the terminal.",
+  "open_project": "Open project",
+  "taken_summary": {
+    "one": "1 already is a project ({names})",
+    "other": "{count} already are projects ({names})"
+  },
+  "roots_count": {
+    "one": "1 allowed folder",
+    "other": "{count} allowed folders"
+  },
+  "no_match": "No repository matches the filter.",
+  "errors": {
+    "load": "Couldn't load the machines: {error}",
+    "repos": "Couldn't load the folders: {error}",
+    "no_machine": "Register a machine first.",
+    "no_folder": "Pick a folder."
+  }
+}

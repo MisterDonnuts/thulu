@@ -109,6 +109,7 @@ func (c *claudeCode) CapabilitiesIn(ctx context.Context) engine.Capabilities {
 			"DISABLE_ERROR_REPORTING":                  "1",
 		},
 		PersonalLogin: personalLogin,
+		MachineLogin:  machineLogin,
 	}
 }
 

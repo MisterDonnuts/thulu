@@ -1,0 +1,33 @@
+{
+  "kind": "Login on a machine",
+  "state": {
+    "not_installed": "{engine} not installed",
+    "not_logged_in": "{engine} not signed in",
+    "logged_in_as": "signed in as {who}",
+    "logged_in": "signed in"
+  },
+  "errors": {
+    "runner_required": "Pick the machine this profile runs on."
+  },
+  "meta": {
+    "machine": "machine {runner}"
+  },
+  "badge": {
+    "revoked": "Machine revoked",
+    "missing": "CLI missing",
+    "not_logged_in": "Not signed in",
+    "logged_in": "Signed in",
+    "not_reported": "Not reported yet",
+    "runners_off": "Runners off"
+  },
+  "note": {
+    "not_logged_in_html": "{engine} is not signed in on {runner}. Run <code class=\"code-inline\">{command}</code> on that machine.",
+    "not_logged_in": "{engine} is not signed in on {runner}. Sign in on that machine.",
+    "not_installed": "{runner} does not have {engine} on its PATH. Install it there.",
+    "not_reported": "{runner} has not reported {engine} yet. Update the runner on that machine and start it again.",
+    "revoked": "{runner} was revoked: runs with this profile are refused. Edit the profile and pick another machine.",
+    "offline": "{runner} is not connected: runs with this profile are refused until it connects.",
+    "not_reported_start": "{runner} has not reported {engine} yet. Start the runner there (thulu runner run); it reports within a minute.",
+    "runners_off": "Runners are off on this instance: runs with this profile are refused."
+  }
+}

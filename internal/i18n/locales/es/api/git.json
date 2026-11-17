@@ -3,6 +3,7 @@
     "bad_command": "comando inválido {command:%q}",
     "bad_pkt_length": "largo de pkt-line inválido {length}",
     "bad_pkt_length_text": "largo de pkt-line inválido {length:%q}",
+    "chat_push": "un chat lee el código de su tarea y no puede pushear",
     "gzip": "gzip",
     "malformed_push": "push mal formado",
     "push_delete_ref": "una tarea no puede borrar {ref}",
@@ -14,9 +15,11 @@
   },
   "log": {
     "enable_receivepack_failed": "activar receivepack en {dir}: {err}",
+    "integrate_failed": "integrar el resultado de la tarea {task} (proyecto {project}) al llegar; el final de la corrida lo vuelve a intentar: {err}",
     "publish_comment_failed": "comentar en la tarea {task} el publish fallido: {err}",
     "publish_failed": "publicar la rama de la tarea {task} (proyecto {project}) después del push del agente: {err}",
     "refresh_default_failed": "actualizar la rama principal del proyecto {project} para la tarea {task}: {err}",
+    "refresh_default_slow": "actualizar la rama principal del proyecto {project} para la tarea {task} tarda más de {wait}; el fetch recibe lo que tiene Thulu y la actualización sigue",
     "transport_disabled": "transporte de worktrees desactivado: {err}",
     "transport_mounted": "transporte de worktrees montado en {path}"
   },

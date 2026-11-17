@@ -397,5 +397,12 @@
     "unlink_app": "Unlink App",
     "approve_mappings": "Activate mappings",
     "publish_dashboard": "Publish dashboard"
+  },
+  "runner": {
+    "title": "Where agents run",
+    "where": "Run agents",
+    "where_hint": "In Thulu, from a clone, or on a machine with a runner, from a folder on it.",
+    "folder": "Folder on the machine",
+    "folder_hint": "It has to be inside a folder the machine allows (thulu runner allow)."
   }
 }

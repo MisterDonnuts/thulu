@@ -10,6 +10,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/MisterDonnuts/thulu/internal/apperr"
+	"github.com/MisterDonnuts/thulu/internal/entitlements"
 	"github.com/MisterDonnuts/thulu/internal/kubeapi"
 )
 
@@ -21,6 +22,10 @@ type Runtime struct{}
 var errNotInBuild = apperr.Unavailable("daemon.errors.kubernetes_not_in_build")
 
 func (*Runtime) Clientset() kubernetes.Interface { return nil }
+
+func (*Runtime) MeteredPods(context.Context) ([]entitlements.PodSample, error) {
+	return nil, errNotInBuild
+}
 
 func (*Runtime) ListPodsAll(context.Context) ([]kubeapi.RunningPod, error) { return nil, errNotInBuild }
 

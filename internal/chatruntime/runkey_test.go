@@ -131,6 +131,10 @@ func TestChatLLMAuthSeesTheRunKeyAndCanRefuse(t *testing.T) {
 	r := newKeyRig(t)
 	var seen string
 	r.mgr.SetLLMAuth(func(env map[string]string, _, _ string, _ *types.AgentType) error {
+		// The turn's own auth, which places the chat, runs before any key is minted.
+		if _, creating := env["AGENT_NAME"]; !creating {
+			return nil
+		}
 		seen = env["OCTOPUS_API_KEY"]
 		return errors.New("no LLM credential for manager")
 	})
@@ -154,6 +158,57 @@ func TestChatLLMAuthSeesTheRunKeyAndCanRefuse(t *testing.T) {
 	}
 }
 
+// The turn's auth runs once per turn, and places the chat with the same answer: no second resolve
+// (a second profile touch, a second identity token) for the placement alone.
+func TestEachTurnRunsTheChatAuthOnce(t *testing.T) {
+	r := newKeyRig(t)
+	var mu sync.Mutex
+	turns, creates := 0, 0
+	r.mgr.SetLLMAuth(func(env map[string]string, _, _ string, _ *types.AgentType) error {
+		mu.Lock()
+		defer mu.Unlock()
+		if _, creating := env["AGENT_NAME"]; creating {
+			creates++
+		} else {
+			turns++
+		}
+		return nil
+	})
+	c := &chat.Chat{ID: "chat-once", WorkspaceID: "ws-1", AgentType: "manager"}
+	for _, text := range []string{"hola", "otra"} {
+		if _, err := r.mgr.ExecTurn(context.Background(), c, testAgent(), AcquireOpts{}, text); err != nil {
+			t.Fatalf("ExecTurn: %v", err)
+		}
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if turns != 2 || creates != 1 {
+		t.Errorf("auth ran %d times for turns and %d for creates, want 2 and 1", turns, creates)
+	}
+}
+
+// A turn its auth refuses (no credential, a machine that went away) stops before anything starts.
+func TestRefusedTurnStartsNothing(t *testing.T) {
+	r := newKeyRig(t)
+	r.mgr.SetLLMAuth(func(map[string]string, string, string, *types.AgentType) error {
+		return errors.New("runner offline")
+	})
+	c := &chat.Chat{ID: "chat-refused", WorkspaceID: "ws-1", AgentType: "manager"}
+	if _, err := r.mgr.ExecTurn(context.Background(), c, testAgent(), AcquireOpts{}, "hola"); err == nil ||
+		!strings.Contains(err.Error(), "runner offline") {
+		t.Fatalf("err = %v, want the auth's refusal", err)
+	}
+	r.mu.Lock()
+	launched := r.env != nil
+	r.mu.Unlock()
+	r.minter.mu.Lock()
+	minted := len(r.minter.scopes)
+	r.minter.mu.Unlock()
+	if launched || minted != 0 {
+		t.Errorf("launched = %v, minted %d keys; want nothing", launched, minted)
+	}
+}
+
 func TestTurnAuthViaGatewayInjectsNothing(t *testing.T) {
 	r := newKeyRig(t)
 	r.mgr.SetLLMAuth(func(env map[string]string, _, _ string, _ *types.AgentType) error {
@@ -162,10 +217,11 @@ func TestTurnAuthViaGatewayInjectsNothing(t *testing.T) {
 		return nil
 	})
 	c := &chat.Chat{ID: "chat-k4", WorkspaceID: "ws-1", AgentType: "manager"}
-	_, authEnv, _, err := r.mgr.turnAuth(context.Background(), c, testAgent())
+	auth, err := r.mgr.resolveTurn(context.Background(), c, testAgent())
 	if err != nil {
 		t.Fatal(err)
 	}
+	authEnv := auth.env
 	if len(authEnv) != 0 {
 		t.Errorf("turn env = %v, want none", authEnv)
 	}
@@ -256,10 +312,11 @@ func TestTurnAuthRefreshesTheProvider(t *testing.T) {
 		return nil
 	})
 	c := &chat.Chat{ID: "chat-k6", WorkspaceID: "ws-1", AgentType: "manager"}
-	_, authEnv, _, err := r.mgr.turnAuth(context.Background(), c, testAgent())
+	auth, err := r.mgr.resolveTurn(context.Background(), c, testAgent())
 	if err != nil {
 		t.Fatal(err)
 	}
+	authEnv := auth.env
 	got := strings.Join(authEnv, " ")
 	if !strings.Contains(got, "OCTOPUS_LLM_PROVIDER=anthropic") || !strings.Contains(got, "LLM_API_KEY=sk-ant-api-x") {
 		t.Errorf("turn env = %v", authEnv)

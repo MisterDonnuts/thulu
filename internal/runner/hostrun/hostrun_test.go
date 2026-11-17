@@ -30,8 +30,8 @@ func TestConfigRoundTripAndDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.WorkDir != filepath.Join(filepath.Dir(path), "work") || got.Concurrency != 1 {
-		t.Errorf("defaults: work dir %q, concurrency %d", got.WorkDir, got.Concurrency)
+	if got.WorkDir != filepath.Join(filepath.Dir(path), "work") || got.Concurrency != 1 || got.ChatConcurrency != DefaultChatConcurrency {
+		t.Errorf("defaults: work dir %q, concurrency %d, chat concurrency %d", got.WorkDir, got.Concurrency, got.ChatConcurrency)
 	}
 	if ids := got.ProjectIDs(); len(ids) != 1 || ids[0] != "p1" {
 		t.Errorf("ProjectIDs = %v", ids)

@@ -13,6 +13,7 @@ import (
 
 	"github.com/MisterDonnuts/thulu/internal/agent"
 	"github.com/MisterDonnuts/thulu/internal/apperr"
+	"github.com/MisterDonnuts/thulu/internal/chatruntime"
 	"github.com/MisterDonnuts/thulu/internal/engine"
 	"github.com/MisterDonnuts/thulu/internal/i18n"
 	"github.com/MisterDonnuts/thulu/internal/logx"
@@ -33,15 +34,22 @@ type runnerLauncher struct {
 	logSink   func(ctx context.Context, a *agent.Agent, fullLogs string)
 	report    func(ctx context.Context, taskID string, rep task.RunnerReport)
 	reconcile func(ctx context.Context)
+	// Reads a chat's task for its code; nil leaves task chats without it.
+	task func(ctx context.Context, id string) (*task.Task, error)
 
 	claimTimeout time.Duration
 	started      time.Time
 
 	mu        sync.Mutex
 	callbacks map[string]func(int, string, string)
+	steer     *steerHub
 }
 
-var _ task.AgentLauncher = (*runnerLauncher)(nil)
+var (
+	_ task.AgentLauncher       = (*runnerLauncher)(nil)
+	_ task.RunSteerer          = (*runnerLauncher)(nil)
+	_ chatruntime.MachineTurns = (*runnerLauncher)(nil)
+)
 
 func newRunnerLauncher(store *runner.Store, projects *project.Store,
 	agents func(workspaceID string) types.AgentSource, runsDir, logsDir string,
@@ -54,7 +62,7 @@ func newRunnerLauncher(store *runner.Store, projects *project.Store,
 		store: store, projects: projects, agents: agents,
 		runsDir: runsDir, logsDir: logsDir, baseCtx: context.Background(),
 		claimTimeout: timeout, started: time.Now().UTC(),
-		callbacks: map[string]func(int, string, string){},
+		callbacks: map[string]func(int, string, string){}, steer: newSteerHub(),
 	}
 }
 
@@ -63,6 +71,7 @@ const settleEvery = 2 * time.Second
 func (l *runnerLauncher) start(ctx context.Context) {
 	l.baseCtx = ctx
 	go func() {
+		l.cancelOrphanTurns(l.baseCtx)
 		t := time.NewTicker(settleEvery)
 		defer t.Stop()
 		for {
@@ -76,32 +85,29 @@ func (l *runnerLauncher) start(ctx context.Context) {
 	}()
 }
 
-func (l *runnerLauncher) runnerFor(ctx context.Context, t *task.Task) (string, []runner.JobProject, error) {
-	runnerID := ""
-	var out []runner.JobProject
-	branchOwner := t.SandboxRootID()
-	for _, id := range t.ProjectIDs {
-		p, err := l.projects.Get(ctx, id)
-		if err != nil {
-			return "", nil, err
-		}
-		if !p.RunsOnRunner() {
-			return "", nil, apperr.Invalid("api.runners.errors.task_mixes_projects", "project", p.Name)
-		}
-		if runnerID != "" && runnerID != p.RunnerID {
-			return "", nil, apperr.Invalid("api.runners.errors.task_mixes_runners")
-		}
-		runnerID = p.RunnerID
-		out = append(out, runner.JobProject{
-			ID: p.ID, Name: filepath.Base(p.Path), DefaultBranch: p.DefaultBranch,
-			Branch: project.TaskBranchName(branchOwner), RepoURL: p.RepoURL,
-			Push: !p.CodeOnRunner(),
-		})
+// runnerFor builds the job's projects for the machine the dispatcher placed the run on. A task may
+// have no project (a machine profile alone sends it). A project kept by Thulu travels by the daemon's
+// /git/; one on a machine must be on this machine.
+func (l *runnerLauncher) runnerFor(ctx context.Context, t *task.Task, runnerID string, readOnly bool) ([]runner.JobProject, error) {
+	srcs, err := task.CodeSources(ctx, t, l.projects, readOnly)
+	if err != nil {
+		return nil, err
 	}
-	if runnerID == "" {
-		return "", nil, apperr.Invalid("api.runners.errors.task_without_runner")
+	out := make([]runner.JobProject, 0, len(srcs))
+	for _, src := range srcs {
+		p := src.Project
+		jp := runner.JobProject{ID: p.ID, Name: src.Name, DefaultBranch: p.DefaultBranch, Branch: src.Branch}
+		switch {
+		case !src.OnMachine():
+			jp.Source = runner.SourceDaemon
+		case p.RunnerID != runnerID:
+			return nil, apperr.Invalid("api.runners.errors.task_mixes_runners")
+		default:
+			jp.RepoURL, jp.Path, jp.Push = p.RepoURL, p.RunnerPath, !p.CodeOnRunner()
+		}
+		out = append(out, jp)
 	}
-	return runnerID, out, nil
+	return out, nil
 }
 
 func (l *runnerLauncher) FindAgentType(workspaceID, name string) *types.AgentType {
@@ -125,42 +131,41 @@ func (l *runnerLauncher) LaunchForStage(
 	if env[task.EnvPersonalLoginVolume] != "" {
 		return "", "", "", apperr.Precondition("api.engine_logins.errors.unavailable")
 	}
-	if eng := env["ENGINE"]; eng != "" && eng != engine.DefaultName {
-		return "", "", "", apperr.Precondition("api.runners.errors.engine_not_supported", "engine", eng)
+	if err := machineEngine(env); err != nil {
+		return "", "", "", err
 	}
 	instanceID := env["INSTANCE_ID"]
 	if instanceID == "" {
 		return "", "", "", apperr.Invalid("api.launcher.errors.missing_instance_id")
 	}
-	runnerID, projects, err := l.runnerFor(ctx, t)
+	runnerID := env[runner.RunnerIDEnv]
+	if runnerID == "" {
+		return "", "", "", apperr.Invalid("api.runners.errors.task_without_runner")
+	}
+	projects, err := l.runnerFor(ctx, t, runnerID, workspaceReadOnly)
 	if err != nil {
 		return "", "", "", err
 	}
-	r, err := l.store.Get(ctx, t.WorkspaceID, runnerID)
+	r, err := l.liveRunner(ctx, t.WorkspaceID, runnerID)
 	if err != nil {
 		return "", "", "", err
 	}
-	if r.RevokedAt != nil {
-		return "", "", "", apperr.Precondition("api.runners.errors.runner_revoked", "runner", r.Name)
+	// A runner without the steer loop still takes the run; its messages queue for the next one.
+	// Disarming here also disarms the dispatcher, which reads this same map.
+	if r.Protocol < runner.ProtocolSteer {
+		delete(env, runner.SteerEnabledEnv)
 	}
-	// Runners have no channel into the process; steering off makes mid-run messages queue for the
-	// next run.
-	env["STEER_ENABLED"] = "0"
 	spec := runner.JobSpec{
 		InstanceID: instanceID, TaskID: t.ID, Stage: string(stage), AgentName: agentType.Name,
 		LaunchKind: env[task.EnvLaunchKind], ReadOnly: workspaceReadOnly,
-		Env: copyEnv(env), Projects: projects,
-	}
-	projectID := ""
-	if len(projects) > 0 {
-		projectID = projects[0].ID
+		Env: copyEnv(env), Projects: projects, ResultRef: project.ResultBranchName(t.SandboxRootID()),
 	}
 	job := &runner.Job{
-		RunnerID: runnerID, WorkspaceID: t.WorkspaceID, TaskID: t.ID, ProjectID: projectID,
+		RunnerID: runnerID, WorkspaceID: t.WorkspaceID, TaskID: t.ID,
 		InstanceID: instanceID, AgentName: agentType.Name, AgentType: agentType.Type,
 		Engine: env["ENGINE"], Stage: string(stage), LaunchKind: env[task.EnvLaunchKind], Spec: spec,
 	}
-	if err := l.store.Enqueue(ctx, job); err != nil {
+	if err := l.enqueue(ctx, r, job); err != nil {
 		return "", "", "", err
 	}
 	outputDir := runOutputDir(l.runsDir, instanceID)
@@ -169,6 +174,51 @@ func (l *runnerLauncher) LaunchForStage(
 	}
 	l.appendLog(job, []byte(i18n.Log("api.runners.log.queued", "runner", r.Name)+"\n"))
 	return job.RunID(), instanceID, outputDir, nil
+}
+
+func machineEngine(env map[string]string) error {
+	if eng := env["ENGINE"]; engine.MachineLoginOf(eng) == nil {
+		return apperr.Precondition("api.runners.errors.engine_not_supported", "engine", eng)
+	}
+	return nil
+}
+
+// liveRunner is the machine a job may be queued for: the workspace's, and not revoked.
+func (l *runnerLauncher) liveRunner(ctx context.Context, workspaceID, runnerID string) (*runner.Runner, error) {
+	r, err := l.store.Get(ctx, workspaceID, runnerID)
+	if err != nil {
+		return nil, err
+	}
+	if r.RevokedAt != nil {
+		return nil, apperr.Precondition("api.runners.errors.runner_revoked", "runner", r.Name)
+	}
+	return r, nil
+}
+
+// Checked here, not when placing: only the finished job knows what it needs. Every job passes here,
+// so this is also where a key is kept off the machine, whatever placed the run.
+func (l *runnerLauncher) enqueue(ctx context.Context, r *runner.Runner, job *runner.Job) error {
+	if need := job.Spec.MinProtocol(); r.Protocol < need {
+		return apperr.Precondition("api.runners.errors.runner_outdated", "runner", r.Name, "got", r.Protocol, "want", need)
+	}
+	task.ClearMachineCredentials(job.Spec.Env)
+	job.ProjectID = claimProject(job.Spec.Projects)
+	return l.store.Enqueue(ctx, job)
+}
+
+// claimProject is the project Claim matches against the runner's mapped ones: a machine project
+// without a folder, which only the runner's config lays out. A Thulu project is never mapped, so it
+// only names a job that needs no mapping (Claim takes a self-contained job whatever its project).
+func claimProject(projects []runner.JobProject) string {
+	for _, p := range projects {
+		if p.Path == "" && !p.FromDaemon() {
+			return p.ID
+		}
+	}
+	if len(projects) > 0 {
+		return projects[0].ID
+	}
+	return ""
 }
 
 func copyEnv(env map[string]string) map[string]string {
@@ -198,7 +248,8 @@ func (l *runnerLauncher) ScanExitedTaskAgents(ctx context.Context) ([]task.Exite
 	var out []task.ExitedTaskAgent
 	for i := range jobs {
 		j := &jobs[i]
-		if l.hasCallback(j.ID) {
+		// A chat turn is no run of its task; settle reaps the ones nobody waits for.
+		if j.ChatTurn() || l.hasCallback(j.ID) {
 			continue
 		}
 		code := l.finalize(ctx, j)
@@ -216,6 +267,20 @@ func (l *runnerLauncher) hasCallback(jobID string) bool {
 	defer l.mu.Unlock()
 	_, ok := l.callbacks[jobID]
 	return ok
+}
+
+// cancelOrphanTurns stops the chat turns a previous daemon left queued or running: their waiter went
+// with it, and a machine that ran one would bill its login and write into the chat's session for an
+// answer nobody reads. settle reaps them once they end.
+func (l *runnerLauncher) cancelOrphanTurns(ctx context.Context) {
+	ids, err := l.store.PendingChatTurns(ctx, l.started)
+	if err != nil {
+		log.Printf("[runner] %s", i18n.Log("api.runners.log.orphan_turns_failed", "err", err))
+		return
+	}
+	for _, id := range ids {
+		logx.Warn(l.store.RequestCancel(ctx, id), "api.runners.log.turn_cancel_failed", "job", id)
+	}
 }
 
 // A job created by this process gets its callback right after launch, so it must never go to
@@ -239,7 +304,13 @@ func (l *runnerLauncher) settle(ctx context.Context) {
 		cb, ok := l.callbacks[j.ID]
 		delete(l.callbacks, j.ID)
 		l.mu.Unlock()
-		if !ok {
+		switch {
+		case !ok && j.ChatTurn():
+			// Its waiter went with a daemon restart.
+			l.finalize(ctx, j)
+			l.dropTurn(j)
+			continue
+		case !ok:
 			if j.CreatedAt.Before(l.started) {
 				orphans = true
 			}
@@ -254,6 +325,7 @@ func (l *runnerLauncher) settle(ctx context.Context) {
 }
 
 func (l *runnerLauncher) finalize(ctx context.Context, j *runner.Job) int {
+	l.steer.end(j.ID)
 	logx.Warn(l.store.MarkReaped(ctx, j.ID), "api.runners.log.reap_failed", "job", j.ID)
 	code := runner.ExitLost
 	if j.ExitCode != nil {
@@ -265,6 +337,10 @@ func (l *runnerLauncher) finalize(ctx context.Context, j *runner.Job) int {
 	}
 	if j.State == runner.StateLost {
 		l.appendLog(j, []byte(i18n.Log("api.runners.log.lost", "runner", runnerName)+"\n"))
+	}
+	// A chat turn answers its chat alone: nothing reaches the task or the recorded runs.
+	if j.ChatTurn() {
+		return code
 	}
 	if l.report != nil && j.TaskID != "" {
 		rep := task.RunnerReport{Runner: runnerName, Lost: j.State == runner.StateLost, Error: j.Result.Error,

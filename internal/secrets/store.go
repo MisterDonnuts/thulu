@@ -185,6 +185,7 @@ func Migrations(_ migrate.Inspector) ([]migrate.Migration, error) {
 				retired_at            TIMESTAMP
 			);
 		`},
+		{ID: 12, SQL: `ALTER TABLE llm_profiles ADD COLUMN IF NOT EXISTS runner_id TEXT NOT NULL DEFAULT ''`},
 	}, nil
 }
 
@@ -208,6 +209,8 @@ type LLMKeyStatus struct {
 	Provider    string    `json:"provider,omitempty"`
 	Hint        string    `json:"hint,omitempty"`
 	UpdatedAt   time.Time `json:"updated_at,omitzero"`
+	// Set when the default profile is a machine's: that machine's login pays, and there is no key.
+	RunnerID string `json:"runner_id,omitempty"`
 }
 
 const defaultEngine = "claude-code"
@@ -226,6 +229,9 @@ func (s *Store) SetLLMKey(ctx context.Context, workspaceID, engine, provider, ra
 		provider = "anthropic"
 	}
 	existing, err := s.DefaultLLMProfile(ctx, workspaceID, engine)
+	if err == nil && existing.RunnerID != "" {
+		return apperr.Conflict("secrets.errors.default_profile_is_machine", "profile", existing.Name)
+	}
 	if err == nil {
 		_, err = s.UpdateLLMProfile(ctx, workspaceID, existing.ID, LLMProfileInput{
 			Name: existing.Name, Engine: existing.Engine,
@@ -326,8 +332,8 @@ func (s *Store) ListLLMKeys(ctx context.Context, workspaceID string) (map[string
 			continue
 		}
 		out[p.Engine] = &LLMKeyStatus{
-			WorkspaceID: workspaceID, Engine: p.Engine, HasKey: true,
-			Provider: p.Provider, Hint: p.KeyHint, UpdatedAt: p.UpdatedAt,
+			WorkspaceID: workspaceID, Engine: p.Engine, HasKey: p.RunnerID == "",
+			Provider: p.Provider, Hint: p.KeyHint, UpdatedAt: p.UpdatedAt, RunnerID: p.RunnerID,
 		}
 	}
 	return out, nil

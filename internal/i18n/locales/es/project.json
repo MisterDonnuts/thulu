@@ -2,6 +2,7 @@
   "errors": {
     "integrate_worktree_missing": "integrar el resultado del agente: falta el worktree ({dir})",
     "integrate_failed": "integrar el resultado del agente",
+    "park_result": "apartar el resultado de la corrida en {ref}",
     "integrate_diverged": "integrar el resultado del agente: la rama de la tarea tiene commits que {ref} no contiene ({commits}); se hicieron fuera de la copia del agente y se conservaron",
     "integrate_reset_failed": "integrar el resultado del agente (mover la rama de la tarea a {ref})",
     "import_id_required": "importar proyecto: falta el id",
@@ -206,7 +207,9 @@
     "runner_required": "un proyecto de runner necesita un runner",
     "runner_code_on_runner": "el proyecto {name} vive en un runner: su código está sólo en esa máquina, así que sus corridas no pueden salir de ahí",
     "runner_upload": "el proyecto {name} se subió como carpeta: un runner no tiene un remoto donde empujar su trabajo, así que sus corridas quedan acá",
-    "runner_no_remote": "el proyecto {name} no tiene URL de repositorio: un runner empuja su trabajo al remoto y el daemon lo trae de ahí"
+    "runner_no_remote": "el proyecto {name} no tiene URL de repositorio: un runner empuja su trabajo al remoto y el daemon lo trae de ahí",
+    "runner_path_without_runner": "el proyecto {name} no tiene runner, así que no puede tener una carpeta en uno",
+    "runner_path_update_failed": "guardar la carpeta del runner"
   },
   "log": {
     "list_conflict_files": "listar los archivos en conflicto en {dir}",

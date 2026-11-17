@@ -3,8 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 interface Route {
   status: number;
   body?: unknown;
+  headers?: Record<string, string>;
 }
 let routes: Record<string, Route>;
+// Answers served before the route's steady answer, in order.
+let queued: Partial<Record<string, Route[]>>;
 let calls: string[];
 let location: {
   protocol: string;
@@ -40,6 +43,7 @@ async function loadWithWrapper() {
 
 beforeEach(() => {
   calls = [];
+  queued = {};
   location = {
     protocol: "http:",
     hostname: "127.0.0.1",
@@ -52,10 +56,13 @@ beforeEach(() => {
   vi.stubGlobal("fetch", (url: string, init?: { method?: string }) => {
     const path = new URL(url).pathname;
     calls.push(`${init?.method ?? "GET"} ${path}`);
-    const r = routes[path] ?? { status: 404, body: { error: "not found" } };
+    const next = queued[path]?.shift();
+    const steady = routes[path] ?? { status: 404, body: { error: "not found" } };
+    const r = next ?? steady;
     return Promise.resolve({
       ok: r.status >= 200 && r.status < 300,
       status: r.status,
+      headers: new Headers(r.headers ?? {}),
       json: () => Promise.resolve(r.body ?? {}),
       text: () => Promise.resolve(JSON.stringify(r.body ?? {})),
     });
@@ -462,5 +469,133 @@ describe("refresh across tabs", () => {
 
     expect(await a.refreshOnUnauthorized()).toBe(true);
     expect(calls).toEqual(["POST /auth/refresh"]);
+  });
+});
+
+describe("rate limits and leftover sessions", () => {
+  const limited: Route = {
+    status: 429,
+    body: { code: "middleware.errors.rate_limited", retry_after: 1 },
+    headers: { "Retry-After": "1" },
+  };
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("waits out a 429 on the refresh instead of reading it as signed out", async () => {
+    vi.useFakeTimers();
+    daemon({ "/auth/refresh": { status: 200 } });
+    queued["/auth/refresh"] = [limited];
+    const { refreshOnUnauthorized } = await load();
+    const done = refreshOnUnauthorized();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(await done).toBe(true);
+    expect(calls).toEqual(["POST /auth/refresh", "POST /auth/refresh"]);
+  });
+
+  it("caps the wait a Retry-After asks for", async () => {
+    const { retryAfterMs } = await load();
+    const r = (h: Record<string, string>) => ({ headers: new Headers(h) }) as Response;
+    expect(retryAfterMs(r({ "Retry-After": "2" }))).toBe(2000);
+    expect(retryAfterMs(r({ "Retry-After": "600" }))).toBe(5000);
+    expect(retryAfterMs(r({}))).toBe(1000);
+  });
+
+  const cases: Array<{
+    name: string;
+    cookie: boolean;
+    me: Route[];
+    refresh?: Route;
+    want: string;
+    wantCalls: string[];
+  }> = [
+    {
+      name: "no session cookie: nothing to ask",
+      cookie: false,
+      me: [],
+      want: "none",
+      wantCalls: [],
+    },
+    {
+      name: "the daemon knows the session",
+      cookie: true,
+      me: [{ status: 200, body: { user: { id: "u1" } } }],
+      want: "ok",
+      wantCalls: ["GET /auth/me"],
+    },
+    {
+      name: "expired access, the refresh still works",
+      cookie: true,
+      me: [{ status: 401 }, { status: 200, body: {} }],
+      refresh: { status: 200 },
+      want: "ok",
+      wantCalls: ["GET /auth/me", "POST /auth/refresh", "GET /auth/me"],
+    },
+    {
+      name: "a leftover cookie the daemon does not know",
+      cookie: true,
+      me: [{ status: 401 }, { status: 401 }],
+      want: "none",
+      wantCalls: ["GET /auth/me", "POST /auth/refresh"],
+    },
+    {
+      name: "still rate limited after the retries: unknown, not signed out",
+      cookie: true,
+      me: [limited, limited, limited],
+      want: "unknown",
+      wantCalls: ["GET /auth/me", "GET /auth/me", "GET /auth/me"],
+    },
+  ];
+  for (const c of cases) {
+    it(`verifySession: ${c.name}`, async () => {
+      vi.useFakeTimers();
+      daemon(c.refresh ? { "/auth/refresh": c.refresh } : {});
+      queued["/auth/me"] = [...c.me];
+      vi.stubGlobal("document", { cookie: c.cookie ? "octopus_csrf=abc" : "" });
+      const { verifySession } = await load();
+      const got = verifySession();
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(await got).toBe(c.want);
+      expect(calls).toEqual(c.wantCalls);
+    });
+  }
+
+  it("drops the leftover CSRF cookie with the path the daemon set it on", async () => {
+    const doc = { cookie: "octopus_csrf=abc" };
+    vi.stubGlobal("document", doc);
+    const { dropStaleCSRF } = await load();
+    dropStaleCSRF();
+    expect(doc.cookie).toBe("octopus_csrf=; Max-Age=0; Path=/");
+  });
+
+  it("lets the login page send a tab on three times in 30 s, then holds it", async () => {
+    const m = new Map<string, string>();
+    vi.stubGlobal("sessionStorage", {
+      getItem: (k: string) => m.get(k) ?? null,
+      setItem: (k: string, v: string) => void m.set(k, v),
+    });
+    const { takeLoginBounce } = await load();
+    const t0 = 1_000_000;
+    expect([0, 1, 2, 3].map((i) => takeLoginBounce(t0 + i * 1000))).toEqual([
+      true,
+      true,
+      true,
+      false,
+    ]);
+    expect(takeLoginBounce(t0 + 31_000)).toBe(true);
+  });
+
+  it("without sessionStorage the login page still sends the tab on", async () => {
+    vi.stubGlobal("sessionStorage", {
+      getItem: () => {
+        throw new Error("blocked");
+      },
+      setItem: () => {
+        throw new Error("blocked");
+      },
+    });
+    const { takeLoginBounce } = await load();
+    expect([1, 2, 3, 4].map((i) => takeLoginBounce(i))).toEqual([true, true, true, true]);
   });
 });

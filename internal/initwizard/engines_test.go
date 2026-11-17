@@ -3,6 +3,10 @@ package initwizard
 import (
 	"bytes"
 	"context"
+	"encoding/json"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"slices"
@@ -11,6 +15,7 @@ import (
 
 	"github.com/MisterDonnuts/thulu/internal/engine/opencode"
 	"github.com/MisterDonnuts/thulu/internal/i18n"
+	"github.com/MisterDonnuts/thulu/internal/runner/hostrun"
 	"github.com/MisterDonnuts/thulu/internal/runner/service"
 )
 
@@ -91,7 +96,7 @@ func TestRunnerStepPlansClaudeFoldersAndService(t *testing.T) {
 	if err := os.Mkdir(filepath.Join(repo, ".git"), 0o750); err != nil {
 		t.Fatal(err)
 	}
-	cfg, out := transcript(t, "1\n\n\n2\n\n"+repo+"\n"+t.TempDir()+"\n"+repo+"\n\n\n", nil)
+	cfg, out := transcript(t, "1\n\n\n2\n\n\n"+repo+"\n"+t.TempDir()+"\n"+repo+"\n\n\n", nil)
 
 	if !strings.Contains(out, i18n.Text("initwizard.runner.box_title")) {
 		t.Errorf("the runner step never says what the runner does:\n%s", out)
@@ -111,6 +116,50 @@ func TestRunnerStepPlansClaudeFoldersAndService(t *testing.T) {
 	}
 	if slices.Contains(deferredNames(cfg.Deferred), i18n.Text("initwizard.deferred.runner_login.step")) {
 		t.Error("deferred a login for a claude that is not installed")
+	}
+	if !r.MachineProfile {
+		t.Error("Enter on the machine profile question, with no Claude key, did not plan the profile")
+	}
+}
+
+func TestRunnerStepMachineProfileQuestion(t *testing.T) {
+	installed := []hostTool{{name: "git", present: true}, {name: "claude", present: true, version: "2.1.280"}}
+	prompt := i18n.Text("initwizard.prompts.runner_machine_profile")
+	for _, c := range []struct {
+		name    string
+		answers string
+		tools   []hostTool
+		npm     bool
+		asked   bool
+		want    bool
+	}{
+		// quick, engines, key skipped, runner yes, machine profile Enter, no folder, service
+		{"no Claude key: yes by default", "1\n\n\n2\n\n\n\n", installed, true, true, true},
+		{"declined", "1\n\n\n2\nn\n\n\n", installed, true, true, false},
+		// a Claude key keeps the default unless the person opts in
+		{"with a Claude key: no by default", "1\n\nsk-ant-api03-abc\n2\n\n\n\n", installed, true, true, false},
+		// claude missing and no npm to install it: nothing would answer on this machine
+		{"no claude, no npm: not asked", "1\n\n\n2\n\n\n", []hostTool{{name: "git", present: true}, {name: "claude"}}, false, false, false},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			stubRunnerHost(t, c.tools, true, c.npm)
+			cfg, out := transcript(t, c.answers, nil)
+			if got := strings.Contains(out, prompt); got != c.asked {
+				t.Fatalf("asked = %v, want %v:\n%s", got, c.asked, out)
+			}
+			if cfg.Runner.MachineProfile != c.want {
+				t.Errorf("machine profile = %v, want %v", cfg.Runner.MachineProfile, c.want)
+			}
+		})
+	}
+}
+
+func TestRunnerStepMachineProfileFollowsThePreviousRun(t *testing.T) {
+	stubRunnerHost(t, []hostTool{{name: "git", present: true}, {name: "claude", present: true}}, true, true)
+	iv := &Interviewer{PreviousRunner: RunnerPlan{Enabled: true, MachineProfile: false}}
+	cfg, _ := runInterview(t, iv, "1\n\n\n2\n\n\n\n")
+	if cfg.Runner.MachineProfile {
+		t.Error("a rerun flipped a declined machine profile to yes on Enter")
 	}
 }
 
@@ -277,5 +326,73 @@ func TestScreenNeverShowsAPassword(t *testing.T) {
 	}
 	if got := maskSecret("short-token"); got != "••••" {
 		t.Errorf("a short key shows characters: %q", got)
+	}
+}
+
+func TestAddMachineProfileCreatesTheDefaultOnce(t *testing.T) {
+	var created []map[string]any
+	existing := ""
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/llm-profiles" {
+			http.NotFound(w, r)
+			return
+		}
+		if r.Method == http.MethodPost {
+			var body map[string]any
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			created = append(created, body)
+			existing = "lp_1"
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{}`))
+			return
+		}
+		profiles := `[{"id":"lp_key","engine":"claude-code","runner_id":""},{"id":"lp_other","engine":"claude-code","runner_id":"r_other"}]`
+		if existing != "" {
+			profiles = `[{"id":"` + existing + `","engine":"claude-code","runner_id":"r_1"}]`
+		}
+		_, _ = w.Write([]byte(`{"profiles":` + profiles + `}`))
+	}))
+	defer srv.Close()
+
+	w := &run{out: io.Discard, cfg: &Config{}}
+	client := NewAPIClient(srv.URL, "k")
+	runner := &hostrun.Config{RunnerID: "r_1", Name: "mac"}
+	w.addMachineProfile(context.Background(), client, runner)
+	w.addMachineProfile(context.Background(), client, runner) // a rerun keeps the first one
+
+	if len(created) != 1 {
+		t.Fatalf("created %d profiles, want 1", len(created))
+	}
+	want := map[string]any{
+		"name":   i18n.Text("initwizard.labels.machine_profile_name", "runner", "mac"),
+		"engine": engineClaude, "runner_id": "r_1", "is_default": true,
+	}
+	for k, v := range want {
+		if created[0][k] != v {
+			t.Errorf("%s = %v, want %v", k, created[0][k], v)
+		}
+	}
+	if _, ok := created[0]["key"]; ok {
+		t.Error("a machine profile carried a key")
+	}
+	if len(w.cfg.Deferred) != 0 {
+		t.Errorf("deferred %v on success", deferredNames(w.cfg.Deferred))
+	}
+}
+
+func TestAddMachineProfileDefersWhenTheDaemonRefuses(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			_, _ = w.Write([]byte(`{"profiles":[]}`))
+			return
+		}
+		http.Error(w, `{"error":"runner offline"}`, http.StatusBadRequest)
+	}))
+	defer srv.Close()
+
+	w := &run{out: io.Discard, cfg: &Config{}}
+	w.addMachineProfile(context.Background(), NewAPIClient(srv.URL, "k"), &hostrun.Config{RunnerID: "r_1", Name: "mac"})
+	if !slices.Contains(deferredNames(w.cfg.Deferred), i18n.Text("initwizard.deferred.runner_machine_profile.step")) {
+		t.Errorf("a refused profile was not deferred: %v", deferredNames(w.cfg.Deferred))
 	}
 }

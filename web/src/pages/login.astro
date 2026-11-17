@@ -315,7 +315,16 @@ const CODE: Record<string, string> = {
     </div>
 
     <script>
-      import { apiBase, isAuthenticated, logout } from "../lib/auth";
+      import {
+        apiBase,
+        dropStaleCSRF,
+        fetchPastRateLimit,
+        isAuthenticated,
+        logout,
+        takeLoginBounce,
+        verifySession,
+        type SessionCheck,
+      } from "../lib/auth";
       import {
         firstOwnerCommand,
         loginNotice,
@@ -486,10 +495,14 @@ const CODE: Record<string, string> = {
             workspace: string;
             email: string;
             awaiting_access?: boolean;
+            seats_full?: boolean;
           };
           text.textContent = t("login.invite.for", { workspace: inv.workspace, email: inv.email });
-          if (inv.awaiting_access) {
-            const note = document.getElementById("invite-banner-note")!;
+          const note = document.getElementById("invite-banner-note")!;
+          if (inv.seats_full) {
+            note.textContent = t("login.invite.full", { workspace: inv.workspace });
+            note.hidden = false;
+          } else if (inv.awaiting_access) {
             note.textContent = t("login.invite.awaiting");
             note.hidden = false;
           }
@@ -511,16 +524,9 @@ const CODE: Record<string, string> = {
         }
         if (notice.invite) void showInvitation(notice.invite);
 
-        if (isAuthenticated()) {
-          window.location.href = nextUrl();
-          return;
-        }
-
-        if (notice.error) showError(noticeText(notice));
-
         let cfg: AuthConfig;
         try {
-          const r = await fetch(`${API}/auth/config`);
+          const r = await fetchPastRateLimit(`${API}/auth/config`);
           if (!r.ok) {
             showError(t("login.errors.config_rejected"));
             return;
@@ -531,11 +537,28 @@ const CODE: Record<string, string> = {
           return;
         }
 
-        if (cfg.dev_mode) {
-          if (cfg.dev_session) {
+        // Only a session the daemon confirms leaves this page: a leftover cookie sent on to the
+        // dashboard comes straight back here, in a loop that ends up rate limited.
+        let session: SessionCheck = "none";
+        if (cfg.dev_mode) session = cfg.dev_session ? "ok" : "none";
+        else session = await verifySession();
+        if (session === "ok") {
+          if (takeLoginBounce()) {
             window.location.href = nextUrl();
             return;
           }
+          showError(t("login.errors.loop"));
+          return;
+        }
+        if (session === "unknown") {
+          showError(t("login.errors.busy"));
+          return;
+        }
+        if (isAuthenticated()) dropStaleCSRF();
+
+        if (notice.error) showError(noticeText(notice));
+
+        if (cfg.dev_mode) {
           document.getElementById("dev-link")!.hidden = false;
           return;
         }

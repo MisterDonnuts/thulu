@@ -112,14 +112,7 @@ export type ComposerVariant = "comment" | "thread" | "chat";
 const VARIANTS = new Set<string>(["comment", "thread", "chat"]);
 
 export type ComposerPart =
-  | "input"
-  | "audience"
-  | "error"
-  | "atts"
-  | "attach"
-  | "file"
-  | "cancel"
-  | "submit";
+  "input" | "audience" | "error" | "atts" | "attach" | "file" | "cancel" | "submit";
 
 export const COMPOSER_PART_CLASS: Record<ComposerPart, string> = {
   input: "composer-input",

@@ -4,15 +4,7 @@ import { runAgoLabel, type TestCasePriority } from "./test-cases";
 import { formatSeconds } from "./time";
 
 export type CaseStatus =
-  | "draft"
-  | "ready"
-  | "queued"
-  | "running"
-  | "pass"
-  | "fail"
-  | "blocked"
-  | "error"
-  | "canceled";
+  "draft" | "ready" | "queued" | "running" | "pass" | "fail" | "blocked" | "error" | "canceled";
 export type RunStatus = "queued" | "running" | "pass" | "fail" | "blocked" | "error" | "canceled";
 export type BatchStatus = "queued" | "running" | "done" | "canceled" | "error";
 export type Trigger = "manual" | "schedule" | "deploy" | "api" | "recording";
@@ -156,10 +148,7 @@ export type SandboxPhase = "" | "room" | "source" | "tools" | "setup" | "start";
 export type EnvKind = "project" | "standalone" | "sandbox";
 export type EnvAction = "run" | "record" | "edit" | "secrets" | "delete" | "link";
 export type WorkspaceAction =
-  | "create_case"
-  | "run"
-  | "create_environment"
-  | "create_production_environment";
+  "create_case" | "run" | "create_environment" | "create_production_environment";
 
 export type Reason =
   | "viewer"

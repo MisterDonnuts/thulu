@@ -169,7 +169,8 @@
     "install_claude": "Install Claude Code {version} with npm? (the version the agent image runs)",
     "runner_folder": "Project folder",
     "runner_service": "Keep it running as a service? It starts on its own whenever you log in.",
-    "yes_no_invalid": "Answer y or n."
+    "yes_no_invalid": "Answer y or n.",
+    "runner_machine_profile": "Should Claude Code runs use this machine's claude session? (creates a \"Login on a machine\" profile as Claude Code's default: runs go to this machine and pay with its login)"
   },
   "options": {
     "mode_docker": {
@@ -451,6 +452,11 @@
       "step": "Runner service",
       "effect": "the runner does not run on its own",
       "finish": "`thulu runner service install`, or `thulu runner run` in a terminal"
+    },
+    "runner_machine_profile": {
+      "step": "Machine profile for Claude Code",
+      "effect": "runs use a key or the personal login, not this machine",
+      "finish": "Settings → AI engines → Claude Code → New profile → Login on a machine"
     }
   },
   "labels": {
@@ -458,7 +464,8 @@
     "operator_key": "operator key (thulu init)",
     "git_credential_name": "GitHub (thulu init)",
     "default_workspace": "Default",
-    "session_key": "thulu init (this run only)"
+    "session_key": "thulu init (this run only)",
+    "machine_profile_name": "Claude Code on {runner}"
   },
   "diff": {
     "commented_out": "{key} (commented out)",
@@ -533,7 +540,8 @@
     "workspace_value": "{name} · owner {email}",
     "github": "GitHub",
     "github_token": "token given",
-    "github_skipped": "no token (add it later in /credentials)"
+    "github_skipped": "no token (add it later in /credentials)",
+    "runner_machine_profile": "Claude Code runs here by default"
   },
   "tasks": {
     "postgres": "Starting Postgres",
@@ -545,7 +553,8 @@
     "runner_kept": "Runner {name} already registered",
     "runner_project": "Adding project {name}",
     "runner_project_kept": "{name} is already a runner project ({id})",
-    "runner_service": "Installing the runner service"
+    "runner_service": "Installing the runner service",
+    "runner_machine_profile": "AI engine profile {name}"
   },
   "tui": {
     "enter_default": "Enter keeps the suggested value.",

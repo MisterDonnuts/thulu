@@ -6,10 +6,12 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/MisterDonnuts/thulu/internal/apperr"
+	"github.com/MisterDonnuts/thulu/internal/i18n"
 	"github.com/MisterDonnuts/thulu/internal/logx"
 	"github.com/MisterDonnuts/thulu/internal/runner"
 )
@@ -55,8 +57,10 @@ func (c *Client) do(ctx context.Context, method, path, contentType string, body 
 	if err != nil {
 		return apperr.Wrap(err, "hostrun.errors.call", "path", path)
 	}
-	req.Header.Set(runner.ProtocolHeader, runner.ProtocolVersion)
+	req.Header.Set(runner.ProtocolHeader, strconv.Itoa(runner.ProtocolVersion))
 	req.Header.Set("User-Agent", "octopus-runner/"+c.version) //i18n:ignore HTTP user agent
+	// The daemon's refusals reach the person at this terminal (`thulu add`), in their language.
+	req.Header.Set("Accept-Language", i18n.DaemonLocale())
 	if c.credential != "" {
 		req.Header.Set("Authorization", "Bearer "+c.credential) //i18n:ignore HTTP auth scheme
 	}
@@ -98,17 +102,26 @@ func (c *Client) Register(ctx context.Context, req runner.RegisterRequest) (*run
 	return &out, nil
 }
 
-func (c *Client) Claim(ctx context.Context, projects []string) (*runner.ClaimResponse, error) {
+func (c *Client) Claim(ctx context.Context, projects []string, kinds ...string) (*runner.ClaimResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, runner.ClaimWait+30*time.Second)
 	defer cancel()
 	var out runner.ClaimResponse
-	err := c.postJSON(ctx, "claim", runner.ClaimRequest{Projects: projects, Version: c.version}, &out)
+	err := c.postJSON(ctx, "claim", runner.ClaimRequest{Projects: projects, Version: c.version, Kinds: kinds}, &out)
 	return &out, err
 }
 
 func (c *Client) Heartbeat(ctx context.Context, jobID string) (*runner.HeartbeatResponse, error) {
 	var out runner.HeartbeatResponse
 	err := c.postJSON(ctx, "jobs/"+jobID+"/heartbeat", struct{}{}, &out)
+	return &out, err
+}
+
+// Steer reports what became of the messages taken last time and long-polls for the next ones.
+func (c *Client) Steer(ctx context.Context, jobID string, acks []runner.SteerAck) (*runner.SteerResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, runner.ClaimWait+30*time.Second)
+	defer cancel()
+	var out runner.SteerResponse
+	err := c.postJSON(ctx, "jobs/"+jobID+"/steer", runner.SteerRequest{Acks: acks}, &out)
 	return &out, err
 }
 
@@ -126,4 +139,20 @@ func (c *Client) Outputs(ctx context.Context, jobID, dir string) error {
 
 func (c *Client) Finish(ctx context.Context, jobID string, res runner.FinishRequest) error {
 	return c.postJSON(ctx, "jobs/"+jobID+"/finish", res, nil)
+}
+
+func (c *Client) AddProject(ctx context.Context, req runner.AddProjectRequest) (*runner.AddProjectResponse, error) {
+	var out runner.AddProjectResponse
+	if err := c.postJSON(ctx, "projects", req, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *Client) Inventory(ctx context.Context, inv runner.Inventory) error {
+	b, err := json.Marshal(inv)
+	if err != nil {
+		return apperr.Wrap(err, "hostrun.errors.call", "path", "inventory")
+	}
+	return c.do(ctx, http.MethodPut, "inventory", "application/json", bytes.NewReader(b), nil)
 }

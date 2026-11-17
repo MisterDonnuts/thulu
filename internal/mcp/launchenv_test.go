@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/MisterDonnuts/thulu/internal/browserrun"
+	"github.com/MisterDonnuts/thulu/internal/runner"
 )
 
 func perRunBrowser(t *testing.T) browserrun.Config {
@@ -157,6 +158,28 @@ func TestApplyLaunchEnv_PerRunBrowser(t *testing.T) {
 	ApplyLaunchEnv(context.Background(), env, f, browserrun.Config{})
 	if got := serversIn(t, env); len(got) != 1 || got[0].Name != "octopus-api" {
 		t.Errorf("%s = %+v, want octopus-api alone", ServersEnv, got)
+	}
+}
+
+func TestPrepareMachineEnv(t *testing.T) {
+	cases := []struct {
+		name, tools, wantTools string
+		perRun, wantDropped    bool
+	}{
+		{"per-run browser granted", "thulu-api@write,thulu-browser", "thulu-api@write", true, true},
+		{"per-run browser not granted", "thulu-api", "thulu-api", true, false},
+		{"shared browser keeps it", "thulu-api,thulu-browser", "thulu-api,thulu-browser", false, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			env := map[string]string{"MCP_TOOLS": tc.tools}
+			if got := PrepareMachineEnv(env, tc.perRun); got != tc.wantDropped {
+				t.Errorf("dropped = %v, want %v", got, tc.wantDropped)
+			}
+			if env["MCP_TOOLS"] != tc.wantTools || env[runner.HostRunEnv] != "1" {
+				t.Errorf("env = %v, want MCP_TOOLS %q and the machine marked", env, tc.wantTools)
+			}
+		})
 	}
 }
 

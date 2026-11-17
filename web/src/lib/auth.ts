@@ -82,6 +82,25 @@ function refreshedByAnotherTab(): boolean {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// A 429 means "not now", not "signed out": session requests wait it out a couple of times instead
+// of reading it as a lost session and sending the browser to /login/.
+const RATE_RETRIES = 2;
+const RATE_WAIT_MAX_MS = 5_000;
+
+export function retryAfterMs(r: Response): number {
+  const s = Number(r.headers.get("Retry-After"));
+  return Number.isFinite(s) && s > 0 ? Math.min(s * 1000, RATE_WAIT_MAX_MS) : 1000;
+}
+
+export async function fetchPastRateLimit(url: string, init?: RequestInit): Promise<Response> {
+  let r = await fetch(url, init);
+  for (let i = 0; r.status === 429 && i < RATE_RETRIES; i++) {
+    await sleep(retryAfterMs(r));
+    r = await fetch(url, init);
+  }
+  return r;
+}
+
 // localStorage has no compare-and-set, so two tabs can take the lease at once;
 // the daemon's refresh grace window makes that harmless.
 async function withLease<T>(fn: () => Promise<T>): Promise<T> {
@@ -114,7 +133,7 @@ function withRefreshLock<T>(fn: () => Promise<T>): Promise<T> {
 
 async function postRefresh(): Promise<boolean> {
   try {
-    const r = await fetch(`${apiBase()}/auth/refresh`, {
+    const r = await fetchPastRateLimit(`${apiBase()}/auth/refresh`, {
       method: "POST",
       credentials: "include",
     });
@@ -228,6 +247,58 @@ export async function logout(): Promise<string> {
     // leaves them to expire.
   }
   return "/login/";
+}
+
+// The CSRF cookie only says a session existed once: an expired refresh, or another daemon that
+// answered on the same host name, leaves one behind. The login page asks the daemon before it
+// sends the browser on, or the dashboard sends it straight back. "unknown" is a daemon that is
+// unreachable or still rate limiting.
+export type SessionCheck = "ok" | "none" | "unknown";
+
+export async function verifySession(): Promise<SessionCheck> {
+  if (!isAuthenticated()) return "none";
+  const me = () => fetchPastRateLimit(`${apiBase()}/auth/me`, { credentials: "include" });
+  try {
+    let r = await me();
+    if (r.status === 401 && (await refreshOnUnauthorized())) r = await me();
+    if (r.ok) return "ok";
+    return r.status === 401 ? "none" : "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
+// Same name and path the daemon writes it with; the HttpOnly session cookies are the daemon's to clear.
+export function dropStaleCSRF(): void {
+  document.cookie = `${CSRF_COOKIE}=; Max-Age=0; Path=/`;
+}
+
+// The last guard against a login ↔ dashboard loop: a tab the login page sent on three times in
+// 30 s stays on the login page.
+const BOUNCE_KEY = "octopus_login_bounces";
+const BOUNCE_WINDOW_MS = 30_000;
+const BOUNCE_MAX = 3;
+
+export function takeLoginBounce(now = Date.now()): boolean {
+  let recent: number[] = [];
+  try {
+    const raw = sessionStorage.getItem(BOUNCE_KEY);
+    const parsed: unknown = raw ? JSON.parse(raw) : [];
+    if (Array.isArray(parsed)) {
+      recent = parsed.filter(
+        (t): t is number => typeof t === "number" && now - t < BOUNCE_WINDOW_MS,
+      );
+    }
+  } catch {
+    // Without storage there is no count, and the session check above still holds.
+  }
+  if (recent.length >= BOUNCE_MAX) return false;
+  try {
+    sessionStorage.setItem(BOUNCE_KEY, JSON.stringify([...recent, now]));
+  } catch {
+    // Same as above.
+  }
+  return true;
 }
 
 export async function refreshOnUnauthorized(): Promise<boolean> {

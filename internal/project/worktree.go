@@ -213,6 +213,7 @@ func (s *Store) RemoveTaskWorktree(ctx context.Context, projectID, taskID string
 	logx.Warn(gitRun(proj.Path, "branch", "-D", "--", branch), "project.log.delete_branch", "branch", branch)
 	result := ResultBranchName(taskID)
 	logx.Warn(gitRun(proj.Path, "update-ref", "-d", "refs/heads/"+result), "project.log.delete_result_branch", "branch", result)
+	dropParkedResults(proj.Path, result)
 	return nil
 }
 

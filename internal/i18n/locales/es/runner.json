@@ -2,7 +2,7 @@
   "errors": {
     "init_schema": "crear las tablas del runner",
     "workspace_required": "un runner pertenece a un workspace",
-    "name_invalid": "un runner necesita un nombre de hasta 64 caracteres",
+    "name_invalid": "el nombre de un runner puede tener hasta 80 caracteres",
     "create_registration": "crear el token de registro del runner",
     "registration_invalid": "el token de registro no existe, ya se usó o venció",
     "register": "registrar el runner",
@@ -29,7 +29,8 @@
     "outputs_not_tar": "la salida de la corrida no es un tar",
     "outputs_too_large": "la salida de la corrida pasa de {max} bytes",
     "decode_job": "leer la corrida guardada {id}",
-    "stat_output": "leer {path} en la salida de la corrida"
+    "stat_output": "leer {path} en la salida de la corrida",
+    "inventory": "guardar las carpetas del runner"
   },
   "log": {
     "seen_failed": "registrar cuándo se vio por última vez al runner {runner}"

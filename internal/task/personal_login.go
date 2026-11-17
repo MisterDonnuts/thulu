@@ -7,6 +7,7 @@ import (
 
 	"github.com/MisterDonnuts/thulu/internal/apperr"
 	"github.com/MisterDonnuts/thulu/internal/engine"
+	"github.com/MisterDonnuts/thulu/internal/secrets"
 	"github.com/MisterDonnuts/thulu/internal/types"
 )
 
@@ -45,12 +46,11 @@ type personalRun struct {
 	volume string
 }
 
-func (d *Dispatcher) personalLoginFor(ctx context.Context, workspaceID string, agentType *types.AgentType, agentName string) (personalRun, bool) {
+func (d *Dispatcher) personalLoginFor(ctx context.Context, engineName string) (personalRun, bool) {
 	user := TriggeredBy(ctx)
 	if d.personalLogins == nil || user == "" {
 		return personalRun{}, false
 	}
-	engineName := d.runEngine(ctx, workspaceID, agentType, agentName)
 	if engine.PersonalLoginOf(engineName) == nil {
 		return personalRun{}, false
 	}
@@ -62,13 +62,13 @@ func (d *Dispatcher) personalLoginFor(ctx context.Context, workspaceID string, a
 }
 
 func (d *Dispatcher) runEngine(ctx context.Context, workspaceID string, agentType *types.AgentType, agentName string) string {
-	label := resolveEngineName(agentType)
-	if d.llmResolver == nil || workspaceID == "" {
-		return label
-	}
-	resolved, err := d.llmResolver(ctx, workspaceID, agentName, label)
+	resolved, err := d.resolveProfile(ctx, llmRun{workspaceID: workspaceID, agentType: agentType, agentName: agentName})
+	return resolvedEngine(resolved, err, agentType)
+}
+
+func resolvedEngine(resolved secrets.ResolvedLLM, err error, agentType *types.AgentType) string {
 	if err != nil || strings.TrimSpace(resolved.Engine) == "" {
-		return label
+		return resolveEngineName(agentType)
 	}
 	return strings.TrimSpace(resolved.Engine)
 }
@@ -97,15 +97,13 @@ func applyPersonalLogin(env map[string]string, p personalRun) error {
 	return nil
 }
 
+// applyRunLLM is applyLLMAuth for a stage run, which the triggering person's own login may pay.
 func (d *Dispatcher) applyRunLLM(ctx context.Context, env map[string]string, t *Task,
-	agentType *types.AgentType, agentName string, p personalRun, isPersonal bool,
+	agentType *types.AgentType, agentName string,
 ) error {
-	if !isPersonal || d.taskRunsOnRunner(ctx, t) {
-		return d.applyLLMAuth(ctx, env, t.WorkspaceID, agentType, agentName, t)
-	}
-	err := applyPersonalLogin(env, p)
-	d.applyAgentEgressEnv(env)
-	return err
+	run := taskLLMRun(t.WorkspaceID, agentType, agentName, t)
+	run.personal = true
+	return d.authorizeRun(ctx, env, run)
 }
 
 // NODE_EXTRA_CA_CERTS is dropped because the login containers do not mount the corporate CA.

@@ -1,21 +1,29 @@
 {
   "resets": "Se renueva el {date}",
+  "trial_hours": "Horas de toda la prueba",
   "no_limit": "Sin tope",
+  "extra_so_far": "{hours} h extra · {cost} de {cap}",
+  "trial_ends": "La prueba termina el {date}",
+  "trial_not_started": "Prueba de 30 días, arranca con la primera corrida",
   "names": {
-    "free": "Free",
+    "trial": "Prueba",
+    "starter": "Starter",
     "team": "Team",
-    "business": "Business",
     "enterprise": "Enterprise",
+    "inactive": "Sin plan activo",
     "self_hosted": "Self-hosted"
   },
   "facts": {
-    "runs": "Corridas de agente del mes",
+    "hours": "Horas de agente del mes",
+    "extra": "Horas extra",
     "concurrency": "Agentes a la vez",
     "seats": "Miembros",
     "storage": "Adjuntos"
   },
   "values": {
-    "runs": "{used} de {limit}",
+    "hours": "{used} h de {limit} h",
+    "extra": "$0,05/h, hasta {cap} por mes",
+    "no_extra": "Ninguna",
     "concurrency": {
       "one": "{count} a la vez",
       "other": "{count} a la vez"
@@ -25,5 +33,10 @@
       "other": "{count} personas"
     },
     "storage": "{used} de {limit}"
+  },
+  "cap": {
+    "none": "Sin horas extra: cuando se acaban las incluidas, las corridas nuevas esperan al mes siguiente.",
+    "now": "Hasta {cap} de horas extra por mes ({hours} h a $0,05).",
+    "out_of_range": "Poné un monto en dólares entre 0 y {max}."
   }
 }

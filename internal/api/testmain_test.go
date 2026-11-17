@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/MisterDonnuts/thulu/internal/edition/editiontest"
+	"github.com/MisterDonnuts/thulu/internal/testgit"
 )
 
 func TestMain(m *testing.M) {
@@ -15,5 +16,8 @@ func TestMain(m *testing.M) {
 	// The SaaS, billing and multi-workspace paths run here; the Community gates are tested in auth
 	// and audit.
 	editiontest.EnableAll()
+	if err := testgit.IsolateHostConfig(); err != nil {
+		panic(err)
+	}
 	os.Exit(m.Run())
 }

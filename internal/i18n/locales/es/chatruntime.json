@@ -28,6 +28,7 @@
     "not_delegable": "chatruntime: sólo un chat sin tarea vinculada puede actuar por vos",
     "not_delegator": "chatruntime: este chat actúa por otra persona; sólo esa persona puede escribir en él",
     "not_found": "chatruntime: no existe",
+    "placement_moved": "el perfil del chat pasó a otra máquina mientras se creaba su entorno. Mandá el mensaje de nuevo.",
     "pod_needs_recreate": "chatruntime: hay que recrear el pod del chat",
     "read_exec_stream": "no se pudo leer la salida del exec",
     "revoke_keys": "no se pudieron revocar las keys del chat",
@@ -71,7 +72,9 @@
     "touch_in_flight": "[chat] no se pudo actualizar la actividad de {chat} en curso",
     "turn_failed": "falló el turno de {chat}: {err}",
     "write_exec_stdin": "[chat] no se pudo escribir el texto del turno en la entrada del exec",
-    "touch": "[chat] touch {chat}"
+    "touch": "[chat] touch {chat}",
+    "placement_changed": "{chat}: el chat ahora corre en otro lado que {container}; se recrea ahí",
+    "machine_no_browser": "{chat} (agente {agent}) corre en una máquina y este daemon usa un thulu-browser por corrida, que una máquina no puede alojar: el chat no tiene navegador"
   },
   "messages": {
     "agent_error": "**Error del agente:** {error}",

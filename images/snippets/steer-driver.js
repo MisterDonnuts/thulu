@@ -187,10 +187,13 @@ async function main() {
       } catch {
         continue;
       }
-      // An interrupted turn still emits one result (error_during_execution), so the count stays
-      // balanced.
+      // An interrupted turn still emits one result (error_during_execution). A message that lands
+      // mid-turn is folded into that turn, so one result can answer several: queued_turn_count
+      // says how many turns the CLI still owes. Counting one per message would never reach 0.
       if (ev.type === "result") {
-        inFlight = Math.max(0, inFlight - 1);
+        inFlight = Number.isInteger(ev.queued_turn_count)
+          ? ev.queued_turn_count
+          : Math.max(0, inFlight - 1);
         maybeClose();
       }
     }

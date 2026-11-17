@@ -28,6 +28,7 @@
     "not_delegable": "chatruntime: only a chat not linked to a task can act for you",
     "not_delegator": "chatruntime: this chat acts for another person; only they can write in it",
     "not_found": "chatruntime: not found",
+    "placement_moved": "the chat's profile moved to another machine while its runtime was being created. Send the message again.",
     "pod_needs_recreate": "chatruntime: chat pod must be recreated",
     "read_exec_stream": "read exec stream",
     "revoke_keys": "revoke the chat's keys",
@@ -71,7 +72,9 @@
     "touch_in_flight": "[chat] touch in-flight {chat}",
     "turn_failed": "turn failed for {chat}: {err}",
     "write_exec_stdin": "[chat] write turn text to exec stdin",
-    "touch": "[chat] touch {chat}"
+    "touch": "[chat] touch {chat}",
+    "placement_changed": "{chat}: the chat now runs elsewhere than {container}; recreating it there",
+    "machine_no_browser": "{chat} (agent {agent}) runs on a machine and this daemon runs thulu-browser per run, which a machine cannot host: the chat gets no browser"
   },
   "messages": {
     "agent_error": "**Agent error:** {error}",

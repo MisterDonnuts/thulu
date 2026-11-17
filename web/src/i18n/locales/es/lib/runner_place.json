@@ -1,0 +1,10 @@
+{
+  "in_thulu": "En Thulu",
+  "on_machine": "En {label}",
+  "login_note": "Las corridas usan el git y el login de claude de {name}: Thulu no necesita una key del modelo para este proyecto, y la máquina tiene que estar prendida para que los agentes trabajen.",
+  "saved": "Se guardó dónde corren los agentes",
+  "errors": {
+    "path_required": "Escribí la ruta completa de la carpeta, empezando por /.",
+    "save": "No se pudo guardar: {error}"
+  }
+}

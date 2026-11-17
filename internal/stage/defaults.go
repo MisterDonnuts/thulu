@@ -15,7 +15,8 @@ func DefaultsIn(locale string) []types.StageInfo {
 			Initial: true},
 		{ID: types.StageInProgress, Label: i18n.T(locale, "stage.labels.in_progress"), Color: "#f2994a", Position: 20,
 			PushBranch: true, WipGroup: types.WipGroupWork},
-		{ID: types.StageDone, Label: i18n.T(locale, "stage.labels.done"), Color: "#3aa667", Position: 30,
+		{ID: types.StageReview, Label: i18n.T(locale, "stage.labels.review"), Color: "#bb86fc", Position: 30},
+		{ID: types.StageDone, Label: i18n.T(locale, "stage.labels.done"), Color: "#3aa667", Position: 40,
 			Terminal: true},
 	}
 }

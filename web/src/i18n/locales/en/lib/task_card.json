@@ -46,5 +46,6 @@
     }
   },
   "asked": "Asked a question",
-  "asked_title": "The agent asked a question and keeps working. Open the task to answer it."
+  "asked_title": "The agent asked a question and keeps working. Open the task to answer it.",
+  "on_machine": "On {name}"
 }

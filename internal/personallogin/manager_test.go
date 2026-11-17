@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"net"
 	"slices"
@@ -36,6 +37,10 @@ type fakeDocker struct {
 	loggedIn bool
 	next     int
 	ctrs     map[string]*fakeCtr
+	// statusExit is what `auth status` exits with; Claude Code exits 1 when nothing is stored.
+	statusExit int64
+	// gate, when set, holds every container create until it is closed.
+	gate chan struct{}
 }
 
 type fakeCtr struct {
@@ -88,6 +93,12 @@ func (d *fakeDocker) ContainerCreate(_ context.Context, cfg *container.Config, h
 	_ *network.NetworkingConfig, _ *ocispec.Platform, _ string,
 ) (container.CreateResponse, error) {
 	d.mu.Lock()
+	gate := d.gate
+	d.mu.Unlock()
+	if gate != nil {
+		<-gate
+	}
+	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.next++
 	id := "ctr-" + string(rune('0'+d.next))
@@ -123,7 +134,13 @@ func (d *fakeDocker) ContainerStart(_ context.Context, id string, _ container.St
 	c := d.ctrs[id]
 	d.mu.Unlock()
 	if !c.cfg.Tty {
-		c.exit <- container.WaitResponse{StatusCode: 0}
+		code := int64(0)
+		if slices.Contains(c.cfg.Cmd, "status") {
+			d.mu.Lock()
+			code = d.statusExit
+			d.mu.Unlock()
+		}
+		c.exit <- container.WaitResponse{StatusCode: code}
 		return nil
 	}
 	go func() {
@@ -176,12 +193,33 @@ func newTestManager(d *fakeDocker) *Manager {
 	return NewManager(Config{Docker: d, Image: func(string) (string, string) { return "octopus-agent:test", "" }})
 }
 
+// startLogin begins a sign-in and waits for its link, the way the dashboard polls for it.
+func startLogin(ctx context.Context, m *Manager, user string) (string, error) {
+	if err := m.Begin(ctx, user, claudecode.Name); err != nil {
+		return "", err
+	}
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		switch fs := m.Flow(user, claudecode.Name); fs.Phase {
+		case PhaseWaitingCode:
+			return fs.URL, nil
+		case PhaseFailed:
+			return "", fs.Err
+		case PhaseNone:
+			return "", errors.New("the sign-in closed without a link or an error")
+		case PhasePreparing:
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	return "", errors.New("no sign-in link in 5 s")
+}
+
 func TestManager_LoginRelaysTheCodeAndKeepsTheVolume(t *testing.T) {
 	d := newFakeDocker()
 	m := newTestManager(d)
 	ctx := context.Background()
 
-	url, err := m.Start(ctx, "ada", claudecode.Name)
+	url, err := startLogin(ctx, m, "ada")
 	if err != nil || url != claudeURL {
 		t.Fatalf("Start = %q, %v", url, err)
 	}
@@ -227,7 +265,7 @@ func TestManager_FailedFirstLoginRemovesTheVolume(t *testing.T) {
 	d := newFakeDocker()
 	m := newTestManager(d)
 	ctx := context.Background()
-	if _, err := m.Start(ctx, "ada", claudecode.Name); err != nil {
+	if _, err := startLogin(ctx, m, "ada"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := m.Complete(ctx, "ada", claudecode.Name, "bad"); err == nil {
@@ -248,7 +286,7 @@ func TestManager_GarbledPasteKeepsTheLoginOpen(t *testing.T) {
 	d := newFakeDocker()
 	m := newTestManager(d)
 	ctx := context.Background()
-	if _, err := m.Start(ctx, "ada", claudecode.Name); err != nil {
+	if _, err := startLogin(ctx, m, "ada"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := m.Complete(ctx, "ada", claudecode.Name, "garbled"); err == nil {
@@ -266,7 +304,7 @@ func TestManager_GarbledPasteKeepsTheLoginOpen(t *testing.T) {
 func TestManager_RejectsControlCharacters(t *testing.T) {
 	d := newFakeDocker()
 	m := newTestManager(d)
-	if _, err := m.Start(context.Background(), "ada", claudecode.Name); err != nil {
+	if _, err := startLogin(context.Background(), m, "ada"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := m.Complete(context.Background(), "ada", claudecode.Name, "go\rod"); err == nil {
@@ -282,7 +320,7 @@ func TestManager_DisconnectAndForeignVolumes(t *testing.T) {
 	d := newFakeDocker()
 	m := newTestManager(d)
 	ctx := context.Background()
-	if _, err := m.Start(ctx, "ada", claudecode.Name); err != nil {
+	if _, err := startLogin(ctx, m, "ada"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := m.Complete(ctx, "ada", claudecode.Name, "good"); err != nil {
@@ -310,7 +348,7 @@ func TestManager_OnlyACompletedLoginIsConnected(t *testing.T) {
 	d := newFakeDocker()
 	m := newTestManager(d)
 	ctx := context.Background()
-	if _, err := m.Start(ctx, "ada", claudecode.Name); err != nil {
+	if _, err := startLogin(ctx, m, "ada"); err != nil {
 		t.Fatal(err)
 	}
 	if _, ok := m.Volume(ctx, "ada", claudecode.Name); ok {
@@ -323,7 +361,7 @@ func TestManager_OnlyACompletedLoginIsConnected(t *testing.T) {
 		t.Fatal("a completed login did not count")
 	}
 
-	if _, err := m.Start(ctx, "ada", claudecode.Name); err != nil {
+	if _, err := startLogin(ctx, m, "ada"); err != nil {
 		t.Fatal(err)
 	}
 	if _, ok := m.Volume(ctx, "ada", claudecode.Name); ok {
@@ -355,7 +393,7 @@ func TestManager_AnotherInstallsVolumeIsNotAdopted(t *testing.T) {
 	name := VolumeName(claudecode.Name, "ada")
 	theirs := map[string]string{VolumeLabel: claudecode.Name, UserLabel: "ada", dockerx.InstallLabel: "ffffffff"}
 	d.volumes[name] = volume.Volume{Name: name, Labels: theirs}
-	if _, err := m.Start(ctx, "ada", claudecode.Name); err == nil {
+	if _, err := startLogin(ctx, m, "ada"); err == nil {
 		t.Fatal("a login started on another install's volume")
 	}
 	if v, ok := d.volumes[name]; !ok || v.Labels[dockerx.InstallLabel] != "ffffffff" {
@@ -363,5 +401,121 @@ func TestManager_AnotherInstallsVolumeIsNotAdopted(t *testing.T) {
 	}
 	if len(d.created) != 0 {
 		t.Error("a login container ran against the other install's volume")
+	}
+}
+
+func TestManager_EmptyVolumeReadsAsNotConnected(t *testing.T) {
+	d := newFakeDocker()
+	d.statusExit = 1
+	m := newTestManager(d)
+	name := VolumeName(claudecode.Name, "ada")
+	d.volumes[name] = volume.Volume{Name: name, Labels: volumeLabels(claudecode.Name, "ada")}
+	st, err := m.Status(context.Background(), "ada", claudecode.Name)
+	if err != nil || st.Connected || st.Pending {
+		t.Fatalf("status of a volume left empty = %+v, %v; want not connected and no error", st, err)
+	}
+}
+
+func TestManager_PreparationOutlivesTheRequest(t *testing.T) {
+	d := newFakeDocker()
+	d.gate = make(chan struct{})
+	m := newTestManager(d)
+	reqCtx, cancelReq := context.WithCancel(context.Background())
+	if err := m.Begin(reqCtx, "ada", claudecode.Name); err != nil {
+		t.Fatal(err)
+	}
+	cancelReq() // the browser reloaded while the CLI was still being prepared
+
+	if fs := m.Flow("ada", claudecode.Name); fs.Phase != PhasePreparing || fs.URL != "" {
+		t.Errorf("flow while preparing = %+v", fs)
+	}
+	st, err := m.Status(context.Background(), "ada", claudecode.Name)
+	if err != nil || !st.Pending || st.Phase != PhasePreparing || st.Connected {
+		t.Errorf("status while preparing = %+v, %v", st, err)
+	}
+	if _, err := m.Complete(context.Background(), "ada", claudecode.Name, "good"); err == nil {
+		t.Error("a code was taken before the CLI printed its link")
+	}
+	close(d.gate)
+	deadline := time.Now().Add(5 * time.Second)
+	for m.Flow("ada", claudecode.Name).Phase != PhaseWaitingCode {
+		if time.Now().After(deadline) {
+			t.Fatal("the sign-in never reached its link after the request ended")
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	if fs := m.Flow("ada", claudecode.Name); fs.URL != claudeURL {
+		t.Errorf("url = %q", fs.URL)
+	}
+	if st, err := m.Complete(context.Background(), "ada", claudecode.Name, "good"); err != nil || !st.Connected {
+		t.Fatalf("Complete = %+v, %v", st, err)
+	}
+}
+
+func TestManager_CancelWhilePreparingLeavesNothing(t *testing.T) {
+	d := newFakeDocker()
+	d.gate = make(chan struct{})
+	m := newTestManager(d)
+	ctx := context.Background()
+	if err := m.Begin(ctx, "ada", claudecode.Name); err != nil {
+		t.Fatal(err)
+	}
+	vol := VolumeName(claudecode.Name, "ada")
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		d.mu.Lock()
+		_, made := d.volumes[vol]
+		d.mu.Unlock()
+		if made {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("the preparation never created the volume")
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	m.Cancel(ctx, "ada", claudecode.Name)
+	close(d.gate) // the container create that was in flight lands after the cancel
+
+	deadline = time.Now().Add(5 * time.Second)
+	for {
+		d.mu.Lock()
+		_, left := d.volumes[vol]
+		made, removed := len(d.created), len(d.removed)
+		d.mu.Unlock()
+		if !left && made == removed {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("after cancel: volume left=%v, containers made=%d removed=%d", left, made, removed)
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	if fs := m.Flow("ada", claudecode.Name); fs.Phase != PhaseNone {
+		t.Errorf("a cancelled sign-in reads as %+v", fs)
+	}
+}
+
+func TestManager_FailureIsReportedOnce(t *testing.T) {
+	d := newFakeDocker()
+	m := NewManager(Config{Docker: d, Image: func(string) (string, string) { return "", "OCTOPUS_AGENT_IMAGE" }})
+	if _, err := startLogin(context.Background(), m, "ada"); err == nil {
+		t.Fatal("a sign-in with no agent image reached its link")
+	}
+	if fs := m.Flow("ada", claudecode.Name); fs.Phase != PhaseNone {
+		t.Errorf("the failure was reported twice: %+v", fs)
+	}
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		d.mu.Lock()
+		_, left := d.volumes[VolumeName(claudecode.Name, "ada")]
+		d.mu.Unlock()
+		if !left {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("the failed sign-in left its volume")
+		}
+		time.Sleep(5 * time.Millisecond)
 	}
 }

@@ -23,10 +23,10 @@ func TestGet_DefaultsToConfiguredPlan(t *testing.T) {
 	if e.Plan != entitlements.PlanSelfHosted || e.SeatLimit != 0 {
 		t.Errorf("self-hosted default should be unlimited, got %+v", e)
 	}
-	saas := newStore(t, entitlements.PlanFree)
+	saas := newStore(t, entitlements.PlanTrial)
 	f, _ := saas.Get("ws-y")
-	if f.Plan != entitlements.PlanFree || f.SeatLimit != 4 || f.ConcurrencyLimit != 1 {
-		t.Errorf("saas default should be free limits, got %+v", f)
+	if f.Plan != entitlements.PlanTrial || f.SeatLimit != 4 || f.ConcurrencyLimit != 2 || f.HourQuotaMonthly != 50 {
+		t.Errorf("saas default should be the trial, got %+v", f)
 	}
 }
 
@@ -36,8 +36,8 @@ func TestSetPlan_AppliesDefaults(t *testing.T) {
 		t.Fatal(err)
 	}
 	e, _ := s.Get("ws-1")
-	if e.Plan != entitlements.PlanBusiness || e.ConcurrencyLimit != 15 {
-		t.Errorf("expected business limits, got %+v", e)
+	if e.Plan != entitlements.PlanBusiness || e.ConcurrencyLimit != 15 || e.HourQuotaMonthly != 1500 {
+		t.Errorf("legacy business should read as Team with 15 agents, got %+v", e)
 	}
 	if len(e.Features) == 0 {
 		t.Error("business plan should carry feature unlocks")
@@ -48,7 +48,7 @@ func TestSet_CustomEnterprise(t *testing.T) {
 	s := newStore(t, entitlements.PlanFree)
 	custom := entitlements.Entitlement{
 		WorkspaceID: "ws-ent", Plan: entitlements.PlanEnterprise,
-		SeatLimit: 500, ConcurrencyLimit: 50, RunQuotaMonthly: 0,
+		SeatLimit: 500, ConcurrencyLimit: 50, HourQuotaMonthly: 0,
 		Features: []string{"audit_export", "kubernetes"},
 	}
 	if err := s.Set(custom); err != nil {
@@ -61,13 +61,13 @@ func TestSet_CustomEnterprise(t *testing.T) {
 }
 
 func TestDeleteByWorkspace(t *testing.T) {
-	s := newStore(t, entitlements.PlanFree)
+	s := newStore(t, entitlements.PlanTrial)
 	_ = s.SetPlan("ws-del", entitlements.PlanBusiness)
 	if err := s.DeleteByWorkspace("ws-del"); err != nil {
 		t.Fatal(err)
 	}
 	e, _ := s.Get("ws-del")
-	if e.Plan != entitlements.PlanFree {
+	if e.Plan != entitlements.PlanTrial {
 		t.Errorf("expected default plan after delete, got %s", e.Plan)
 	}
 }

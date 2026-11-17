@@ -135,8 +135,11 @@ export function agentChecklist(i: ChecklistInput): CheckItem[] {
 
 export interface EffectiveCredential {
   source: string;
+  // For a machine profile the daemon sets it while the machine is not revoked: its CLI login pays.
   has_credential: boolean;
   host_fallback?: boolean;
+  runner_id?: string;
+  runner_name?: string;
 }
 
 export function runsWithCredential(eff: EffectiveCredential): boolean {

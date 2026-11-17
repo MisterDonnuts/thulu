@@ -21,13 +21,7 @@ export interface SubtaskLike {
 }
 
 export type SubtaskState =
-  | "done"
-  | "running"
-  | "question"
-  | "failed"
-  | "blocked"
-  | "todo"
-  | "active";
+  "done" | "running" | "question" | "failed" | "blocked" | "todo" | "active";
 
 const FAILED = new Set([
   "failed",

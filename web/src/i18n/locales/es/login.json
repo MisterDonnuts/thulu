@@ -21,7 +21,9 @@
   },
   "errors": {
     "config_rejected": "El daemon rechazó el pedido de configuración. Revisá sus logs.",
-    "unreachable": "No se puede llegar al daemon de Thulu."
+    "unreachable": "No se puede llegar al daemon de Thulu.",
+    "busy": "El daemon de Thulu está ocupado o no responde. Esperá unos segundos y recargá la página.",
+    "loop": "Thulu te mandó de vuelta acá varias veces seguidas. Cerrá las otras pestañas de Thulu y volvé a entrar."
   },
   "reasons": {
     "state_expired": "El inicio de sesión tardó demasiado. Probá de nuevo.",
@@ -37,7 +39,8 @@
   "invite": {
     "for": "Te invitaron a {workspace}. Entrá con {email}.",
     "awaiting": "Ese email todavía no tiene acceso. Cuando entres vas a poder pedirlo.",
-    "gone": "Esta invitación ya se usó o la cancelaron. Entrá para ver a qué tenés acceso."
+    "gone": "Esta invitación ya se usó o la cancelaron. Entrá para ver a qué tenés acceso.",
+    "full": "{workspace} no tiene lugares libres ahora. Pedile a un admin que libere uno o que mejore el plan; tu invitación queda guardada y entra la próxima vez que inicies sesión."
   },
   "not_invited": {
     "page_title": "Sin acceso todavía",

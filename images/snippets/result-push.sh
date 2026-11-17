@@ -28,7 +28,11 @@ if [ -n "${OCTOPUS_RESULT_REF:-}" ]; then
       if [ -n "${OCTOPUS_API_KEY:-}" ]; then
         helper_args=(-c credential.helper= -c "credential.helper=${_octopus_git_helper}")
       fi
-      if ! git "${helper_args[@]}" push origin "+HEAD:${OCTOPUS_RESULT_REF}" >/dev/null 2>&1; then
+      # The mark (gitremote.FinalPushHeader) has the daemon integrate this push and leave GitHub to the
+      # column: only a push the agent makes mid-run is published at once.
+      # i18n-ignore an HTTP header, not a message
+      if ! git "${helper_args[@]}" -c "http.extraHeader=X-Octopus-Final-Push: 1" \
+        push origin "+HEAD:${OCTOPUS_RESULT_REF}" >/dev/null 2>&1; then
         echo "[result-push] $(msg_en agent.log.result_push_failed ref "$OCTOPUS_RESULT_REF" repo "$repo")" >&2
       fi
     )

@@ -25,8 +25,8 @@
       "low": "con margen de sobra",
       "none": "sin datos del motor"
     },
-    "runs_month": "Corridas del mes",
-    "aria": "El workspace de un vistazo"
+    "aria": "El workspace de un vistazo",
+    "hours_month": "Horas de agente del mes"
   },
   "panels": {
     "runs": "Corridas",

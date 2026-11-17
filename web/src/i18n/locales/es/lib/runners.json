@@ -1,0 +1,61 @@
+{
+  "lede": "Un runner corre los agentes en la máquina de una persona, con su git y su login de claude. El código queda ahí: Thulu sólo ve las carpetas que reporta el runner y lo que devuelve cada corrida.",
+  "add": "Agregar esta máquina",
+  "add_another": "Agregar otra máquina",
+  "empty": {
+    "title": "Todavía no hay máquinas",
+    "body": "Agregá una para crear proyectos desde una carpeta suya."
+  },
+  "status": {
+    "online": "conectado",
+    "never": "nunca se conectó",
+    "seen": "visto {when}",
+    "revoked": "revocado"
+  },
+  "row": {
+    "version": "versión {version}",
+    "projects": {
+      "one": "{count} proyecto",
+      "other": "{count} proyectos"
+    },
+    "folders": "Carpetas permitidas: {folders}",
+    "no_folders": "Sin carpetas permitidas: corré thulu runner allow en esa máquina.",
+    "not_reported": "Todavía no reportó sus carpetas: arrancalo con thulu runner run.",
+    "revoke": "Revocar",
+    "no_projects": "sin proyectos"
+  },
+  "setup": {
+    "register_title": "Registrá la máquina",
+    "register_detail": "El token sirve una vez y vence en {minutes} min.",
+    "allow_title": "Permití las carpetas con tu código",
+    "allow_detail": "Cambiá ~/code por tu carpeta. El runner sólo toca repositorios adentro.",
+    "start_title": "Arrancalo",
+    "start_detail": "Como servicio arranca con la sesión; thulu runner run lo deja en la terminal.",
+    "copy": "Copiar comandos",
+    "waiting": "Esperando que se conecte la máquina…"
+  },
+  "confirm": {
+    "title": "¿Revocar {name}?",
+    "message": "Sus proyectos dejan de correr hasta que los pases a otra máquina, y las corridas con perfiles de Motores de IA en ella se rechazan hasta que edites esos perfiles. Para volver a usarla, registrala con un token nuevo.",
+    "profiles": "Perfiles en ella: {names}.",
+    "default_profile": "{name} (predeterminado)",
+    "button": "Revocar"
+  },
+  "toast": {
+    "registered": "{name} se conectó",
+    "revoked": "{name} revocado"
+  },
+  "errors": {
+    "load": "No se pudieron cargar las máquinas: {error}",
+    "token": "No se pudo crear el token: {error}",
+    "revoke": "No se pudo revocar: {error}",
+    "unknown": "error desconocido"
+  },
+  "badge": {
+    "on": "En {name}",
+    "unknown": "una máquina"
+  },
+  "mix": {
+    "machines": "Una tarea corre en una sola máquina, y estos proyectos están en {machines}. Separala en una tarea por máquina."
+  }
+}

@@ -19,6 +19,7 @@ import (
 	"github.com/MisterDonnuts/thulu/internal/i18n"
 	"github.com/MisterDonnuts/thulu/internal/initwizard"
 	"github.com/MisterDonnuts/thulu/internal/runner/hostrun"
+	"github.com/MisterDonnuts/thulu/internal/runner/service"
 	"github.com/MisterDonnuts/thulu/internal/updater"
 )
 
@@ -76,6 +77,9 @@ func main() {
 
 	case "runner":
 		err = runRunner(os.Args[2:])
+
+	case "add":
+		err = runAdd(os.Args[2:])
 
 	case "version", "-v", "--version":
 		fmt.Println(buildinfo.Version)
@@ -443,6 +447,11 @@ func runRunner(args []string) error {
 			return apperr.Invalid("main.errors.usage_runner")
 		}
 		return hostrun.AddProject(*config, fs.Arg(0), fs.Arg(1))
+	case "allow", "disallow", "folders":
+		if err := fs.Parse(args[1:]); err != nil {
+			return apperr.Wrap(err, "main.errors.parse_flags", "command", "runner "+args[0]) //i18n:ignore the subcommand as typed
+		}
+		return runnerFolders(args[0], *config, fs.Args())
 	case "service":
 		if err := fs.Parse(args[1:]); err != nil {
 			return apperr.Wrap(err, "main.errors.parse_flags", "command", "runner service") //i18n:ignore the subcommand as typed
@@ -456,6 +465,79 @@ func runRunner(args []string) error {
 		return runHostRunner(*config, *logPath)
 	}
 	return apperr.Invalid("main.errors.usage_runner")
+}
+
+// runAdd makes the repository around a folder (the current one by default) a project that runs on
+// this machine's runner.
+func runAdd(args []string) error {
+	fs := flag.NewFlagSet("add", flag.ExitOnError)
+	defPath, err := hostrun.DefaultConfigPath()
+	if err != nil {
+		return err
+	}
+	config := fs.String("config", defPath, i18n.Text("main.flags.runner_config"))
+	name := fs.String("name", "", i18n.Text("main.flags.add_name"))
+	if perr := fs.Parse(args); perr != nil {
+		return apperr.Wrap(perr, "main.errors.parse_flags", "command", "add") //i18n:ignore the command as typed
+	}
+	if fs.NArg() > 1 {
+		return apperr.Invalid("main.errors.usage_add")
+	}
+	dir := "."
+	if fs.NArg() == 1 {
+		dir = fs.Arg(0)
+	}
+	ctx := context.Background()
+	added, err := hostrun.AddFolder(ctx, *config, dir, *name, buildinfo.Version)
+	if err != nil {
+		return err
+	}
+	if added.Allowed {
+		fmt.Println(i18n.Text("main.cli.add_allowed", "path", added.Path))
+	}
+	if added.Created {
+		fmt.Println(i18n.Text("main.cli.add_created", "name", added.ProjectName, "path", added.Path, "url", added.URL))
+	} else {
+		fmt.Println(i18n.Text("main.cli.add_exists", "name", added.ProjectName, "path", added.Path, "url", added.URL))
+	}
+	if service.Supported() {
+		if st, qerr := service.Query(ctx); qerr == nil && !st.Running {
+			fmt.Println(i18n.Text("main.cli.add_runner_hint"))
+		}
+	}
+	return nil
+}
+
+// The running runner picks a change up on its next report, within a minute; no restart needed.
+func runnerFolders(verb, config string, dirs []string) error {
+	switch verb {
+	case "allow", "disallow":
+		if len(dirs) == 0 {
+			return apperr.Invalid("main.errors.usage_runner")
+		}
+		var err error
+		if verb == "allow" {
+			err = hostrun.Allow(config, dirs)
+		} else {
+			err = hostrun.Disallow(config, dirs)
+		}
+		if err != nil {
+			return err
+		}
+	}
+	roots, err := hostrun.AllowedFolders(config)
+	if err != nil {
+		return err
+	}
+	if len(roots) == 0 {
+		fmt.Println(i18n.Text("main.cli.runner_no_folders"))
+		return nil
+	}
+	fmt.Println(i18n.Text("main.cli.runner_folders"))
+	for _, r := range roots {
+		fmt.Println("  " + r)
+	}
+	return nil
 }
 
 func runHostRunner(config, logPath string) (err error) {

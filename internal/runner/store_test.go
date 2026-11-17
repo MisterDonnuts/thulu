@@ -61,11 +61,11 @@ func TestRegistrationIsSpentOnce(t *testing.T) {
 	if _, err := s.Register(ctx, RegisterRequest{Token: tok}); apperr.KindOf(err) != apperr.KindUnauthenticated {
 		t.Fatalf("second Register err = %v, want unauthenticated", err)
 	}
-	r, err := s.Authenticate(ctx, resp.Credential, "1.0")
+	r, err := s.Authenticate(ctx, resp.Credential, "1.0", ProtocolVersion)
 	if err != nil || r.ID != resp.RunnerID {
 		t.Fatalf("Authenticate = %+v, %v", r, err)
 	}
-	if _, err := s.Authenticate(ctx, "orn_nope", ""); apperr.KindOf(err) != apperr.KindUnauthenticated {
+	if _, err := s.Authenticate(ctx, "orn_nope", "", ProtocolVersion); apperr.KindOf(err) != apperr.KindUnauthenticated {
 		t.Fatalf("Authenticate(bad) err = %v", err)
 	}
 }
@@ -89,11 +89,11 @@ func TestClaimHandsOnlyMappedProjectsAndDropsEnv(t *testing.T) {
 	rn := register(t, s, "ws1", "laptop")
 	j := enqueue(t, s, rn.RunnerID, "ws1", "projA")
 
-	spec, err := s.Claim(ctx, rn.RunnerID, []string{"projB"}, time.Minute)
+	spec, err := s.Claim(ctx, rn.RunnerID, ProtocolVersion, []string{"projB"}, time.Minute)
 	if err != nil || spec != nil {
 		t.Fatalf("Claim(projB) = %+v, %v; want nothing", spec, err)
 	}
-	spec, err = s.Claim(ctx, rn.RunnerID, []string{"projB", "projA"}, time.Minute)
+	spec, err = s.Claim(ctx, rn.RunnerID, ProtocolVersion, []string{"projB", "projA"}, time.Minute)
 	if err != nil || spec == nil || spec.ID != j.ID {
 		t.Fatalf("Claim(projA) = %+v, %v", spec, err)
 	}
@@ -107,7 +107,7 @@ func TestClaimHandsOnlyMappedProjectsAndDropsEnv(t *testing.T) {
 	if len(stored.Spec.Env) != 0 {
 		t.Errorf("stored spec still has the env after the claim: %v", stored.Spec.Env)
 	}
-	if again, _ := s.Claim(ctx, rn.RunnerID, []string{"projA"}, time.Minute); again != nil {
+	if again, _ := s.Claim(ctx, rn.RunnerID, ProtocolVersion, []string{"projA"}, time.Minute); again != nil {
 		t.Errorf("a claimed job was handed out twice")
 	}
 }
@@ -118,10 +118,10 @@ func TestOtherRunnerCannotClaimOrFinish(t *testing.T) {
 	a := register(t, s, "ws1", "a")
 	b := register(t, s, "ws1", "b")
 	j := enqueue(t, s, a.RunnerID, "ws1", "projA")
-	if spec, _ := s.Claim(ctx, b.RunnerID, []string{"projA"}, time.Minute); spec != nil {
+	if spec, _ := s.Claim(ctx, b.RunnerID, ProtocolVersion, []string{"projA"}, time.Minute); spec != nil {
 		t.Fatal("runner b claimed runner a's job")
 	}
-	if _, err := s.Claim(ctx, a.RunnerID, []string{"projA"}, time.Minute); err != nil {
+	if _, err := s.Claim(ctx, a.RunnerID, ProtocolVersion, []string{"projA"}, time.Minute); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.Finish(ctx, b.RunnerID, j.ID, FinishRequest{ExitCode: 0}); apperr.KindOf(err) != apperr.KindConflict {
@@ -137,7 +137,7 @@ func TestFinishIsIdempotentAndSettles(t *testing.T) {
 	ctx := context.Background()
 	rn := register(t, s, "ws1", "laptop")
 	j := enqueue(t, s, rn.RunnerID, "ws1", "projA")
-	if _, err := s.Claim(ctx, rn.RunnerID, []string{"projA"}, time.Minute); err != nil {
+	if _, err := s.Claim(ctx, rn.RunnerID, ProtocolVersion, []string{"projA"}, time.Minute); err != nil {
 		t.Fatal(err)
 	}
 	res := FinishRequest{ExitCode: 3, Pushed: []PushedBranch{{ProjectID: "projA", Branch: "octopus/task1", Commit: "abc"}}}
@@ -177,7 +177,7 @@ func TestCancel(t *testing.T) {
 	}
 
 	running := enqueue(t, s, rn.RunnerID, "ws1", "projA")
-	if _, err := s.Claim(ctx, rn.RunnerID, []string{"projA"}, time.Minute); err != nil {
+	if _, err := s.Claim(ctx, rn.RunnerID, ProtocolVersion, []string{"projA"}, time.Minute); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.RequestCancel(ctx, running.ID); err != nil {
@@ -194,7 +194,7 @@ func TestExpireLosesSilentAndUnclaimedJobs(t *testing.T) {
 	ctx := context.Background()
 	rn := register(t, s, "ws1", "laptop")
 	silent := enqueue(t, s, rn.RunnerID, "ws1", "projA")
-	if _, err := s.Claim(ctx, rn.RunnerID, []string{"projA"}, time.Second); err != nil {
+	if _, err := s.Claim(ctx, rn.RunnerID, ProtocolVersion, []string{"projA"}, time.Second); err != nil {
 		t.Fatal(err)
 	}
 	unclaimed := enqueue(t, s, rn.RunnerID, "ws1", "projZ")
@@ -226,7 +226,7 @@ func TestRevokeEndsJobsAndCredential(t *testing.T) {
 	if err := s.Revoke(ctx, "ws1", rn.RunnerID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.Authenticate(ctx, rn.Credential, ""); err == nil {
+	if _, err := s.Authenticate(ctx, rn.Credential, "", ProtocolVersion); err == nil {
 		t.Error("a revoked credential still authenticates")
 	}
 	got, _ := s.GetJob(ctx, j.ID)
@@ -244,5 +244,147 @@ func TestGetIsScopedToWorkspace(t *testing.T) {
 	rn := register(t, s, "ws1", "laptop")
 	if _, err := s.Get(context.Background(), "ws2", rn.RunnerID); apperr.KindOf(err) != apperr.KindNotFound {
 		t.Errorf("Get from ws2 err = %v, want not found", err)
+	}
+}
+
+// Case 56: a protocol-1 runner keeps taking folder jobs and never gets one that needs 2.
+func TestClaimHandsOnlyJobsTheRunnerUnderstands(t *testing.T) {
+	s := newTestStore(t)
+	ctx := context.Background()
+	rn := register(t, s, "ws1", "laptop")
+	folders := enqueue(t, s, rn.RunnerID, "ws1", "projA")
+	newer := enqueue(t, s, rn.RunnerID, "ws1", "projA")
+	if _, err := s.db.ExecContext(ctx, `UPDATE runner_jobs SET min_protocol = 2 WHERE id = $1`, newer.ID); err != nil {
+		t.Fatal(err)
+	}
+
+	spec, err := s.Claim(ctx, rn.RunnerID, ProtocolFolders, []string{"projA"}, time.Minute)
+	if err != nil || spec == nil || spec.ID != folders.ID {
+		t.Fatalf("protocol 1 claim = %+v, %v; want the folder job", spec, err)
+	}
+	if spec, _ := s.Claim(ctx, rn.RunnerID, ProtocolFolders, []string{"projA"}, time.Minute); spec != nil {
+		t.Fatalf("protocol 1 runner got job %s, which needs protocol 2", spec.ID)
+	}
+	if spec, err := s.Claim(ctx, rn.RunnerID, 2, []string{"projA"}, time.Minute); err != nil || spec == nil || spec.ID != newer.ID {
+		t.Fatalf("protocol 2 claim = %+v, %v", spec, err)
+	}
+}
+
+func TestAuthenticateRecordsTheDeclaredProtocol(t *testing.T) {
+	s := newTestStore(t)
+	ctx := context.Background()
+	rn := register(t, s, "ws1", "laptop")
+	got, err := s.Get(ctx, "ws1", rn.RunnerID)
+	if err != nil || got.Protocol != ProtocolFolders {
+		t.Fatalf("a new runner = %+v, %v; want protocol %d until it says otherwise", got, err, ProtocolFolders)
+	}
+	if _, err := s.Authenticate(ctx, rn.Credential, "", 2); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ = s.Get(ctx, "ws1", rn.RunnerID); got.Protocol != 2 {
+		t.Errorf("protocol = %d after a call declaring 2", got.Protocol)
+	}
+	if _, err := s.Authenticate(ctx, rn.Credential, "", 0); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ = s.Get(ctx, "ws1", rn.RunnerID); got.Protocol != 2 {
+		t.Errorf("a call declaring nothing reset the protocol to %d", got.Protocol)
+	}
+}
+
+func TestAcceptedProtocol(t *testing.T) {
+	for in, want := range map[string]int{"1": 1, "2": 2, " 2 ": 2, "": 0, "0": 0, "3": 0, "x": 0} {
+		if got := AcceptedProtocol(in); got != want {
+			t.Errorf("AcceptedProtocol(%q) = %d, want %d", in, got, want)
+		}
+	}
+}
+
+func enqueueChatTurn(t *testing.T, s *Store, runnerID, ws string) *Job {
+	t.Helper()
+	id := NewJobID()
+	j := &Job{ID: id, RunnerID: runnerID, WorkspaceID: ws, InstanceID: id, AgentName: "manager", Stage: "chat",
+		LaunchKind: LaunchKindChatTurn,
+		Spec: JobSpec{InstanceID: id, Stage: "chat", LaunchKind: LaunchKindChatTurn, ChatID: "chat1",
+			Stdin: "the person's message", Env: map[string]string{"OCTOPUS_API_KEY": "okey_secret"}}}
+	if err := s.Enqueue(context.Background(), j); err != nil {
+		t.Fatalf("Enqueue: %v", err)
+	}
+	return j
+}
+
+// Case 46: each pool takes only its own jobs, so a turn is claimed while every run slot is busy and a
+// run never fills the chat slots; a runner that names no pool takes both, as before pools existed.
+func TestClaimTakesOnlyThePoolsJobs(t *testing.T) {
+	s := newTestStore(t)
+	ctx := context.Background()
+	rn := register(t, s, "ws1", "laptop")
+	run := enqueue(t, s, rn.RunnerID, "ws1", "projA")
+	turn := enqueueChatTurn(t, s, rn.RunnerID, "ws1")
+	claim := func(kinds ...string) string {
+		spec, err := s.Claim(ctx, rn.RunnerID, ProtocolVersion, []string{"projA"}, time.Minute, kinds...)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if spec == nil {
+			return ""
+		}
+		return spec.ID
+	}
+	if got := claim(ClaimChat); got != turn.ID {
+		t.Fatalf("chat pool claimed %q, want the turn %s", got, turn.ID)
+	}
+	if got := claim(ClaimChat); got != "" {
+		t.Fatalf("chat pool claimed %q, a run", got)
+	}
+	if got := claim(ClaimRun); got != run.ID {
+		t.Fatalf("run pool claimed %q, want the run %s", got, run.ID)
+	}
+
+	again := enqueueChatTurn(t, s, rn.RunnerID, "ws1")
+	if got := claim(); got != again.ID {
+		t.Errorf("a claim with no pool got %q, want the turn %s", got, again.ID)
+	}
+}
+
+// The person's message leaves the database with the claim, like the env; a runner too old for chat
+// turns never gets one.
+func TestClaimOfAChatTurn(t *testing.T) {
+	s := newTestStore(t)
+	ctx := context.Background()
+	rn := register(t, s, "ws1", "laptop")
+	turn := enqueueChatTurn(t, s, rn.RunnerID, "ws1")
+	if spec, _ := s.Claim(ctx, rn.RunnerID, ProtocolFolders, nil, time.Minute); spec != nil {
+		t.Fatalf("a protocol %d runner got the chat turn", ProtocolFolders)
+	}
+	spec, err := s.Claim(ctx, rn.RunnerID, ProtocolChatTurn, nil, time.Minute, ClaimChat)
+	if err != nil || spec == nil {
+		t.Fatalf("Claim = %+v, %v", spec, err)
+	}
+	if spec.Stdin != "the person's message" || spec.ChatID != "chat1" {
+		t.Errorf("claimed spec = %+v, want the message and the chat", spec)
+	}
+	stored, err := s.GetJob(ctx, turn.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stored.Spec.Stdin != "" || stored.Spec.Env != nil {
+		t.Errorf("stored spec keeps stdin %q and env %v after the claim", stored.Spec.Stdin, stored.Spec.Env)
+	}
+}
+
+// The caller's copy of a queued job names the same log file as the stored row: the time it keeps is
+// the one the database stores, even across a second boundary.
+func TestEnqueueKeepsTheStoredCreationTime(t *testing.T) {
+	s := newTestStore(t)
+	rn := register(t, s, "ws1", "laptop")
+	s.now = func() time.Time { return time.Date(2026, 11, 16, 12, 0, 0, 999_999_600, time.UTC) }
+	j := enqueue(t, s, rn.RunnerID, "ws1", "projA")
+	got, err := s.GetJob(context.Background(), j.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !got.CreatedAt.Equal(j.CreatedAt) {
+		t.Errorf("stored %s, the caller keeps %s", got.CreatedAt, j.CreatedAt)
 	}
 }

@@ -99,7 +99,7 @@ const [credBefore, , credAfter] = tParts("project.credentials.intro", { link: SL
         { label: "…", id: "crumb-name" },
       ]}
     >
-      <Fragment slot="sub"><span id="p-sub">—</span></Fragment>
+      <Fragment slot="sub"><span id="p-sub">—</span> <span id="p-machine"></span></Fragment>
       <Fragment slot="actions">
         <Button id="p-tasks-link" href="/tasks/" size="md" icon="board"
           >{t("common.nav.tasks")}</Button
@@ -286,6 +286,32 @@ const [credBefore, , credAfter] = tParts("project.credentials.intro", { link: SL
                 ]}
               />
             </Field>
+          </div>
+        </Panel>
+
+        <Panel icon="monitor" title={t("project.runner.title")} id="r-panel" hidden>
+          <Button slot="actions" size="sm" variant="primary" id="r-save"
+            >{t("common.buttons.save")}</Button
+          >
+          <div class="form-stack">
+            <Field
+              label={t("project.runner.where")}
+              for="r-where"
+              hint={t("project.runner.where_hint")}
+            >
+              <select id="r-where"></select>
+            </Field>
+            <Field
+              label={t("project.runner.folder")}
+              for="r-path"
+              id="r-path-field"
+              errorId="r-path-error"
+              hint={t("project.runner.folder_hint")}
+            >
+              <input id="r-path" list="r-path-list" autocomplete="off" spellcheck="false" />
+              <datalist id="r-path-list"></datalist>
+            </Field>
+            <div id="r-note"></div>
           </div>
         </Panel>
 
@@ -1027,6 +1053,8 @@ const [credBefore, , credAfter] = tParts("project.credentials.intro", { link: SL
   <script>
     import { requireAuth } from "../lib/auth";
     import { t } from "../i18n";
+    import { runnerPlace } from "../lib/project-runner-place";
+    import { runnerBadgeHTML } from "../lib/runners";
     import { api, ApiError } from "../lib/api";
     import {
       $,
@@ -1197,6 +1225,8 @@ const [credBefore, , credAfter] = tParts("project.credentials.intro", { link: SL
         stage_template: Record<string, string>;
         github_installation_id?: number;
         source?: string;
+        runner_id?: string;
+        runner_path?: string;
         clone_status?: "cloning" | "failed";
         clone_error?: string;
         clone_detail?: string;
@@ -1391,8 +1421,15 @@ const [credBefore, , credAfter] = tParts("project.credentials.intro", { link: SL
         $("crumb-name").textContent = project.name;
         $("p-title").textContent = project.name;
         const uploaded = project.source === "upload";
+        const onMachine = project.source === "runner";
         $("p-sub").textContent =
-          project.description || (uploaded ? t("projects.labels.uploaded") : project.repo_url);
+          project.description ||
+          (onMachine
+            ? (project.runner_path ?? "")
+            : uploaded
+              ? t("projects.labels.uploaded")
+              : project.repo_url);
+        $("p-machine").innerHTML = runnerBadgeHTML(project.runner_id, place.runners());
         const repoLink = $("p-repo-link") as HTMLAnchorElement;
         const web = uploaded ? null : webRepoURL(project.repo_url);
         repoLink.hidden = !web;
@@ -1733,7 +1770,25 @@ const [credBefore, , credAfter] = tParts("project.credentials.intro", { link: SL
         renderBoardOptions(project.default_board_id || "");
         renderTemplate(project.stage_template || {});
         renderGhAppRow();
+        void place.render(project).then(renderHeader);
       }
+
+      const place = runnerPlace(
+        {
+          where: $("r-where") as HTMLSelectElement,
+          path: $("r-path") as HTMLInputElement,
+          pathField: $("r-path-field"),
+          list: $("r-path-list") as HTMLDataListElement,
+          note: $("r-note"),
+          save: $("r-save") as HTMLButtonElement,
+          panel: $("r-panel"),
+        },
+        (saved) => {
+          if (!project) return;
+          project = { ...project, runner_id: saved.runner_id, runner_path: saved.runner_path };
+          renderHeader();
+        },
+      );
 
       function renderBoardOptions(selected: string) {
         ($("s-board") as HTMLSelectElement).innerHTML = boardOptions(boards, selected);

@@ -138,7 +138,9 @@
     "git_title": "Repositorio Git",
     "git_desc": "Clonar desde GitHub u otro remote",
     "upload_title": "Subir carpeta",
-    "upload_desc": "Desde tu computadora, sin GitHub"
+    "upload_desc": "Desde tu computadora, sin GitHub",
+    "runner_title": "En mi máquina",
+    "runner_desc": "Una carpeta de una compu con runner"
   },
   "upload": {
     "drop_title": "Arrastrá la carpeta del proyecto acá",

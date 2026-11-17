@@ -83,6 +83,10 @@ func (s *Server) checkProfileKey(ctx context.Context, desc engineDescriptor, p *
 }
 
 func (s *Server) recordProfileKeyCheck(ctx context.Context, desc engineDescriptor, p *secrets.LLMProfile, rawKey string) *secrets.LLMProfile {
+	// A machine profile holds no key: its login lives in the machine's CLI.
+	if p.RunnerID != "" {
+		return p
+	}
 	if err := s.secretsStore.SetLLMProfileKeyCheck(ctx, p.WorkspaceID, p.ID, s.checkProfileKey(ctx, desc, p, rawKey)); err != nil {
 		logx.Warn(err, "api.llm.log.key_check_store_failed", "profile", p.ID)
 		return p

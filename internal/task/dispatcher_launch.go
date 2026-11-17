@@ -227,15 +227,13 @@ func (d *Dispatcher) launchStage(
 		}
 		settle(nil)
 	}()
-	ticket, ok := d.admitStage(ctx, t, stage, agentName, opts, settle)
-	if !ok {
+	if !d.admitStage(ctx, t, stage, agentName, opts, settle) {
 		return
 	}
 	// Exactly one release pairs this acquire: on the launch-failure return below or in OnExit.
 	slotWS := t.WorkspaceID
 	parked := false
 	if err := d.acquireStageSlot(ctx, t, stage, agentName, opts, func() { parked = true; settle(nil) }); err != nil {
-		d.refund(ctx, t.ID, ticket)
 		return
 	}
 
@@ -243,28 +241,16 @@ func (d *Dispatcher) launchStage(
 		"%s-task-%s-%s-%d", agentName, t.ID, stage, time.Now().UnixMilli()))
 
 	env := buildStageEnv(t, stage, agentName, instanceID, d.agentBaseURL, agentType, opts.Turns)
-	_, launcherSteers := d.launcher.(RunSteerer)
-	onRunner := d.taskRunsOnRunner(ctx, t)
-	// Runners do not support mid-run steering; messages queue for the next run.
-	applyConversationEnv(env, agentType, opts, launcherSteers && !onRunner)
-	if info, _ := d.stagesFor(t).Get(stage); onRunner && info.PushBranch {
-		env[EnvStagePush] = "1"
-	}
 	env[EnvLaunchKind] = string(opts.kind())
-	d.applyMCPURLs(ctx, env, onRunner)
-	if d.agentPushesResults && !onRunner {
-		env["OCTOPUS_RESULT_REF"] = resultRefFor(t.SandboxRootID())
-	}
 	runKeyID := d.applyRunAPIKey(ctx, env, t, agentName, stage)
-	personal, isPersonal := d.personalLoginFor(ctx, t.WorkspaceID, agentType, agentName)
-	if err := d.applyRunLLM(ctx, env, t, agentType, agentName, personal, isPersonal); err != nil {
+	if err := d.applyRunLLM(ctx, env, t, agentType, agentName); err != nil {
 		d.slots.release(slotWS)
-		d.refund(ctx, t.ID, ticket)
 		d.revokeRunKey(ctx, runKeyID)
 		settle(d.runNotStarted(ctx, t, stage, agentName, opts, launchCause(err),
 			NoteOf("task.comments.launch_failed", "err", err), err))
 		return
 	}
+	d.applyPlacedStageEnv(ctx, env, t, stage, opts)
 	d.applyTokenOptimizer(ctx, env, t.WorkspaceID, agentType, string(stage))
 	wtMounts, stageMounts := d.buildStageMounts(ctx, t)
 
@@ -285,7 +271,6 @@ func (d *Dispatcher) launchStage(
 	})
 	if err != nil {
 		// launchWithRoom already released the slot; do not release again.
-		d.refund(ctx, t.ID, ticket)
 		d.revokeRunKey(ctx, runKeyID)
 		settle(d.stageNotLaunched(ctx, t, stage, agentName, opts, parked, err))
 		return
@@ -298,7 +283,7 @@ func (d *Dispatcher) launchStage(
 			"stage", d.stageNote(t, stage), "agent", agentName, "minutes", minutes, "instance", instID))
 	})
 
-	d.recordRunStarted(ctx, t, stage, agentName, opts, run, env, isPersonal)
+	d.recordRunStarted(ctx, t, stage, agentName, opts, run, env)
 	d.rememberRun(containerID, env)
 
 	go d.recordPromptEvent(ctx, t.ID, instID, containerID, agentName, string(stage), outputDir)
@@ -320,8 +305,21 @@ func (d *Dispatcher) launchStage(
 	})
 }
 
+// applyPlacedStageEnv sets what depends on where the run was placed.
+func (d *Dispatcher) applyPlacedStageEnv(ctx context.Context, env map[string]string, t *Task, stage Stage, opts launchOpts) {
+	machine := onMachine(env)
+	applyConversationEnv(env, opts, d.launcherSteers(env))
+	if info, _ := d.stagesFor(t).Get(stage); machine && info.PushBranch {
+		env[EnvStagePush] = "1"
+	}
+	d.applyMCPURLs(ctx, env)
+	if d.agentPushesResults && !machine {
+		env["OCTOPUS_RESULT_REF"] = resultRefFor(t.SandboxRootID())
+	}
+}
+
 func (d *Dispatcher) recordRunStarted(ctx context.Context, t *Task, stage Stage, agentName string, opts launchOpts,
-	run launched, env map[string]string, isPersonal bool,
+	run launched, env map[string]string,
 ) {
 	containerID, instID, outputDir := run.containerID, run.instanceID, run.outputDir
 	runStatus := StatusRunning
@@ -346,7 +344,7 @@ func (d *Dispatcher) recordRunStarted(ctx context.Context, t *Task, stage Stage,
 		"launch_kind":  string(opts.kind()),
 		"max_turns":    env["MAX_TURNS"],
 	}
-	if isPersonal {
+	if env[engine.LLMSourceEnv] == engine.LLMSourcePersonal {
 		// Record which credential, never whose: the person stays in the triggered_by column, which
 		// no export carries.
 		runData["llm_source"] = engine.LLMSourcePersonal
@@ -384,31 +382,27 @@ func (d *Dispatcher) credentialFaults(ctx context.Context, t *Task) []credential
 
 func (d *Dispatcher) admitStage(
 	ctx context.Context, t *Task, stage Stage, agentName string, opts launchOpts, settle func(error),
-) (quotaTicket, bool) {
+) bool {
 	// The stage id is embedded in the hyphen-delimited instance ID that parseTaskInstanceID reads
 	// back; a malformed id makes the run unreconcilable.
 	if !types.ValidStageID(string(stage)) {
 		err := apperr.Invalid("task.errors.bad_stage_id", "stage", stage)
 		settle(d.runNotStarted(ctx, t, stage, agentName, opts, CauseBadStage,
 			NoteOf("task.comments.launch_bad_stage_id", "stage", stage), err))
-		return quotaTicket{}, false
+		return false
 	}
 	// Runs before the slot is acquired so a refused run holds no capacity.
 	// Keep this the only call site: every launch path funnels through launchStage.
 	if faults := d.credentialFaults(ctx, t); len(faults) > 0 {
 		settle(d.refuseCredentials(ctx, t, stage, agentName, opts, faults))
-		return quotaTicket{}, false
+		return false
 	}
-	// Consumed before the slot; every return in launchStage that starts no container must refund
-	// the ticket.
-	ticket, usage, ok := d.consumeRun(ctx, t)
-	if !ok {
-		settle(d.runNotStarted(ctx, t, stage, agentName, opts, CauseQuota,
-			NoteOf("task.comments.run_quota_exceeded", quotaSpentArgs(usage)...),
-			apperr.Precondition("task.errors.run_quota_spent", quotaSpentArgs(usage)...)))
-		return quotaTicket{}, false
+	// Checked before the slot so a refused run holds no capacity.
+	if a, ok := d.admitRun(ctx, t); !ok {
+		settle(d.runNotStarted(ctx, t, stage, agentName, opts, CauseQuota, refusalNote(a), refusalErr(a)))
+		return false
 	}
-	return ticket, true
+	return true
 }
 
 func (d *Dispatcher) credentialsReady(ctx context.Context, t *Task) bool {
@@ -597,9 +591,9 @@ func (d *Dispatcher) launchMention(ctx context.Context, t *Task, agentType *type
 	agentName := agentType.Name
 	thread := comment.ThreadID()
 	key := mentionKey(t.ID, thread, agentName)
-	ticket, usage, ok := d.consumeRun(ctx, t)
-	if !ok {
-		msg := NoteOf("task.comments.mention_quota_exceeded", append([]any{"agent", agentName}, quotaSpentArgs(usage)...)...)
+	if a, ok := d.admitRun(ctx, t); !ok {
+		refusal := refusalNote(a)
+		msg := NoteOf("task.comments.mention_not_started", "agent", agentName).Add(refusal.Key, refusalArgs(a)...)
 		if dropped := d.mentions.abandon(key); dropped > 0 {
 			msg = msg.Add("task.comments.mention_dropped_queue", "count", dropped)
 		}
@@ -608,7 +602,6 @@ func (d *Dispatcher) launchMention(ctx context.Context, t *Task, agentType *type
 	}
 	slotWS := t.WorkspaceID
 	if err := d.convSlots.acquire(ctx, slotWS); err != nil {
-		d.refund(ctx, t.ID, ticket)
 		d.mentions.abandon(key)
 		return
 	}
@@ -617,10 +610,8 @@ func (d *Dispatcher) launchMention(ctx context.Context, t *Task, agentType *type
 	// The locale comes from ctx: HandleMention's callers detach it with context.WithoutCancel to
 	// keep the request's values.
 	env := buildMentionEnv(t, agentName, instanceID, d.agentBaseURL, i18n.FromContext(ctx), agentType, comment)
-	d.applyMCPURLs(ctx, env, d.taskRunsOnRunner(ctx, t))
 	runKeyID := d.applyRunAPIKey(ctx, env, t, agentName, types.StageMention)
 	giveUp := func() int {
-		d.refund(ctx, t.ID, ticket)
 		d.revokeRunKey(ctx, runKeyID)
 		return d.mentions.abandon(key)
 	}
@@ -640,6 +631,7 @@ func (d *Dispatcher) launchMention(ctx context.Context, t *Task, agentType *type
 		launchFailed(err)
 		return
 	}
+	d.applyMCPURLs(ctx, env)
 	d.applyTokenOptimizer(ctx, env, t.WorkspaceID, agentType, string(types.StageMention))
 
 	code := types.CodePaths(ReadOnlyCode(ctx, t, d.projects))

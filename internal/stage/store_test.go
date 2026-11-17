@@ -90,8 +90,8 @@ func TestSaveRoundTrip(t *testing.T) {
 	if next := reopened.DefaultBoard().Next(types.StageInProgress); next != "security_review" {
 		t.Errorf("Next(in_progress) = %s, want security_review", next)
 	}
-	if next := reopened.DefaultBoard().Next("security_review"); next != types.StageDone {
-		t.Errorf("Next(security_review) = %s, want done", next)
+	if next := reopened.DefaultBoard().Next("security_review"); next != types.StageReview {
+		t.Errorf("Next(security_review) = %s, want review", next)
 	}
 }
 

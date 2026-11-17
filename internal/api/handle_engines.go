@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"sort"
+	"strings"
 
 	"github.com/MisterDonnuts/thulu/internal/engine"
 	"github.com/MisterDonnuts/thulu/internal/secrets"
@@ -23,6 +24,10 @@ type EngineInfo struct {
 	AuthHeader bool     `json:"auth_header"`
 	Providers  []string `json:"providers"`
 	TurnBudget bool     `json:"turn_budget"`
+	// The engine can run on a registered machine with that machine's own CLI login.
+	MachineLogin bool `json:"machine_login"`
+	// The command that signs the engine's CLI in on that machine.
+	MachineLoginCommand string `json:"machine_login_command,omitempty"`
 
 	// HasKey/KeyHint stay for the init wizard and older clients.
 	HasKey             bool   `json:"has_key"`
@@ -46,20 +51,22 @@ type KeyKindView struct {
 }
 
 type engineDescriptor struct {
-	Name               string
-	Label              string
-	Provider           string
-	KeyKinds           []engine.KeyKind
-	Models             []string
-	DefaultModel       string
-	TurnBudget         bool
-	IsDefault          bool
-	Effort             bool
-	BaseURL            bool
-	OrgID              bool
-	AuthHeader         bool
-	Providers          []string
-	FederationAudience string
+	Name                string
+	Label               string
+	Provider            string
+	KeyKinds            []engine.KeyKind
+	Models              []string
+	DefaultModel        string
+	TurnBudget          bool
+	IsDefault           bool
+	Effort              bool
+	BaseURL             bool
+	OrgID               bool
+	AuthHeader          bool
+	Providers           []string
+	FederationAudience  string
+	MachineLogin        bool
+	MachineLoginCommand string
 }
 
 func availableEngines(ctx context.Context) []engineDescriptor {
@@ -77,7 +84,7 @@ func availableEngines(ctx context.Context) []engineDescriptor {
 		if label == "" {
 			label = name
 		}
-		out = append(out, engineDescriptor{
+		d := engineDescriptor{
 			Name:               name,
 			Label:              label,
 			Provider:           caps.Provider,
@@ -92,7 +99,12 @@ func availableEngines(ctx context.Context) []engineDescriptor {
 			AuthHeader:         caps.AuthorizationEnv != "",
 			Providers:          caps.Providers(),
 			FederationAudience: federationAudience(caps),
-		})
+			MachineLogin:       caps.MachineLogin != nil,
+		}
+		if caps.MachineLogin != nil {
+			d.MachineLoginCommand = strings.Join(caps.MachineLogin.Login, " ")
+		}
+		out = append(out, d)
 	}
 	sort.Slice(out, func(i, j int) bool {
 		if out[i].IsDefault != out[j].IsDefault {
@@ -146,7 +158,8 @@ func engineInfo(d *engineDescriptor, def *secrets.LLMProfile, st llmKeyStatusVie
 		Effort: d.Effort, BaseURL: d.BaseURL, OrgID: d.OrgID,
 		AuthHeader: d.AuthHeader, Providers: d.Providers,
 		TurnBudget: d.TurnBudget, DefaultModel: d.DefaultModel,
-		FallbackModel: d.DefaultModel,
+		FallbackModel: d.DefaultModel, MachineLogin: d.MachineLogin,
+		MachineLoginCommand: d.MachineLoginCommand,
 	}
 	if def != nil {
 		info.DefaultProfileID = def.ID
@@ -171,6 +184,9 @@ func (s *Server) engineKeyState(ctx context.Context, wsID string) (map[string]ll
 	}
 	if m, err := s.secretsStore.ListLLMKeys(ctx, wsID); err == nil {
 		for eng, st := range m {
+			if !st.HasKey {
+				continue
+			}
 			statuses[eng] = llmKeyStatusView{hint: st.Hint, updatedAt: st.UpdatedAt.Format(http.TimeFormat)}
 		}
 	}
