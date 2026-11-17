@@ -2,16 +2,28 @@
   "errors": {
     "unavailable": "runners are not available on this instance",
     "runner_revoked": "runner {runner} was revoked",
-    "protocol": "this runner speaks protocol {got}; the daemon speaks {want}. Update the runner",
+    "protocol": "this runner speaks protocol {got}; the daemon takes {min} to {max}. Update the runner",
     "log_too_large": "a log chunk is limited to 4 MB",
     "no_output_dir": "this run has no output directory on the daemon",
-    "task_mixes_projects": "project {project} does not run its agents on a runner: a task's projects must all run on the same runner",
     "task_mixes_runners": "a task's projects must all run on the same runner",
     "task_without_runner": "the task has no project on a runner",
-    "engine_not_supported": "this runner runs Claude Code only; {engine} needs a container",
-    "no_steering": "this run takes no messages while it runs; the message waits for the next run",
+    "engine_not_supported": "a runner cannot run {engine}: its script needs a container",
+    "runner_outdated": "runner {runner} speaks protocol {got} and this run needs {want}: update thulu on that machine and launch again",
+    "task_not_on_runner": "the task has a project on a runner, but this run was not placed on it",
     "no_kill": "this runtime cannot stop a run",
-    "push_on_runner": "project {project} runs its agents on a runner, which pushes the task branch from its machine; the daemon does not push it"
+    "push_on_runner": "project {project} runs its agents on a runner, which pushes the task branch from its machine; the daemon does not push it",
+    "folder_not_absolute": "{path} is not an absolute path on the runner's machine",
+    "no_folders_reported": "the runner {runner} has not reported its folders yet: start it on its machine (thulu runner run), and update it if it is older than this version",
+    "folder_not_allowed": "{path} is outside the folders {runner} allows ({roots}). Add the folder on that machine with thulu runner allow",
+    "folder_taken": "{path} is already the folder of project {project} on this machine",
+    "add_name_taken": "there is already a project called {name} in this workspace: pick another name with -name",
+    "steer_not_running": "the run has not started on its machine yet; the message waits for the next run",
+    "steer_too_large": "a message for a running agent is limited to {max} KB",
+    "steer_sealed": "the agent stopped reading messages; the message waits for the next run",
+    "steer_locked": "the agent's message queue stayed locked; the message waits for the next run",
+    "steer_failed": "the machine could not hand the message to the agent ({result}); the message waits for the next run",
+    "steer_timeout": "the machine did not take the message within 10 s; the message waits for the next run",
+    "turn_unfinished": "machine {runner} did not finish the chat turn in time: check that thulu runner run is still going there, then send the message again"
   },
   "log": {
     "output_dir": "create the run output directory {dir}",
@@ -22,7 +34,13 @@
     "lost": "runner {runner} stopped answering (or never took the run); the run is marked failed",
     "reap_failed": "mark runner run {job} processed",
     "read_log_failed": "read the log of runner run {job}; the recorded session has none",
-    "write_log_failed": "write the log of runner run {job}"
+    "write_log_failed": "write the log of runner run {job}",
+    "adopt_folder_failed": "record the folder the runner {runner} maps for project {project}",
+    "turn_read_failed": "read chat turn file {path}",
+    "turn_cancel_failed": "cancel chat turn job {job}",
+    "turn_cleanup_failed": "remove chat turn files {path}",
+    "turn_output_missing": "the machine finished the chat turn, but its answer never reached the daemon",
+    "orphan_turns_failed": "find the chat turns a previous daemon left on the machines: {err}"
   },
   "audit": {
     "token_created": "Registration token for runner {name} created",
@@ -30,6 +48,8 @@
     "revoked": "Runner {runner} revoked",
     "project_created": "Project {project} added on runner {runner}",
     "project_runner_set": "Project {project} now runs its agents on runner {runner}",
-    "project_runner_cleared": "Project {project} runs its agents on this instance again"
+    "project_runner_cleared": "Project {project} runs its agents on this instance again",
+    "project_folder_set": "Project {project} now uses the folder {path} on its runner",
+    "project_added": "Project {project} added from {path} on runner {runner}"
   }
 }

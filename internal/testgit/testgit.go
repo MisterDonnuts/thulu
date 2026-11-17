@@ -59,3 +59,15 @@ func git(t *testing.T, dir string, args ...string) {
 		t.Fatal(i18n.Log("testgit.errors.command_failed", "args", args, "output", out, "err", err))
 	}
 }
+
+// IsolateHostConfig keeps the host's system git config out of the tests, for a TestMain to call
+// before m.Run. Xcode's ships credential.helper=osxkeychain, which would hand the credentials a test
+// pushes with to the person's keychain. CI (Linux, no system config) already runs this way.
+func IsolateHostConfig() error {
+	for k, v := range map[string]string{"GIT_CONFIG_NOSYSTEM": "1", "GIT_TERMINAL_PROMPT": "0"} {
+		if err := os.Setenv(k, v); err != nil {
+			return err
+		}
+	}
+	return nil
+}

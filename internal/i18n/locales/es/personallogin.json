@@ -10,6 +10,7 @@
     "no_agent_image": "no hay imagen de agente para correr el CLI: definí {env}",
     "no_pending_login": "no hay un inicio de sesión esperando un código; empezá de nuevo",
     "no_url": "el CLI no mostró un enlace para iniciar sesión",
+    "still_preparing": "el inicio de sesión todavía se está preparando; esperá el link",
     "unsupported_engine": "el engine {engine} no tiene sesión personal",
     "volume": "no se pudo leer o cambiar el volumen de la sesión personal",
     "volume_in_use": "una corrida todavía usa esta sesión; desconectala cuando terminen tus corridas",

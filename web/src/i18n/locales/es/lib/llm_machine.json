@@ -1,0 +1,33 @@
+{
+  "kind": "Login en una máquina",
+  "state": {
+    "not_installed": "sin {engine} instalado",
+    "not_logged_in": "{engine} sin sesión",
+    "logged_in_as": "sesión de {who}",
+    "logged_in": "con sesión"
+  },
+  "errors": {
+    "runner_required": "Elegí la máquina donde corre este perfil."
+  },
+  "meta": {
+    "machine": "máquina {runner}"
+  },
+  "badge": {
+    "revoked": "Máquina revocada",
+    "missing": "Falta la CLI",
+    "not_logged_in": "Sin sesión",
+    "logged_in": "Con sesión",
+    "not_reported": "Sin informar todavía",
+    "runners_off": "Runners apagados"
+  },
+  "note": {
+    "not_logged_in_html": "{engine} no tiene la sesión iniciada en {runner}. Corré <code class=\"code-inline\">{command}</code> en esa máquina.",
+    "not_logged_in": "{engine} no tiene la sesión iniciada en {runner}. Iniciala en esa máquina.",
+    "not_installed": "{runner} no tiene {engine} en el PATH. Instalalo ahí.",
+    "not_reported": "{runner} todavía no informó si tiene {engine}. Actualizá el runner en esa máquina y volvé a arrancarlo.",
+    "revoked": "{runner} fue revocada: las corridas con este perfil se rechazan. Editá el perfil y elegí otra máquina.",
+    "offline": "{runner} no está conectada: las corridas con este perfil se rechazan hasta que se conecte.",
+    "not_reported_start": "{runner} todavía no informó si tiene {engine}. Arrancá el runner ahí (thulu runner run); informa en menos de un minuto.",
+    "runners_off": "Esta instancia tiene los runners apagados: las corridas con este perfil se rechazan."
+  }
+}

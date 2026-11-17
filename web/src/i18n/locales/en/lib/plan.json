@@ -1,21 +1,29 @@
 {
   "resets": "Resets {date}",
+  "trial_hours": "Hours for the whole trial",
   "no_limit": "No limit",
+  "extra_so_far": "{hours} extra h · {cost} of {cap}",
+  "trial_ends": "Trial ends {date}",
+  "trial_not_started": "30-day trial, starts with the first run",
   "names": {
-    "free": "Free",
+    "trial": "Trial",
+    "starter": "Starter",
     "team": "Team",
-    "business": "Business",
     "enterprise": "Enterprise",
+    "inactive": "No active plan",
     "self_hosted": "Self-hosted"
   },
   "facts": {
-    "runs": "Agent runs this month",
+    "hours": "Agent hours this month",
+    "extra": "Extra hours",
     "concurrency": "Agents at once",
     "seats": "Members",
     "storage": "Attachments"
   },
   "values": {
-    "runs": "{used} of {limit}",
+    "hours": "{used} h of {limit} h",
+    "extra": "$0.05/h, up to {cap} a month",
+    "no_extra": "None",
     "concurrency": {
       "one": "{count} at a time",
       "other": "{count} at a time"
@@ -25,5 +33,10 @@
       "other": "{count} people"
     },
     "storage": "{used} of {limit}"
+  },
+  "cap": {
+    "none": "No extra hours: when the included hours run out, new runs wait for next month.",
+    "now": "Up to {cap} of extra hours a month ({hours} h at $0.05).",
+    "out_of_range": "Enter an amount in dollars from 0 to {max}."
   }
 }

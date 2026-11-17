@@ -99,7 +99,7 @@ func TestRunnerJobProjectsCarryRepoAndPush(t *testing.T) {
 	ctx := context.Background()
 	cloned := gitProjectOn(t, f, "ws1", "web", f.reg.RunnerID)
 
-	_, projects, err := f.launcher.runnerFor(ctx, &task.Task{ID: "t1", ProjectIDs: []string{f.project.ID, cloned.ID}})
+	projects, err := f.launcher.runnerFor(ctx, &task.Task{ID: "t1", ProjectIDs: []string{f.project.ID, cloned.ID}}, f.reg.RunnerID, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,18 +115,41 @@ func TestRunnerJobProjectsCarryRepoAndPush(t *testing.T) {
 	}
 
 	plain := gitProjectOn(t, f, "ws1", "plain", "")
-	if _, _, err := f.launcher.runnerFor(ctx, &task.Task{ID: "t2", ProjectIDs: []string{cloned.ID, plain.ID}}); err == nil {
-		t.Error("a task mixing a runner project with a Docker one was put on the runner")
+	withWorktree := &task.Task{ID: "t2", ProjectIDs: []string{cloned.ID, plain.ID},
+		WorktreePaths: map[string]string{plain.ID: "/data/worktrees/t2"}}
+	mixed, err := f.launcher.runnerFor(ctx, withWorktree, f.reg.RunnerID, false)
+	if err != nil || len(mixed) != 2 || mixed[0].FromDaemon() || !mixed[1].FromDaemon() {
+		t.Errorf("a task mixing a machine project with a Thulu one = %+v, %v; want the Thulu one from the daemon", mixed, err)
+	}
+	// Without a daemon worktree there is no task branch to fetch: a run that writes goes without the
+	// project, as in Docker, and a read-only one reads the default branch.
+	noWorktree := &task.Task{ID: "t3", ProjectIDs: []string{cloned.ID, plain.ID}}
+	for _, tc := range []struct {
+		readOnly bool
+		want     []runner.JobProject
+	}{
+		{false, []runner.JobProject{{ID: cloned.ID, Branch: project.TaskBranchName("t3")}}},
+		{true, []runner.JobProject{{ID: cloned.ID, Branch: project.TaskBranchName("t3")}, {ID: plain.ID, Branch: ""}}},
+	} {
+		got, err := f.launcher.runnerFor(ctx, noWorktree, f.reg.RunnerID, tc.readOnly)
+		if err != nil || len(got) != len(tc.want) {
+			t.Fatalf("read-only %v: runnerFor = %+v, %v; want %d projects", tc.readOnly, got, err, len(tc.want))
+		}
+		for i, w := range tc.want {
+			if got[i].ID != w.ID || got[i].Branch != w.Branch {
+				t.Errorf("read-only %v: project %d = %s on %q, want %s on %q", tc.readOnly, i, got[i].ID, got[i].Branch, w.ID, w.Branch)
+			}
+		}
 	}
 	route := &routedLauncher{projects: f.projects, runner: f.launcher}
-	if !route.onRunner(ctx, &task.Task{ProjectIDs: []string{cloned.ID}}) {
+	if !route.needsRunner(ctx, &task.Task{ProjectIDs: []string{cloned.ID}}) {
 		t.Error("a cloned project with a runner is not routed to it")
 	}
-	if route.onRunner(ctx, &task.Task{ProjectIDs: []string{plain.ID}}) {
+	if route.needsRunner(ctx, &task.Task{ProjectIDs: []string{plain.ID}}) {
 		t.Error("a project without a runner is routed to one")
 	}
 	srv := &Server{projectStore: f.projects}
-	if _, _, err := srv.pushTaskBranchForProject(ctx, &task.Task{ID: "t1"}, cloned.ID); apperr.KindOf(err) != apperr.KindPrecondition {
+	if _, _, err := srv.pushTaskBranchForProject(ctx, &task.Task{ID: "t1"}, cloned.ID, false); apperr.KindOf(err) != apperr.KindPrecondition {
 		t.Errorf("daemon push of a runner project: %v, want refused", err)
 	}
 }

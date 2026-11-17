@@ -22,6 +22,7 @@ import (
 	"github.com/MisterDonnuts/thulu/internal/kubert"
 	"github.com/MisterDonnuts/thulu/internal/logx"
 	"github.com/MisterDonnuts/thulu/internal/mcp"
+	"github.com/MisterDonnuts/thulu/internal/runner"
 	"github.com/MisterDonnuts/thulu/internal/settings"
 	"github.com/MisterDonnuts/thulu/internal/syncx"
 	"github.com/MisterDonnuts/thulu/internal/types"
@@ -57,6 +58,8 @@ type Manager struct {
 	store    *Store
 	settings *settings.Store
 	backend  backend
+	// Chats placed on a registered machine; their runtime ids say so (machineOf).
+	machine backend
 
 	dataDir string
 
@@ -72,6 +75,7 @@ type Manager struct {
 	augment AgentAugmentFunc
 
 	workspaceLimit func(workspaceID string) int
+	admit          func(ctx context.Context, workspaceID string) error
 
 	keys RunKeyMinter
 
@@ -117,9 +121,12 @@ type ManagerConfig struct {
 	GitBaseURL     string
 	APIBaseURL     string
 	WorkspaceLimit func(workspaceID string) int
-	MCPForwarder   *mcp.Forwarder
-	Browser        browserrun.Config
-	Launch         launchFunc
+	// Admit refuses a new chat container when the workspace has no hours left, its trial ended or its
+	// plan is inactive. nil admits everything (self-hosted).
+	Admit        func(ctx context.Context, workspaceID string) error
+	MCPForwarder *mcp.Forwarder
+	Browser      browserrun.Config
+	Launch       launchFunc
 }
 
 func NewManager(store *Store, sett *settings.Store, docker *client.Client, cfg ManagerConfig) *Manager {
@@ -131,6 +138,8 @@ func NewManager(store *Store, sett *settings.Store, docker *client.Client, cfg M
 		apiBaseURL:     cfg.APIBaseURL,
 		mcpFwd:         cfg.MCPForwarder,
 		workspaceLimit: cfg.WorkspaceLimit,
+		admit:          cfg.Admit,
+		machine:        unavailableBackend{},
 	}
 	switch {
 	case docker != nil || cfg.Launch != nil:
@@ -196,6 +205,30 @@ type AgentAugmentFunc func(ctx context.Context, chatID string, at *types.AgentTy
 func (m *Manager) SetAgentAugment(fn AgentAugmentFunc) { m.augment = fn }
 
 func (m *Manager) SetRunKeys(k RunKeyMinter) { m.keys = k }
+
+// SetMachineTurns lets chats run on the machine their placement names. Without it such a chat is
+// refused by the unavailable backend.
+func (m *Manager) SetMachineTurns(t MachineTurns) { m.machine = newRunnerBackend(t) }
+
+func (m *Manager) backendFor(id string) backend {
+	if machineOf(id) != "" {
+		return m.machine
+	}
+	return m.backend
+}
+
+// chatAuth runs the chat's auth on what a turn is resolved from. It also places the chat, as it
+// places a run: OCTOPUS_RUNNER_ID names the machine, absent for the container or pod.
+func (m *Manager) chatAuth(c *chat.Chat, at *types.AgentType) (map[string]string, error) {
+	env := turnEnv(c, at)
+	if m.llmAuth == nil {
+		return env, nil
+	}
+	if err := m.llmAuth(env, c.WorkspaceID, at.Name, at); err != nil {
+		return nil, err
+	}
+	return env, nil
+}
 
 // A chat not linked to a task gets a read-only key (auth.runKeyPermissions), so a chat cannot move
 // tasks
@@ -294,28 +327,44 @@ func (m *Manager) EndDelegation(ctx context.Context, chatID string) error {
 
 func (m *Manager) chatLock(chatID string) *sync.Mutex { return m.chatMu.Get(chatID) }
 
+// Acquire returns the chat's runtime where the chat's auth places it now, so a profile moved to or
+// from a machine, or a machine that went away, is seen before the runtime is reused.
 func (m *Manager) Acquire(ctx context.Context, c *chat.Chat, at *types.AgentType, opts AcquireOpts) (string, error) {
+	env, err := m.chatAuth(c, at)
+	if err != nil {
+		return "", err
+	}
+	return m.acquire(ctx, c, at, opts, env[runner.RunnerIDEnv])
+}
+
+// acquire takes the placement already decided: machine is a runner id, or "" for the container.
+func (m *Manager) acquire(ctx context.Context, c *chat.Chat, at *types.AgentType, opts AcquireOpts, machine string) (string, error) {
 	mu := m.chatLock(c.ID)
 	mu.Lock()
 	defer mu.Unlock()
-	return m.acquireLocked(ctx, c, at, opts)
+	return m.acquireLocked(ctx, c, at, opts, machine)
 }
 
-func (m *Manager) acquireLocked(ctx context.Context, c *chat.Chat, at *types.AgentType, opts AcquireOpts) (string, error) {
+func (m *Manager) acquireLocked(ctx context.Context, c *chat.Chat, at *types.AgentType, opts AcquireOpts, machine string) (string, error) {
 	c = m.withFreshDelegation(ctx, c)
 	delegatedUntil := keyDelegation(c, time.Now())
 	if rt, err := m.store.Get(c.ID); err == nil && rt.Status != StatusEvicted && rt.Status != StatusFailed {
 		sameKey := sameDelegation(rt.KeyDelegatedUntil, delegatedUntil)
-		if sameKey && m.backend.Running(ctx, rt.ContainerID) {
+		samePlace := machineOf(rt.ContainerID) == machine
+		running := sameKey && samePlace && m.backendFor(rt.ContainerID).Running(ctx, rt.ContainerID)
+		if running {
 			logx.Warn(m.store.Touch(c.ID), "chatruntime.log.touch", "chat", c.ID)
 			return rt.ContainerID, nil
 		}
-		if sameKey {
-			log.Printf("[chat] %s", i18n.Log("chatruntime.log.container_not_running", "chat", c.ID, "container", rt.ContainerID))
-		} else {
+		switch {
+		case !sameKey:
 			log.Printf("[chat] %s", i18n.Log("chatruntime.log.delegation_changed", "chat", c.ID, "container", rt.ContainerID))
+		case !samePlace:
+			log.Printf("[chat] %s", i18n.Log("chatruntime.log.placement_changed", "chat", c.ID, "container", rt.ContainerID))
+		default:
+			log.Printf("[chat] %s", i18n.Log("chatruntime.log.container_not_running", "chat", c.ID, "container", rt.ContainerID))
 		}
-		m.backend.Remove(ctx, rt.ContainerID)
+		m.backendFor(rt.ContainerID).Remove(ctx, rt.ContainerID)
 		logx.Warn(m.markReleased(ctx, c.ID), "chatruntime.log.mark_released", "chat", c.ID)
 	}
 
@@ -326,7 +375,7 @@ func (m *Manager) acquireLocked(ctx context.Context, c *chat.Chat, at *types.Age
 	// Keep the reservation until the row below is live; after that CountLive sees the container.
 	defer unreserve()
 
-	containerID, err := m.createContainer(ctx, c, at, opts, delegatedUntil)
+	containerID, err := m.createContainer(ctx, c, at, opts, delegatedUntil, machine)
 	if err != nil {
 		logx.Warn(m.store.Upsert(&Runtime{
 			ChatID: c.ID, WorkspaceID: c.WorkspaceID, AgentType: at.Type,
@@ -341,7 +390,7 @@ func (m *Manager) acquireLocked(ctx context.Context, c *chat.Chat, at *types.Age
 		KeyDelegatedUntil: delegatedUntil,
 	}
 	if err := m.store.Upsert(rt); err != nil {
-		m.backend.Remove(ctx, containerID)
+		m.backendFor(containerID).Remove(ctx, containerID)
 		return "", apperr.Wrap(err, "chatruntime.errors.store_upsert")
 	}
 	log.Printf("[chat] %s", i18n.Log("chatruntime.log.container_ready", "chat", c.ID, "container", containerID, "agent", at.Name))
@@ -349,6 +398,12 @@ func (m *Manager) acquireLocked(ctx context.Context, c *chat.Chat, at *types.Age
 }
 
 func (m *Manager) reserveCapacity(ctx context.Context, workspaceID string) (func(), error) {
+	// Asked before capMu: it reads the database, and every other chat's reservation waits on capMu.
+	if m.admit != nil {
+		if err := m.admit(ctx, workspaceID); err != nil {
+			return nil, err
+		}
+	}
 	m.capMu.Lock()
 	defer m.capMu.Unlock()
 	if err := m.ensureCapacity(ctx, workspaceID); err != nil {
@@ -434,7 +489,7 @@ func (m *Manager) evictOwnOldest(ctx context.Context, workspaceID string) bool {
 		}
 		log.Printf("[chat] %s", i18n.Log("chatruntime.log.evicting",
 			"chat", rt.ChatID, "container", rt.ContainerID, "scope", "workspace "+workspaceID))
-		m.backend.Remove(ctx, rt.ContainerID)
+		m.backendFor(rt.ContainerID).Remove(ctx, rt.ContainerID)
 		logx.Warn(m.markReleased(ctx, rt.ChatID), "chatruntime.log.mark_released", "chat", rt.ChatID)
 		return true
 	}
@@ -449,8 +504,10 @@ func (m *Manager) idleCutoff(ctx context.Context) time.Time {
 	return time.Now().Add(-time.Duration(idleSecs) * time.Second)
 }
 
+// createContainer creates the runtime on machine, the placement the turn was resolved for. The
+// create's own auth must agree: a turn resolved for a container carries a key no machine may get.
 func (m *Manager) createContainer(
-	ctx context.Context, c *chat.Chat, at *types.AgentType, opts AcquireOpts, delegatedUntil *time.Time,
+	ctx context.Context, c *chat.Chat, at *types.AgentType, opts AcquireOpts, delegatedUntil *time.Time, machine string,
 ) (string, error) {
 	if m.augment != nil {
 		at = m.augment(ctx, c.ID, at)
@@ -474,15 +531,11 @@ func (m *Manager) createContainer(
 	if tools := at.DefaultMCP(stage); tools != "" {
 		env["MCP_TOOLS"] = tools
 	}
-	// Must be set before the MCP env: a linked chat's servers get its task as ?task=.
+	// Must be set before the MCP env: a linked chat's servers get its task as ?task=. The auth
+	// also reads it: a task's projects place its chat.
 	if c.TaskID != "" {
 		env["TASK_ID"] = c.TaskID
 	}
-	// Never overrides keys already in env. The per-task thulu-sandbox URL is deliberately not
-	// wired:
-	// a chat must not drive a task's sandbox.
-	mcp.ApplyLaunchEnv(ctx, env, m.mcpFwd, m.browser)
-	m.warnNoChatBrowser(c.ID, at.Name, env)
 	if at.Model != "" {
 		env["MODEL"] = at.Model
 	}
@@ -496,7 +549,11 @@ func (m *Manager) createContainer(
 	// model.
 	m.applyRunKey(ctx, env, c, at, delegatedUntil)
 	if m.llmAuth != nil {
-		if err := m.llmAuth(env, c.WorkspaceID, at.Name, at); err != nil {
+		err := m.llmAuth(env, c.WorkspaceID, at.Name, at)
+		if err == nil && env[runner.RunnerIDEnv] != machine {
+			err = errPlacementMoved
+		}
+		if err != nil {
 			m.keyMu.Lock()
 			keyID := m.keyByID[c.ID]
 			delete(m.keyByID, c.ID)
@@ -505,8 +562,14 @@ func (m *Manager) createContainer(
 			return "", err
 		}
 	}
+	b := m.backend
+	if machine != "" {
+		b = m.machine
+	}
+	// After the auth, which places the chat: the MCP grant records a chat on a machine.
+	m.applyMCPEnv(ctx, c, at, env)
 
-	return m.backend.Create(ctx, CreateSpec{
+	return b.Create(ctx, CreateSpec{
 		Chat:              c,
 		AgentType:         at,
 		Stage:             stage,
@@ -517,10 +580,18 @@ func (m *Manager) createContainer(
 	})
 }
 
-func (m *Manager) warnNoChatBrowser(chatID, agent string, env map[string]string) {
-	if m.noPerRunBrowser && browserrun.Granted(env["MCP_TOOLS"]) {
-		log.Printf("[chat] %s", i18n.Log("chatruntime.log.no_per_run_browser", "chat", chatID, "agent", agent))
+// Never overrides keys already in env. The per-task thulu-sandbox URL is deliberately not wired: a
+// chat must not drive a task's sandbox.
+func (m *Manager) applyMCPEnv(ctx context.Context, c *chat.Chat, at *types.AgentType, env map[string]string) {
+	switch {
+	case env[runner.RunnerIDEnv] != "":
+		if mcp.PrepareMachineEnv(env, m.noPerRunBrowser || m.browser.PerRun()) {
+			log.Printf("[chat] %s", i18n.Log("chatruntime.log.machine_no_browser", "chat", c.ID, "agent", at.Name))
+		}
+	case m.noPerRunBrowser && browserrun.Granted(env["MCP_TOOLS"]):
+		log.Printf("[chat] %s", i18n.Log("chatruntime.log.no_per_run_browser", "chat", c.ID, "agent", at.Name))
 	}
+	mcp.ApplyLaunchEnv(ctx, env, m.mcpFwd, m.browser)
 }
 
 // Callers must hold the single-flight slot (BeginTurn); ExecTurn does not take it.
@@ -532,13 +603,25 @@ func (m *Manager) ExecTurn(ctx context.Context, c *chat.Chat, at *types.AgentTyp
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(timeoutSecs)*time.Second)
 	defer cancel()
 
+	// Once per turn: the same answer places the chat and pays its engine.
+	turn, err := m.resolveTurn(ctx, c, at)
+	if err != nil {
+		return nil, err
+	}
 	var lastErr error
 	for attempt := 0; attempt < 2; attempt++ {
-		containerID, err := m.Acquire(ctx, c, at, opts)
+		containerID, err := m.acquire(ctx, c, at, opts, turn.machine)
+		if errors.Is(err, errPlacementMoved) && attempt == 0 {
+			// The profile moved between the turn's auth and the create's: place the turn again.
+			if turn, err = m.resolveTurn(ctx, c, at); err != nil {
+				return nil, err
+			}
+			continue
+		}
 		if err != nil {
 			return nil, err
 		}
-		res, err := m.execOnce(ctx, containerID, c, at, text)
+		res, err := m.execOnce(ctx, containerID, c, at, turn, text)
 		if err == nil {
 			logx.Warn(m.store.Touch(c.ID), "chatruntime.log.touch", "chat", c.ID)
 			return res, nil
@@ -550,17 +633,16 @@ func (m *Manager) ExecTurn(ctx context.Context, c *chat.Chat, at *types.AgentTyp
 		log.Printf("[chat] %s", i18n.Log("chatruntime.log.exec_dead_container", "chat", c.ID, "attempt", attempt+1))
 		mu := m.chatLock(c.ID)
 		mu.Lock()
-		m.backend.Remove(ctx, containerID)
+		m.backendFor(containerID).Remove(ctx, containerID)
 		logx.Warn(m.markReleased(ctx, c.ID), "chatruntime.log.mark_released", "chat", c.ID)
 		mu.Unlock()
 	}
 	return nil, lastErr
 }
 
-// Re-resolved per turn so a rotated key or re-bound profile (and its model) reaches an open chat.
-func (m *Manager) turnAuth(ctx context.Context, c *chat.Chat, at *types.AgentType) (engine.Engine, []string, string, error) {
-	// The ids name the run in a federation profile's identity token; only credential vars leave
-	// this map.
+// turnEnv is what the auth resolves a turn from. The ids name the run in a federation profile's
+// identity token, and TASK_ID places a task's chat by its projects.
+func turnEnv(c *chat.Chat, at *types.AgentType) map[string]string {
 	env := map[string]string{"CHAT_ID": c.ID, "INSTANCE_ID": c.ID}
 	if c.TaskID != "" {
 		env["TASK_ID"] = c.TaskID
@@ -574,10 +656,23 @@ func (m *Manager) turnAuth(ctx context.Context, c *chat.Chat, at *types.AgentTyp
 	if at.Engine != "" {
 		env["ENGINE"] = at.Engine
 	}
-	if m.llmAuth != nil {
-		if err := m.llmAuth(env, c.WorkspaceID, at.Name, at); err != nil {
-			return nil, nil, "", err
-		}
+	return env
+}
+
+// turnAuth is what one turn runs with: its engine, the credential vars of its exec (only those
+// leave the auth's env), its model and the machine it is placed on ("" for the container or pod).
+type turnAuth struct {
+	eng     engine.Engine
+	env     []string
+	model   string
+	machine string
+}
+
+// Re-resolved per turn so a rotated key or re-bound profile (and its model) reaches an open chat.
+func (m *Manager) resolveTurn(ctx context.Context, c *chat.Chat, at *types.AgentType) (*turnAuth, error) {
+	env, err := m.chatAuth(c, at)
+	if err != nil {
+		return nil, err
 	}
 	engName := env["ENGINE"]
 	if engName == "" {
@@ -585,15 +680,16 @@ func (m *Manager) turnAuth(ctx context.Context, c *chat.Chat, at *types.AgentTyp
 	}
 	eng, err := engine.Get(engName)
 	if err != nil {
-		return nil, nil, "", apperr.Wrap(err, "chatruntime.errors.engine", "engine", engName)
+		return nil, apperr.Wrap(err, "chatruntime.errors.engine", "engine", engName)
 	}
-	if engine.HostAuthApplies(env) {
-		return eng, eng.AuthEnv(ctx), env["MODEL"], nil
+	turn := &turnAuth{eng: eng, model: env["MODEL"], machine: env[runner.RunnerIDEnv]}
+	switch {
+	case engine.HostAuthApplies(env):
+		turn.env = eng.AuthEnv(ctx)
+	case !engine.ViaGateway(env):
+		turn.env = turnCredentialEnv(eng.Capabilities(), env)
 	}
-	if engine.ViaGateway(env) {
-		return eng, nil, env["MODEL"], nil
-	}
-	return eng, turnCredentialEnv(eng.Capabilities(), env), env["MODEL"], nil
+	return turn, nil
 }
 
 func turnCredentialEnv(caps engine.Capabilities, env map[string]string) []string {
@@ -629,24 +725,22 @@ func turnCredentialEnv(caps engine.Capabilities, env map[string]string) []string
 	return out
 }
 
-func (m *Manager) execOnce(ctx context.Context, containerID string, c *chat.Chat, at *types.AgentType, text string) (*TurnResult, error) {
-	eng, authEnv, model, err := m.turnAuth(ctx, c, at)
-	if err != nil {
-		return nil, err
-	}
-	execEnv := make([]string, 0, len(authEnv)+4)
-	execEnv = append(execEnv, authEnv...)
+func (m *Manager) execOnce(
+	ctx context.Context, containerID string, c *chat.Chat, at *types.AgentType, turn *turnAuth, text string,
+) (*TurnResult, error) {
+	execEnv := make([]string, 0, len(turn.env)+4)
+	execEnv = append(execEnv, turn.env...)
 	execEnv = append(execEnv,
 		"SESSION_ID="+c.SessionID,
 		"CHAT_ID="+c.ID,
 	)
-	if model != "" {
-		execEnv = append(execEnv, "CHAT_MODEL="+model)
+	if turn.model != "" {
+		execEnv = append(execEnv, "CHAT_MODEL="+turn.model)
 	}
 	execEnv = append(execEnv, "CHAT_MAX_TURNS="+at.TurnsForStage(string(types.StageChat)))
 
 	start := time.Now()
-	out, err := m.backend.Exec(ctx, ExecSpec{ContainerID: containerID, Env: execEnv, Stdin: text})
+	out, err := m.backendFor(containerID).Exec(ctx, ExecSpec{ContainerID: containerID, Env: execEnv, Stdin: text})
 	if err != nil {
 		return nil, err
 	}
@@ -655,7 +749,7 @@ func (m *Manager) execOnce(ctx context.Context, containerID string, c *chat.Chat
 		DurationMs: time.Since(start).Milliseconds(),
 		RawLogPath: filepath.Join(at.Dir, "runs", c.ID+".jsonl"),
 	}
-	for ev := range eng.ParseStream(bytes.NewReader(out.Stdout)) {
+	for ev := range turn.eng.ParseStream(bytes.NewReader(out.Stdout)) {
 		if ev.SessionID != "" {
 			res.SessionID = ev.SessionID
 		}
@@ -702,7 +796,7 @@ func (m *Manager) evictLocked(ctx context.Context, chatID string) error {
 		return err
 	}
 	if rt.ContainerID != "" {
-		m.backend.Remove(ctx, rt.ContainerID)
+		m.backendFor(rt.ContainerID).Remove(ctx, rt.ContainerID)
 	}
 	if rt.Status != StatusEvicted {
 		return m.markReleased(ctx, chatID)
@@ -737,7 +831,7 @@ func (m *Manager) ReapIdle(ctx context.Context) {
 			continue
 		}
 		log.Printf("[chat] %s", i18n.Log("chatruntime.log.idle_evicting", "chat", rt.ChatID, "container", rt.ContainerID))
-		m.backend.Remove(ctx, rt.ContainerID)
+		m.backendFor(rt.ContainerID).Remove(ctx, rt.ContainerID)
 		logx.Warn(m.markReleased(ctx, rt.ChatID), "chatruntime.log.mark_released", "chat", rt.ChatID)
 	}
 }
@@ -753,6 +847,10 @@ func (m *Manager) Reconcile(ctx context.Context) {
 	}
 	liveByContainer := map[string]string{}
 	for _, rt := range live {
+		// A machine chat has nothing to find here; after a restart its next turn recreates it.
+		if machineOf(rt.ContainerID) != "" {
+			continue
+		}
 		if !m.backend.Running(ctx, rt.ContainerID) {
 			log.Printf("[chat] %s", i18n.Log("chatruntime.log.reconcile_container_gone", "chat", rt.ChatID, "container", rt.ContainerID))
 			m.backend.Remove(ctx, rt.ContainerID)

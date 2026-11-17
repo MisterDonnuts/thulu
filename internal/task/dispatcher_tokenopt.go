@@ -27,7 +27,7 @@ func (d *Dispatcher) ApplyTokenOptimizer(ctx context.Context, env map[string]str
 func (d *Dispatcher) applyTokenOptimizer(ctx context.Context, env map[string]string, workspaceID string, agentType *types.AgentType, stage string) {
 	// The worker signs in with a workspace profile; runs on a runner's own login must get no
 	// workspace credential.
-	if onRunnerLogin(env) {
+	if onMachine(env) {
 		return
 	}
 	if d.tokenOpt == nil || agentType == nil || !agentType.TokenOptimizer.On() {

@@ -19,6 +19,7 @@ import (
 	"github.com/MisterDonnuts/thulu/internal/i18n"
 	"github.com/MisterDonnuts/thulu/internal/logx"
 	"github.com/MisterDonnuts/thulu/internal/project"
+	"github.com/MisterDonnuts/thulu/internal/runner"
 	"github.com/MisterDonnuts/thulu/internal/strx"
 	"github.com/MisterDonnuts/thulu/internal/task"
 )
@@ -126,7 +127,7 @@ func (s *Server) handleInternalProjectGithubToken(w http.ResponseWriter, r *http
 	s.writeProjectGithubToken(w, r, projectID, perms)
 }
 
-// In Kubernetes this worktree only mirrors what the agent pushed; call syncAgentResult first.
+// It lacks what a pod or a machine pushed until syncAgentResult runs.
 func (s *Server) worktreeGitForProject(ctx context.Context, t *task.Task, projID string) (project.WorktreeGit, error) {
 	if s.kube == nil {
 		return s.projectStore.HostWorktreeGit(ctx, projID, t.ID)
@@ -135,29 +136,34 @@ func (s *Server) worktreeGitForProject(ctx context.Context, t *task.Task, projID
 }
 
 func (s *Server) syncAgentResult(ctx context.Context, t *task.Task, projID string) error {
-	if s.kube == nil {
-		return nil
-	}
 	root := t.SandboxRootID()
 	_, err := s.projectStore.IntegrateAgentResult(ctx, projID, root, project.ResultBranchName(root))
 	return err
 }
 
+// integrateAgentPush brings a pushed result onto the daemon's worktree and publishes nothing.
+func (s *Server) integrateAgentPush(ctx context.Context, t *task.Task, projID string) error {
+	lock := s.agentGit.publishLock(t.SandboxRootID() + "/" + projID)
+	lock.Lock()
+	defer lock.Unlock()
+	return s.syncAgentResult(ctx, t, projID)
+}
+
 // Every push path (branch_push, publishAfterAgentPush, dispatcher auto-push) must go through here.
 // Runner projects are refused: the runner pushes from its machine and a push from this mirror would
 // rewrite its work.
-// Kubernetes skips the rebase: the agent rebases in its pod, where it can resolve conflicts.
-func (s *Server) pushTaskBranchForProject(ctx context.Context, t *task.Task, projID string) (bool, project.PushResult, error) {
+// agentClone skips the rebase, as Kubernetes always does: the agent works in a clone of its own (a
+// pod, or a machine on a Thulu project) and rebases there, where it can resolve conflicts. A rebase
+// here would leave its next result off the task branch.
+func (s *Server) pushTaskBranchForProject(ctx context.Context, t *task.Task, projID string, agentClone bool) (bool, project.PushResult, error) {
 	if p, err := s.projectStore.Get(ctx, projID); err == nil && p.RunsOnRunner() {
 		return false, project.PushResult{}, apperr.Precondition("api.runners.errors.push_on_runner", "project", p.Name)
 	}
-	if s.kube != nil {
-		lock := s.agentGit.publishLock(t.SandboxRootID() + "/" + projID)
-		lock.Lock()
-		defer lock.Unlock()
-		if err := s.syncAgentResult(ctx, t, projID); err != nil {
-			return false, project.PushResult{}, err
-		}
+	lock := s.agentGit.publishLock(t.SandboxRootID() + "/" + projID)
+	lock.Lock()
+	defer lock.Unlock()
+	if err := s.syncAgentResult(ctx, t, projID); err != nil {
+		return false, project.PushResult{}, err
 	}
 	wt, err := s.worktreeGitForProject(ctx, t, projID)
 	if err != nil {
@@ -171,7 +177,7 @@ func (s *Server) pushTaskBranchForProject(ctx context.Context, t *task.Task, pro
 		return false, project.PushResult{}, nil
 	}
 	token := s.projectGithubTokenWith(ctx, projID, pushPermissions(wt))
-	if s.kube != nil {
+	if agentClone || s.kube != nil {
 		if _, err = wt.Publish(token); err != nil {
 			return false, project.PushResult{}, workflowPushHint(err)
 		}
@@ -342,13 +348,14 @@ func (s *Server) handleInternalTaskBranchPush(w http.ResponseWriter, r *http.Req
 		Hint    string  `json:"hint,omitempty"`
 		Results []entry `json:"results"`
 	}{TaskID: t.ID}
-	if s.kube != nil {
+	agentClone := s.kube != nil || runner.IsRunnerRun(t.CurrentRunID)
+	if agentClone {
 		resp.Hint = i18n.TCtx(r.Context(), "api.github.hints.push_from_terminal")
 	}
 
 	for _, projID := range t.ProjectIDs {
 		e := entry{ProjectID: projID, Branch: s.taskBranchFor(t)}
-		pushed, result, err := s.pushTaskBranchForProject(r.Context(), t, projID)
+		pushed, result, err := s.pushTaskBranchForProject(r.Context(), t, projID, agentClone)
 		if err != nil {
 			var cerr *project.RebaseConflictError
 			if errors.As(err, &cerr) {
@@ -405,13 +412,11 @@ func (s *Server) handleInternalTaskBranchStatus(w http.ResponseWriter, r *http.R
 }
 
 func (s *Server) branchStatusForProject(ctx context.Context, t *task.Task, projID string) (project.BranchStatus, error) {
-	if s.kube != nil {
-		lock := s.agentGit.publishLock(t.SandboxRootID() + "/" + projID)
-		lock.Lock()
-		defer lock.Unlock()
-		if err := s.syncAgentResult(ctx, t, projID); err != nil {
-			return project.BranchStatus{}, err
-		}
+	lock := s.agentGit.publishLock(t.SandboxRootID() + "/" + projID)
+	lock.Lock()
+	defer lock.Unlock()
+	if err := s.syncAgentResult(ctx, t, projID); err != nil {
+		return project.BranchStatus{}, err
 	}
 	wt, err := s.worktreeGitForProject(ctx, t, projID)
 	if err != nil {

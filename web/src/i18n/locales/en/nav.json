@@ -45,7 +45,8 @@
     "audit_log": "Audit log",
     "language": "Language",
     "account": "Account",
-    "settings": "Settings"
+    "settings": "Settings",
+    "runners": "Runners"
   },
   "version": {
     "update_available": "Update available"

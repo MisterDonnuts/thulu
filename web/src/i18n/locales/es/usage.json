@@ -119,7 +119,7 @@
     "aria": "Plan del workspace",
     "title": "Plan",
     "unlimited": "Este plan no tiene topes.",
-    "runs_month": "Corridas del mes"
+    "hours_month": "Horas de agente del mes"
   },
   "estimated": {
     "mark": "≈{amount}",

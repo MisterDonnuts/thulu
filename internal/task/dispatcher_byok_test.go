@@ -82,7 +82,7 @@ func TestResolveLLMCredential_KubernetesRefusesTheSubscriptionToken(t *testing.T
 	t.Setenv("OCTOPUS_KUBE_ALLOW_CLAUDE_OAUTH_TOKEN", "")
 	d := &Dispatcher{llmKeys: func(_ context.Context, ws, eng string) (string, bool) { return "sk-ant-oat-xyz789", true }}
 	env := map[string]string{"ENGINE": "claude-code"}
-	err := d.resolveLLMCredential(t.Context(), env, "ws-1", &types.AgentType{Engine: "claude-code"}, "dev", nil, false)
+	err := d.authorizeRun(t.Context(), env, llmRun{workspaceID: "ws-1", agentType: &types.AgentType{Engine: "claude-code"}, agentName: "dev"})
 	if err == nil || !strings.Contains(err.Error(), "OCTOPUS_KUBE_ALLOW_CLAUDE_OAUTH_TOKEN") {
 		t.Fatalf("err = %v, want one naming the opt-in", err)
 	}
@@ -92,7 +92,7 @@ func TestResolveLLMCredential_KubernetesRefusesTheSubscriptionToken(t *testing.T
 
 	t.Setenv("OCTOPUS_KUBE_ALLOW_CLAUDE_OAUTH_TOKEN", "1")
 	env = map[string]string{"ENGINE": "claude-code"}
-	if err := d.resolveLLMCredential(t.Context(), env, "ws-1", &types.AgentType{Engine: "claude-code"}, "dev", nil, false); err != nil {
+	if err := d.authorizeRun(t.Context(), env, llmRun{workspaceID: "ws-1", agentType: &types.AgentType{Engine: "claude-code"}, agentName: "dev"}); err != nil {
 		t.Fatalf("with the opt-in: %v", err)
 	}
 	if env["CLAUDE_CODE_OAUTH_TOKEN"] != "sk-ant-oat-xyz789" {
@@ -102,7 +102,7 @@ func TestResolveLLMCredential_KubernetesRefusesTheSubscriptionToken(t *testing.T
 	t.Setenv("OCTOPUS_AGENT_RUNTIME", "docker")
 	t.Setenv("OCTOPUS_KUBE_ALLOW_CLAUDE_OAUTH_TOKEN", "")
 	env = map[string]string{"ENGINE": "claude-code"}
-	if err := d.resolveLLMCredential(t.Context(), env, "ws-1", &types.AgentType{Engine: "claude-code"}, "dev", nil, false); err != nil {
+	if err := d.authorizeRun(t.Context(), env, llmRun{workspaceID: "ws-1", agentType: &types.AgentType{Engine: "claude-code"}, agentName: "dev"}); err != nil {
 		t.Fatalf("docker mode: %v", err)
 	}
 }

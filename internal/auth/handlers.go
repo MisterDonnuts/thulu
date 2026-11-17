@@ -74,11 +74,7 @@ func (h *Handler) seatCapReached(ctx context.Context, wsID, userID string) bool 
 	if role, err := h.store.GetMemberRole(ctx, wsID, userID); err == nil && role != "" {
 		return false
 	}
-	email := ""
-	if u, err := h.store.GetUserByID(ctx, userID); err == nil && u != nil {
-		email = u.Email
-	}
-	s, err := h.seats(ctx, wsID, email)
+	s, err := h.seats(ctx, wsID)
 	return err == nil && s.Full()
 }
 

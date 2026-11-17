@@ -2,8 +2,8 @@ package task
 
 import (
 	"context"
+	"strings"
 
-	"github.com/MisterDonnuts/thulu/internal/engine"
 	"github.com/MisterDonnuts/thulu/internal/i18n"
 	"github.com/MisterDonnuts/thulu/internal/logx"
 	"github.com/MisterDonnuts/thulu/internal/project"
@@ -32,26 +32,6 @@ func (d *Dispatcher) projectRunsOnRunner(ctx context.Context, projectID string) 
 	return p != nil && p.RunsOnRunner()
 }
 
-func (d *Dispatcher) taskRunsOnRunner(ctx context.Context, t *Task) bool {
-	if t == nil {
-		return false
-	}
-	for _, id := range t.ProjectIDs {
-		if d.projectRunsOnRunner(ctx, id) {
-			return true
-		}
-	}
-	return false
-}
-
-func applyRunnerLogin(env map[string]string) {
-	env[engine.LLMSourceEnv] = engine.LLMSourceRunnerLogin
-}
-
-func onRunnerLogin(env map[string]string) bool {
-	return env[engine.LLMSourceEnv] == engine.LLMSourceRunnerLogin
-}
-
 type RunnerReport struct {
 	Runner   string
 	Pushed   []RunnerPush
@@ -68,6 +48,11 @@ type RunnerPush struct {
 
 func (d *Dispatcher) RecordRunnerReport(ctx context.Context, taskID string, rep RunnerReport) {
 	for _, p := range rep.Pushed {
+		// The result branch is the daemon's inbox, integrated and deleted after the run; the task's
+		// branch is what the person sees.
+		if strings.HasPrefix(p.Branch, project.ResultBranchName("")) {
+			continue
+		}
 		logx.Warn(d.store.RecordEvent(ctx, taskID, EventBranchCreated, p.Branch,
 			"octopus", i18n.Text("task.comments.runner_branch_pushed", "runner", rep.Runner),
 			map[string]string{"project": p.ProjectID, "branch": p.Branch, "commit": p.Commit, "runner": rep.Runner}),

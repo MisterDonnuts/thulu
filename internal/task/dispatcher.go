@@ -16,7 +16,6 @@ import (
 	"github.com/MisterDonnuts/thulu/internal/logx"
 	"github.com/MisterDonnuts/thulu/internal/mcp"
 	"github.com/MisterDonnuts/thulu/internal/project"
-	"github.com/MisterDonnuts/thulu/internal/runner"
 	stagepkg "github.com/MisterDonnuts/thulu/internal/stage"
 	"github.com/MisterDonnuts/thulu/internal/types"
 )
@@ -71,6 +70,7 @@ type Dispatcher struct {
 	store    *Store
 	launcher AgentLauncher
 	projects *project.Store
+	runners  RunnerLookup
 	secrets  tokenLookup
 	sandbox  SandboxReleaser
 	keys     KeyMinter
@@ -112,7 +112,7 @@ type Dispatcher struct {
 
 	conv *convLane
 
-	quota       RunQuota
+	quota       HourQuota
 	runDeadline func(workspaceID string) time.Duration
 	workloadID  WorkloadIdentity
 
@@ -246,15 +246,10 @@ func (d *Dispatcher) DeleteMCPURL(key string) { d.mcpFwd.Delete(key) }
 
 func (d *Dispatcher) MCPURLs() map[string]string { return d.mcpFwd.Snapshot() }
 
-// A runner has no per-run browser container, and a per-run daemon keeps runs apart on purpose, so
-// runner runs get no browser rather than the shared one.
-func (d *Dispatcher) applyMCPURLs(ctx context.Context, env map[string]string, onRunner bool) {
-	if onRunner {
-		env[runner.HostRunEnv] = "1"
-		if d.browser.PerRun() && browserrun.Granted(env["MCP_TOOLS"]) {
-			env["MCP_TOOLS"] = mcp.WithoutServer(env["MCP_TOOLS"], browserrun.ServerName)
-			log.Printf("[task] %s", i18n.Log("task.log.runner_no_per_run_browser", "task", env["TASK_ID"]))
-		}
+// Call after the run is placed.
+func (d *Dispatcher) applyMCPURLs(ctx context.Context, env map[string]string) {
+	if onMachine(env) && mcp.PrepareMachineEnv(env, d.browser.PerRun()) {
+		log.Printf("[task] %s", i18n.Log("task.log.runner_no_per_run_browser", "task", env["TASK_ID"]))
 	}
 	mcp.ApplyLaunchEnv(ctx, env, d.mcpFwd, d.browser)
 }

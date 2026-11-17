@@ -12,21 +12,36 @@ import (
 // without touching ~/.claude.
 const LoginConfigDir = "/home/node/.claude-login"
 
-var personalLogin = &engine.PersonalLogin{
-	ConfigDirEnv: "CLAUDE_CONFIG_DIR",
-	ConfigDir:    LoginConfigDir,
-	Login:        []string{"claude", "auth", "login", "--claudeai"},
-	Status:       []string{"claude", "auth", "status", "--json"},
-	Logout:       []string{"claude", "auth", "logout"},
-	ParseStatus:  parseAuthStatus,
+var (
+	authStatusArgv = []string{"claude", "auth", "status", "--json"}
 	// Any of these makes Claude Code bypass the stored login: env credentials outrank it and the
 	// cloud/endpoint switches route calls elsewhere.
-	ClearEnv: []string{
+	loginClearEnv = []string{
 		"CLAUDE_CODE_OAUTH_TOKEN", "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL",
 		"CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX",
 		"CLAUDE_CODE_SKIP_BEDROCK_AUTH", "CLAUDE_CODE_SKIP_VERTEX_AUTH",
 		"ANTHROPIC_BEDROCK_BASE_URL", "ANTHROPIC_VERTEX_BASE_URL", VertexKeyFileEnv,
-	},
+	}
+)
+
+var personalLogin = &engine.PersonalLogin{
+	ConfigDirEnv: "CLAUDE_CONFIG_DIR",
+	ConfigDir:    LoginConfigDir,
+	Login:        []string{"claude", "auth", "login", "--claudeai"},
+	Status:       authStatusArgv,
+	Logout:       []string{"claude", "auth", "logout"},
+	ParseStatus:  parseAuthStatus,
+	ClearEnv:     loginClearEnv,
+}
+
+var machineLogin = &engine.MachineLogin{
+	Binary:      "claude",
+	Version:     []string{"claude", "--version"},
+	Status:      authStatusArgv,
+	ParseStatus: parseAuthStatus,
+	ClearEnv:    loginClearEnv,
+	// The person signs in at their own terminal, so no --claudeai: the CLI offers every method.
+	Login: []string{"claude", "auth", "login"},
 }
 
 type authStatus struct {

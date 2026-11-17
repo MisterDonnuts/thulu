@@ -13,9 +13,7 @@ const PREWARM_PREFIX = "prewarm:";
 const EVIDENCE_PREFIX = "evidence:";
 
 export type SandboxOwner =
-  | { kind: "task"; id: string }
-  | { kind: "prewarm"; id: string }
-  | { kind: "evidence"; id: string };
+  { kind: "task"; id: string } | { kind: "prewarm"; id: string } | { kind: "evidence"; id: string };
 
 export function sandboxOwner(ownerID: string): SandboxOwner {
   if (ownerID.startsWith(PREWARM_PREFIX))
@@ -45,13 +43,7 @@ export function toUnit(value: number, per: number, lang: string = locale): strin
 }
 
 export type FieldProblem =
-  | "required"
-  | "number"
-  | "integer"
-  | "min1"
-  | "min0"
-  | "whole_min0"
-  | "refused";
+  "required" | "number" | "integer" | "min1" | "min0" | "whole_min0" | "refused";
 
 export interface SandboxForm {
   max: string;

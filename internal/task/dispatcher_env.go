@@ -2,6 +2,7 @@ package task
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -167,49 +168,113 @@ func (d *Dispatcher) applyBYOKKey(ctx context.Context, env map[string]string, wo
 	return true
 }
 
-// Call after the run's OCTOPUS_API_KEY is in env: with the LLM gateway on, that key is what the CLI
-// presents.
+// ApplyLLMAuth authorizes a chat. Call after the run's OCTOPUS_API_KEY is in env: with the LLM
+// gateway on, that key is what the CLI presents. A task's chat (TASK_ID in env) is placed by the
+// task's projects and the profile, as its runs are.
 func (d *Dispatcher) ApplyLLMAuth(
 	ctx context.Context, env map[string]string, workspaceID string, agentType *types.AgentType, agentName string,
 ) error {
-	return d.applyLLMAuth(ctx, env, workspaceID, agentType, agentName, nil)
+	t, err := d.chatTask(ctx, env["TASK_ID"])
+	if err != nil {
+		return err
+	}
+	return d.authorizeRun(ctx, env, llmRun{workspaceID: workspaceID, agentType: agentType, agentName: agentName, place: t, touch: true})
+}
+
+func (d *Dispatcher) chatTask(ctx context.Context, taskID string) (*Task, error) {
+	if taskID == "" || d.store == nil {
+		return nil, nil
+	}
+	// A deleted task leaves its chats behind; those are placed by their profile alone.
+	t, err := d.store.GetRow(ctx, taskID)
+	if errors.Is(err, ErrNotFound) {
+		return nil, nil
+	}
+	return t, err
 }
 
 // A non-nil error means the run must not start: falling back to the operator's key would bill one
 // tenant's work to another.
 func (d *Dispatcher) applyLLMAuth(
 	ctx context.Context, env map[string]string, workspaceID string,
-	agentType *types.AgentType, agentName string, auditTask *Task,
+	agentType *types.AgentType, agentName string, t *Task,
 ) error {
-	if d.taskRunsOnRunner(ctx, auditTask) {
-		applyRunnerLogin(env)
+	return d.authorizeRun(ctx, env, taskLLMRun(workspaceID, agentType, agentName, t))
+}
+
+// LLMCredentialReady answers, without side effects, whether ApplyLLMAuth would let the agent chat.
+func (d *Dispatcher) LLMCredentialReady(ctx context.Context, workspaceID string, agentType *types.AgentType, agentName string) error {
+	env := map[string]string{"ENGINE": resolveEngineName(agentType)}
+	return d.authorizeRun(ctx, env, llmRun{workspaceID: workspaceID, agentType: agentType, agentName: agentName})
+}
+
+// llmRun is what a run's credential is resolved for. place is the task whose projects decide where
+// the run goes; audit, set on task runs, gets the resolution audited and makes the gateway insist on
+// the run key. personal lets the triggering person's own login pay a run that stays in a container.
+type llmRun struct {
+	workspaceID string
+	agentType   *types.AgentType
+	agentName   string
+	place       *Task
+	audit       *Task
+	touch       bool
+	personal    bool
+}
+
+func taskLLMRun(workspaceID string, agentType *types.AgentType, agentName string, t *Task) llmRun {
+	return llmRun{workspaceID: workspaceID, agentType: agentType, agentName: agentName, place: t, audit: t, touch: true}
+}
+
+func (d *Dispatcher) authorizeRun(ctx context.Context, env map[string]string, run llmRun) error {
+	resolved, err := d.resolveProfile(ctx, run)
+	if err != nil {
+		return err
+	}
+	p, err := d.placementFor(ctx, run.workspaceID, run.place, resolved)
+	if err != nil {
+		return err
+	}
+	runnerID, err := p.decide()
+	if err != nil {
+		return err
+	}
+	if runnerID != "" {
+		// The machine's login pays, never the triggering person's.
+		applyMachineRun(env, runnerID, resolved, run.agentType, run.agentName)
+		if run.touch && d.llmProfTouch != nil && resolved.RunnerID != "" {
+			d.llmProfTouch(ctx, run.workspaceID, resolved.ProfileID)
+		}
 		return nil
 	}
-	err := d.applyLLMCredential(ctx, env, workspaceID, agentType, agentName, auditTask)
+	if run.personal {
+		if p, ok := d.personalLoginFor(ctx, resolvedEngine(resolved, nil, run.agentType)); ok {
+			perr := applyPersonalLogin(env, p)
+			d.applyAgentEgressEnv(env)
+			return perr
+		}
+	}
+	err = d.resolveLLMCredentialFrom(ctx, env, run, resolved)
+	if err == nil {
+		err = refuseUnusableKinds(env)
+	}
 	d.applyAgentEgressEnv(env)
 	return err
 }
 
-func (d *Dispatcher) applyLLMCredential(
-	ctx context.Context, env map[string]string, workspaceID string,
-	agentType *types.AgentType, agentName string, auditTask *Task,
-) error {
-	return d.resolveLLMCredential(ctx, env, workspaceID, agentType, agentName, auditTask, true)
-}
-
-func (d *Dispatcher) LLMCredentialReady(ctx context.Context, workspaceID string, agentType *types.AgentType, agentName string) error {
-	env := map[string]string{"ENGINE": resolveEngineName(agentType)}
-	return d.resolveLLMCredential(ctx, env, workspaceID, agentType, agentName, nil, false)
-}
-
-func (d *Dispatcher) resolveLLMCredential(
-	ctx context.Context, env map[string]string, workspaceID string,
-	agentType *types.AgentType, agentName string, auditTask *Task, touch bool,
-) error {
-	if err := d.resolveLLMCredentialFrom(ctx, env, workspaceID, agentType, agentName, auditTask, touch); err != nil {
-		return err
+// resolveProfile resolves the run's profile once; every later step reads this one answer.
+func (d *Dispatcher) resolveProfile(ctx context.Context, run llmRun) (secrets.ResolvedLLM, error) {
+	fallback := resolveEngineName(run.agentType)
+	if d.llmResolver == nil || run.workspaceID == "" {
+		return secrets.ResolvedLLM{Source: "host", Engine: fallback}, nil
 	}
-	return refuseUnusableKinds(env)
+	resolved, err := d.llmResolver(ctx, run.workspaceID, llmBindingAgent(run.agentType, run.agentName), fallback)
+	if err != nil {
+		// Fail instead of falling back to host env: that would hand the operator's key to a
+		// workspace whose own key merely failed to load.
+		log.Printf("[dispatcher] %s", i18n.Log("task.log.resolve_llm_failed", "workspace", run.workspaceID, "agent", run.agentName, "err", err))
+		return resolved, apperr.Wrap(err, "task.errors.resolve_llm_profile", "agent", run.agentName)
+	}
+	return resolved, nil
 }
 
 // refuseUnusableKinds stops a run whose resolved credential is a kind this runtime does not allow
@@ -238,12 +303,12 @@ func refuseUnusableKinds(env map[string]string) error {
 }
 
 func (d *Dispatcher) resolveLLMCredentialFrom(
-	ctx context.Context, env map[string]string, workspaceID string,
-	agentType *types.AgentType, agentName string, auditTask *Task, touch bool,
+	ctx context.Context, env map[string]string, run llmRun, resolved secrets.ResolvedLLM,
 ) error {
-	fallback := resolveEngineName(agentType)
+	workspaceID, agentName := run.workspaceID, run.agentName
+	fallback := resolveEngineName(run.agentType)
 	if d.llmResolver == nil {
-		if d.applyBYOKKey(ctx, env, workspaceID, agentType) {
+		if d.applyBYOKKey(ctx, env, workspaceID, run.agentType) {
 			return nil
 		}
 		return d.hostCredential(fallback, workspaceID, agentName)
@@ -251,14 +316,7 @@ func (d *Dispatcher) resolveLLMCredentialFrom(
 	if workspaceID == "" {
 		return d.hostCredential(fallback, workspaceID, agentName)
 	}
-	resolved, err := d.llmResolver(ctx, workspaceID, llmBindingAgent(agentType, agentName), fallback)
-	if err != nil {
-		// Fail instead of falling back to host env: that would hand the operator's key to a
-		// workspace whose own key merely failed to load.
-		log.Printf("[dispatcher] %s", i18n.Log("task.log.resolve_llm_failed", "workspace", workspaceID, "agent", agentName, "err", err))
-		return apperr.Wrap(err, "task.errors.resolve_llm_profile", "agent", agentName)
-	}
-	resolved = resolved.ForAgent(agentModelEffort(agentType))
+	resolved = resolved.ForAgent(agentModelEffort(run.agentType))
 	env[engine.LLMSourceEnv] = resolved.Source
 	engineName := strings.TrimSpace(resolved.Engine)
 	if engineName == "" {
@@ -270,29 +328,21 @@ func (d *Dispatcher) resolveLLMCredentialFrom(
 		clearEngineKeyEnv(env, env["ENGINE"])
 		applyEngineEnvForName(env, engineName, agentName)
 	}
-	if resolved.Model != "" {
-		env["MODEL"] = resolved.Model
-	}
-	if resolved.Effort != "" {
-		env["EFFORT"] = resolved.Effort
-		if eng, gerr := engine.Get(engineName); gerr == nil && !eng.Capabilities().EffortFlag {
-			delete(env, "EFFORT")
-		}
-	}
+	applyResolvedModel(env, resolved, engineName)
 	if resolved.Source == "host" {
 		return d.hostCredential(engineName, workspaceID, agentName)
 	}
-	if err := d.routeResolved(ctx, env, engineName, workspaceID, resolved, auditTask != nil, touch); err != nil {
+	if err := d.routeResolved(ctx, env, engineName, workspaceID, resolved, run.audit != nil, run.touch); err != nil {
 		return err
 	}
 	if resolved.ProfileID != "" {
 		env[engine.LLMProfileEnv] = resolved.ProfileID
 	}
-	if touch && d.llmProfTouch != nil && resolved.ProfileID != "" {
+	if run.touch && d.llmProfTouch != nil && resolved.ProfileID != "" {
 		d.llmProfTouch(ctx, workspaceID, resolved.ProfileID)
 	}
-	if d.llmAudit != nil && auditTask != nil {
-		d.llmAudit(auditTask, agentName, resolved)
+	if d.llmAudit != nil && run.audit != nil {
+		d.llmAudit(run.audit, agentName, resolved)
 	}
 	return nil
 }

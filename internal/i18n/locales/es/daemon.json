@@ -149,7 +149,8 @@
     "reattribute_failed": "reatribución de sesiones: {err}",
     "reattributed": "se reatribuyó el costo de {count} sesiones",
     "reconcile_namespaces_failed": "listar los workspaces para llevar sus namespaces a las etiquetas actuales: {err}",
-    "reconcile_namespaces_done": "{count} namespaces de tenant revisados contra las etiquetas actuales"
+    "reconcile_namespaces_done": "{count} namespaces de tenant revisados contra las etiquetas actuales",
+    "hour_meter_started": "medidor de horas de agente en marcha (cada {interval}; horas extra a facturación: {billing})"
   },
   "comments": {
     "worktree_parked": "El worktree de esta tarea estuvo sin uso mucho tiempo, así que Thulu liberó su disco. Los cambios pendientes quedaron commiteados en la rama de la tarea; la próxima corrida la vuelve a sacar.",

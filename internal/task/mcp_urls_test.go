@@ -46,7 +46,7 @@ func TestDispatcher_ApplyMCPURLsNeverOverwrites(t *testing.T) {
 		"OCTOPUS_API":           "http://octopus.svc:8585",
 		"MCP_THULU_SANDBOX_URL": sandbox,
 	}
-	d.applyMCPURLs(context.Background(), env, false)
+	d.applyMCPURLs(context.Background(), env)
 	if got := env["MCP_THULU_SANDBOX_URL"]; got != sandbox {
 		t.Errorf("sandbox URL was overwritten: %q", got)
 	}
@@ -63,7 +63,7 @@ func TestDispatcher_ProxyEntriesCarryNoTrustDecision(t *testing.T) {
 	})
 	d.SetMCPForwardsCredential("octopus-api", true)
 	env := map[string]string{"MCP_TOOLS": "octopus-api,ticket-reader", "OCTOPUS_API": "http://d:8585"}
-	d.applyMCPURLs(context.Background(), env, false)
+	d.applyMCPURLs(context.Background(), env)
 	if _, present := env[mcp.ForwardKeyEnv]; present {
 		t.Errorf("%s = %q, want it absent without a per-run browser", mcp.ForwardKeyEnv, env[mcp.ForwardKeyEnv])
 	}
@@ -81,7 +81,7 @@ func TestDispatcher_PerRunBrowserReplacesTheSharedURL(t *testing.T) {
 	d := (&Dispatcher{}).WithMCPForwarder(fwd).WithBrowser(perRunBrowser(t))
 
 	env := map[string]string{"MCP_TOOLS": "thulu-browser@browser_navigate+browser_screenshot,octopus-api"}
-	d.applyMCPURLs(context.Background(), env, false)
+	d.applyMCPURLs(context.Background(), env)
 	if got := env[browserrun.URLEnv]; got != "http://127.0.0.1:3010/sse" {
 		t.Errorf("%s = %q, want the loopback URL", browserrun.URLEnv, got)
 	}
@@ -93,7 +93,7 @@ func TestDispatcher_PerRunBrowserReplacesTheSharedURL(t *testing.T) {
 	}
 
 	env = map[string]string{"MCP_TOOLS": "octopus-api"}
-	d.applyMCPURLs(context.Background(), env, false)
+	d.applyMCPURLs(context.Background(), env)
 	if v, ok := env[browserrun.URLEnv]; ok {
 		t.Errorf("an ungranted run got %s=%q", browserrun.URLEnv, v)
 	}
@@ -106,7 +106,7 @@ func TestDispatcher_SharedBrowserGoesThroughTheProxy(t *testing.T) {
 	d := &Dispatcher{mcpFwd: mcp.NewForwarder()}
 	d.WithMCPURLs(map[string]string{browserrun.URLEnv: "http://thulu-browser:3000/sse"})
 	env := map[string]string{"MCP_TOOLS": "thulu-browser", "OCTOPUS_API": "http://d:8585"}
-	d.applyMCPURLs(context.Background(), env, false)
+	d.applyMCPURLs(context.Background(), env)
 	if got := env[browserrun.URLEnv]; got != "http://d:8585/mcp-proxy/thulu-browser" {
 		t.Errorf("%s = %q, want the proxy URL", browserrun.URLEnv, got)
 	}
@@ -132,8 +132,8 @@ func perRunBrowser(t *testing.T) browserrun.Config {
 func TestDispatcher_RunnerRunUsesTheSharedBrowser(t *testing.T) {
 	d := &Dispatcher{mcpFwd: mcp.NewForwarder()}
 	d.WithMCPURLs(map[string]string{browserrun.URLEnv: "http://thulu-browser:3000/sse"})
-	env := map[string]string{"MCP_TOOLS": "thulu-browser", "OCTOPUS_API": "http://d:8585"}
-	d.applyMCPURLs(context.Background(), env, true)
+	env := map[string]string{"MCP_TOOLS": "thulu-browser", "OCTOPUS_API": "http://d:8585", runner.RunnerIDEnv: "rn1"}
+	d.applyMCPURLs(context.Background(), env)
 	if env[runner.HostRunEnv] != "1" {
 		t.Errorf("%s = %q, want the run marked as a runner's", runner.HostRunEnv, env[runner.HostRunEnv])
 	}
@@ -149,8 +149,9 @@ func TestDispatcher_RunnerRunGetsNoBrowserInPerRunMode(t *testing.T) {
 	d := &Dispatcher{mcpFwd: mcp.NewForwarder()}
 	d.WithBrowser(perRunBrowser(t))
 	d.WithMCPURLs(map[string]string{browserrun.URLEnv: "http://thulu-browser:3000/sse"})
-	env := map[string]string{"MCP_TOOLS": "octopus-api@write,thulu-browser@browser_navigate", "OCTOPUS_API": "http://d:8585"}
-	d.applyMCPURLs(context.Background(), env, true)
+	env := map[string]string{"MCP_TOOLS": "octopus-api@write,thulu-browser@browser_navigate", "OCTOPUS_API": "http://d:8585",
+		runner.RunnerIDEnv: "rn1"}
+	d.applyMCPURLs(context.Background(), env)
 	if env["MCP_TOOLS"] != "octopus-api@write" {
 		t.Errorf("MCP_TOOLS = %q, want thulu-browser dropped", env["MCP_TOOLS"])
 	}

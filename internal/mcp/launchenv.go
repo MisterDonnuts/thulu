@@ -38,6 +38,18 @@ func ApplyLaunchEnv(ctx context.Context, env map[string]string, f *Forwarder, br
 	}
 }
 
+// PrepareMachineEnv marks a run or chat placed on a machine. A machine has no per-run browser
+// container, and a per-run daemon keeps runs apart on purpose, so with the browser per run it loses
+// thulu-browser rather than get the shared one. Reports whether it did. Call before ApplyLaunchEnv.
+func PrepareMachineEnv(env map[string]string, perRunBrowser bool) (dropped bool) {
+	env[runner.HostRunEnv] = "1"
+	if !perRunBrowser || !browserrun.Granted(env["MCP_TOOLS"]) {
+		return false
+	}
+	env["MCP_TOOLS"] = WithoutServer(env["MCP_TOOLS"], browserrun.ServerName)
+	return true
+}
+
 func LaunchServers(env map[string]string, f *Forwarder) []ServerEntry {
 	apiBase := strings.TrimSpace(env[browserrun.DaemonURLEnv])
 	taskID, locale := env["TASK_ID"], env["OCTOPUS_LOCALE"]

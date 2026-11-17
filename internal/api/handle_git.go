@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/MisterDonnuts/thulu/internal/apperr"
+	"github.com/MisterDonnuts/thulu/internal/auth"
 	"github.com/MisterDonnuts/thulu/internal/gitremote"
 	"github.com/MisterDonnuts/thulu/internal/i18n"
 	"github.com/MisterDonnuts/thulu/internal/logx"
@@ -55,8 +56,15 @@ func (s *Server) guardGitPush(next http.Handler) http.Handler {
 		repoPath = strings.Trim(repoPath, "/")
 		// Pass unauthorized requests through so the transport sends the Basic challenge git needs
 		// to retry with credentials.
-		if !s.authorizeGitRequest(r, repoPath) {
+		scope, ok := gitAuthorize(s.lookupKeyScope, r, repoPath)
+		if !ok {
 			next.ServeHTTP(w, r)
+			return
+		}
+		// A chat reads its task's code and never writes it, delegated or not: the task's next run
+		// would integrate whatever it pushed.
+		if scope.ChatID != "" {
+			writeError(w, r, http.StatusForbidden, apperr.Forbidden("api.git.errors.chat_push"))
 			return
 		}
 		taskID, _, _ := strings.Cut(repoPath, "/")
@@ -74,7 +82,7 @@ func (s *Server) guardGitPush(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 		ctx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), agentPublishTimeout)
 		defer cancel()
-		s.publishAfterAgentPush(ctx, repoPath, cmds)
+		s.publishAfterAgentPush(ctx, repoPath, cmds, r.Header.Get(gitremote.FinalPushHeader) != "")
 	})
 }
 
@@ -183,17 +191,22 @@ func refusePushCommands(cmds []receivePackCommand, allowed []string) error {
 	return nil
 }
 
-func gitAuthorize(lookup func(ctx context.Context, rawKey string) (scopeTaskID string, ok bool), r *http.Request, repoPath string) bool {
+// gitAuthorize returns the scope of the request's key when it may reach repoPath: only a key of the
+// task the path names may.
+func gitAuthorize(lookup func(ctx context.Context, rawKey string) (auth.RunScope, bool), r *http.Request, repoPath string) (auth.RunScope, bool) {
 	taskID, _, ok := strings.Cut(repoPath, "/")
 	if !ok || taskID == "" {
-		return false
+		return auth.RunScope{}, false
 	}
 	_, pass, ok := r.BasicAuth()
 	if !ok || pass == "" {
-		return false
+		return auth.RunScope{}, false
 	}
 	scope, ok := lookup(r.Context(), pass)
-	return ok && scope == taskID
+	if !ok || scope.TaskID != taskID {
+		return auth.RunScope{}, false
+	}
+	return scope, true
 }
 
 func gitResolveRepo(ctx context.Context, projectPaths func(context.Context, string) []string, repoPath string) (string, bool) {
@@ -210,15 +223,16 @@ func gitResolveRepo(ctx context.Context, projectPaths func(context.Context, stri
 }
 
 func (s *Server) authorizeGitRequest(r *http.Request, repoPath string) bool {
-	return gitAuthorize(s.lookupKeyScope, r, repoPath)
+	_, ok := gitAuthorize(s.lookupKeyScope, r, repoPath)
+	return ok
 }
 
-func (s *Server) lookupKeyScope(ctx context.Context, rawKey string) (string, bool) {
+func (s *Server) lookupKeyScope(ctx context.Context, rawKey string) (auth.RunScope, bool) {
 	info := s.authStore.LookupAPIKeyInfo(ctx, rawKey)
 	if info == nil {
-		return "", false
+		return auth.RunScope{}, false
 	}
-	return info.Scope.TaskID, true
+	return info.Scope, true
 }
 
 func (s *Server) resolveGitRepo(ctx context.Context, repoPath string) (string, bool) {
@@ -247,7 +261,6 @@ func enableReceivePack(dir string) {
 	//nolint:gosec // G204: dir is a daemon-managed project path from projectStore, never user input.
 	cmd := exec.CommandContext(context.Background(), "git", "-C", dir, "config", "http.receivepack", "true")
 	if err := cmd.Run(); err != nil {
-		//nolint:gosec // G706: dir sanitized with logx.Safe (strips control chars); gosec taint can't track custom sanitizers.
 		log.Printf("[git] %s", i18n.Log("api.git.log.enable_receivepack_failed", "dir", logx.Safe(dir), "err", err))
 	}
 }

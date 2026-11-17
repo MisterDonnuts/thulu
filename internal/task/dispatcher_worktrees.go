@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/MisterDonnuts/thulu/internal/apperr"
 	"github.com/MisterDonnuts/thulu/internal/githubapp"
 	"github.com/MisterDonnuts/thulu/internal/i18n"
 	"github.com/MisterDonnuts/thulu/internal/logx"
@@ -174,12 +175,10 @@ func (d *Dispatcher) commitAndPushWorktrees(ctx context.Context, t *Task, taskID
 	ownerID := t.SandboxRootID()
 	d.syncRunnerBranches(ctx, t.ProjectIDs, ownerID, taskID)
 	projects := d.localProjects(ctx, t.ProjectIDs)
-	// K8s: the agent pushed a result branch from its pod; bring it onto the daemon worktree first.
-	// A project whose result could not be integrated must not be pushed.
-	stale := map[string]bool{}
-	if d.agentPushesResults {
-		stale = d.integrateAgentResults(ctx, projects, ownerID, taskID)
-	}
+	// A pod or a machine pushed a result branch; bring it onto the daemon worktree first. A run that
+	// pushed none leaves nothing to integrate. A project whose result could not be integrated must
+	// not be pushed.
+	stale := d.integrateAgentResults(ctx, projects, ownerID, taskID)
 	msg := fmt.Sprintf("%s: %s (task %s)", stage, agentName, taskID) //i18n:ignore git commit subject, kept stable across locales
 	for _, projectID := range projects {
 		if err := d.projects.CommitWorktree(ctx, projectID, ownerID, msg); err != nil {
@@ -233,9 +232,25 @@ func (d *Dispatcher) integrateAgentResults(ctx context.Context, projects []strin
 			log.Printf("[task] %s", i18n.Log("task.log.integrate_agent_result", "project", projectID, "ref", ref, "err", err))
 			d.systemComment(ctx, taskID, NoteOf("task.comments.integrate_failed", "project", projectID, "err", err))
 			stale[projectID] = true
+			if apperr.KindOf(err) == apperr.KindConflict {
+				d.parkAgentResult(ctx, projectID, ref, taskID)
+			}
 		}
 	}
 	return stale
+}
+
+// A result that drops the task's commits fails the same way on every later run, and a Docker run
+// never pushes a new one: set it aside so this run alone skips the push.
+func (d *Dispatcher) parkAgentResult(ctx context.Context, projectID, ref, taskID string) {
+	parked, err := d.projects.ParkAgentResult(ctx, projectID, ref)
+	if err != nil {
+		log.Printf("[task] %s", i18n.Log("task.log.integrate_agent_result", "project", projectID, "ref", ref, "err", err))
+		return
+	}
+	if parked != "" {
+		d.systemComment(ctx, taskID, NoteOf("task.comments.result_parked", "project", projectID, "ref", parked))
+	}
 }
 
 func (d *Dispatcher) pushTaskBranchForProject(ctx context.Context, t *Task, projectID string) {

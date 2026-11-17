@@ -32,6 +32,7 @@ func (s *Server) NewEvidenceService(store *evidence.Store, maxRunners int) *evid
 		Store:      store,
 		Keys:       evidenceKeys{s},
 		MaxRunners: maxRunners,
+		Admit:      s.admitWorkspaceRun,
 		DaemonURL: func() string {
 			if s.taskDispatcher != nil {
 				return s.taskDispatcher.AgentBaseURL()

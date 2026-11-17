@@ -138,8 +138,7 @@ export interface Invitation {
 }
 
 export type AddMemberResult =
-  | { status: "ok"; user_id: string }
-  | { status: "invited"; invitation: Invitation };
+  { status: "ok"; user_id: string } | { status: "invited"; invitation: Invitation };
 
 export function addMember(
   workspaceID: string,

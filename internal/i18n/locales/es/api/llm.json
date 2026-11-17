@@ -47,7 +47,13 @@
     "federation_not_supported": "{engine} no puede autenticarse por federación de identidad de carga de trabajo",
     "federation_own_provider": "un perfil con federación habla con la API propia del motor: sin base_url, auth_header, proveedor de nube ni campos de nube",
     "federation_no_key": "un perfil con federación no lleva clave: la corrida recibe un token de identidad",
-    "federation_required": "el tipo de credencial {kind:%q} necesita la configuración de federación (federation_rule_id, organization_id, service_account_id)"
+    "federation_required": "el tipo de credencial {kind:%q} necesita la configuración de federación (federation_rule_id, organization_id, service_account_id)",
+    "machine_login_unsupported": "{engine} no puede correr con la sesión propia de una máquina: elegí un motor que pueda, o cargale una key al perfil",
+    "runner_not_found": "la máquina {runner} no está registrada en este workspace",
+    "runner_revoked": "la máquina {runner} fue revocada: elegí otra máquina",
+    "machine_profile_shape": "un perfil de máquina usa la sesión de la CLI de esa máquina: no lleva key, base_url, org_id, auth_header, campos de nube ni federación",
+    "machine_profile_provider": "un perfil de máquina usa el proveedor propio de {engine} ({provider}), no {got}",
+    "profile_kind_locked": "un perfil con key no puede pasar a ser de máquina, ni al revés: creá un perfil nuevo"
   },
   "audit": {
     "profile_created": "creó el perfil {name}",
@@ -62,7 +68,11 @@
     "no_engines_declared": "(ninguno declarado)"
   },
   "hints": {
-    "engine_no_longer_declared": "el agente ya no declara {engine} en thulu.engines.supported"
+    "engine_no_longer_declared": "el agente ya no declara {engine} en thulu.engines.supported",
+    "runner_revoked": "la máquina {runner} fue revocada: las corridas con este perfil se rechazan",
+    "runner_offline": "la máquina {runner} no está conectada: las corridas con este perfil se rechazan hasta que se conecte",
+    "runner_engine_missing": "la máquina {runner} no informó que tenga {engine} instalado",
+    "runner_not_logged_in": "{engine} no tiene la sesión iniciada en la máquina {runner}: iniciala allá antes de lanzar"
   },
   "log": {
     "touch_profile_failed": "actualizar el último uso del perfil de llm {profile}",

@@ -32,6 +32,8 @@ type createProfileReq struct {
 	SmallFastModel string                   `json:"small_fast_model"`
 	Kind           string                   `json:"kind"`
 	Federation     *engine.FederationConfig `json:"federation,omitempty"`
+	// A machine profile: runs go to this runner and its CLI login pays.
+	RunnerID string `json:"runner_id"`
 	profileSecretFields
 	IsDefault bool `json:"is_default"`
 }
@@ -50,6 +52,7 @@ type updateProfileReq struct {
 	SmallFastModel *string                  `json:"small_fast_model,omitempty"`
 	Kind           string                   `json:"kind"`
 	Federation     *engine.FederationConfig `json:"federation,omitempty"`
+	RunnerID       *string                  `json:"runner_id,omitempty"`
 	profileSecretFields
 	ClearKey  bool  `json:"clear_key"`
 	IsDefault *bool `json:"is_default,omitempty"`
@@ -58,6 +61,7 @@ type updateProfileReq struct {
 type profileView struct {
 	*secrets.LLMProfile
 	BoundAgents []string `json:"bound_agents"`
+	machineState
 }
 
 type setBindingReq struct {
@@ -83,7 +87,7 @@ func (s *Server) handleListLLMProfiles(w http.ResponseWriter, r *http.Request) {
 	for _, p := range profiles {
 		agents := bound[p.ID]
 		agents = nonNil(agents)
-		out = append(out, profileView{LLMProfile: p, BoundAgents: agents})
+		out = append(out, profileView{LLMProfile: p, BoundAgents: agents, machineState: s.machineStateOf(r.Context(), p)})
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"profiles": out})
 }
@@ -114,6 +118,10 @@ func (s *Server) handleCreateLLMProfile(w http.ResponseWriter, r *http.Request) 
 		region:         strings.TrimSpace(req.Region),
 		projectID:      strings.TrimSpace(req.ProjectID),
 		smallFastModel: strings.TrimSpace(req.SmallFastModel),
+	}
+	if strings.TrimSpace(req.RunnerID) != "" {
+		s.createMachineProfile(w, r, desc, shape, req)
+		return
 	}
 	if shape.provider == "" {
 		shape.provider = desc.Provider
@@ -254,13 +262,9 @@ func (s *Server) handleUpdateLLMProfile(w http.ResponseWriter, r *http.Request) 
 		writeErrKey(w, r, http.StatusBadRequest, "api.llm.errors.unknown_engine", "engine", engineName)
 		return
 	}
-	in, err := s.updatedProfileInput(r.Context(), desc, existing, req)
+	in, machine, status, err := s.profileUpdateInput(r, desc, existing, req)
 	if err != nil {
-		writeError(w, r, http.StatusBadRequest, err)
-		return
-	}
-	if status, denied := s.ownerOnlyUpdate(r, desc, existing, strings.TrimSpace(req.Kind), in); denied != nil {
-		writeError(w, r, status, denied)
+		writeError(w, r, status, err)
 		return
 	}
 
@@ -280,6 +284,10 @@ func (s *Server) handleUpdateLLMProfile(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 	s.auditLLMProfile(r, audit.KindLLMProfileUpdated, prof, i18n.Text("api.llm.audit.profile_updated", "name", prof.Name))
+	if machine {
+		writeJSON(w, http.StatusOK, prof)
+		return
+	}
 	writeJSON(w, http.StatusOK, s.recheckUpdatedProfile(r.Context(), desc, existing, prof, in.RawKey))
 }
 
@@ -423,6 +431,8 @@ type effectiveLLMView struct {
 	Provider     string   `json:"provider,omitempty"`
 	HasCred      bool     `json:"has_credential"`
 	HostFallback bool     `json:"host_fallback"`
+	RunnerID     string   `json:"runner_id,omitempty"`
+	RunnerName   string   `json:"runner_name,omitempty"`
 	Warnings     []string `json:"warnings,omitempty"`
 }
 
@@ -458,6 +468,16 @@ func (s *Server) handleGetEffectiveLLM(w http.ResponseWriter, r *http.Request) {
 		Provider:     resolved.Provider,
 		HasCred:      resolved.Credential != "",
 		HostFallback: s.hostLLMCredentialAllowed(),
+	}
+	if resolved.RunnerID != "" {
+		// The machine's own login is the credential: runnable unless the machine is gone.
+		name, warnings, revoked, err := s.machineWarnings(r.Context(), wsID, resolved)
+		if err != nil {
+			writeError(w, r, http.StatusInternalServerError, err)
+			return
+		}
+		view.RunnerID, view.RunnerName, view.HasCred = resolved.RunnerID, name, !revoked
+		view.Warnings = append(view.Warnings, warnings...)
 	}
 	if view.Model == "" {
 		if desc, ok := engineByName(r.Context(), view.Engine); ok {

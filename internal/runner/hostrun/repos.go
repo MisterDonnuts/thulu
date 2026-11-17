@@ -23,15 +23,28 @@ func (c *Config) mirrorDir(projectID string) string {
 	return filepath.Join(c.WorkDir, "repos", branchDir.ReplaceAllString(projectID, "_"))
 }
 
-// Two runs of one project would otherwise race on the clone's fetches and worktree list.
-func (r *Runner) lockRepo(projectID string) func() {
-	v, _ := r.repoLocks.LoadOrStore(projectID, &sync.Mutex{})
-	mu, ok := v.(*sync.Mutex)
-	if !ok {
-		return func() {}
-	}
+// Two runs of one project would otherwise race on the clone's fetches and worktree list, two turns of
+// one chat on its folder.
+func (r *Runner) lockRepo(key string) func() {
+	mu := r.repoLock(key)
 	mu.Lock()
 	return mu.Unlock
+}
+
+func (r *Runner) tryLockRepo(key string) (func(), bool) {
+	mu := r.repoLock(key)
+	if !mu.TryLock() {
+		return nil, false
+	}
+	return mu.Unlock, true
+}
+
+func (r *Runner) repoLock(key string) *sync.Mutex {
+	v, _ := r.repoLocks.LoadOrStore(key, &sync.Mutex{})
+	if mu, ok := v.(*sync.Mutex); ok {
+		return mu
+	}
+	return &sync.Mutex{}
 }
 
 func ensureMirror(ctx context.Context, checkout, mirror string) (string, error) {

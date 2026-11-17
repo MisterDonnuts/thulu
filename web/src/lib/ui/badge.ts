@@ -12,14 +12,7 @@ export type BadgeSize = "sm" | "md";
 export type BadgeEdge = "solid" | "dashed" | "hollow";
 
 export type DotTone =
-  | "neutral"
-  | "ok"
-  | "warn"
-  | "danger"
-  | "accent"
-  | "info"
-  | "special"
-  | "empty";
+  "neutral" | "ok" | "warn" | "danger" | "accent" | "info" | "special" | "empty";
 
 const TONES = new Set<string>(["neutral", "ok", "warn", "danger", "muted", "accent", "info"]);
 const SHAPES = new Set<string>(["rect", "pill"]);

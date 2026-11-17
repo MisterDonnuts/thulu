@@ -126,7 +126,7 @@ The [docs index](docs/README.md) covers each one.
 | Core, [AGPL-3.0](LICENSE) | Boards, stages, agents, auditor, QA on video, the Docker sandbox, SSO, the audit log in the dashboard, multiple workspaces |
 | [`ee/`](ee/LICENSE), needs a license key | Audit log export, the Kubernetes runtime, Stripe billing |
 
-Free covers teams of up to 4 people, Team starts at the 5th, and Enterprise adds a contract, an SLA and a named contact. Thulu doesn't enforce those sizes: only the features in `ee/` need a key, and workspaces, people and runs have no limit without one.
+Community covers teams of up to 4 people, Team starts at the 5th, and Enterprise adds a contract, an SLA and a named contact. Thulu doesn't enforce those sizes: only the features in `ee/` need a key, and workspaces, people and runs have no limit without one.
 
 Prices are public at [thulu.dev](https://thulu.dev/#pricing), and you don't need a call to see them. To buy, [contact sales](https://thulu.dev/contact/). The managed cloud is a [closed beta, invitation only](https://thulu.dev/getting-started/cloud/).
 

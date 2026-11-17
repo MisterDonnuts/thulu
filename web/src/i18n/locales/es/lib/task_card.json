@@ -46,5 +46,6 @@
     }
   },
   "asked": "Preguntó",
-  "asked_title": "El agente hizo una pregunta y sigue trabajando. Abrí la tarea para contestarla."
+  "asked_title": "El agente hizo una pregunta y sigue trabajando. Abrí la tarea para contestarla.",
+  "on_machine": "En {name}"
 }

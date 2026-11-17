@@ -2,16 +2,28 @@
   "errors": {
     "unavailable": "los runners no están disponibles en esta instancia",
     "runner_revoked": "el runner {runner} fue revocado",
-    "protocol": "este runner habla el protocolo {got} y el daemon el {want}. Actualizá el runner",
+    "protocol": "este runner habla el protocolo {got} y el daemon acepta del {min} al {max}. Actualizá el runner",
     "log_too_large": "un pedazo de log puede pesar hasta 4 MB",
     "no_output_dir": "esta corrida no tiene directorio de salida en el daemon",
-    "task_mixes_projects": "el proyecto {project} no corre sus agentes en un runner: los proyectos de una tarea tienen que correr todos en el mismo runner",
     "task_mixes_runners": "todos los proyectos de una tarea tienen que correr en el mismo runner",
     "task_without_runner": "la tarea no tiene ningún proyecto en un runner",
-    "engine_not_supported": "este runner sólo corre Claude Code; {engine} necesita un contenedor",
-    "no_steering": "esta corrida no recibe mensajes mientras corre; el mensaje espera a la próxima",
+    "engine_not_supported": "un runner no puede correr {engine}: su script necesita un contenedor",
+    "runner_outdated": "el runner {runner} habla el protocolo {got} y esta corrida necesita el {want}: actualizá thulu en esa máquina y lanzá de nuevo",
+    "task_not_on_runner": "la tarea tiene un proyecto en un runner, pero esta corrida no quedó ubicada ahí",
     "no_kill": "este runtime no puede frenar una corrida",
-    "push_on_runner": "el proyecto {project} corre sus agentes en un runner, que empuja la rama de la tarea desde su máquina; el daemon no la empuja"
+    "push_on_runner": "el proyecto {project} corre sus agentes en un runner, que empuja la rama de la tarea desde su máquina; el daemon no la empuja",
+    "folder_not_absolute": "{path} no es una ruta absoluta en la máquina del runner",
+    "no_folders_reported": "el runner {runner} todavía no informó sus carpetas: arrancalo en su máquina (thulu runner run) y actualizalo si es más viejo que esta versión",
+    "folder_not_allowed": "{path} está fuera de las carpetas que permite {runner} ({roots}). Agregala en esa máquina con thulu runner allow",
+    "folder_taken": "{path} ya es la carpeta del proyecto {project} en esta máquina",
+    "add_name_taken": "ya hay un proyecto {name} en este workspace: elegí otro nombre con -name",
+    "steer_not_running": "la corrida todavía no arrancó en su máquina; el mensaje espera a la próxima",
+    "steer_too_large": "un mensaje para un agente que está corriendo tiene un tope de {max} KB",
+    "steer_sealed": "el agente dejó de leer mensajes; el mensaje espera a la próxima corrida",
+    "steer_locked": "la cola de mensajes del agente quedó trabada; el mensaje espera a la próxima corrida",
+    "steer_failed": "la máquina no pudo pasarle el mensaje al agente ({result}); el mensaje espera a la próxima corrida",
+    "steer_timeout": "la máquina no tomó el mensaje en 10 s; el mensaje espera a la próxima corrida",
+    "turn_unfinished": "la máquina {runner} no terminó el turno del chat a tiempo: fijate que thulu runner run siga corriendo allá y mandá el mensaje de nuevo"
   },
   "log": {
     "output_dir": "crear el directorio de salida {dir}",
@@ -22,7 +34,13 @@
     "lost": "el runner {runner} dejó de responder (o nunca tomó la corrida); la corrida queda como fallida",
     "reap_failed": "marcar procesada la corrida de runner {job}",
     "read_log_failed": "leer el log de la corrida de runner {job}; la sesión registrada queda sin log",
-    "write_log_failed": "escribir el log de la corrida de runner {job}"
+    "write_log_failed": "escribir el log de la corrida de runner {job}",
+    "adopt_folder_failed": "guardar la carpeta que el runner {runner} tiene para el proyecto {project}",
+    "turn_read_failed": "leer el archivo del turno de chat {path}",
+    "turn_cancel_failed": "cancelar el job {job} del turno de chat",
+    "turn_cleanup_failed": "borrar los archivos del turno de chat {path}",
+    "turn_output_missing": "la máquina terminó el turno de chat, pero su respuesta nunca llegó al daemon",
+    "orphan_turns_failed": "buscar los turnos de chat que un daemon anterior dejó en las máquinas: {err}"
   },
   "audit": {
     "token_created": "Token de registro creado para el runner {name}",
@@ -30,6 +48,8 @@
     "revoked": "Runner {runner} revocado",
     "project_created": "Proyecto {project} agregado en el runner {runner}",
     "project_runner_set": "El proyecto {project} ahora corre sus agentes en el runner {runner}",
-    "project_runner_cleared": "El proyecto {project} vuelve a correr sus agentes en esta instancia"
+    "project_runner_cleared": "El proyecto {project} vuelve a correr sus agentes en esta instancia",
+    "project_folder_set": "El proyecto {project} ahora usa la carpeta {path} en su runner",
+    "project_added": "Proyecto {project} agregado desde {path} en el runner {runner}"
   }
 }

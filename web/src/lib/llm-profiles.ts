@@ -1,5 +1,6 @@
 import { t } from "../i18n";
 import { relTime } from "./activity";
+import type { EngineState } from "./runners";
 import { esc, type BadgeTone } from "./ui";
 
 export interface EngineInfo {
@@ -43,6 +44,10 @@ export interface LLMProfile {
   refused_status?: number;
   refused_at?: string;
   federation?: FederationSettings;
+  // A machine profile: runs go to this runner and its CLI login pays, so it holds no key.
+  runner_id?: string;
+  runner_name?: string;
+  engine_state?: EngineState;
 }
 
 export interface FederationSettings {
@@ -54,12 +59,7 @@ export interface FederationSettings {
 
 // Codes the daemon stores; the page translates them, so this list must match the daemon's reasons.
 export type KeyReason =
-  | "no_upstream"
-  | "not_checkable"
-  | "endpoint_refused"
-  | "no_answer"
-  | "rejected"
-  | "unexpected";
+  "no_upstream" | "not_checkable" | "endpoint_refused" | "no_answer" | "rejected" | "unexpected";
 
 export interface AgentLite {
   name: string;
@@ -295,6 +295,56 @@ export function keyPlaceholder(editing: LLMProfile | null, prefix: string): stri
   return prefix
     ? t("lib.llm_profiles.placeholders.prefix", { prefix })
     : t("lib.llm_profiles.placeholders.paste");
+}
+
+export interface ProfileFieldsInput {
+  engine: { base_url?: boolean; org_id?: boolean; auth_header?: boolean };
+  provider: string;
+  providers: number;
+  kinds: number;
+  federated: boolean;
+  machine: boolean;
+  baseURL: string;
+}
+
+// Which fields of the profile modal show (true) for the chosen provider and credential. A machine
+// profile is paid by that machine's CLI login, so it keeps only the model, the effort and the
+// machine.
+export function profileFields(
+  i: ProfileFieldsInput,
+): Record<
+  | "provider"
+  | "cloud"
+  | "project"
+  | "aws"
+  | "gcp"
+  | "baseURL"
+  | "orgID"
+  | "authHeader"
+  | "key"
+  | "kind"
+  | "federation"
+  | "runner",
+  boolean
+> {
+  const cloud = !i.machine && isCloudProvider(i.provider);
+  const vertex = cloud && i.provider === "vertex";
+  const federation = !cloud && !i.machine && i.federated;
+  const endpoint = !cloud && !federation && !i.machine;
+  return {
+    provider: !i.machine && i.providers > 1,
+    cloud,
+    project: vertex,
+    aws: cloud && i.provider === "bedrock",
+    gcp: vertex,
+    baseURL: endpoint && !!i.engine.base_url,
+    orgID: !cloud && !i.machine && !!i.engine.org_id,
+    authHeader: endpoint && !!i.engine.auth_header && i.baseURL.trim() !== "",
+    key: !vertex && !federation && !i.machine,
+    kind: !cloud && i.kinds > 1,
+    federation,
+    runner: i.machine,
+  };
 }
 
 export interface ProfileFormInput {

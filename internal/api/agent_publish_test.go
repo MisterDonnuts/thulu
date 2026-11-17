@@ -31,3 +31,19 @@ func TestAgentGitPublishLockIsPerBranch(t *testing.T) {
 		t.Error("different projects must not share a lock")
 	}
 }
+
+// A fetch never waits on GitHub past refreshWait: the refresh goes on without it.
+func TestWaitAtMostLetsASlowRefreshGoOnAlone(t *testing.T) {
+	start := time.Now()
+	if waitAtMost(20*time.Millisecond, make(chan struct{})) {
+		t.Error("a refresh still running was reported finished")
+	}
+	if waited := time.Since(start); waited > 2*time.Second {
+		t.Errorf("waited %s on a refresh that never ends", waited)
+	}
+	done := make(chan struct{})
+	close(done)
+	if !waitAtMost(time.Minute, done) {
+		t.Error("a finished refresh was not reported")
+	}
+}

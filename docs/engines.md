@@ -198,7 +198,8 @@ model, effort, image and bound profile do not carry over. The run key says the
 same to the LLM gateway, which only sees the key: `scope_llm_agent` names the
 audited agent, and `scope_llm_engine` names the chosen engine, which overrides
 that agent's bound profile. The run bundle also comes from `scope_llm_agent`. A
-runner refuses any engine but Claude Code. An auditor that cannot start, or that
+runner refuses an engine that does not declare `MachineLogin` (today only Claude
+Code does). An auditor that cannot start, or that
 ends without a verdict, blocks the task.
 
 A chat turn passes `RESUME_BASE_PROMPT` with `prompts/chat.md` (or `main.md`).
@@ -256,6 +257,7 @@ turns" from `Outcome`, never from a CLI subtype. Claude Code maps
 | `KeyKind.Federated`, `FederationEnv`, `FederationAudience` | identity federation: the daemon signs a token per run and there is no key; see [workload-identity-federation.md](workload-identity-federation.md) |
 | `NonessentialTrafficEnv` | env that turns off telemetry and update checks |
 | `PersonalLogin` | the CLI's own login that a person connects in Docker mode: configuration folder, login, status and logout commands, and which variables to clear. See [personal-login.md](personal-login.md) |
+| `MachineLogin` | the engine runs on a registered machine, paid by that machine's own CLI login: `Binary` and `Version` to find the CLI, `Status` and `ParseStatus` to read the login, `ClearEnv` for variables to strip from the person's shell, and `Login`, the command the UI proposes when nobody is signed in. Declaring it offers "Login on a machine" in the profile modal (`machine_login` and `machine_login_command` in `GET /engines`); the runner probes the CLI every minute and reports what it finds |
 
 ## Adding an engine
 
@@ -279,11 +281,16 @@ turns" from `Outcome`, never from a CLI subtype. Claude Code maps
 6. **Fixtures.** `internal/engine/testdata/<name>/ok.jsonl` and `error.jsonl`,
    and `max_turns.jsonl` if it has `TurnBudget`: the real stdout of a run, as
    `session.log` stores it, starting with the `octopus.session` line.
-7. **Adapter tests.** In `internal/agentscripts/enginesession_test.go`, a fake
+7. **Running on a machine (optional).** Declare `MachineLogin` and have
+   `engine_auth_check` accept `OCTOPUS_LLM_SOURCE=runner_login`: the CLI uses
+   its stored login and no credential variable may reach it. Add a blank import
+   of the package to `internal/runner/hostrun/engines.go`; the `thulu` runner
+   links no daemon wiring and only knows the engines imported there.
+8. **Adapter tests.** In `internal/agentscripts/enginesession_test.go`, a fake
    CLI that answers like the real one: new run, resume from snapshot, failed
    resume that falls back to the transcript, and `engine_session_save` without
    credentials.
-8. `make check-ci`.
+9. `make check-ci`.
 
 ## Conformance test
 

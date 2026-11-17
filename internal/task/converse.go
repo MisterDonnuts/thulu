@@ -15,7 +15,6 @@ import (
 	"github.com/MisterDonnuts/thulu/internal/i18n"
 	"github.com/MisterDonnuts/thulu/internal/logx"
 	"github.com/MisterDonnuts/thulu/internal/safepath"
-	"github.com/MisterDonnuts/thulu/internal/types"
 )
 
 type Delivery string
@@ -37,10 +36,24 @@ type ConverseResult struct {
 	ChatID   string   `json:"chat_id,omitempty"`
 }
 
-// Only the Docker launcher implements this. Kubernetes would need pods/exec, which the daemon's
-// ClusterRole withholds.
+// The Docker launcher and the runner launcher implement this. Kubernetes would need pods/exec, which
+// the daemon's ClusterRole withholds.
 type RunSteerer interface {
 	SteerRun(ctx context.Context, runID string, payload []byte) error
+}
+
+// SteerChecker is for a launcher that steers some runs and not others: it answers from the run's
+// placed env.
+type SteerChecker interface {
+	CanSteer(env map[string]string) bool
+}
+
+func (d *Dispatcher) launcherSteers(env map[string]string) bool {
+	if c, ok := d.launcher.(SteerChecker); ok {
+		return c.CanSteer(env)
+	}
+	_, ok := d.launcher.(RunSteerer)
+	return ok
 }
 
 type RunLogReader interface {
@@ -261,14 +274,16 @@ func (d *Dispatcher) ContinueStage(ctx context.Context, t *Task, message string)
 // Kubernetes made runs look steerable
 // when steerRun can only fail. RESUME_MESSAGE is set even without a session: ResumeStage launches
 // either way.
-func applyConversationEnv(env map[string]string, agentType *types.AgentType, opts launchOpts, launcherSteers bool) {
+// Call after the run is placed: the engine a profile resolved, not the agent's label, decides
+// whether the run reads mid-run messages.
+func applyConversationEnv(env map[string]string, opts launchOpts, launcherSteers bool) {
 	if opts.Session != "" {
 		env["SESSION_ID"] = opts.Session
 	}
 	if opts.Message != "" {
 		env["RESUME_MESSAGE"] = opts.Message
 	}
-	if launcherSteers && engineTakesStreamingInput(resolveEngineName(agentType)) {
+	if launcherSteers && engineTakesStreamingInput(env["ENGINE"]) {
 		env["STEER_ENABLED"] = "1"
 	}
 }

@@ -291,8 +291,24 @@ func startOperations(
 	if kubeRT != nil {
 		startRoomWatch(ctx, kubeRT, srv)
 		startImageBuild(ctx, kubeRT)
+		startHourMeter(ctx, kubeRT, st)
 	}
 	srv.StartSetupPrewarms(ctx)
+}
+
+// Agent hours are a Cloud quota: self-hosted counts nothing. The daemon holds the singleton lease by
+// now, so no other replica counts the same pods.
+func startHourMeter(ctx context.Context, kubeRT *kubert.Runtime, st *stores) {
+	if st.entitle == nil || !entitlements.SaaSMode() {
+		return
+	}
+	var report entitlements.ExtraHoursReporter
+	if entitlements.ExtraHoursReporterFromEnv != nil {
+		report = entitlements.ExtraHoursReporterFromEnv(os.Getenv)
+	}
+	log.Printf("[daemon] %s", i18n.Log("daemon.log.hour_meter_started",
+		"interval", entitlements.DefaultMeterInterval, "billing", report != nil))
+	go st.entitle.RunMeter(ctx, kubeRT, entitlements.DefaultMeterInterval, report)
 }
 
 func startCleanup(
@@ -428,7 +444,7 @@ func openStores(ctx context.Context, dataDir string) (st *stores, err error) {
 
 	defaultPlan := entitlements.PlanSelfHosted
 	if auth.SaaSMode() {
-		defaultPlan = entitlements.PlanFree
+		defaultPlan = entitlements.PlanTrial
 	}
 
 	for _, open := range []func() error{
@@ -712,6 +728,16 @@ func buildChatService(
 				return 0
 			}
 			return ent.ConcurrencyLimit
+		},
+		Admit: func(ctx context.Context, workspaceID string) error {
+			if workspaceID == "" || st.entitle == nil {
+				return nil
+			}
+			a, err := st.entitle.AdmitRun(ctx, workspaceID)
+			if err != nil {
+				return nil //nolint:nilerr // fail open: a billing hiccup must not stop every chat
+			}
+			return a.Err()
 		},
 	})
 	code := func(taskID string) map[string]types.CodeView {

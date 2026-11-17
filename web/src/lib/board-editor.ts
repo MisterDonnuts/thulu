@@ -184,16 +184,7 @@ export const STAGE_COLORS: ReadonlyArray<{ name: SwatchName; hex: string }> = [
   { name: "gray", hex: "#8a92a6" },
 ];
 export type SwatchName =
-  | "slate"
-  | "orange"
-  | "green"
-  | "blue"
-  | "cyan"
-  | "purple"
-  | "pink"
-  | "red"
-  | "yellow"
-  | "gray";
+  "slate" | "orange" | "green" | "blue" | "cyan" | "purple" | "pink" | "red" | "yellow" | "gray";
 
 export function normalizeHex(hex: string): string {
   const h = hex.trim().toLowerCase();

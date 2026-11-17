@@ -6,6 +6,9 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/MisterDonnuts/thulu/internal/apperr"
+	"github.com/MisterDonnuts/thulu/internal/testgit"
 )
 
 func TestIntegrateResultIntoWorktree(t *testing.T) {
@@ -74,7 +77,7 @@ func TestIntegrateResultRejectsNonFastForward(t *testing.T) {
 		t.Errorf("worktree HEAD = %q, want its own commit kept", strings.TrimSpace(got))
 	}
 
-	if _, err := integrateResultIntoWorktree(repo, filepath.Join(t.TempDir(), "nope"), "x"); err == nil {
+	if _, err := integrateResultIntoWorktree(repo, filepath.Join(t.TempDir(), "nope"), "octopus-result-y"); err == nil {
 		t.Error("expected error for missing worktree")
 	}
 }
@@ -134,6 +137,46 @@ func TestIntegrateResultWithoutAPushIsANoOp(t *testing.T) {
 	}
 }
 
+// Case 54: integrating deletes the result branch, so a later run that fails before pushing cannot
+// reset the worktree back onto an old result after the daemon rebased the task branch.
+func TestAnIntegratedResultIsNotIntegratedAgain(t *testing.T) {
+	repo := t.TempDir()
+	gitRunT(t, repo, "init", "-b", "main")
+	writeF(t, filepath.Join(repo, "a.txt"), "base")
+	gitRunT(t, repo, "add", ".")
+	gitRunT(t, repo, "commit", "-m", "base")
+	worktree := filepath.Join(t.TempDir(), "wt")
+	gitRunT(t, repo, "worktree", "add", "-b", "task-s", worktree)
+
+	agent := filepath.Join(t.TempDir(), "agent")
+	gitRunT(t, "", "clone", repo, agent)
+	gitRunT(t, agent, "checkout", "task-s")
+	writeF(t, filepath.Join(agent, "b.txt"), "agent output")
+	gitRunT(t, agent, "add", ".")
+	gitRunT(t, agent, "commit", "-m", "agent work")
+	gitRunT(t, agent, "push", "origin", "HEAD:octopus-result-s")
+	if _, err := integrateResultIntoWorktree(repo, worktree, "octopus-result-s"); err != nil {
+		t.Fatalf("integrate: %v", err)
+	}
+	if out := gitOutT(t, repo, "branch", "--list", "octopus-result-s"); strings.TrimSpace(out) != "" {
+		t.Fatalf("the integrated result branch is still there: %q", out)
+	}
+
+	writeF(t, filepath.Join(repo, "main.txt"), "upstream")
+	gitRunT(t, repo, "add", "main.txt")
+	gitRunT(t, repo, "commit", "-m", "upstream change")
+	gitRunT(t, worktree, "rebase", "main")
+	rebased := gitOutT(t, worktree, "rev-parse", "HEAD")
+
+	rewritten, err := integrateResultIntoWorktree(repo, worktree, "octopus-result-s")
+	if err != nil || rewritten {
+		t.Fatalf("integrate with the result already taken = (%v, %v), want (false, nil)", rewritten, err)
+	}
+	if got := gitOutT(t, worktree, "rev-parse", "HEAD"); got != rebased {
+		t.Errorf("worktree moved to %s, want the rebased %s kept", got, rebased)
+	}
+}
+
 func writeF(t *testing.T, path, content string) {
 	t.Helper()
 	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
@@ -168,4 +211,48 @@ func gitCmd(dir string, args ...string) *exec.Cmd {
 		"GIT_COMMITTER_NAME=t", "GIT_COMMITTER_EMAIL=t@x",
 	)
 	return cmd
+}
+
+// A result that drops the task's commits is set aside under refs/octopus/parked/, out of the next
+// integration's way, and goes with the task's worktree.
+func TestADivergedResultIsParkedUntilTheWorktreeGoes(t *testing.T) {
+	store := newTestStore(t)
+	proj, err := store.Create(t.Context(), "Parked", testgit.BareRepo(t), CreateOpts{WorkspaceID: testWS})
+	if err != nil {
+		t.Fatal(err)
+	}
+	wt, _, err := store.CreateTaskWorktree(t.Context(), proj.ID, "p1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := ResultBranchName("p1")
+	if parked, err := store.ParkAgentResult(t.Context(), proj.ID, result); err != nil || parked != "" {
+		t.Fatalf("park without a result = (%q, %v), want nothing parked", parked, err)
+	}
+	writeF(t, filepath.Join(wt, "daemon.txt"), "daemon only")
+	gitRunT(t, wt, "add", ".")
+	gitRunT(t, wt, "commit", "-m", "daemon only")
+	other := strings.TrimSpace(gitOutT(t, proj.Path, "commit-tree", "-p", "origin/main", "-m", "agent work", "origin/main^{tree}"))
+	gitRunT(t, proj.Path, "branch", result, other)
+	tip := strings.TrimSpace(gitOutT(t, proj.Path, "rev-parse", result))
+	if _, err := store.IntegrateAgentResult(t.Context(), proj.ID, "p1", result); apperr.KindOf(err) != apperr.KindConflict {
+		t.Fatalf("integrate = %v, want the divergence refused", err)
+	}
+
+	parked, err := store.ParkAgentResult(t.Context(), proj.ID, result)
+	if err != nil || !strings.HasPrefix(parked, "refs/octopus/parked/"+result+"/") {
+		t.Fatalf("park = (%q, %v)", parked, err)
+	}
+	if got := strings.TrimSpace(gitOutT(t, proj.Path, "rev-parse", parked)); got != tip {
+		t.Errorf("parked at %s, want the result's tip %s", got, tip)
+	}
+	if _, err := store.IntegrateAgentResult(t.Context(), proj.ID, "p1", result); err != nil {
+		t.Errorf("the next integration = %v, want a no-op", err)
+	}
+	if err := store.RemoveTaskWorktree(t.Context(), proj.ID, "p1"); err != nil {
+		t.Fatal(err)
+	}
+	if refs := strings.TrimSpace(gitOutT(t, proj.Path, "for-each-ref", "refs/octopus/parked/")); refs != "" {
+		t.Errorf("parked results outlived the worktree: %q", refs)
+	}
 }

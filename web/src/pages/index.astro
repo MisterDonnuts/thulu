@@ -77,7 +77,7 @@ import { t } from "../i18n";
           id="m-quota"
           href="/usage/"
           icon="flag"
-          label={t("dashboard.metrics.runs_month")}
+          label={t("dashboard.metrics.hours_month")}
           value="—"
           sub="—"
           hidden
@@ -170,7 +170,7 @@ import { t } from "../i18n";
       workspaceSteps,
       type SetupStatus,
     } from "../lib/dashboard";
-    import { runQuota, type Entitlements } from "../lib/plan";
+    import { hourQuota, type Entitlements } from "../lib/plan";
     import { t } from "../i18n";
     import { onPage } from "../lib/page";
 
@@ -620,13 +620,13 @@ import { t } from "../i18n";
           return;
         }
         markStale(["m-quota"], fresh.quota);
-        const q = runQuota(entitlements);
+        const q = hourQuota(entitlements);
         const card = $("m-quota");
         card.hidden = !q;
         if (!q) return;
         setStat(card, {
           value: q.value,
-          sub: q.resets,
+          sub: q.sub,
           tone: q.tone === "full" ? "danger" : q.tone === "warn" ? "warn" : "neutral",
         });
       }

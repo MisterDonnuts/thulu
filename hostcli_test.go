@@ -29,6 +29,25 @@ func TestHostBuildLeavesTheServerOut(t *testing.T) {
 	}
 }
 
+// The runner resolves engines through the registry; an engine its build leaves out is one no
+// runner can run.
+var hostcliRequired = []string{
+	"github.com/MisterDonnuts/thulu/internal/engine/claudecode",
+}
+
+func TestHostBuildLinksTheRunnerEngines(t *testing.T) {
+	for _, goos := range []string{"linux", "darwin"} {
+		t.Run(goos, func(t *testing.T) {
+			imports := hostcliImports(t, goos)
+			for _, want := range hostcliRequired {
+				if importChain(imports, "github.com/MisterDonnuts/thulu", want) == nil {
+					t.Errorf("the hostcli build does not link %s", want)
+				}
+			}
+		})
+	}
+}
+
 func hostcliImports(t *testing.T, goos string) map[string][]string {
 	t.Helper()
 	cmd := exec.Command("go", "list", "-deps", "-tags", "hostcli",

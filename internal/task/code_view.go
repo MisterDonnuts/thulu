@@ -28,6 +28,42 @@ func ReadOnlyCode(ctx context.Context, t *Task, projects *project.Store) map[str
 	return out
 }
 
+// CodeSource is one project of a task as a run outside the daemon reaches it. Each consumer builds
+// the address where it runs: a machine its folder or <daemon>/git/<task>/<Name>, a pod its clone URL.
+type CodeSource struct {
+	Project *project.Project
+	// The /git/ path segment and the mount name under projects/ (filepath.Base of the project path).
+	Name string
+	// The task branch; empty when a read-only run has no branch to read and takes the default.
+	Branch string
+}
+
+// OnMachine reports whether the code lives on a runner's machine rather than in the daemon.
+func (c CodeSource) OnMachine() bool { return c.Project.RunsOnRunner() }
+
+// CodeSources lists the task's projects for a run outside the daemon. A machine keeps its own copy of
+// the task branch. A daemon project the daemon has no worktree for has no task branch either: a
+// read-only run reads its default branch, and a run that writes goes without it, as in Docker.
+func CodeSources(ctx context.Context, t *Task, projects *project.Store, readOnly bool) ([]CodeSource, error) {
+	branch := project.TaskBranchName(t.SandboxRootID())
+	out := make([]CodeSource, 0, len(t.ProjectIDs))
+	for _, id := range t.ProjectIDs {
+		p, err := projects.Get(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		src := CodeSource{Project: p, Name: filepath.Base(p.Path), Branch: branch}
+		if !src.OnMachine() && t.WorktreePaths[id] == "" {
+			if !readOnly {
+				continue
+			}
+			src.Branch = ""
+		}
+		out = append(out, src)
+	}
+	return out, nil
+}
+
 func (t *Task) BranchAt(path string) string {
 	for _, wt := range t.WorktreePaths {
 		if wt != "" && wt == path {

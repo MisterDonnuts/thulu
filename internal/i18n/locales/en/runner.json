@@ -2,7 +2,7 @@
   "errors": {
     "init_schema": "set up the runner tables",
     "workspace_required": "a runner belongs to a workspace",
-    "name_invalid": "a runner needs a name of up to 64 characters",
+    "name_invalid": "a runner name can have up to 80 characters",
     "create_registration": "create the runner registration token",
     "registration_invalid": "the registration token is unknown, used or expired",
     "register": "register the runner",
@@ -29,7 +29,8 @@
     "outputs_not_tar": "the run's output is not a tar archive",
     "outputs_too_large": "the run's output is over {max} bytes",
     "decode_job": "read the stored run {id}",
-    "stat_output": "read {path} in the run's output"
+    "stat_output": "read {path} in the run's output",
+    "inventory": "store the runner's folders"
   },
   "log": {
     "seen_failed": "record when runner {runner} was last seen"

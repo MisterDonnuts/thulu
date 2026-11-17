@@ -110,6 +110,33 @@ func (c *APIClient) CreateLLMProfile(ctx context.Context, name string, cred Engi
 	return c.do(ctx, http.MethodPost, "/llm-profiles", body, nil)
 }
 
+// CreateMachineProfile adds a keyless profile that pays with runnerID's engine login, as the
+// engine's default.
+func (c *APIClient) CreateMachineProfile(ctx context.Context, name, engine, runnerID string) error {
+	body := map[string]any{"name": name, "engine": engine, "runner_id": runnerID, "is_default": true}
+	return c.do(ctx, http.MethodPost, "/llm-profiles", body, nil)
+}
+
+// MachineProfile returns the id of engine's profile on runnerID, or "" when it has none.
+func (c *APIClient) MachineProfile(ctx context.Context, engine, runnerID string) (string, error) {
+	var out struct {
+		Profiles []struct {
+			ID       string `json:"id"`
+			Engine   string `json:"engine"`
+			RunnerID string `json:"runner_id"`
+		} `json:"profiles"`
+	}
+	if err := c.do(ctx, http.MethodGet, "/llm-profiles", nil, &out); err != nil {
+		return "", err
+	}
+	for _, p := range out.Profiles {
+		if p.Engine == engine && p.RunnerID == runnerID {
+			return p.ID, nil
+		}
+	}
+	return "", nil
+}
+
 func (c *APIClient) CreateRunnerToken(ctx context.Context, name string) (string, error) {
 	var out struct {
 		Token string `json:"token"`

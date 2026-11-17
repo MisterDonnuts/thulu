@@ -752,7 +752,8 @@ synchronously and record what it can actually do.
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| `GET` | `/entitlements` | viewer | Workspace plan limits (seats, concurrency, run quota) |
+| `GET` | `/entitlements` | viewer | Workspace plan limits and usage (seats, agents, agent hours, extra hours, storage) |
+| `PUT` | `/entitlements/extra-hours-cap` | admin | Monthly cap on extra hours, `{"cap_usd": 120}` (0 = no extra hours) |
 | `PUT` | `/entitlements` | admin | Set the workspace plan |
 | `DELETE` | `/workspaces/{id}` | admin | Right-to-erasure: delete workspace + all data (owner + slug confirmation enforced) |
 
@@ -878,8 +879,9 @@ key gets 403. See [personal-login.md](personal-login.md).
 
 | Method | Path | Role | Description |
 |---|---|---|---|
-| `GET` | `/me/engine-logins` | viewer | `{"logins": [{"engine", "connected", "pending", "email", "org", "method"}]}` for every engine that offers one |
-| `POST` | `/me/engine-logins/{engine}` | developer | Starts the CLI's sign-in → `{"url"}`, the authorization URL to open |
+| `GET` | `/me/engine-logins` | viewer | `{"logins": [{"engine", "connected", "pending", "phase", "email", "org", "method"}]}` for every engine that offers one; `phase` is `preparing` or `waiting_code` while a sign-in is open |
+| `POST` | `/me/engine-logins/{engine}` | developer | Opens the CLI's sign-in and returns at once → `202` with the flow below. The daemon prepares the CLI on its own (the first time it installs it, several seconds); a reload or a closed tab doesn't stop it |
+| `GET` | `/me/engine-logins/{engine}/flow` | developer | The open sign-in → `{"phase", "url", "error"}`: `preparing`, then `waiting_code` with the authorization `url`, or `failed` with `error` (reported once). `""` when none is open |
 | `POST` | `/me/engine-logins/{engine}/code` | developer | `{"code"}` from the sign-in page → the login's status |
 | `POST` | `/me/engine-logins/{engine}/cancel` | developer | Drops a sign-in waiting for its code → `204` |
 | `DELETE` | `/me/engine-logins/{engine}` | developer | The CLI's logout, then the volume goes → `204` (`409` while a run has it mounted) |

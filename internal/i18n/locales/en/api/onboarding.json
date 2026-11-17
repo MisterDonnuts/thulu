@@ -41,7 +41,10 @@
       "effect": "agent runs fail at dispatch: there is no model to call",
       "finish": "set the engine's default profile in Settings → AI engines",
       "store_unavailable": "secrets store unavailable",
-      "no_key": "no key for {engine}"
+      "machine": "{engine} uses a machine's login: its default profile is a machine profile",
+      "no_key": "no key for {engine}",
+      "no_key_personal": "no key for {engine}. Until there is one, the runs you start yourself can use your own account: Settings → AI engines → Your own account",
+      "no_key_runner": "no key needed for now: every project runs its agents on a runner, which uses the claude login on that machine; a project that runs here needs a key for {engine}"
     },
     "project": {
       "title": "First project",

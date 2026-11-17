@@ -53,7 +53,7 @@ type operatorRig struct {
 func newOperatorRig(t *testing.T) *operatorRig {
 	t.Helper()
 	srv, h := newIntegrationServer(t)
-	es, err := entitlements.NewStore(testpg.New(t), entitlements.PlanFree)
+	es, err := entitlements.NewStore(testpg.New(t), entitlements.PlanTrial)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -125,16 +125,16 @@ func TestOperatorGate_InstallWideWritesRefuseTenantAdmins(t *testing.T) {
 	}
 
 	ent, err := rig.srv.entitlements.Get(rig.tenantWS)
-	if err != nil || ent.Plan != entitlements.PlanFree {
-		t.Errorf("tenant plan = %+v (%v), want the Free default", ent, err)
+	if err != nil || ent.Plan != entitlements.PlanTrial {
+		t.Errorf("tenant plan = %+v (%v), want the trial default", ent, err)
 	}
 	w = callAs(t, rig.h, http.MethodPut, "/entitlements?workspace="+rig.tenantWS, "", rig.opKey,
-		map[string]string{"plan": "business"})
+		map[string]string{"plan": "team"})
 	if w.Code != http.StatusOK {
 		t.Fatalf("operator key PUT /entitlements?workspace= = %d: %s", w.Code, w.Body.String())
 	}
-	if ent, _ := rig.srv.entitlements.Get(rig.tenantWS); ent.Plan != entitlements.PlanBusiness {
-		t.Errorf("tenant plan after the operator's assignment = %s, want business", ent.Plan)
+	if ent, _ := rig.srv.entitlements.Get(rig.tenantWS); ent.Plan != entitlements.PlanTeam {
+		t.Errorf("tenant plan after the operator's assignment = %s, want team", ent.Plan)
 	}
 }
 
@@ -302,7 +302,7 @@ func TestMCPRegistry_ForwardedCredentialsNeedAProtectedTransport(t *testing.T) {
 
 func TestDeleteWorkspace_KeysConfinedToTheirWorkspace(t *testing.T) {
 	srv, h := newIntegrationServer(t)
-	es, _ := entitlements.NewStore(newEntDB(t), entitlements.PlanFree)
+	es, _ := entitlements.NewStore(newEntDB(t), entitlements.PlanTrial)
 	srv.SetEntitlements(es)
 	seedWorkspaceData(t, srv, "WSX", "acme", "owner-x")
 	seedWorkspaceData(t, srv, "WSY", "beta", "owner-y")

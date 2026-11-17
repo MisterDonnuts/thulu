@@ -5,6 +5,9 @@
     "invalid_signature_timestamp": "el timestamp de la firma no es válido",
     "signature_timestamp_out_of_tolerance": "el timestamp de la firma está fuera de la tolerancia",
     "signature_mismatch": "la firma no coincide",
-    "parse_event": "leer el evento de Stripe"
+    "parse_event": "leer el evento de Stripe",
+    "meter_request": "armar el pedido del evento de medición de Stripe",
+    "meter_send": "mandar el evento de medición a Stripe",
+    "meter_status": "Stripe rechazó el evento de medición ({status}): {body}"
   }
 }

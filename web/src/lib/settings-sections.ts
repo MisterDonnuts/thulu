@@ -25,6 +25,11 @@ export const SETTINGS_SECTIONS: Record<string, SettingsSection> = {
     title: t("lib.settings_sections.llm.title"),
     subtitle: t("lib.settings_sections.llm.subtitle"),
   },
+  runners: {
+    title: t("lib.settings_sections.runners.title"),
+    subtitle: t("lib.settings_sections.runners.subtitle"),
+    minRole: "admin",
+  },
   webhooks: {
     title: t("lib.settings_sections.webhooks.title"),
     subtitle: t("lib.settings_sections.webhooks.subtitle"),
@@ -60,6 +65,16 @@ export const SETTINGS_SECTIONS: Record<string, SettingsSection> = {
     needsLogin: true,
   },
 };
+
+// The sections the page reloads every 15 s while open: what they show changes without the viewer
+// doing anything. AI engines is here because each machine reports its engine's login every minute.
+export const POLLED_SECTIONS = ["webhooks", "audit", "health", "team", "llm"] as const;
+
+export type PolledSection = (typeof POLLED_SECTIONS)[number];
+
+export function isPolledSection(name: string | null): name is PolledSection {
+  return name !== null && (POLLED_SECTIONS as readonly string[]).includes(name);
+}
 
 export function resolveSection(hash: string, loginDisabled: boolean): string {
   const name = hash.startsWith("#") ? hash.slice(1) : hash;

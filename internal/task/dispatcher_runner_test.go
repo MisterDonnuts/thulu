@@ -10,6 +10,7 @@ import (
 
 	"github.com/MisterDonnuts/thulu/internal/engine"
 	"github.com/MisterDonnuts/thulu/internal/project"
+	"github.com/MisterDonnuts/thulu/internal/runner"
 	"github.com/MisterDonnuts/thulu/internal/testgit"
 	"github.com/MisterDonnuts/thulu/internal/types"
 )
@@ -29,7 +30,8 @@ func TestRunnerTaskLaunchesWithoutDaemonWorktreeOrCredential(t *testing.T) {
 		t.Fatal(err)
 	}
 	l := newRecordingLauncher()
-	d := NewDispatcher(store, l, projects, nil, nil).WithAgentPushesResults()
+	d := NewDispatcher(store, l, projects, nil, nil).WithAgentPushesResults().
+		WithRunners(fakeRunners{"runner1": machine("runner1", "mac")})
 	tk := &Task{WorkspaceID: testWS, Title: "on a runner", ProjectIDs: []string{proj.ID}}
 	if err := store.Create(t.Context(), tk); err != nil {
 		t.Fatal(err)
@@ -50,14 +52,11 @@ func TestRunnerTaskLaunchesWithoutDaemonWorktreeOrCredential(t *testing.T) {
 		t.Fatalf("launches = %d, want 1", len(launches))
 	}
 	env := launches[0]
-	if env[engine.LLMSourceEnv] != engine.LLMSourceRunnerLogin {
-		t.Errorf("LLM source = %q, want %q", env[engine.LLMSourceEnv], engine.LLMSourceRunnerLogin)
+	if env[engine.LLMSourceEnv] != engine.LLMSourceRunnerLogin || env[runner.RunnerIDEnv] != "runner1" {
+		t.Errorf("LLM source = %q on %q, want %q on runner1", env[engine.LLMSourceEnv], env[runner.RunnerIDEnv], engine.LLMSourceRunnerLogin)
 	}
 	if env["OCTOPUS_RESULT_REF"] != "" {
 		t.Errorf("a runner run was told to push to the daemon: %q", env["OCTOPUS_RESULT_REF"])
-	}
-	if env["STEER_ENABLED"] == "1" {
-		t.Error("a runner run was launched with steering on")
 	}
 	if len(l.code[0]) != 0 {
 		t.Errorf("worktree mounts for a runner run: %v", l.code[0])
@@ -87,6 +86,7 @@ func TestRunnerClonedProjectSyncsInsteadOfPushing(t *testing.T) {
 	}
 	l := newRecordingLauncher()
 	d := NewDispatcher(store, l, projects, nil, nil).
+		WithRunners(fakeRunners{"runner1": machine("runner1", "mac")}).
 		WithBranchPusher(func(context.Context, *Task, string) (bool, error) {
 			t.Error("the daemon pushed a project whose runner pushes")
 			return false, nil
@@ -144,4 +144,129 @@ func gitIn(t *testing.T, dir string, args ...string) string {
 		t.Fatalf("git %v: %v\n%s", args, err, out)
 	}
 	return strings.TrimSpace(string(out))
+}
+
+// A machine's run on a Thulu project leaves its work on the result branch. In Docker mode too the
+// daemon integrates it into the task's worktree and drops the branch, and the branch never shows in
+// the task's activity as one the person would open.
+func TestAMachinesResultIsIntegratedWithoutKubernetes(t *testing.T) {
+	t.Setenv("OCTOPUS_GIT_ALLOW_LOCAL_REMOTES", "1")
+	ctx := t.Context()
+	db := newTaskDB(t)
+	store, err := NewStore(db, filepath.Join(t.TempDir(), "att"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	projects, err := project.NewStore(db, filepath.Join(t.TempDir(), "projects"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	proj, err := projects.Create(ctx, "shop", testgit.BareRepo(t), project.CreateOpts{WorkspaceID: testWS})
+	if err != nil {
+		t.Fatal(err)
+	}
+	d := NewDispatcher(store, newRecordingLauncher(), projects, nil, nil)
+	tk := &Task{WorkspaceID: testWS, Title: "on the mac", ProjectIDs: []string{proj.ID}}
+	if err := store.Create(ctx, tk); err != nil {
+		t.Fatal(err)
+	}
+	tk = d.ensureWorktrees(ctx, tk)
+	wt := tk.WorktreePaths[proj.ID]
+	if wt == "" {
+		t.Fatalf("no daemon worktree for a Thulu project: %v", tk.WorktreePaths)
+	}
+
+	result := project.ResultBranchName(tk.ID)
+	machine := filepath.Join(t.TempDir(), "machine")
+	gitIn(t, "", "clone", "--quiet", "--branch", tk.BranchName, proj.Path, machine)
+	if err := os.WriteFile(filepath.Join(machine, "agent.txt"), []byte("agent"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	gitIn(t, machine, "add", ".")
+	gitIn(t, machine, "-c", "user.email=r@r", "-c", "user.name=runner", "commit", "--quiet", "-m", "agent work")
+	gitIn(t, machine, "push", "--quiet", "origin", "+HEAD:refs/heads/"+result)
+	d.RecordRunnerReport(ctx, tk.ID, RunnerReport{Runner: "mac", Pushed: []RunnerPush{{ProjectID: proj.ID, Branch: result}}})
+
+	d.commitAndPushWorktrees(ctx, tk, tk.ID, types.StageInProgress, "dev", 0)
+	if head, want := gitIn(t, wt, "log", "-1", "--format=%s"), "agent work"; head != want {
+		t.Errorf("worktree HEAD = %q, want the machine's commit", head)
+	}
+	if refs := gitIn(t, proj.Path, "for-each-ref", "refs/heads/"+result); refs != "" {
+		t.Errorf("the result branch outlived its integration: %q", refs)
+	}
+	events, err := store.ListEvents(ctx, tk.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range events {
+		if e.Kind == EventBranchCreated && e.RefID == result {
+			t.Errorf("the result branch was recorded as a task branch: %+v", e)
+		}
+	}
+}
+
+// A result that would drop the task's commits fails the run that brought it and is parked, so the
+// runs after it (a Docker run never pushes a new result) integrate and push again.
+func TestADivergedResultBlocksOnlyTheRunThatBroughtIt(t *testing.T) {
+	t.Setenv("OCTOPUS_GIT_ALLOW_LOCAL_REMOTES", "1")
+	ctx := t.Context()
+	db := newTaskDB(t)
+	store, err := NewStore(db, filepath.Join(t.TempDir(), "att"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	projects, err := project.NewStore(db, filepath.Join(t.TempDir(), "projects"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	proj, err := projects.Create(ctx, "shop", testgit.BareRepo(t), project.CreateOpts{WorkspaceID: testWS})
+	if err != nil {
+		t.Fatal(err)
+	}
+	d := NewDispatcher(store, newRecordingLauncher(), projects, nil, nil)
+	tk := &Task{WorkspaceID: testWS, Title: "diverged", ProjectIDs: []string{proj.ID}}
+	if err := store.Create(ctx, tk); err != nil {
+		t.Fatal(err)
+	}
+	tk = d.ensureWorktrees(ctx, tk)
+	wt := tk.WorktreePaths[proj.ID]
+	if err := os.WriteFile(filepath.Join(wt, "daemon.txt"), []byte("daemon"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	gitIn(t, wt, "add", ".")
+	gitIn(t, wt, "-c", "user.email=d@d", "-c", "user.name=daemon", "commit", "--quiet", "-m", "daemon work")
+	result := project.ResultBranchName(tk.ID)
+	stray := gitIn(t, proj.Path, "-c", "user.email=r@r", "-c", "user.name=runner",
+		"commit-tree", "-p", "origin/main", "-m", "stray", "origin/main^{tree}")
+	gitIn(t, proj.Path, "branch", result, stray)
+
+	keys := func() map[string]int {
+		comments, err := store.ListComments(ctx, tk.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		out := map[string]int{}
+		for _, c := range comments {
+			out[c.Key]++
+		}
+		return out
+	}
+	if stale := d.integrateAgentResults(ctx, []string{proj.ID}, tk.ID, tk.ID); !stale[proj.ID] {
+		t.Fatal("the diverged result did not stop this run's push")
+	}
+	if got := keys(); got["task.comments.integrate_failed"] != 1 || got["task.comments.result_parked"] != 1 {
+		t.Errorf("comments = %v, want the failure and where the result went", got)
+	}
+	if refs := gitIn(t, proj.Path, "for-each-ref", "--format=%(objectname)", "refs/octopus/parked/"); refs != stray {
+		t.Errorf("parked refs = %q, want the stray result %s", refs, stray)
+	}
+	if stale := d.integrateAgentResults(ctx, []string{proj.ID}, tk.ID, tk.ID); stale[proj.ID] {
+		t.Error("the next run is still blocked by the parked result")
+	}
+	if got := keys(); got["task.comments.integrate_failed"] != 1 {
+		t.Errorf("comments = %v, want no new failure", got)
+	}
+	if head := gitIn(t, wt, "log", "-1", "--format=%s"); head != "daemon work" {
+		t.Errorf("worktree HEAD = %q, want the daemon's commit kept", head)
+	}
 }

@@ -215,13 +215,11 @@ export function moveTasksBodyHTML(o: MoveTasksBody): string {
 export function confirmValues(form: HTMLFormElement): ConfirmValues {
   const out: ConfirmValues = {};
   for (const el of Array.from(form.elements)) {
-    if (
-      !(
-        el instanceof HTMLInputElement ||
-        el instanceof HTMLSelectElement ||
-        el instanceof HTMLTextAreaElement
-      )
-    )
+    if (!(
+      el instanceof HTMLInputElement ||
+      el instanceof HTMLSelectElement ||
+      el instanceof HTMLTextAreaElement
+    ))
       continue;
     if (!el.name || el.disabled) continue;
     if (el instanceof HTMLInputElement && el.type === "checkbox") out[el.name] = el.checked;

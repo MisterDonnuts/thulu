@@ -12,6 +12,12 @@ import (
 	"github.com/MisterDonnuts/thulu/internal/apperr"
 )
 
+// FinalPushHeader marks the push that hands over a run's result when the run ends (a runner's, or a
+// pod's result-push.sh). The daemon only integrates it: whether it reaches GitHub is up to the
+// column, once the run is over. A push the agent makes mid-run carries no mark and is published at
+// once, so the agent can open its PR. Sent with `git -c http.extraHeader=<FinalPushHeader>: 1`.
+const FinalPushHeader = "X-Octopus-Final-Push"
+
 type Authorizer func(r *http.Request, repo string) bool
 
 type Resolver func(ctx context.Context, repoPath string) (repoDir string, ok bool)

@@ -1,0 +1,9 @@
+{
+  "title": "Extra hours",
+  "intro": "How much this workspace accepts to spend each month on agent hours past the ones its plan includes. Each extra hour costs $0.05. At the cap, runs already going finish and new ones wait until the 1st.",
+  "read_only": "Only a workspace admin can change the cap on extra hours.",
+  "label": "Monthly cap",
+  "unit": "US dollars, 0 = no extra hours",
+  "saved": "Cap on extra hours saved",
+  "save_failed": "Couldn't save the cap on extra hours."
+}

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_SECTION,
   SETTINGS_SECTIONS,
+  isPolledSection,
   resolveSection,
   sectionDenial,
 } from "./settings-sections";
@@ -73,5 +74,17 @@ describe("sectionDenial", () => {
     expect(sectionDenial("updates", null)).toBeNull();
     expect(sectionDenial("audit", {})).toBeNull();
     expect(sectionDenial("toString", { role: "viewer" })).toBeNull();
+  });
+});
+
+describe("isPolledSection", () => {
+  // The wiki promises the AI engines rows catch up within a minute of `claude auth login`.
+  it("reloads AI engines while open, so machine logins show up without a reload", () => {
+    expect(isPolledSection("llm")).toBe(true);
+  });
+
+  it("leaves forms and closed pages alone", () => {
+    expect(isPolledSection("boards")).toBe(false);
+    expect(isPolledSection(null)).toBe(false);
   });
 });

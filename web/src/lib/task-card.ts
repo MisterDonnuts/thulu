@@ -157,6 +157,8 @@ export const CARD_TAGS = 2;
 
 export interface CardMeta {
   repos: string[];
+  // The machines whose runners the task's projects run on; empty when agents run in Thulu.
+  machines?: string[];
   tags: string[];
   blocked: string;
   blocks: number;
@@ -165,6 +167,7 @@ export interface CardMeta {
 
 export function cardMetaHTML(m: CardMeta): string {
   const repos = m.repos.map((name) => repoChipHTML(name, { size: "sm" })).join("");
+  const machines = (m.machines ?? []).map((name) => machineTagHTML(name, "sm")).join("");
   const shown = m.tags.slice(0, CARD_TAGS);
   const rest = m.tags.slice(CARD_TAGS);
   const tags =
@@ -190,7 +193,12 @@ export function cardMetaHTML(m: CardMeta): string {
           icon: "i-arrow-right",
         })
       : "";
-  return repos + tags + blocked + blocks + nextAgentHTML(m.next ?? null);
+  return repos + machines + tags + blocked + blocks + nextAgentHTML(m.next ?? null);
+}
+
+export function machineTagHTML(name: string, size?: "sm"): string {
+  const label = t("lib.task_card.on_machine", { name });
+  return tagHTML(label, { size, icon: "i-monitor", title: label });
 }
 
 export function nextAgentHTML(n: NextAgent | null): string {

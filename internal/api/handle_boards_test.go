@@ -97,7 +97,7 @@ func TestBoardCreateBuiltInKeepsRenamedStages(t *testing.T) {
 	}
 
 	ops := decodeBoard(t, getJSON(t, h, "/boards/ops/stages", ""))
-	if got, want := boardIDs(ops), []string{"backlog", "in_progress", "done"}; !reflect.DeepEqual(got, want) {
+	if got, want := boardIDs(ops), []string{"backlog", "in_progress", "review", "done"}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("built-in board = %v, want %v", got, want)
 	}
 	for _, board := range []string{"default", "ops"} {

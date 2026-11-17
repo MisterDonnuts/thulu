@@ -10,6 +10,7 @@ import (
 
 	"github.com/MisterDonnuts/thulu/internal/apperr"
 	"github.com/MisterDonnuts/thulu/internal/auth"
+	"github.com/MisterDonnuts/thulu/internal/engine"
 	"github.com/MisterDonnuts/thulu/internal/i18n"
 	stagepkg "github.com/MisterDonnuts/thulu/internal/stage"
 )
@@ -235,9 +236,20 @@ func (s *Server) stepLLMKey(ctx context.Context, wsID string) onboardingStep {
 		return step
 	}
 	step.Done = status.HasKey
-	if status.HasKey {
+	switch {
+	case status.HasKey:
 		step.Detail = status.Engine + " — " + status.Hint
-	} else {
+	case status.RunnerID != "":
+		step.Done = true
+		step.Detail = i18n.TCtx(ctx, "api.onboarding.steps.llm_key.machine", "engine", status.Engine)
+	case s.allProjectsOnRunners(ctx, wsID):
+		// Runner runs use the claude login on the runner's machine and never read the key.
+		step.Done = true
+		step.Detail = i18n.TCtx(ctx, "api.onboarding.steps.llm_key.no_key_runner", "engine", status.Engine)
+	case s.personalLogins != nil && engine.PersonalLoginOf(status.Engine) != nil:
+		// The person's own sign-in covers only the runs they start, so the step stays open.
+		step.Detail = i18n.TCtx(ctx, "api.onboarding.steps.llm_key.no_key_personal", "engine", status.Engine)
+	default:
 		step.Detail = i18n.TCtx(ctx, "api.onboarding.steps.llm_key.no_key", "engine", status.Engine)
 	}
 	return step
@@ -344,4 +356,20 @@ func templateHasAgent(tpl map[string]string) bool {
 		}
 	}
 	return false
+}
+
+func (s *Server) allProjectsOnRunners(ctx context.Context, wsID string) bool {
+	if s.projectStore == nil {
+		return false
+	}
+	projects, err := s.projectStore.ListByWorkspace(ctx, wsID)
+	if err != nil || len(projects) == 0 {
+		return false
+	}
+	for i := range projects {
+		if !projects[i].RunsOnRunner() {
+			return false
+		}
+	}
+	return true
 }

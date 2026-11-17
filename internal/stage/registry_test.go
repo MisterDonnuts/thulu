@@ -16,6 +16,7 @@ func TestStaticIsTheBareBoard(t *testing.T) {
 	}{
 		{types.StageBacklog, "Backlog"},
 		{types.StageInProgress, "In progress"},
+		{types.StageReview, "Review"},
 		{types.StageDone, "Done"},
 	}
 	got := Static().List()

@@ -397,5 +397,12 @@
     "unlink_app": "Desvincular la App",
     "approve_mappings": "Activar mapeos",
     "publish_dashboard": "Publicar dashboard"
+  },
+  "runner": {
+    "title": "Dónde corren los agentes",
+    "where": "Correr los agentes",
+    "where_hint": "En Thulu, desde un clon, o en una máquina con runner, desde una carpeta suya.",
+    "folder": "Carpeta en la máquina",
+    "folder_hint": "Tiene que estar dentro de una carpeta que la máquina permita (thulu runner allow)."
   }
 }

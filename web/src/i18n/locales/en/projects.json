@@ -138,7 +138,9 @@
     "git_title": "Git repository",
     "git_desc": "Clone from GitHub or another remote",
     "upload_title": "Upload a folder",
-    "upload_desc": "From your computer, no GitHub needed"
+    "upload_desc": "From your computer, no GitHub needed",
+    "runner_title": "On my machine",
+    "runner_desc": "A folder on a computer with a runner"
   },
   "upload": {
     "drop_title": "Drag the project folder here",

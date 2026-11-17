@@ -1,0 +1,35 @@
+{
+  "lede": "Los agentes trabajan en esa carpeta con el git y el login de claude de la máquina. Thulu no clona nada ni guarda una key del modelo.",
+  "none_title": "No hay ninguna máquina registrada",
+  "none_body": "Agregala acá y corré los comandos en ella: la lista se actualiza cuando se conecta.",
+  "machine": "Máquina",
+  "folder": "Carpeta",
+  "loading": "Cargando las carpetas de la máquina…",
+  "not_reported_title": "La máquina no reportó sus carpetas",
+  "not_reported_body": "Arrancá el runner en esa máquina (thulu runner run, o thulu runner service install para que arranque solo). La lista se actualiza en menos de un minuto.",
+  "no_roots": "La máquina no tiene carpetas permitidas.",
+  "scanned": "Actualizado {when}",
+  "truncated": "Se listan sólo los primeros 500 repositorios; si falta el tuyo, corré thulu add en su carpeta.",
+  "filter": "Filtrar repositorios",
+  "add_title": "¿Tu repo no está? Corré esto en su carpeta:",
+  "add_title_lead": "Corré esto en la carpeta del repo, en esa máquina:",
+  "add_body": "Crea el proyecto directo, sin volver acá. Si la carpeta no estaba permitida, la permite.",
+  "add_copy": "el comando thulu add",
+  "created": "Se creó {project} desde la terminal.",
+  "open_project": "Abrir proyecto",
+  "taken_summary": {
+    "one": "1 ya es proyecto ({names})",
+    "other": "{count} ya son proyectos ({names})"
+  },
+  "roots_count": {
+    "one": "1 carpeta permitida",
+    "other": "{count} carpetas permitidas"
+  },
+  "no_match": "Ningún repositorio coincide con el filtro.",
+  "errors": {
+    "load": "No se pudieron cargar las máquinas: {error}",
+    "repos": "No se pudieron cargar las carpetas: {error}",
+    "no_machine": "Registrá una máquina primero.",
+    "no_folder": "Elegí una carpeta."
+  }
+}

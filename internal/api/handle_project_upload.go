@@ -347,7 +347,7 @@ func (s *Server) publishTaskBranch(w http.ResponseWriter, r *http.Request, t *ta
 			}
 		}
 	}
-	if _, _, err := s.pushTaskBranchForProject(ctx, t, projectID); err != nil {
+	if _, _, err := s.pushTaskBranchForProject(ctx, t, projectID, false); err != nil {
 		var cerr *project.RebaseConflictError
 		if errors.As(err, &cerr) {
 			writeMergeConflict(w, apperr.LocalizeCtx(ctx, cerr), cerr.Files, s.kube != nil)

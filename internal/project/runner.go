@@ -13,6 +13,8 @@ import (
 
 var runnerMigration = migrate.Migration{ID: 30, SQL: `ALTER TABLE projects ADD COLUMN IF NOT EXISTS runner_id TEXT NOT NULL DEFAULT ''`}
 
+var runnerPathMigration = migrate.Migration{ID: 31, SQL: `ALTER TABLE projects ADD COLUMN IF NOT EXISTS runner_path TEXT NOT NULL DEFAULT ''`}
+
 func (p *Project) CodeOnRunner() bool { return p.Source == SourceRunner }
 
 // CodeOnRunner counts even with RunnerID lost, so the run fails on the runner with a reason
@@ -66,6 +68,7 @@ func (s *Store) CreateOnRunner(ctx context.Context, name, repoURL, runnerID stri
 		WorkspaceID:    opts.WorkspaceID,
 		Source:         SourceRunner,
 		RunnerID:       strings.TrimSpace(runnerID),
+		RunnerPath:     strings.TrimSpace(opts.RunnerPath),
 		CreatedAt:      time.Now().UTC(),
 	}
 	if proj.StageTemplate == nil {
@@ -102,4 +105,17 @@ func (p *Project) checkRunnerPatch(runnerID string) error {
 		return apperr.Precondition("project.errors.runner_no_remote", "name", p.Name)
 	}
 	return nil
+}
+
+// Sets the folder only where none is recorded: what a runner reports from its local config must
+// not undo a change made in the dashboard.
+func (s *Store) AdoptRunnerPath(ctx context.Context, workspaceID, runnerID, projectID, path string) (bool, error) {
+	res, err := s.db.ExecContext(ctx, s.rb(`UPDATE projects SET runner_path = ?
+		WHERE id = ? AND workspace_id = ? AND runner_id = ? AND runner_path = ''`),
+		strings.TrimSpace(path), projectID, workspaceID, runnerID)
+	if err != nil {
+		return false, apperr.Wrap(err, "project.errors.runner_path_update_failed")
+	}
+	n, err := res.RowsAffected()
+	return n > 0, err
 }

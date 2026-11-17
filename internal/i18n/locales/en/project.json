@@ -2,6 +2,7 @@
   "errors": {
     "integrate_worktree_missing": "integrate agent result: worktree missing ({dir})",
     "integrate_failed": "integrate agent result",
+    "park_result": "set aside the run's result at {ref}",
     "integrate_diverged": "integrate agent result: the task branch has commits that {ref} does not contain ({commits}); they were made outside the agent's copy and were kept",
     "integrate_reset_failed": "integrate agent result (move the task branch onto {ref})",
     "import_id_required": "import project: id is required",
@@ -206,7 +207,9 @@
     "runner_required": "a runner project needs a runner",
     "runner_code_on_runner": "project {name} lives on a runner: its code is only on that machine, so its runs cannot leave it",
     "runner_upload": "project {name} was uploaded: a runner has no remote to push its work to, so its runs stay here",
-    "runner_no_remote": "project {name} has no repository URL: a runner pushes its work to the remote, where the daemon fetches it"
+    "runner_no_remote": "project {name} has no repository URL: a runner pushes its work to the remote, where the daemon fetches it",
+    "runner_path_without_runner": "project {name} has no runner, so it cannot have a folder on one",
+    "runner_path_update_failed": "save the runner folder"
   },
   "log": {
     "list_conflict_files": "list conflict files in {dir}",

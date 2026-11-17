@@ -1,0 +1,10 @@
+{
+  "in_thulu": "In Thulu",
+  "on_machine": "On {label}",
+  "login_note": "Runs use the git and claude login of {name}: Thulu doesn't need a model key for this project, and the machine has to be on for agents to work.",
+  "saved": "Saved where agents run",
+  "errors": {
+    "path_required": "Write the folder's full path, starting with /.",
+    "save": "Couldn't save it: {error}"
+  }
+}

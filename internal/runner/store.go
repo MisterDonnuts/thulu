@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"slices"
 	"strings"
 	"time"
 
@@ -67,6 +68,12 @@ func Migrations(_ migrate.Inspector) ([]migrate.Migration, error) {
 			);
 			CREATE INDEX IF NOT EXISTS idx_runner_jobs_claim ON runner_jobs(runner_id, state, created_at);
 			CREATE INDEX IF NOT EXISTS idx_runner_jobs_settle ON runner_jobs(state, reaped);`},
+		{ID: 2, SQL: `
+			ALTER TABLE runners ADD COLUMN IF NOT EXISTS inventory TEXT NOT NULL DEFAULT '';
+			ALTER TABLE runner_jobs ADD COLUMN IF NOT EXISTS self_contained BOOLEAN NOT NULL DEFAULT FALSE;`},
+		{ID: 3, SQL: `
+			ALTER TABLE runners ADD COLUMN IF NOT EXISTS protocol INT NOT NULL DEFAULT 1;
+			ALTER TABLE runner_jobs ADD COLUMN IF NOT EXISTS min_protocol INT NOT NULL DEFAULT 1;`},
 	}, nil
 }
 
@@ -93,7 +100,9 @@ func (s *Store) CreateRegistration(ctx context.Context, ws, name, by string) (to
 	if ws == "" {
 		return "", time.Time{}, apperr.Invalid("runner.errors.workspace_required")
 	}
-	if name == "" || len(name) > 80 {
+	// An empty name is fine: the runner takes its machine's hostname when it registers, so the
+	// dashboard can offer the token before anyone knows what to call the machine.
+	if len(name) > 80 {
 		return "", time.Time{}, apperr.Invalid("runner.errors.name_invalid")
 	}
 	token = newSecret(RegistrationPrefix)
@@ -106,6 +115,16 @@ func (s *Store) CreateRegistration(ctx context.Context, ws, name, by string) (to
 		return "", time.Time{}, apperr.Wrap(err, "runner.errors.create_registration")
 	}
 	return token, expires, nil
+}
+
+// registeredName names a runner whose token carried no name: the hostname without the local domain
+// macOS appends ("juans-mac.local" is "juans-mac"), or "runner" when the machine sent none.
+func registeredName(hostname string) string {
+	name := strings.TrimSuffix(strings.TrimSpace(hostname), ".local")
+	if name == "" {
+		return "runner"
+	}
+	return clip(name, 80)
 }
 
 // The token is spent in the same transaction, so two runners racing on one token get one
@@ -130,6 +149,9 @@ func (s *Store) Register(ctx context.Context, req RegisterRequest) (*RegisterRes
 	if err != nil {
 		return nil, apperr.Wrap(err, "runner.errors.register")
 	}
+	if name == "" {
+		name = registeredName(req.Hostname)
+	}
 	cred := newSecret(CredentialPrefix)
 	id := newID()
 	_, err = tx.ExecContext(ctx, `INSERT INTO runners
@@ -148,7 +170,8 @@ func (s *Store) Register(ctx context.Context, req RegisterRequest) (*RegisterRes
 // Must stay well under 2*DefaultLease, the window Online is computed from.
 const seenEvery = 10 * time.Second
 
-func (s *Store) Authenticate(ctx context.Context, credential, version string) (*Runner, error) {
+// protocol is the version the runner declared on this call; zero keeps the recorded one.
+func (s *Store) Authenticate(ctx context.Context, credential, version string, protocol int) (*Runner, error) {
 	if !strings.HasPrefix(credential, CredentialPrefix) {
 		return nil, apperr.Unauthenticated("runner.errors.credential_invalid")
 	}
@@ -161,26 +184,31 @@ func (s *Store) Authenticate(ctx context.Context, credential, version string) (*
 		return nil, apperr.Wrap(err, "runner.errors.authenticate")
 	}
 	now := s.now()
-	if r.LastSeenAt == nil || now.Sub(*r.LastSeenAt) > seenEvery || (version != "" && version != r.Version) {
+	changed := (version != "" && version != r.Version) || (protocol != 0 && protocol != r.Protocol)
+	if r.LastSeenAt == nil || now.Sub(*r.LastSeenAt) > seenEvery || changed {
 		_, err := s.db.ExecContext(ctx, `UPDATE runners SET last_seen_at = $1,
-			version = CASE WHEN $2 = '' THEN version ELSE $2 END WHERE id = $3`, now, clip(version, 64), r.ID)
+			version = CASE WHEN $2 = '' THEN version ELSE $2 END,
+			protocol = CASE WHEN $3 = 0 THEN protocol ELSE $3 END WHERE id = $4`, now, clip(version, 64), protocol, r.ID)
 		logx.Warn(err, "runner.log.seen_failed", "runner", r.ID)
 		r.LastSeenAt = &now
 		if version != "" {
 			r.Version = version
+		}
+		if protocol != 0 {
+			r.Protocol = protocol
 		}
 	}
 	r.Online = true
 	return r, nil
 }
 
-const runnerCols = `id, workspace_id, name, hostname, version, created_at, created_by, last_seen_at, revoked_at`
+const runnerCols = `id, workspace_id, name, hostname, version, created_at, created_by, last_seen_at, revoked_at, protocol`
 
 func (s *Store) scanRunner(row interface{ Scan(...any) error }) (*Runner, error) {
 	var r Runner
 	var seen, revoked sql.NullTime
 	if err := row.Scan(&r.ID, &r.WorkspaceID, &r.Name, &r.Hostname, &r.Version, &r.CreatedAt, &r.CreatedBy,
-		&seen, &revoked); err != nil {
+		&seen, &revoked, &r.Protocol); err != nil {
 		return nil, err
 	}
 	if seen.Valid {
@@ -252,30 +280,40 @@ func (s *Store) Enqueue(ctx context.Context, j *Job) error {
 		return apperr.Wrap(err, "runner.errors.enqueue")
 	}
 	j.State = StateQueued
-	j.CreatedAt = s.now()
+	// At the database's precision, so the caller's copy names the same log file as the stored row.
+	j.CreatedAt = s.now().Truncate(time.Microsecond)
 	_, err = s.db.ExecContext(ctx, `INSERT INTO runner_jobs
 		(id, runner_id, workspace_id, task_id, project_id, instance_id, agent_name, agent_type, engine, stage,
-		 launch_kind, spec, state, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+		 launch_kind, spec, state, created_at, self_contained, min_protocol)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
 		j.ID, j.RunnerID, j.WorkspaceID, j.TaskID, j.ProjectID, j.InstanceID, j.AgentName, j.AgentType, j.Engine,
-		j.Stage, j.LaunchKind, string(spec), StateQueued, j.CreatedAt)
+		j.Stage, j.LaunchKind, string(spec), StateQueued, j.CreatedAt, j.Spec.SelfContained(), j.Spec.MinProtocol())
 	if err != nil {
 		return apperr.Wrap(err, "runner.errors.enqueue")
 	}
 	return nil
 }
 
-// The env leaves the database with the claim: it holds the run's API key, which has no reason to
-// stay at rest.
-func (s *Store) Claim(ctx context.Context, runnerID string, projects []string, lease time.Duration) (*JobSpec, error) {
+// The env and the stdin leave the database with the claim: they hold the run's API key and the
+// person's message, which have no reason to stay at rest. protocol is the version the claiming runner
+// speaks: a job it would misread stays queued. kinds are the pools the runner has a free slot in
+// (ClaimRun, ClaimChat); empty takes any job. One statement takes the job and drops its secrets, so a
+// failure can't leave a job marked taken that nobody was handed.
+func (s *Store) Claim(ctx context.Context, runnerID string, protocol int, projects []string, lease time.Duration, kinds ...string) (*JobSpec, error) {
 	now := s.now()
-	var raw, id string
-	err := s.db.QueryRowContext(ctx, `UPDATE runner_jobs SET state = $1, claimed_at = $2, lease_until = $3
-		WHERE id = (SELECT id FROM runner_jobs
-			WHERE runner_id = $4 AND state = $5 AND cancel = FALSE
-			  AND (project_id = '' OR project_id = ANY(string_to_array($6, ',')))
+	runs, chats := len(kinds) == 0 || slices.Contains(kinds, ClaimRun), len(kinds) == 0 || slices.Contains(kinds, ClaimChat)
+	var raw string
+	err := s.db.QueryRowContext(ctx, `WITH picked AS (
+			SELECT id, spec FROM runner_jobs
+			WHERE runner_id = $4 AND state = $5 AND cancel = FALSE AND min_protocol <= $7
+			  AND (self_contained OR project_id = '' OR project_id = ANY(string_to_array($6, ',')))
+			  AND (CASE WHEN launch_kind = $8 THEN $10::boolean ELSE $9::boolean END)
 			ORDER BY created_at LIMIT 1 FOR UPDATE SKIP LOCKED)
-		RETURNING id, spec`, StateRunning, now, now.Add(lease), runnerID, StateQueued, strings.Join(projects, ",")).Scan(&id, &raw)
+		UPDATE runner_jobs j SET state = $1, claimed_at = $2, lease_until = $3,
+			spec = (picked.spec::jsonb - 'env' - 'stdin')::text
+		FROM picked WHERE j.id = picked.id
+		RETURNING picked.spec`, StateRunning, now, now.Add(lease), runnerID, StateQueued, strings.Join(projects, ","),
+		protocol, LaunchKindChatTurn, runs, chats).Scan(&raw)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -283,16 +321,7 @@ func (s *Store) Claim(ctx context.Context, runnerID string, projects []string, l
 		return nil, apperr.Wrap(err, "runner.errors.claim")
 	}
 	var spec JobSpec
-	if err = json.Unmarshal([]byte(raw), &spec); err != nil {
-		return nil, apperr.Wrap(err, "runner.errors.claim")
-	}
-	kept := spec
-	kept.Env = nil
-	b, err := json.Marshal(kept)
-	if err != nil {
-		return nil, apperr.Wrap(err, "runner.errors.claim")
-	}
-	if _, err := s.db.ExecContext(ctx, `UPDATE runner_jobs SET spec = $1 WHERE id = $2`, string(b), id); err != nil {
+	if err := json.Unmarshal([]byte(raw), &spec); err != nil {
 		return nil, apperr.Wrap(err, "runner.errors.claim")
 	}
 	return &spec, nil
@@ -390,6 +419,26 @@ func (s *Store) Settled(ctx context.Context) ([]Job, error) {
 	return out, rows.Err()
 }
 
+// PendingChatTurns lists the chat turns created before a time that are still queued or running.
+func (s *Store) PendingChatTurns(ctx context.Context, before time.Time) ([]string, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT id FROM runner_jobs
+		WHERE launch_kind = $1 AND state IN ($2, $3) AND created_at < $4`,
+		LaunchKindChatTurn, StateQueued, StateRunning, before)
+	if err != nil {
+		return nil, apperr.Wrap(err, "runner.errors.list_jobs")
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, apperr.Wrap(err, "runner.errors.list_jobs")
+		}
+		out = append(out, id)
+	}
+	return out, rows.Err()
+}
+
 func (s *Store) MarkReaped(ctx context.Context, jobID string) error {
 	_, err := s.db.ExecContext(ctx, `UPDATE runner_jobs SET reaped = TRUE WHERE id = $1`, jobID)
 	if err != nil {
@@ -449,4 +498,35 @@ func clip(s string, n int) string {
 		return s[:n]
 	}
 	return s
+}
+
+func (s *Store) SaveInventory(ctx context.Context, runnerID string, inv Inventory) error {
+	b, err := json.Marshal(inv)
+	if err != nil {
+		return apperr.Wrap(err, "runner.errors.inventory")
+	}
+	if _, err := s.db.ExecContext(ctx, `UPDATE runners SET inventory = $1 WHERE id = $2`, string(b), runnerID); err != nil {
+		return apperr.Wrap(err, "runner.errors.inventory")
+	}
+	return nil
+}
+
+// A runner that never reported (one from before folders in the dashboard) has an empty inventory
+// and a nil error.
+func (s *Store) Inventory(ctx context.Context, ws, id string) (*Inventory, error) {
+	if _, err := s.Get(ctx, ws, id); err != nil {
+		return nil, err
+	}
+	var raw string
+	if err := s.db.QueryRowContext(ctx, `SELECT inventory FROM runners WHERE id = $1`, id).Scan(&raw); err != nil {
+		return nil, apperr.Wrap(err, "runner.errors.inventory")
+	}
+	inv := &Inventory{Roots: []string{}, Repos: []InventoryRepo{}}
+	if raw == "" {
+		return inv, nil
+	}
+	if err := json.Unmarshal([]byte(raw), inv); err != nil {
+		return nil, apperr.Wrap(err, "runner.errors.inventory")
+	}
+	return inv, nil
 }

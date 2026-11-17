@@ -248,6 +248,16 @@ describe("runsWithCredential", () => {
   it("does not count a profile with no key", () => {
     expect(runsWithCredential({ source: "binding", has_credential: false })).toBe(false);
   });
+
+  // Design case 49.
+  it("counts a machine profile, which holds no key, until its machine is revoked", () => {
+    const machine = { source: "binding", runner_id: "r1", runner_name: "mac" };
+    expect(runsWithCredential({ ...machine, has_credential: true })).toBe(true);
+    expect(
+      runsWithCredential({ ...machine, source: "workspace_default", has_credential: true }),
+    ).toBe(true);
+    expect(runsWithCredential({ ...machine, has_credential: false })).toBe(false);
+  });
 });
 
 describe("effectiveNoteTone", () => {

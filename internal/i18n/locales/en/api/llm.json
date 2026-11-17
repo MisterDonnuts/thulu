@@ -47,7 +47,13 @@
     "federation_not_supported": "{engine} cannot authenticate by workload identity federation",
     "federation_own_provider": "a federation profile talks to the engine's own API: no base_url, auth_header, cloud provider or cloud fields",
     "federation_no_key": "a federation profile takes no key: the run gets an identity token instead",
-    "federation_required": "credential kind {kind:%q} needs the federation settings (federation_rule_id, organization_id, service_account_id)"
+    "federation_required": "credential kind {kind:%q} needs the federation settings (federation_rule_id, organization_id, service_account_id)",
+    "machine_login_unsupported": "{engine} cannot run on a machine's own login: pick an engine that can, or give the profile a key",
+    "runner_not_found": "machine {runner} is not registered in this workspace",
+    "runner_revoked": "machine {runner} was revoked: pick another machine",
+    "machine_profile_shape": "a machine profile runs on that machine's own CLI login: it takes no key, base_url, org_id, auth_header, cloud fields or federation",
+    "machine_profile_provider": "a machine profile uses {engine}'s own provider ({provider}), not {got}",
+    "profile_kind_locked": "a profile with a key cannot become a machine profile, nor the other way around: create a new profile instead"
   },
   "audit": {
     "profile_created": "created profile {name}",
@@ -62,7 +68,11 @@
     "no_engines_declared": "(none declared)"
   },
   "hints": {
-    "engine_no_longer_declared": "agent no longer declares {engine} in thulu.engines.supported"
+    "engine_no_longer_declared": "agent no longer declares {engine} in thulu.engines.supported",
+    "runner_revoked": "machine {runner} was revoked: runs with this profile are refused",
+    "runner_offline": "machine {runner} is not connected: runs with this profile are refused until it is",
+    "runner_engine_missing": "machine {runner} has not reported {engine} installed",
+    "runner_not_logged_in": "{engine} is not signed in on machine {runner}: sign in there before launching"
   },
   "log": {
     "touch_profile_failed": "touch llm profile {profile}",

@@ -33,7 +33,7 @@ func seedWorkspaceData(t *testing.T, srv *Server, wsID, slug, ownerID string) {
 		wsID, ownerID, "owner", time.Now()); err != nil {
 		t.Fatalf("seed member: %v", err)
 	}
-	if err := srv.entitlements.SetPlan(wsID, entitlements.PlanBusiness); err != nil {
+	if err := srv.entitlements.SetPlan(wsID, entitlements.PlanTeam); err != nil {
 		t.Fatal(err)
 	}
 	if err := srv.secretsStore.SetLLMKey(t.Context(), wsID, "claude-code", "anthropic", "sk-ant-"+slug); err != nil {
@@ -65,7 +65,7 @@ func TestPurgeWorkspace_OnlyTargetErased(t *testing.T) {
 	t.Parallel()
 	srv, _ := newIntegrationServer(t)
 	db := newEntDB(t)
-	es, _ := entitlements.NewStore(db, entitlements.PlanFree)
+	es, _ := entitlements.NewStore(db, entitlements.PlanTrial)
 	srv.SetEntitlements(es)
 
 	seedWorkspaceData(t, srv, "WS1", "victim", "owner1")
@@ -115,7 +115,7 @@ func TestDeleteWorkspace_OwnerGated(t *testing.T) {
 	t.Parallel()
 	srv, h := newIntegrationServer(t)
 	db := newEntDB(t)
-	es, _ := entitlements.NewStore(db, entitlements.PlanFree)
+	es, _ := entitlements.NewStore(db, entitlements.PlanTrial)
 	srv.SetEntitlements(es)
 	seedWorkspaceData(t, srv, "WSX", "acme", "owner-x")
 
@@ -134,7 +134,7 @@ func TestDeleteAccount_PurgesOwnedWorkspaceData(t *testing.T) {
 	t.Parallel()
 	srv, h := newIntegrationServer(t)
 	db := newEntDB(t)
-	es, _ := entitlements.NewStore(db, entitlements.PlanFree)
+	es, _ := entitlements.NewStore(db, entitlements.PlanTrial)
 	srv.SetEntitlements(es)
 	seedWorkspaceData(t, srv, "WSA", "leaving", "owner-a")
 	seedWorkspaceData(t, srv, "WSB", "staying", "owner-b")

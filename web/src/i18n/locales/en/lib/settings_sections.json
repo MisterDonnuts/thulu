@@ -10,7 +10,7 @@
   },
   "llm": {
     "title": "AI engines",
-    "subtitle": "The key and model each engine runs with, the profiles agents can pick, and how long a run may take."
+    "subtitle": "The key and model each engine runs with, the profiles agents can pick, how long a run may take and the cap on extra hours."
   },
   "webhooks": {
     "title": "Webhooks",
@@ -39,5 +39,9 @@
   "account": {
     "title": "Account",
     "subtitle": "Your profile and active sessions."
+  },
+  "runners": {
+    "title": "Runners",
+    "subtitle": "The machines that run agents with their own git and claude login, and the folders each one allows."
   }
 }

@@ -52,3 +52,26 @@ func TestPersonalLoginClearsWhatOutranksTheLogin(t *testing.T) {
 		t.Error("the clear list must not drop the config dir the login lives in")
 	}
 }
+
+func TestMachineLoginSharesTheStatusCommand(t *testing.T) {
+	caps := New(Config{}).Capabilities()
+	ml := caps.MachineLogin
+	if ml == nil {
+		t.Fatal("claude-code declares no machine login")
+	}
+	if ml.Binary != "claude" || len(ml.Version) == 0 {
+		t.Errorf("machine login = %+v", ml)
+	}
+	if want := []string{"claude", "auth", "login"}; !slices.Equal(ml.Login, want) {
+		t.Errorf("login argv = %v, want %v: the person signs in at their own terminal", ml.Login, want)
+	}
+	if !slices.Equal(ml.Status, caps.PersonalLogin.Status) {
+		t.Errorf("status argv = %v, want the personal login's %v", ml.Status, caps.PersonalLogin.Status)
+	}
+	clears := engine.MachineLoginClears(caps)
+	for _, v := range []string{"ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN", "CLAUDE_CODE_USE_BEDROCK", "LLM_API_KEY"} {
+		if !slices.Contains(clears, v) {
+			t.Errorf("machine login does not clear %s", v)
+		}
+	}
+}

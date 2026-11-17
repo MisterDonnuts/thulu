@@ -22,7 +22,8 @@ func (s *Server) wireDispatcher(ctx context.Context, kube *kubert.Runtime, mcpFw
 		s.kube = kube
 		launcher = s.kubeAgentLauncher(ctx, kube)
 	}
-	s.runnerRoute, launcher = newRoutedLauncher(launcher, s.projectStore)
+	s.runnerRoute = newRoutedLauncher(launcher, s.projectStore)
+	launcher = s.runnerRoute
 	// A nil *sandbox.Manager passed directly becomes a non-nil interface and cleanupDoneTask panics
 	// calling Release on it.
 	var releaser task.SandboxReleaser
@@ -40,7 +41,7 @@ func (s *Server) wireDispatcher(ctx context.Context, kube *kubert.Runtime, mcpFw
 	s.taskDispatcher.WithAgentBaseURL(os.Getenv("OCTOPUS_AGENT_BASE_URL"))
 	s.taskDispatcher.WithSessionsDir(s.sessionsRoot())
 	s.taskDispatcher.WithBranchPusher(func(ctx context.Context, t *task.Task, projID string) (bool, error) {
-		pushed, _, err := s.pushTaskBranchForProject(ctx, t, projID)
+		pushed, _, err := s.pushTaskBranchForProject(ctx, t, projID, false)
 		return pushed, err
 	})
 	s.mcp.env = collectMCPURLs(os.Environ())

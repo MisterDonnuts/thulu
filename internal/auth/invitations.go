@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"sort"
 	"strings"
 	"time"
 
@@ -119,14 +118,6 @@ func invitationRowTouched(res sql.Result, err error) error {
 	return nil
 }
 
-func (s *UserStore) countInvitations(ctx context.Context, workspaceID, exceptEmail string) (int, error) {
-	var n int
-	err := s.db.QueryRowContext(ctx, s.rb(
-		`SELECT COUNT(*) FROM workspace_invitations WHERE workspace_id = ? AND email <> ?`),
-		workspaceID, strings.ToLower(strings.TrimSpace(exceptEmail))).Scan(&n)
-	return n, err
-}
-
 type AcceptedInvitation struct {
 	WorkspaceID string
 	Role        Role
@@ -135,61 +126,114 @@ type AcceptedInvitation struct {
 // email must be provider-verified and belong to userID, or anyone could claim another person's
 // invitations.
 func (s *UserStore) AcceptInvitations(ctx context.Context, userID, email string) ([]AcceptedInvitation, error) {
+	accepted, _, err := s.AcceptInvitationsWithin(ctx, userID, email, nil)
+	return accepted, err
+}
+
+// AcceptInvitationsWithin is AcceptInvitations for workspaces with a cap on people (seatLimit > 0,
+// SaaS only). An invitation to a full workspace stays pending, so it goes through on a later sign-in
+// once someone frees a place; full lists those workspaces. Pending invitations never take a place.
+func (s *UserStore) AcceptInvitationsWithin(ctx context.Context, userID, email string,
+	seatLimit func(workspaceID string) int,
+) (accepted []AcceptedInvitation, full []string, err error) {
 	email = strings.ToLower(strings.TrimSpace(email))
 	if email == "" {
-		return nil, nil
+		return nil, nil, nil
 	}
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer tx.Rollback()
 
-	found, err := s.takeInvitations(ctx, tx, email)
+	found, err := s.pendingInvitationsFor(ctx, tx, email)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-
-	var out []AcceptedInvitation
 	for _, p := range found {
-		role := p.Role
-		if role == RoleOwner {
-			claimed, claimErr := s.claimPlaceholderOwnership(ctx, tx, p.WorkspaceID, userID)
-			if claimErr != nil {
-				return nil, claimErr
-			}
-			if claimed {
-				out = append(out, AcceptedInvitation{WorkspaceID: p.WorkspaceID, Role: RoleOwner})
-				continue
-			}
-			role = RoleAdmin
+		a, ok, takeErr := s.takeInvitation(ctx, tx, userID, p, seatLimit)
+		if takeErr != nil {
+			return nil, nil, takeErr
 		}
-		if !isKnownRole(role) {
-			role = RoleViewer
+		if !ok {
+			full = append(full, p.WorkspaceID)
+			continue
 		}
-		if _, err := tx.ExecContext(ctx, s.rb(
-			`INSERT INTO workspace_members (workspace_id, user_id, role, invited_at) VALUES (?,?,?,?)
-			 ON CONFLICT (workspace_id, user_id) DO NOTHING`),
-			p.WorkspaceID, userID, role, time.Now()); err != nil {
-			return nil, err
-		}
-		out = append(out, AcceptedInvitation{WorkspaceID: p.WorkspaceID, Role: role})
+		accepted = append(accepted, a)
 	}
 	if err := tx.Commit(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return out, nil
+	return accepted, full, nil
+}
+
+// takeInvitation turns one invitation into a membership, or reports false when the workspace has no
+// place left. An owner invitation always goes through: it is how the operator hands a workspace over.
+func (s *UserStore) takeInvitation(ctx context.Context, tx *sql.Tx, userID string, p pendingInvitation,
+	seatLimit func(string) int,
+) (AcceptedInvitation, bool, error) {
+	role := p.Role
+	if role == RoleOwner {
+		claimed, err := s.claimPlaceholderOwnership(ctx, tx, p.WorkspaceID, userID)
+		if err != nil {
+			return AcceptedInvitation{}, false, err
+		}
+		if claimed {
+			return AcceptedInvitation{WorkspaceID: p.WorkspaceID, Role: RoleOwner}, true, s.dropInvitation(ctx, tx, p.id)
+		}
+		role = RoleAdmin
+	} else if seatLimit != nil {
+		if limit := seatLimit(p.WorkspaceID); limit > 0 {
+			full, err := s.workspaceFull(ctx, tx, p.WorkspaceID, userID, limit)
+			if err != nil || full {
+				return AcceptedInvitation{}, false, err
+			}
+		}
+	}
+	if !isKnownRole(role) {
+		role = RoleViewer
+	}
+	if _, err := tx.ExecContext(ctx, s.rb(
+		`INSERT INTO workspace_members (workspace_id, user_id, role, invited_at) VALUES (?,?,?,?)
+		 ON CONFLICT (workspace_id, user_id) DO NOTHING`),
+		p.WorkspaceID, userID, role, time.Now()); err != nil {
+		return AcceptedInvitation{}, false, err
+	}
+	return AcceptedInvitation{WorkspaceID: p.WorkspaceID, Role: role}, true, s.dropInvitation(ctx, tx, p.id)
+}
+
+// workspaceFull locks the workspace row so two people accepting the last place at once cannot both
+// get in. Someone who is already a member never counts as one more.
+func (s *UserStore) workspaceFull(ctx context.Context, tx *sql.Tx, workspaceID, userID string, limit int) (bool, error) {
+	var locked string
+	if err := tx.QueryRowContext(ctx, s.rb(`SELECT id FROM workspaces WHERE id = ? FOR UPDATE`),
+		workspaceID).Scan(&locked); err != nil {
+		return false, err
+	}
+	var members, already int
+	if err := tx.QueryRowContext(ctx, s.rb(
+		`SELECT COUNT(*), COUNT(*) FILTER (WHERE user_id = ?) FROM workspace_members WHERE workspace_id = ?`),
+		userID, workspaceID).Scan(&members, &already); err != nil {
+		return false, err
+	}
+	return already == 0 && members >= limit, nil
+}
+
+func (s *UserStore) dropInvitation(ctx context.Context, tx *sql.Tx, id string) error {
+	_, err := tx.ExecContext(ctx, s.rb(`DELETE FROM workspace_invitations WHERE id = ?`), id)
+	return err
 }
 
 type pendingInvitation struct {
 	AcceptedInvitation
+	id string
 	at time.Time
 }
 
-func (s *UserStore) takeInvitations(ctx context.Context, tx *sql.Tx, email string) ([]pendingInvitation, error) {
+func (s *UserStore) pendingInvitationsFor(ctx context.Context, tx *sql.Tx, email string) ([]pendingInvitation, error) {
 	rows, err := tx.QueryContext(ctx, s.rb(
-		`DELETE FROM workspace_invitations WHERE email = ?
-		 RETURNING workspace_id, role, created_at`), email)
+		`SELECT id, workspace_id, role, created_at FROM workspace_invitations WHERE email = ?
+		 ORDER BY created_at FOR UPDATE`), email)
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +241,7 @@ func (s *UserStore) takeInvitations(ctx context.Context, tx *sql.Tx, email strin
 	var found []pendingInvitation
 	for rows.Next() {
 		var p pendingInvitation
-		if err := rows.Scan(&p.WorkspaceID, &p.Role, &p.at); err != nil {
+		if err := rows.Scan(&p.id, &p.WorkspaceID, &p.Role, &p.at); err != nil {
 			return nil, err
 		}
 		found = append(found, p)
@@ -205,7 +249,6 @@ func (s *UserStore) takeInvitations(ctx context.Context, tx *sql.Tx, email strin
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	sort.SliceStable(found, func(i, j int) bool { return found[i].at.Before(found[j].at) })
 	return found, nil
 }
 
@@ -260,7 +303,7 @@ func (h *Handler) invite(w http.ResponseWriter, r *http.Request, wsID, email str
 		apperr.WriteJSON(w, r, http.StatusBadRequest, apperr.Invalid("auth.errors.signup_email_invalid"))
 		return
 	}
-	if h.inviteSeatCapReached(ctx, wsID, email) {
+	if h.inviteSeatCapReached(ctx, wsID) {
 		apperr.WriteJSON(w, r, http.StatusPaymentRequired, apperr.Forbidden("auth.errors.seat_limit_reached"))
 		return
 	}
@@ -278,11 +321,11 @@ func (h *Handler) invite(w http.ResponseWriter, r *http.Request, wsID, email str
 	json.NewEncoder(w).Encode(map[string]any{"status": "invited", "invitation": inv})
 }
 
-func (h *Handler) inviteSeatCapReached(ctx context.Context, wsID, email string) bool {
+func (h *Handler) inviteSeatCapReached(ctx context.Context, wsID string) bool {
 	if h.seatLimit(wsID) == 0 {
 		return false
 	}
-	s, err := h.seats(ctx, wsID, email)
+	s, err := h.seats(ctx, wsID)
 	return err == nil && s.Full()
 }
 
@@ -293,24 +336,14 @@ func (h *Handler) seatLimit(wsID string) int {
 	return max(h.seatLimitFn(wsID), 0)
 }
 
-func (h *Handler) seats(ctx context.Context, wsID, exceptEmail string) (Seats, error) {
-	used, err := h.seatsTaken(ctx, wsID, exceptEmail)
+// seats counts members only: an invitation takes a place when it is accepted, and is refused then if
+// none is left.
+func (h *Handler) seats(ctx context.Context, wsID string) (Seats, error) {
+	members, err := h.store.ListMembers(ctx, wsID)
 	if err != nil {
 		return Seats{}, err
 	}
-	return Seats{Used: used, Limit: h.seatLimit(wsID)}, nil
-}
-
-func (h *Handler) seatsTaken(ctx context.Context, wsID, exceptEmail string) (int, error) {
-	members, err := h.store.ListMembers(ctx, wsID)
-	if err != nil {
-		return 0, err
-	}
-	pending, err := h.store.countInvitations(ctx, wsID, exceptEmail)
-	if err != nil {
-		return 0, err
-	}
-	return len(members) + pending, nil
+	return Seats{Used: len(members), Limit: h.seatLimit(wsID)}, nil
 }
 
 func (h *Handler) handleListInvitations(w http.ResponseWriter, r *http.Request) {
@@ -385,7 +418,7 @@ func (h *Handler) handleDeleteInvitation(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *Handler) acceptInvitations(r *http.Request, user *User) (first AcceptedInvitation, ok bool) {
-	accepted, err := h.store.AcceptInvitations(r.Context(), user.ID, user.Email)
+	accepted, full, err := h.store.AcceptInvitationsWithin(r.Context(), user.ID, user.Email, h.seatLimit)
 	if err != nil {
 		logx.Warn(err, "auth.log.invitation_accept_failed", "user", user.ID)
 		return AcceptedInvitation{}, false
@@ -394,6 +427,10 @@ func (h *Handler) acceptInvitations(r *http.Request, user *User) (first Accepted
 		h.auditUser(r, "workspace.invitation_accepted", user.ID, user.Email, a.WorkspaceID,
 			i18n.Text("auth.audit.invitation_accepted", "email", user.Email, "role", a.Role))
 	}
+	for _, wsID := range full {
+		h.auditUser(r, "workspace.invitation_seat_full", user.ID, user.Email, wsID,
+			i18n.Text("auth.audit.invitation_seat_full", "email", user.Email))
+	}
 	if len(accepted) == 0 {
 		return AcceptedInvitation{}, false
 	}
@@ -401,18 +438,21 @@ func (h *Handler) acceptInvitations(r *http.Request, user *User) (first Accepted
 }
 
 type InvitationPreview struct {
+	workspaceID    string
 	Workspace      string `json:"workspace"`
 	Email          string `json:"email"`
 	Role           Role   `json:"role"`
 	AwaitingAccess bool   `json:"awaiting_access"`
+	// The workspace has no place left: the invitation waits until someone frees one.
+	SeatsFull bool `json:"seats_full,omitempty"`
 }
 
 func (s *UserStore) GetInvitationPreview(ctx context.Context, id string) (*InvitationPreview, error) {
 	var p InvitationPreview
 	err := s.db.QueryRowContext(ctx, s.rb(
-		`SELECT w.name, i.email, i.role FROM workspace_invitations i
+		`SELECT w.id, w.name, i.email, i.role FROM workspace_invitations i
 		 JOIN workspaces w ON w.id = i.workspace_id WHERE i.id = ?`), id,
-	).Scan(&p.Workspace, &p.Email, &p.Role)
+	).Scan(&p.workspaceID, &p.Workspace, &p.Email, &p.Role)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -441,6 +481,7 @@ func (h *Handler) handleInvitationPreview(w http.ResponseWriter, r *http.Request
 		return
 	}
 	p.AwaitingAccess = h.awaitingAccess(r.Context(), p.Email)
+	p.SeatsFull = p.Role != RoleOwner && h.inviteSeatCapReached(r.Context(), p.workspaceID)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(p)
 }

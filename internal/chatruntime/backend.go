@@ -12,6 +12,8 @@ var errBackendUnavailable error = apperr.Unavailable("chatruntime.errors.backend
 
 var errChatPodNeedsRecreate error = apperr.New("chatruntime.errors.pod_needs_recreate")
 
+var errPlacementMoved error = apperr.New("chatruntime.errors.placement_moved")
+
 type unavailableBackend struct{}
 
 func (unavailableBackend) Create(context.Context, CreateSpec) (string, error) {

@@ -54,10 +54,15 @@ func TestResolvePlanChange(t *testing.T) {
 		wantWS   string
 		wantPlan entitlements.Plan
 	}{
-		{"active business", `{"type":"customer.subscription.updated","data":{"object":{"status":"active","metadata":{"octopus_workspace_id":"ws1","octopus_plan":"business"}}}}`, true, "ws1", entitlements.PlanBusiness},
+		{"active starter", `{"type":"customer.subscription.updated","data":{"object":{"status":"active","metadata":{"octopus_workspace_id":"ws1","octopus_plan":"starter"}}}}`, true, "ws1", entitlements.PlanStarter},
+		{"legacy business → team", `{"type":"customer.subscription.updated","data":{"object":{"status":"active","metadata":{"octopus_workspace_id":"ws1","octopus_plan":"business"}}}}`, true, "ws1", entitlements.PlanTeam},
 		{"active no plan → team", `{"type":"customer.subscription.created","data":{"object":{"status":"active","metadata":{"octopus_workspace_id":"ws2"}}}}`, true, "ws2", entitlements.PlanTeam},
-		{"canceled → free", `{"type":"customer.subscription.updated","data":{"object":{"status":"canceled","metadata":{"octopus_workspace_id":"ws3","octopus_plan":"business"}}}}`, true, "ws3", entitlements.PlanFree},
-		{"deleted → free", `{"type":"customer.subscription.deleted","data":{"object":{"status":"canceled","metadata":{"octopus_workspace_id":"ws4"}}}}`, true, "ws4", entitlements.PlanFree},
+		{"canceled → inactive", `{"type":"customer.subscription.updated","data":{"object":{"status":"canceled","metadata":{"octopus_workspace_id":"ws3","octopus_plan":"team"}}}}`, true, "ws3", entitlements.PlanInactive},
+		{"past_due keeps the plan while Stripe retries", `{"type":"customer.subscription.updated","data":{"object":{"status":"past_due","metadata":{"octopus_workspace_id":"ws6","octopus_plan":"team"}}}}`, true, "ws6", entitlements.PlanTeam},
+		{"unpaid after the retries → inactive", `{"type":"customer.subscription.updated","data":{"object":{"status":"unpaid","metadata":{"octopus_workspace_id":"ws7","octopus_plan":"team"}}}}`, true, "ws7", entitlements.PlanInactive},
+		{"incomplete first payment → no plan yet", `{"type":"customer.subscription.created","data":{"object":{"status":"incomplete","metadata":{"octopus_workspace_id":"ws8","octopus_plan":"team"}}}}`, false, "", ""},
+		{"incomplete_expired → inactive", `{"type":"customer.subscription.updated","data":{"object":{"status":"incomplete_expired","metadata":{"octopus_workspace_id":"ws9","octopus_plan":"team"}}}}`, true, "ws9", entitlements.PlanInactive},
+		{"deleted → inactive", `{"type":"customer.subscription.deleted","data":{"object":{"status":"canceled","metadata":{"octopus_workspace_id":"ws4"}}}}`, true, "ws4", entitlements.PlanInactive},
 		{"no workspace metadata → ignored", `{"type":"customer.subscription.updated","data":{"object":{"status":"active","metadata":{}}}}`, false, "", ""},
 		{"unrelated event → ignored", `{"type":"invoice.paid","data":{"object":{"metadata":{"octopus_workspace_id":"ws5"}}}}`, false, "", ""},
 	}
@@ -74,5 +79,22 @@ func TestResolvePlanChange(t *testing.T) {
 				t.Errorf("got %s/%s, want %s/%s", pc.WorkspaceID, pc.Plan, tc.wantWS, tc.wantPlan)
 			}
 		})
+	}
+}
+
+func TestResolvePlanChange_AgentsNodesAndCustomer(t *testing.T) {
+	payload := `{"type":"customer.subscription.updated","data":{"object":{"status":"active","customer":"cus_42",` +
+		`"metadata":{"octopus_workspace_id":"ws1","octopus_plan":"enterprise","octopus_agents":"0","octopus_nodes":"3"}}}}`
+	pc, ok, err := billing.ResolvePlanChange([]byte(payload))
+	if err != nil || !ok {
+		t.Fatalf("ok=%v err=%v", ok, err)
+	}
+	if pc.Plan != entitlements.PlanEnterprise || pc.Nodes != 3 || pc.Agents != 0 || pc.Customer != "cus_42" {
+		t.Fatalf("change = %+v", pc)
+	}
+	bad := `{"type":"customer.subscription.updated","data":{"object":{"status":"active",` +
+		`"metadata":{"octopus_workspace_id":"ws1","octopus_plan":"team","octopus_agents":"lots"}}}}`
+	if pc, _, _ = billing.ResolvePlanChange([]byte(bad)); pc.Agents != 0 {
+		t.Fatalf("garbage agent count = %d, want 0 (plan default)", pc.Agents)
 	}
 }

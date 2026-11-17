@@ -169,7 +169,8 @@
     "install_claude": "¿Instalar Claude Code {version} con npm? (la versión que corre la imagen de los agentes)",
     "runner_folder": "Carpeta de un proyecto",
     "runner_service": "¿Dejarlo corriendo como servicio? Arranca solo cada vez que iniciás sesión.",
-    "yes_no_invalid": "Respondé s o n."
+    "yes_no_invalid": "Respondé s o n.",
+    "runner_machine_profile": "¿Las corridas de Claude Code usan la sesión de claude de esta máquina? (crea un perfil \"Login en una máquina\" predeterminado para Claude Code: las corridas van a esta máquina y pagan con su login)"
   },
   "options": {
     "mode_docker": {
@@ -451,6 +452,11 @@
       "step": "Servicio del runner",
       "effect": "el runner no corre solo",
       "finish": "`thulu runner service install`, o `thulu runner run` en una terminal"
+    },
+    "runner_machine_profile": {
+      "step": "Perfil de máquina para Claude Code",
+      "effect": "las corridas usan una key o el login personal, no esta máquina",
+      "finish": "Configuración → Motores de IA → Claude Code → Nuevo perfil → Login en una máquina"
     }
   },
   "labels": {
@@ -458,7 +464,8 @@
     "operator_key": "key de operador (thulu init)",
     "git_credential_name": "GitHub (thulu init)",
     "default_workspace": "Default",
-    "session_key": "thulu init (sólo esta corrida)"
+    "session_key": "thulu init (sólo esta corrida)",
+    "machine_profile_name": "Claude Code en {runner}"
   },
   "diff": {
     "commented_out": "{key} (comentada)",
@@ -533,7 +540,8 @@
     "workspace_value": "{name} · dueño {email}",
     "github": "GitHub",
     "github_token": "token cargado",
-    "github_skipped": "sin token (se carga después en /credentials)"
+    "github_skipped": "sin token (se carga después en /credentials)",
+    "runner_machine_profile": "Claude Code corre acá por defecto"
   },
   "tasks": {
     "postgres": "Levantando Postgres",
@@ -545,7 +553,8 @@
     "runner_kept": "El runner {name} ya está registrado",
     "runner_project": "Agregando el proyecto {name}",
     "runner_project_kept": "{name} ya es un proyecto del runner ({id})",
-    "runner_service": "Instalando el servicio del runner"
+    "runner_service": "Instalando el servicio del runner",
+    "runner_machine_profile": "Perfil de motor de IA {name}"
   },
   "tui": {
     "enter_default": "Enter deja el valor sugerido.",

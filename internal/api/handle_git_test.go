@@ -4,17 +4,19 @@ import (
 	"context"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/MisterDonnuts/thulu/internal/auth"
 )
 
 func TestGitAuthorize(t *testing.T) {
-	lookup := func(_ context.Context, k string) (string, bool) {
+	lookup := func(_ context.Context, k string) (auth.RunScope, bool) {
 		switch k {
 		case "good-token":
-			return "task42", true
+			return auth.RunScope{TaskID: "task42"}, true
 		case "wrong-scope":
-			return "task99", true
+			return auth.RunScope{TaskID: "task99"}, true
 		}
-		return "", false
+		return auth.RunScope{}, false
 	}
 	cases := []struct {
 		name     string
@@ -35,7 +37,7 @@ func TestGitAuthorize(t *testing.T) {
 			if c.pass != "" {
 				r.SetBasicAuth("octopus", c.pass)
 			}
-			if got := gitAuthorize(lookup, r, c.repoPath); got != c.want {
+			if _, got := gitAuthorize(lookup, r, c.repoPath); got != c.want {
 				t.Errorf("gitAuthorize(%q, pass=%q) = %v, want %v", c.repoPath, c.pass, got, c.want)
 			}
 		})
