@@ -1,4 +1,4 @@
-FROM node:22-trixie-slim@sha256:c5849ff9c9ebcd66615412f0b548ca5b8ecaef84003dc9ac2e077ebe46aaa3f6
+FROM node:22-trixie-slim@sha256:68c76cfad89921b927eae28ba21407475e29d0ce450afcdbe70c1532db042b64
 
 RUN echo 'Acquire::Retries "5";' > /etc/apt/apt.conf.d/80-retries
 
