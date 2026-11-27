@@ -26,6 +26,11 @@
 .bs-more {
   display: inline-flex;
 }
+.bs-list-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
 
 .bs-cards {
   display: grid;
@@ -222,6 +227,11 @@
 .bs-type-count {
   color: var(--fg-3);
   font-size: var(--t-sm);
+}
+/* An agent name, not a sentence: the select need not span the whole card. */
+[data-type-agents] select {
+  width: 100%;
+  max-width: 360px;
 }
 .bs-walks {
   display: flex;

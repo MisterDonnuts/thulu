@@ -71,7 +71,8 @@ func TestDeclineAtConfirmationIsClean(t *testing.T) {
 	}
 	var out bytes.Buffer
 	runner := &recordingRunner{}
-	answers := "2\n2\n\n3\n\n\n\ns\n\n\n\n\n\n\n\nn\n"
+	// The last blank answers the board question (default: the Thulu flow); "n" declines the confirmation.
+	answers := "2\n2\n\n3\n\n\n\ns\n\n\n\n\n\n\n\n\nn\n"
 	if err := Run(context.Background(), Options{
 		Root:     root,
 		Prompter: NewTestPrompter(strings.NewReader(answers), &out),

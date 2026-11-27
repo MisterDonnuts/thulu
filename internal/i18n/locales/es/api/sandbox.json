@@ -8,7 +8,8 @@
     "run_key_refused": "la key de una corrida de agente no puede usar este endpoint",
     "task_id_required": "falta el id de la tarea",
     "manager_unavailable": "el administrador de sandboxes no está configurado",
-    "not_queued": "la tarea no está en la cola de sandboxes"
+    "not_queued": "la tarea no está en la cola de sandboxes",
+    "task_finished": "la tarea {task} está en {stage}, una etapa final: ya devolvió su sandbox y no recibe otro"
   },
   "timeline": {
     "preview_url": "La app del puerto {port} se abre en {url}"

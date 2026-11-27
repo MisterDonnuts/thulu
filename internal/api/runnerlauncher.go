@@ -36,6 +36,11 @@ type runnerLauncher struct {
 	reconcile func(ctx context.Context)
 	// Reads a chat's task for its code; nil leaves task chats without it.
 	task func(ctx context.Context, id string) (*task.Task, error)
+	// What a stage run reads of the task's locked tests at its end; nil asks nothing.
+	testLock func(ctx context.Context, t *task.Task, stage task.Stage) *runner.TestLock
+	// The workspace's run time limit, sent with each job so the machine enforces it too; nil sends
+	// none.
+	runDeadline func(workspaceID string) time.Duration
 
 	claimTimeout time.Duration
 	started      time.Time
@@ -70,6 +75,9 @@ const settleEvery = 2 * time.Second
 
 func (l *runnerLauncher) start(ctx context.Context) {
 	l.baseCtx = ctx
+	// Before the first settle: its Expire would call lost every run whose lease ran out while no
+	// daemon answered.
+	l.adoptRunning(ctx)
 	go func() {
 		l.cancelOrphanTurns(l.baseCtx)
 		t := time.NewTicker(settleEvery)
@@ -96,7 +104,8 @@ func (l *runnerLauncher) runnerFor(ctx context.Context, t *task.Task, runnerID s
 	out := make([]runner.JobProject, 0, len(srcs))
 	for _, src := range srcs {
 		p := src.Project
-		jp := runner.JobProject{ID: p.ID, Name: src.Name, DefaultBranch: p.DefaultBranch, Branch: src.Branch}
+		jp := runner.JobProject{ID: p.ID, Name: src.Name, DefaultBranch: p.DefaultBranch, Branch: src.Branch,
+			GatesProfile: p.GatesProfile}
 		switch {
 		case !src.OnMachine():
 			jp.Source = runner.SourceDaemon
@@ -160,6 +169,13 @@ func (l *runnerLauncher) LaunchForStage(
 		LaunchKind: env[task.EnvLaunchKind], ReadOnly: workspaceReadOnly,
 		Env: copyEnv(env), Projects: projects, ResultRef: project.ResultBranchName(t.SandboxRootID()),
 	}
+	// An audit or a mention reads the code without writing it: nothing to lock or check.
+	if l.testLock != nil && !workspaceReadOnly {
+		spec.TestLock = l.testLock(ctx, t, stage)
+	}
+	if l.runDeadline != nil {
+		spec.DeadlineSeconds = int(l.runDeadline(t.WorkspaceID) / time.Second)
+	}
 	job := &runner.Job{
 		RunnerID: runnerID, WorkspaceID: t.WorkspaceID, TaskID: t.ID,
 		InstanceID: instanceID, AgentName: agentType.Name, AgentType: agentType.Type,
@@ -210,8 +226,8 @@ func (l *runnerLauncher) enqueue(ctx context.Context, r *runner.Runner, job *run
 // without a folder, which only the runner's config lays out. A Thulu project is never mapped, so it
 // only names a job that needs no mapping (Claim takes a self-contained job whatever its project).
 func claimProject(projects []runner.JobProject) string {
-	for _, p := range projects {
-		if p.Path == "" && !p.FromDaemon() {
+	for i := range projects {
+		if p := &projects[i]; p.Path == "" && !p.FromDaemon() {
 			return p.ID
 		}
 	}
@@ -267,6 +283,25 @@ func (l *runnerLauncher) hasCallback(jobID string) bool {
 	defer l.mu.Unlock()
 	_, ok := l.callbacks[jobID]
 	return ok
+}
+
+// adoptGrace is how long a runner has, after the daemon starts, to heartbeat a run a previous daemon
+// handed it. Four heartbeats fit in it, so one lost to a slow restart does not cost the run.
+const adoptGrace = runner.DefaultLease
+
+// adoptRunning keeps the runs a previous daemon left on the machines. The runner goes on with the
+// process through a restart and keeps calling; its next heartbeat renews the job here, and the run
+// ends through Reconcile like any orphan (settle). A chat turn is canceled instead
+// (cancelOrphanTurns): its waiter went with the old daemon.
+func (l *runnerLauncher) adoptRunning(ctx context.Context) {
+	n, err := l.store.AdoptRunning(ctx, adoptGrace)
+	if err != nil {
+		log.Printf("[runner] %s", i18n.Log("api.runners.log.adopt_failed", "err", err))
+		return
+	}
+	if n > 0 {
+		log.Printf("[runner] %s", i18n.Log("api.runners.log.adopted", "count", n, "grace", adoptGrace))
+	}
 }
 
 // cancelOrphanTurns stops the chat turns a previous daemon left queued or running: their waiter went
@@ -344,7 +379,11 @@ func (l *runnerLauncher) finalize(ctx context.Context, j *runner.Job) int {
 	}
 	if l.report != nil && j.TaskID != "" {
 		rep := task.RunnerReport{Runner: runnerName, Lost: j.State == runner.StateLost, Error: j.Result.Error,
-			Warnings: j.Result.Warnings}
+			Warnings: j.Result.Warnings, RunID: j.RunID(), Instance: j.InstanceID, OutputsError: j.Result.OutputsError,
+			TestFiles: j.Result.TestFiles, StopReason: j.Result.StopReason}
+		for _, s := range j.Result.OutputsSkipped {
+			rep.OutputsSkipped = append(rep.OutputsSkipped, s.Path)
+		}
 		for _, p := range j.Result.Pushed {
 			rep.Pushed = append(rep.Pushed, task.RunnerPush{ProjectID: p.ProjectID, Branch: p.Branch, Commit: p.Commit})
 		}

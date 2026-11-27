@@ -25,6 +25,9 @@ type RunScope struct {
 	// the auditor was set to run on. Neither comes from the pod.
 	LLMAgent  string
 	LLMEngine string
+	// The run's instance id. The sandbox stamps it on every command the run starts there, so the
+	// run's end can find and kill what those commands left, even after a restart.
+	Instance string
 }
 
 func (s RunScope) Delegated() bool { return s.DelegatedBy != "" && s.ChatID != "" }
@@ -74,6 +77,12 @@ func runKeyLLMMigrations() []migrate.Migration {
 		{ID: 33, SQL: `
 			ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS scope_llm_agent  TEXT NOT NULL DEFAULT '';
 			ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS scope_llm_engine TEXT NOT NULL DEFAULT ''`},
+	}
+}
+
+func runKeyInstanceMigrations() []migrate.Migration {
+	return []migrate.Migration{
+		{ID: 34, SQL: `ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS scope_instance TEXT NOT NULL DEFAULT ''`},
 	}
 }
 

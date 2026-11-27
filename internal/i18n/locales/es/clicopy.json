@@ -1,0 +1,6 @@
+{
+  "errors": {
+    "read": "leer el CLI nuevo {path}",
+    "write": "reemplazar {path}"
+  }
+}

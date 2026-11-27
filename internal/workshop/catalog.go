@@ -35,8 +35,15 @@ func LoadCatalog(fsys fs.FS) (*Catalog, error) {
 	if err != nil {
 		return nil, err
 	}
-	set := &Set{Agents: agents, Skills: skills}
+	flows, err := loadEach(fsys, "flows", loadFlow)
+	if err != nil {
+		return nil, err
+	}
+	set := &Set{Agents: agents, Skills: skills, Flows: flows}
 	if err := set.checkUnique(); err != nil {
+		return nil, err
+	}
+	if err := set.checkFlows(); err != nil {
 		return nil, err
 	}
 	return &Catalog{set: set}, nil
@@ -154,6 +161,10 @@ const (
 
 func (c *Catalog) Select(refs []Ref) (*Set, error) {
 	out := &Set{}
+	refs, err := c.expandFlows(out, refs)
+	if err != nil {
+		return nil, err
+	}
 	pending := []string{}
 	for _, r := range refs {
 		switch r.Kind {
@@ -191,7 +202,33 @@ func (c *Catalog) Select(refs []Ref) (*Set, error) {
 	return out, nil
 }
 
+// A flow brings the agents it assigns, which bring their skills in Select's loop.
+func (c *Catalog) expandFlows(out *Set, refs []Ref) ([]Ref, error) {
+	rest := make([]Ref, 0, len(refs))
+	for _, r := range refs {
+		if r.Kind != KindFlow {
+			rest = append(rest, r)
+			continue
+		}
+		f, ok := c.set.Flow(r.Name)
+		if !ok {
+			return nil, NoSuchItem(r.Kind, r.Name)
+		}
+		if _, dup := out.Flow(f.Name); dup {
+			continue
+		}
+		out.Flows = append(out.Flows, f)
+		for _, name := range f.AgentNames() {
+			rest = append(rest, Ref{Kind: KindAgent, Name: name})
+		}
+	}
+	return rest, nil
+}
+
 func NoSuchItem(kind, name string) error {
+	if kind == KindFlow {
+		return apperr.NotFound("workshop.errors.flow_no_such_item", "name", name)
+	}
 	return apperr.NotFound(kindKey(kind, "workshop.errors.agent_no_such_item", "workshop.errors.skill_no_such_item"), "name", name)
 }
 

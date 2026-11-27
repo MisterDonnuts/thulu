@@ -32,6 +32,7 @@
     "steered": "The run that asked got it while it worked.",
     "resumed": "The stage resumed with this answer.",
     "thread": "No run was listening: it stays in the thread and the next run reads it.",
+    "default": "Nobody answered before the task left the stage: the agent went on with its default.",
     "pending": "Not delivered yet: it goes to the agent when the run ends or the other blocking questions are answered.",
     "resume_failed": "Saved, but the agent could not be resumed with it. Relaunch the stage and the agent reads it."
   },

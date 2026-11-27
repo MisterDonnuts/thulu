@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -120,9 +121,15 @@ func TestCheckRunsCI_Counts(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := CIStatus{Source: CISourceChecks, Total: 8, Passed: 4, Failed: 2, Running: 2, State: CIStateRunning}
-	if ci != want {
+	if !reflect.DeepEqual(counts(ci), want) {
 		t.Errorf("CheckRunsCI = %+v, want %+v", ci, want)
 	}
+}
+
+// counts drops the per-check list, so a status compares by its tallies.
+func counts(c CIStatus) CIStatus {
+	c.Checks = nil
+	return c
 }
 
 func TestCIStatusSettle(t *testing.T) {
@@ -198,7 +205,7 @@ func TestFetchPRStatus_WithChecks(t *testing.T) {
 		t.Errorf("status = %+v", st)
 	}
 	want := CIStatus{Source: CISourceChecks, Total: 1, Passed: 1, State: CIStatePassed}
-	if st.CI != want {
+	if !reflect.DeepEqual(counts(st.CI), want) {
 		t.Errorf("CI = %+v, want %+v", st.CI, want)
 	}
 }
@@ -212,7 +219,7 @@ func TestFetchPRStatus_FallsBackToActions(t *testing.T) {
 			t.Fatal(err)
 		}
 		want := CIStatus{Source: CISourceActions, Total: 4, Passed: 1, Failed: 1, Running: 2, State: CIStateRunning}
-		if st.CI != want {
+		if !reflect.DeepEqual(counts(st.CI), want) {
 			t.Errorf("checks=%v: CI = %+v, want %+v", checks, st.CI, want)
 		}
 		asked := false

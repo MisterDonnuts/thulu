@@ -33,8 +33,11 @@ type Options struct {
 	BackupConfirmed bool
 	NoFetchCLI      bool
 	Delegated       bool
-	Registry        string
-	ChartRegistry   string
+	// Bring every copy of the CLI on this machine to the version installed. Only the real CLI sets
+	// it; a test that builds Options by hand never touches the binaries on its PATH.
+	SyncCLI       bool
+	Registry      string
+	ChartRegistry string
 	// Never print it or pass it on a command line.
 	APIKey      string
 	Operator    string
@@ -62,6 +65,8 @@ type Deps struct {
 	ReadyTimeout time.Duration
 	Now          func() time.Time
 	Backup       func(ctx context.Context, in *Install, out io.Writer) (string, BackupMethod, error)
+	// nil: the real PATH, binaries and runner service.
+	CLI *CLIOps
 }
 
 func (d *Deps) now() time.Time {
@@ -148,6 +153,8 @@ type updateRun struct {
 	in     *Install
 	out    io.Writer
 	getenv func(string) string
+	// The binary delegate ran, for the CLI copies after it.
+	delegatedBin string
 }
 
 func newRun(opts Options, in *Install) (*updateRun, error) {

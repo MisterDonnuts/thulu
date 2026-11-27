@@ -153,3 +153,15 @@ func TestWorkspaceIDBackfill_MultiWorkspaceIsNoOp(t *testing.T) {
 		t.Errorf("legacy task stamped to %q with two workspaces — backfill must stay no-op", got.WorkspaceID)
 	}
 }
+
+// The Docker install's only daemon waits out a slow database; a Kubernetes pod still stops so the
+// next one takes over.
+func TestLeaseOptionsByInstall(t *testing.T) {
+	env := func(m map[string]string) func(string) string { return func(k string) string { return m[k] } }
+	if o := leaseOptions(env(nil)); !o.SingleReplica {
+		t.Error("a Docker daemon's lease stops on a slow database")
+	}
+	if o := leaseOptions(env(map[string]string{"KUBERNETES_SERVICE_HOST": "10.43.0.1"})); o.SingleReplica {
+		t.Error("a Kubernetes daemon's lease no longer stops without confirmation")
+	}
+}

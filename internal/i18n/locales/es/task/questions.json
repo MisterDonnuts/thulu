@@ -45,7 +45,8 @@
     "answered": "{kind} contestada",
     "asked": "{kind} hecha ({count} pregunta(s))",
     "awaiting_input": "la corrida espera {count} pregunta(s) que bloquean",
-    "canceled": "{kind} cancelada"
+    "canceled": "{kind} cancelada",
+    "defaulted": "{kind} cerrada con su valor por defecto"
   },
   "log": {
     "cancel": "cancelar la pregunta {question}",
@@ -60,7 +61,8 @@
     "set_session": "marcar la sesión en las preguntas de la tarea {task}",
     "steer": "pasar las respuestas a la corrida {run} de la tarea {task}",
     "unpark": "sacar la tarea {task} de awaiting_input",
-    "decorate_counts": "contar las preguntas abiertas"
+    "decorate_counts": "contar las preguntas abiertas",
+    "apply_default": "cerrar la pregunta {question} con su valor por defecto"
   },
   "prompts": {
     "answer": "Respuesta: {answer}",
@@ -72,6 +74,7 @@
     "canceled": "Cancelada por {author}, sin respuesta.",
     "canceled_moved": "Cancelada sin respuesta: la tarea pasó a otra etapa.",
     "canceled_relaunch": "Cancelada sin respuesta: se relanzó la etapa.",
+    "default_applied": "Nadie contestó antes de que la tarea dejara la etapa, así que queda el valor por defecto: {default}",
     "heading": "Respuesta:",
     "line": "\n- **{label}:** {answer}",
     "note": "\n\n{note}",

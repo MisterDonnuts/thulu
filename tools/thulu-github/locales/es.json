@@ -317,7 +317,7 @@
       }
     },
     "run_dispatch": {
-      "description": "Dispara un workflow_dispatch. El archivo del workflow tiene que incluir 'on: workflow_dispatch' — fijate primero con workflow_view, junto con los inputs que declara. GitHub contesta 204 sin id de run, así que esta tool consulta un rato y devuelve el run que creó; seguilo con run_watch. Arrancar un deploy no tiene vuelta atrás desde acá más allá de run_cancel, y un run que cae en 'waiting' necesita a una persona.",
+      "description": "Dispara un workflow_dispatch. El archivo del workflow tiene que incluir 'on: workflow_dispatch' — fijate primero con workflow_view, junto con los inputs que declara. GitHub contesta 204 sin id de run, así que esta tool consulta un rato y devuelve el run que creó; seguilo con run_watch. Arrancar un deploy no tiene vuelta atrás desde acá más allá de run_cancel, y un run que cae en 'waiting' necesita a una persona. En una corrida de tarea Thulu da el token sólo después de que una persona apruebe la aprobación deploy_prod de tu tarea: pedila antes con task_request_approval(key: \"deploy_prod\").",
       "params": {
         "repo": "owner/name.",
         "workflow_id": "Id del workflow (número) o nombre de archivo (p. ej. 'deploy.yml').",
@@ -371,6 +371,7 @@
     "no_github_token": "no hay ningún token de GitHub: conectá este proyecto a GitHub desde Thulu (instalación de la GitHub App o una credencial del proyecto)",
     "repo_format": "repo tiene que ser 'owner/name', llegó {repo}",
     "repo_token_failed": "no hay token de GitHub para {repo} (HTTP {status}): {body}",
+    "token_refused": "Thulu negó un token de GitHub con {permission} (HTTP 403): {body}",
     "logs_zip": "los logs del run llegaron como un zip — thulu-github no descomprime en el server. Llamá a run_jobs({repo, run_id, failed_only: true}) para sacar los ids de los jobs, y después a run_logs({repo, run_id, job_id}) para los logs en texto plano de ese job.",
     "invalid_state": "state tiene que ser 'approved' o 'rejected', llegó '{state}'",
     "no_reviewable_environment": "este run no tiene ningún environment pendiente que este token pueda revisar — run_pending_deployments dice quién lo puede aprobar",

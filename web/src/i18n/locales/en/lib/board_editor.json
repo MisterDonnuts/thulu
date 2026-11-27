@@ -72,7 +72,8 @@
     "saved": "{setting} saved",
     "elsewhere": "Also set per column:",
     "agents_link": "Which agent runs here",
-    "sandboxes_link": "Sandbox priority"
+    "sandboxes_link": "Sandbox priority",
+    "pr": "Pull request and release"
   },
   "flags": {
     "initial": "Tasks start here",
@@ -88,14 +89,44 @@
     "legacy": "Every approval blocks the task",
     "legacy_desc": "Any approval on the task keeps it here, not only the required ones. Turn it off to rely on required approvals.",
     "no_agents": "No agent covers this column yet.",
-    "agents_link": "Set one up in Agents"
+    "agents_link": "Set one up in Agents",
+    "agent_verdict": "The agent decides where the task goes",
+    "agent_verdict_desc": "The agent's verdict moves the task on, or sends it back to the column the verdict names.",
+    "lock_tests": "Lock the tests",
+    "lock_tests_desc": "The tests a clean run here writes are locked. If a later column changes one, the task waits there until a person approves the change.",
+    "pr_draft": "Open the pull request as a draft",
+    "pr_draft_desc": "A task entering this column opens its pull request as a draft, so the project's CI runs before anyone reviews it.",
+    "pr_ready": "Mark the pull request ready",
+    "pr_ready_desc": "A task entering this column takes its pull request out of draft so it can be reviewed.",
+    "merge_target": "Merged tasks land here",
+    "merge_target_desc": "When the task's pull request is merged, the task moves to this column. Needs an earlier column that opens it.",
+    "release_resources": "Free the task's resources",
+    "release_resources_desc": "A task entering this column stops its sandbox and drops its worktree. No column after it can push.",
+    "no_skip": "Tasks can't skip this column",
+    "no_skip_desc": "The refinement agent and people can't mark this column as skipped for a task. Use it for reviews that must always happen."
   },
   "locks": {
     "initial_move": "To change it, make another column the start.",
     "initial_terminal": "A finishing column can't be the start.",
     "last_terminal": "The board needs at least one finishing column.",
     "terminal_initial": "The start column can't also finish work.",
-    "terminal_no_advance": "A finishing column does not pass the task on."
+    "terminal_no_advance": "A finishing column does not pass the task on.",
+    "edge_no_agent": "No agent runs in the start or finishing column.",
+    "start_no_pr": "A task in the start column has no pull request yet.",
+    "skip_unless": "A column that can be skipped can't ask for approvals, push, open pull requests or free resources.",
+    "merge_target_taken": "Merged tasks already land in {stage}; a board has one such column.",
+    "merge_target_without_pr": "No column before this one opens a pull request, so no merged task can land here.",
+    "pr_needed_by_merge": "Merged tasks land in {stage}, which needs a column before it that opens the pull request.",
+    "required_checks_without_pr": "An approval here waits for required checks, and no column up to this one opens a pull request.",
+    "pr_needed_by_checks": "An approval in {stage} waits for required checks and needs a column up to it that opens the pull request.",
+    "worktree_after_release": "{stage} already freed the worktree, so a later column can't push, open pull requests or lock tests.",
+    "release_before_worktree": "{stage} comes later and still needs the worktree.",
+    "release_kick_back": "A column that frees resources can't send changes back.",
+    "kick_back_to_skippable": "{stage} can be skipped, so it can't receive changes sent back.",
+    "skippable_is_kick_back_target": "{stage} sends changes back to this column, so it can't be skipped.",
+    "kick_back_earlier": "Changes go back to an earlier column that does not finish work.",
+    "no_skip_skip_unless": "This column already runs only for marked tasks. Clear that list first.",
+    "skip_unless_no_skip": "Tasks can't skip this column. Turn that off first."
   },
   "wip": {
     "none": "Nothing",
@@ -136,5 +167,12 @@
     "patch": "Couldn't save the column: {error}",
     "create": "Couldn't add the column: {error}",
     "remove": "Couldn't delete the column: {error}"
+  },
+  "skip_unless": {
+    "label": "Run only for tasks marked",
+    "help": "Comma-separated values of the task's flow flags, for example ui, api. Empty runs the column for every task.",
+    "placeholder": "ui, api",
+    "invalid": "\"{value}\" is not valid: use lowercase letters, digits and _ (up to 32).",
+    "too_many": "At most {max} values."
   }
 }

@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -37,6 +38,11 @@ type AgentSettings struct {
 	AuditorModelByStage  map[string]string   `json:"auditor_model_by_stage"`
 	AuditorEngineByStage map[string]string   `json:"auditor_engine_by_stage"`
 	AuditorSkillsByStage map[string][]string `json:"auditor_skills_by_stage"`
+	// "always" or "signals". An agent without an auditor reads "signals", the mode a new one gets.
+	AuditorMode string `json:"auditor_mode"`
+	// 0 means the default budget (types.DefaultAuditMaxDiffLines and DefaultAuditMaxDiffFiles).
+	AuditorMaxDiffLines int `json:"auditor_max_diff_lines"`
+	AuditorMaxDiffFiles int `json:"auditor_max_diff_files"`
 	// On PUT, nil keeps the stored value so clients predating this field don't re-enable every
 	// system skill on save; {} clears it.
 	SystemSkillsOff     map[string][]string            `json:"system_skills_off"`
@@ -200,6 +206,7 @@ func settingsOf(at *types.AgentType) AgentSettings {
 		AuditorModelByStage:  map[string]string{},
 		AuditorEngineByStage: map[string]string{},
 		AuditorSkillsByStage: map[string][]string{},
+		AuditorMode:          types.AuditorModeSignals,
 		SystemSkillsOff:      map[string][]string{},
 		TokenOptimizer:       agentTokenOptimizerOf(at.TokenOptimizer),
 	}
@@ -220,6 +227,8 @@ func settingsOf(at *types.AgentType) AgentSettings {
 	}
 	if at.Auditor != nil {
 		settings.AuditorStages = append(settings.AuditorStages, at.Auditor.Stages...)
+		settings.AuditorMode = at.Auditor.EffectiveMode()
+		settings.AuditorMaxDiffLines, settings.AuditorMaxDiffFiles = at.Auditor.MaxDiffLines, at.Auditor.MaxDiffFiles
 		for k, v := range at.Auditor.TurnsByStage {
 			settings.AuditorTurnsByStage[k] = v
 		}
@@ -299,27 +308,20 @@ func (s *Server) handlePutAgentSettings(w http.ResponseWriter, r *http.Request) 
 	}
 	name := r.PathValue("name")
 
-	var settings AgentSettings
-	if !decodeBody(w, r, &settings) {
+	var body map[string]json.RawMessage
+	if !decodeBody(w, r, &body) {
 		return
 	}
-	if settings.TokenOptimizer != nil {
-		policy, err := tokenOptimizerFromSettings(r.Context(), settings.TokenOptimizer)
-		if err != nil {
-			writeError(w, r, http.StatusBadRequest, err)
-			return
-		}
-		settings.TokenOptimizer = agentTokenOptimizerOf(policy)
-	}
-	if err := normalizeAuditorEngines(&settings); err != nil {
-		writeError(w, r, http.StatusBadRequest, err)
+	settings, status, err := s.agentSettingsFromBody(r.Context(), store, tenant, name, body)
+	if err != nil {
+		writeError(w, r, status, err)
 		return
 	}
 
 	// Write rows when a store exists: the agents dir is an emptyDir reseeded from a ConfigMap, so
 	// compose edits are lost on restart.
 	if store != nil {
-		if err := s.putAgentSettingsRow(r.Context(), store, tenant, name, settings, actorID(r)); err != nil {
+		if err = s.putAgentSettingsRow(r.Context(), store, tenant, name, settings, actorID(r)); err != nil {
 			writeError(w, r, statusForStoreErr(err), err)
 			return
 		}
@@ -334,12 +336,98 @@ func (s *Server) handlePutAgentSettings(w http.ResponseWriter, r *http.Request) 
 		writeError(w, r, http.StatusNotFound, err)
 		return
 	}
-	if status, err := writeAgentSettings(dir, name, settings); err != nil {
+	if status, err = writeAgentSettings(dir, name, settings); err != nil {
 		writeError(w, r, status, err)
 		return
 	}
 	s.invalidateCatalog("")
 	writeJSON(w, http.StatusOK, s.savedAgentSettings(r, nil, "", name, settings))
+}
+
+// agentSettingsFromBody is the settings a PUT leaves: the body merged over the stored settings,
+// normalized and checked. The status goes with the error.
+func (s *Server) agentSettingsFromBody(ctx context.Context, store *agentstore.Store, tenant, name string,
+	body map[string]json.RawMessage,
+) (AgentSettings, int, error) {
+	stored, err := s.storedAgentSettings(ctx, store, tenant, name)
+	if err != nil {
+		return AgentSettings{}, statusForStoreErr(err), err
+	}
+	settings, err := mergeSettingsBody(stored, body)
+	if err != nil {
+		return AgentSettings{}, http.StatusBadRequest, apperr.WrapKind(apperr.KindInvalid, err, "api.server.errors.invalid_body")
+	}
+	if nerr := normalizeAgentSettings(ctx, &settings); nerr != nil {
+		return AgentSettings{}, http.StatusBadRequest, nerr
+	}
+	return settings, http.StatusOK, nil
+}
+
+// normalizeAgentSettings checks a PUT's settings and puts them in their stored form.
+func normalizeAgentSettings(ctx context.Context, in *AgentSettings) error {
+	if in.TokenOptimizer != nil {
+		policy, err := tokenOptimizerFromSettings(ctx, in.TokenOptimizer)
+		if err != nil {
+			return err
+		}
+		in.TokenOptimizer = agentTokenOptimizerOf(policy)
+	}
+	if err := normalizeAuditorEngines(in); err != nil {
+		return err
+	}
+	return validateAuditorMode(*in)
+}
+
+// The settings a PUT starts from: the stored row when a store exists, else what the compose labels
+// say. A compose the catalog does not list has nothing to keep, and writeAgentSettings reports
+// what is wrong with it.
+func (s *Server) storedAgentSettings(ctx context.Context, store *agentstore.Store, tenant, name string) (AgentSettings, error) {
+	if store == nil {
+		if settings, err := s.agentSettings("", name); err == nil {
+			return settings, nil
+		}
+		return AgentSettings{}, nil
+	}
+	existing, err := store.GetAgent(ctx, tenant, name)
+	if err != nil {
+		return AgentSettings{}, err
+	}
+	return settingsOf(&existing.AgentType), nil
+}
+
+// mergeSettingsBody lays the keys a PUT body names over the stored settings. A key the body leaves
+// out keeps its stored value, so a client that sends only mcp_by_stage cannot reset turns, skills
+// or the auditor; a key it sends, even empty or null, replaces the stored value whole.
+func mergeSettingsBody(stored AgentSettings, body map[string]json.RawMessage) (AgentSettings, error) {
+	// nil already means "keep" for these two, and keeping them nil spares a stored policy a
+	// re-validation on a save that does not touch it.
+	stored.TokenOptimizer, stored.SystemSkillsOff = nil, nil
+	stored.SystemSkills, stored.SystemSkillsByStage, stored.UnknownStages = nil, nil, nil
+	fields, err := jsonFields(stored)
+	if err != nil {
+		return AgentSettings{}, err
+	}
+	for k, v := range body {
+		fields[k] = v
+	}
+	merged, err := json.Marshal(fields)
+	if err != nil {
+		return AgentSettings{}, err
+	}
+	var out AgentSettings
+	err = json.Unmarshal(merged, &out)
+	return out, err
+}
+
+// jsonFields is v's JSON object by key.
+func jsonFields(v any) (map[string]json.RawMessage, error) {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return nil, err
+	}
+	fields := map[string]json.RawMessage{}
+	err = json.Unmarshal(b, &fields)
+	return fields, err
 }
 
 func (s *Server) savedAgentSettings(r *http.Request, store *agentstore.Store, tenant, name string, sent AgentSettings) AgentSettings {
@@ -423,11 +511,39 @@ func auditorFromSettings(in AgentSettings) *types.AuditorSpec {
 	}
 	return &types.AuditorSpec{
 		Stages:        in.AuditorStages,
+		Mode:          storedAuditorMode(in.AuditorMode),
+		MaxDiffLines:  in.AuditorMaxDiffLines,
+		MaxDiffFiles:  in.AuditorMaxDiffFiles,
 		TurnsByStage:  in.AuditorTurnsByStage,
 		ModelByStage:  in.AuditorModelByStage,
 		EngineByStage: in.AuditorEngineByStage,
 		SkillsByStage: in.AuditorSkillsByStage,
 	}
+}
+
+// "always" is stored as empty, which every spec saved before modes existed holds: saving an
+// untouched agent then leaves its definition, and its history, as they were.
+func storedAuditorMode(m string) string {
+	if m == types.AuditorModeSignals {
+		return m
+	}
+	return ""
+}
+
+// The largest diff budget a person can set; past it the check never fires and should be off.
+const maxAuditDiffBudget = 1_000_000
+
+func validateAuditorMode(in AgentSettings) error {
+	if !types.ValidAuditorMode(in.AuditorMode) {
+		return apperr.Invalid("api.agents.errors.invalid_auditor_mode", "mode", in.AuditorMode,
+			"always", types.AuditorModeAlways, "signals", types.AuditorModeSignals)
+	}
+	for _, n := range []int{in.AuditorMaxDiffLines, in.AuditorMaxDiffFiles} {
+		if n < 0 || n > maxAuditDiffBudget {
+			return apperr.Invalid("api.agents.errors.invalid_auditor_budget", "value", n, "max", maxAuditDiffBudget)
+		}
+	}
+	return nil
 }
 
 // An empty engine means "the agent's", so it is not stored. A name the daemon does not know would
@@ -517,6 +633,9 @@ var managedAgentLabels = map[string]bool{
 	types.LabelAuditorTurnsLegacy:  true,
 	types.LabelAuditorModelLegacy:  true,
 	types.LabelAuditorSkillsLegacy: true,
+	types.LabelAuditorMode:         true,
+	types.LabelAuditorMaxDiffLines: true,
+	types.LabelAuditorMaxDiffFiles: true,
 	"thulu.agent":                  true,
 	"thulu.type":                   true,
 	"thulu.phases":                 true,
@@ -640,6 +759,15 @@ func applyAuditorSettingsLabels(newLabels map[string]string, settings AgentSetti
 		return
 	}
 	newLabels[types.LabelAuditorStages] = csvOf(auditorStages)
+	if m := storedAuditorMode(settings.AuditorMode); m != "" {
+		newLabels[types.LabelAuditorMode] = m
+	}
+	if settings.AuditorMaxDiffLines > 0 {
+		newLabels[types.LabelAuditorMaxDiffLines] = strconv.Itoa(settings.AuditorMaxDiffLines)
+	}
+	if settings.AuditorMaxDiffFiles > 0 {
+		newLabels[types.LabelAuditorMaxDiffFiles] = strconv.Itoa(settings.AuditorMaxDiffFiles)
+	}
 	for prefix, byStage := range map[string]map[string]string{
 		types.LabelAuditorTurnsPrefix:  settings.AuditorTurnsByStage,
 		types.LabelAuditorModelPrefix:  settings.AuditorModelByStage,

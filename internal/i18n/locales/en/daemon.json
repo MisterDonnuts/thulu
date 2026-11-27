@@ -150,10 +150,25 @@
     "reattributed": "re-attributed the cost of {count} sessions",
     "reconcile_namespaces_failed": "list workspaces to bring their namespaces to the current labels: {err}",
     "reconcile_namespaces_done": "{count} tenant namespaces checked against the current labels",
-    "hour_meter_started": "agent hours meter started (every {interval}; extra hours to billing: {billing})"
+    "hour_meter_started": "agent hours meter started (every {interval}; extra hours to billing: {billing})",
+    "image_missing": "image {image} ({env}) is not on the Docker host, and the daemon does not build it: the first run that needs it will stop. Fix it on the Docker host with: {fix}",
+    "image_found": "image {image} is on the Docker host now",
+    "kept_unsettled_exit": "kept exited {kind} container {id}: nobody finished its run yet, and its outputs live only inside it",
+    "list_running_failed": "list running {kind} containers: {err}",
+    "reaped_deleted_task_agent": "removed agent container {id} (instance {instance}, image {image}): its task {task} was deleted",
+    "reaped_stale_login": "removed personal login container {id} ({engine}, {age} old): no login flow owns it",
+    "kube_janitor_orphan_pods_failed": "kube janitor: sweep for leftover agent pods: {err}",
+    "kube_janitor_secrets_forbidden": "kube janitor: cannot list Secrets, so env secrets of deleted pods stay until removed by hand; upgrade the Helm chart, which grants list on Secrets in tenant namespaces: {err}",
+    "kube_janitor_orphan_secrets_failed": "kube janitor: sweep for env secrets without a pod: {err}",
+    "kube_janitor_leftovers_done": "kube janitor: leftovers removed: agent_pods={agents} unscheduled_pods={unscheduled} env_secrets={secrets}",
+    "kube_janitor_note_failed": "kube janitor: note on task {task}: {err}"
   },
   "comments": {
     "worktree_parked": "This task's worktree was idle for a long time, so Thulu freed its disk. Pending changes were committed to the task branch; the next run checks it out again.",
-    "sandbox_relaunch_failed": "The task got a sandbox slot but its stage could not be relaunched: {err}. It left the sandbox line; relaunch it when that is fixed."
+    "sandbox_relaunch_failed": "The task got a sandbox slot but its stage could not be relaunched: {err}. It left the sandbox line; relaunch it when that is fixed.",
+    "unscheduled_pod_deleted": "The {agent} run {instance} never started: no node in the cluster took its pod {pod} before its run deadline, so Thulu deleted it. Check the cluster's free room and the node its worktree volume is bound to, then relaunch the stage."
+  },
+  "problems": {
+    "image_missing": "Image {image} ({env}) is not on the Docker host and the daemon does not build it, so the first run that needs it will stop. From a Thulu checkout on the Docker host run: {fix}"
   }
 }

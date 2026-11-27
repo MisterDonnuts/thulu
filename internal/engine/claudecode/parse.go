@@ -327,12 +327,13 @@ func yieldUserEvents(ev *streamEvent, yield func(engine.Event) bool) bool {
 		c := &blocks[i]
 		switch c.Type {
 		case "tool_result":
-			size, tail := resultText(c.Content)
+			size, head, tail := resultText(c.Content)
 			if !yield(engine.Event{
 				Kind:            engine.EventToolResult,
 				ToolUseID:       c.ToolUseID,
 				ParentToolUseID: ev.ParentToolUseID,
 				ResultBytes:     size,
+				ResultHead:      head,
 				ResultTail:      tail,
 				IsError:         c.IsError != nil && *c.IsError,
 			}) {
@@ -386,10 +387,10 @@ func inputBytes(in map[string]any) int {
 // bytes a token.
 const imageBytes = 6000
 
-func resultText(raw json.RawMessage) (size int, tail string) {
+func resultText(raw json.RawMessage) (size int, head, tail string) {
 	var s string
 	if json.Unmarshal(raw, &s) == nil {
-		return len(s), lastBytes(s, engine.ResultTailBytes)
+		return len(s), firstBytes(s, engine.ResultHeadBytes), lastBytes(s, engine.ResultTailBytes)
 	}
 	var b strings.Builder
 	blocks := contentBlocks(raw)
@@ -403,7 +404,19 @@ func resultText(raw json.RawMessage) (size int, tail string) {
 			size += imageBytes
 		}
 	}
-	return size, lastBytes(b.String(), engine.ResultTailBytes)
+	text := b.String()
+	return size, firstBytes(text, engine.ResultHeadBytes), lastBytes(text, engine.ResultTailBytes)
+}
+
+func firstBytes(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	cut := n
+	for cut > 0 && !utf8.RuneStart(s[cut]) {
+		cut--
+	}
+	return s[:cut]
 }
 
 func lastBytes(s string, n int) string {

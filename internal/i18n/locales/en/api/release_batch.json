@@ -1,0 +1,21 @@
+{
+  "errors": {
+    "board_required": "board_id is required: a batch moves tasks of one board",
+    "task_ids_count": "task_ids must list between 1 and {max} tasks; it lists {count}",
+    "note_required": "note is required: say why these tasks move, it is written on each one",
+    "note_too_long": "note is longer than {max} characters",
+    "sha_invalid": "deployed_sha must be a commit SHA (7 to 40 hex characters)",
+    "included_needs_deploy": "require_included needs deployed_sha and project_id: inclusion is checked against one project's deployed commit",
+    "unknown_stage": "{stage} is not a column of this board",
+    "not_forward": "{to} does not come after {from} on this board: a batch only moves tasks forward",
+    "run_before_merge_target": "a run moves tasks in a batch only from {target}, the stage where merged work waits, or a later one; {stage} comes before it (a board without that stage takes no batch from a run)"
+  },
+  "comments": {
+    "moved": "{by} moved the task to {stage} in a batch: {note}",
+    "moved_deploy": "{by} moved the task to {stage} in a batch, with deploy {sha}: {note}"
+  },
+  "log": {
+    "move": "move task {task} in a batch",
+    "comment": "comment the batch move on task {task}"
+  }
+}

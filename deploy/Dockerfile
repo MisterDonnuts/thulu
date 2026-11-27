@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM node:22-alpine@sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914 AS web-builder
+FROM --platform=$BUILDPLATFORM node:22-alpine@sha256:1314fb30ec37592d5845e5a160d522c0e680972aa534549940b8d73bde88481a AS web-builder
 ARG NPM_CONFIG_FETCH_RETRIES=5
 ARG NPM_CONFIG_FETCH_RETRY_MAXTIMEOUT=120000
 WORKDIR /build/web
@@ -24,7 +24,7 @@ RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath \
       -ldflags="-s -w -X github.com/MisterDonnuts/thulu/internal/buildinfo.Version=${VERSION}" \
       -o octopus .
 
-FROM alpine:3.24@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6
+FROM alpine:3.24@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf
 ARG VERSION=dev
 LABEL org.opencontainers.image.title="octopus" \
       org.opencontainers.image.description="Thulu daemon: a board where agents work each stage of your delivery process" \

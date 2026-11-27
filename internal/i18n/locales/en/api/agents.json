@@ -28,7 +28,9 @@
     "write_file": "write {path}",
     "relative_path": "rel {path}",
     "read_file": "read {path}",
-    "walk_dir": "walk {path}"
+    "walk_dir": "walk {path}",
+    "invalid_auditor_mode": "auditor_mode {mode:%q} is not known: use {always} or {signals}",
+    "invalid_auditor_budget": "auditor diff budget {value} must be between 0 (default) and {max}"
   },
   "labels": {
     "agent_prompts": "Agent prompts",

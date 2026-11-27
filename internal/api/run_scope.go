@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/MisterDonnuts/thulu/internal/auth"
@@ -60,6 +61,12 @@ func (s *Server) runKeyMayProceed(w http.ResponseWriter, r *http.Request, scope 
 		}
 	}
 	switch {
+	case route == "/tasks/batch-move":
+		return s.runMayMoveBatch(w, r, scope)
+
+	case route == "/tasks/{id}/deploy-watches", route == "/tasks/{id}/deploy-watches/{watchId}":
+		return s.runMayUseDeployWatches(w, r, scope)
+
 	case route == "/tasks/{id}/session-snapshot", route == "/tasks/{id}/conversation-transcript":
 		return s.requireRunOwnSession(w, r, scope, read)
 
@@ -84,20 +91,10 @@ func (s *Server) runKeyMayProceed(w http.ResponseWriter, r *http.Request, scope 
 		return false
 
 	case strings.HasPrefix(route, "/chats/{id}"):
-		// No lookup: "not your chat" and "no such chat" answer alike so a run can't enumerate chat
-		// ids.
-		if scope.ChatID == "" || r.PathValue("id") != scope.ChatID {
-			writeErrKey(w, r, http.StatusForbidden, "api.scope.errors.run_own_chat_only")
-			return false
-		}
-		if !read {
-			writeErrKey(w, r, http.StatusForbidden, "api.scope.errors.run_chat_read_only")
-			return false
-		}
-		return true
+		return runMayUseOwnChat(w, r, scope, read)
 
 	case strings.HasPrefix(route, "/evidence/") && !read:
-		return runMayWriteEvidence(w, r, scope, route)
+		return s.runMayWriteEvidence(w, r, scope, route)
 
 	case strings.HasPrefix(route, "/usage/sessions/{id}/"),
 		strings.HasPrefix(route, "/agents/{id}/logs"),
@@ -111,11 +108,25 @@ func (s *Server) runKeyMayProceed(w http.ResponseWriter, r *http.Request, scope 
 	return true
 }
 
+// No lookup: "not your chat" and "no such chat" answer alike so a run can't enumerate chat ids.
+func runMayUseOwnChat(w http.ResponseWriter, r *http.Request, scope auth.RunScope, read bool) bool {
+	if scope.ChatID == "" || r.PathValue("id") != scope.ChatID {
+		writeErrKey(w, r, http.StatusForbidden, "api.scope.errors.run_own_chat_only")
+		return false
+	}
+	if !read {
+		writeErrKey(w, r, http.StatusForbidden, "api.scope.errors.run_chat_read_only")
+		return false
+	}
+	return true
+}
+
 // Evidence environments hold sealed logins and the URL the next batch types them into, so a
 // prompt-injected run that could repoint base_url would collect them. Runs only read Evidence;
-// the two writers are a batch's runner key on its own batch and a recording chat saving its take,
-// and their handlers check the exact credential again.
-func runMayWriteEvidence(w http.ResponseWriter, r *http.Request, scope auth.RunScope, route string) bool {
+// the writers are a batch's runner key on its own batch, a recording chat saving its take, and a
+// run whose octopus-api grant names evidence_batch_run queueing a batch (its handler narrows it).
+// Their handlers check the exact credential again.
+func (s *Server) runMayWriteEvidence(w http.ResponseWriter, r *http.Request, scope auth.RunScope, route string) bool {
 	switch {
 	case strings.HasPrefix(route, "/evidence/jobs/{batch}/"):
 		if scope.Agent == evidence.RunnerAgentPrefix+r.PathValue("batch") {
@@ -125,9 +136,78 @@ func runMayWriteEvidence(w http.ResponseWriter, r *http.Request, scope auth.RunS
 		if scope.ChatID != "" {
 			return true
 		}
+	case route == "/evidence/environments/{id}/run":
+		if s.runNamesTool(r.Context(), scope, octopusAPIServer, toolEvidenceBatchRun) {
+			return true
+		}
 	}
 	writeErrKey(w, r, http.StatusForbidden, "api.scope.errors.run_evidence_scope")
 	return false
+}
+
+// A batch move reaches other people's tasks, so a run needs octopus-api's tasks_move_batch named in
+// its grant (no scope implies it). The board travels in the body: the handler holds a run to the
+// board of its own task (runOwnBoard).
+func (s *Server) runMayMoveBatch(w http.ResponseWriter, r *http.Request, scope auth.RunScope) bool {
+	if !s.runNamesTool(r.Context(), scope, octopusAPIServer, toolTasksMoveBatch) {
+		writeErrKey(w, r, http.StatusForbidden, "api.scope.errors.run_tool_not_named",
+			"tool", toolTasksMoveBatch, "server", octopusAPIServer)
+		return false
+	}
+	return true
+}
+
+// A deploy watch opens release tasks from then on without anyone asking, so a run reaches the
+// watches only with the matching deploy_watch_* tool named in its grant, and only through its own
+// task: the projects the watch can land on are that task's.
+func (s *Server) runMayUseDeployWatches(w http.ResponseWriter, r *http.Request, scope auth.RunScope) bool {
+	tool := toolDeployWatchList
+	switch r.Method {
+	case http.MethodPut:
+		tool = toolDeployWatchSet
+	case http.MethodDelete:
+		tool = toolDeployWatchDelete
+	}
+	if !s.runNamesTool(r.Context(), scope, octopusAPIServer, tool) {
+		writeErrKey(w, r, http.StatusForbidden, "api.scope.errors.run_tool_not_named", "tool", tool, "server", octopusAPIServer)
+		return false
+	}
+	if scope.TaskID == "" || r.PathValue("id") != scope.TaskID {
+		writeErrKey(w, r, http.StatusForbidden, errRunTaskScope)
+		return false
+	}
+	return true
+}
+
+// runOwnBoard is the board of the run's own task, or "" for a key that is not a task run's.
+func (s *Server) runOwnBoard(ctx context.Context, scope auth.RunScope) string {
+	if !scope.IsRun() || scope.TaskID == "" || s.taskStore == nil {
+		return ""
+	}
+	own, err := s.taskStore.GetRow(ctx, scope.TaskID)
+	if err != nil || own == nil {
+		return ""
+	}
+	return own.BoardID
+}
+
+// The octopus-api tools a run must be granted by name for the daemon to let its key through:
+// granting a scope never reaches them.
+const (
+	octopusAPIServer     = "octopus-api"
+	toolTasksMoveBatch   = "tasks_move_batch"
+	toolEvidenceBatchRun = "evidence_batch_run"
+
+	toolDeployWatchSet    = "deploy_watch_set"
+	toolDeployWatchList   = "deploy_watch_list"
+	toolDeployWatchDelete = "deploy_watch_delete"
+)
+
+// runNamesTool reports whether the run's grant for server lists tool by name. It reads the grant the
+// run launched with, as the MCP proxy enforces it; a scope ("read", "write") never counts.
+func (s *Server) runNamesTool(ctx context.Context, scope auth.RunScope, server, tool string) bool {
+	entry, _, ok := s.mcpProxyGrant(ctx, scope, auth.APIKeyWorkspace(ctx), server)
+	return ok && slices.Contains(entry.Tools, tool)
 }
 
 func isReadMethod(method string) bool {

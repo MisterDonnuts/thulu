@@ -1,0 +1,39 @@
+{
+  "filter": {
+    "all": "All",
+    "questions": "Agent questions",
+    "decisions": "Decisions",
+    "talk": "Conversation"
+  },
+  "sort": {
+    "new": "Newest first",
+    "old": "Oldest first"
+  },
+  "decision": {
+    "moved_to": "Moved to {stage}",
+    "moved": "Moved",
+    "sent_back_to": "Sent back to {stage}",
+    "sent_back": "Sent back",
+    "reran": "Re-ran {stage}",
+    "reran_plain": "Re-ran the stage",
+    "skipped": "Skipped {cases}",
+    "skipped_plain": "Skipped cases",
+    "access": "Gave access for {cases}",
+    "access_plain": "Gave the agent access",
+    "approved": "Approved",
+    "changes": "Asked for changes",
+    "approval_skipped": "Skipped the approval",
+    "other": "Decision"
+  },
+  "kind": {
+    "waiting": "Waiting for you",
+    "stopped": "Stopped for a person",
+    "approval": "Approval",
+    "question": "Question"
+  },
+  "paused": {
+    "one": "Agents paused after {count} reply. Reply to let them continue.",
+    "other": "Agents paused after {count} replies. Reply to let them continue."
+  },
+  "paused_plain": "Agents paused. Reply to let them continue."
+}

@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
+import { t } from "../i18n";
 import type { TestCase, TestCaseRun } from "./test-cases";
 import {
   caseFormProblem,
@@ -9,13 +10,14 @@ import {
   reportsNewestFirst,
   runCasesFormHTML,
   runCasesProblem,
-  setByHand,
   withoutEmbeds,
   movedPosition,
   plainReportTitle,
   runHTML,
   testCaseFormHTML,
-  testCasesBlockHTML,
+  testCasesToolsHTML,
+  caseBarHTML,
+  readOnlyBarHTML,
   testCasesSignature,
   type TestCasesInput,
 } from "./test-cases-drawer";
@@ -23,7 +25,6 @@ import {
 const deps = {
   md: (s: string) => `<p>${s}</p>`,
   attachmentURL: (id: string) => `http://d/task-attachments/${id}`,
-  openKeys: new Set<string>(),
   openReports: new Set<string>(),
 };
 
@@ -97,126 +98,60 @@ describe("hasTestCasesSection", () => {
   });
 });
 
-describe("testCasesBlockHTML", () => {
+describe("testCasesToolsHTML", () => {
   it("offers the import only when the body has the section and there are no rows", () => {
     const body = "## Test Cases\n- [ ] a";
-    expect(testCasesBlockHTML(input({ body }), deps)).toContain('data-tc-act="import"');
-    expect(testCasesBlockHTML(input({ body, cases: [tc()] }), deps)).not.toContain(
+    expect(testCasesToolsHTML(input({ body }), {}).actions).toContain('data-tc-act="import"');
+    expect(testCasesToolsHTML(input({ body, cases: [tc()] }), {}).actions).not.toContain(
       'data-tc-act="import"',
     );
-    expect(testCasesBlockHTML(input(), deps)).not.toContain('data-tc-act="import"');
+    expect(testCasesToolsHTML(input(), {}).actions).not.toContain('data-tc-act="import"');
   });
 
-  it("says so when there are no cases, without a progress bar", () => {
-    const html = testCasesBlockHTML(input(), deps);
-    expect(html).toContain("No test cases yet.");
-    expect(html).toContain('class="empty-state empty-state-inline empty-state-dashed"');
-    expect(html).not.toContain("seg-progress");
-    expect(html).toContain('data-tc-act="add"');
+  it("always offers to add a case, with the button component", () => {
+    const { actions } = testCasesToolsHTML(input(), {});
+    expect(actions).toMatch(/<button class="btn btn-sm" type="button" data-tc-act="add">/);
   });
 
-  it("gives a reader the cases and their state with no control that changes them", () => {
-    const html = testCasesBlockHTML(
-      input({
-        body: "## Test Cases\n- [ ] a",
-        cases: [tc({ key: "TC-1", status: "fail", covered: true })],
-      }),
-      { ...deps, readOnly: true, runCases: { block: "", reason: "" } },
-    );
-    const box = dom(html);
-    expect(box.querySelectorAll("[data-tc-act]")).toHaveLength(0);
-    expect(box.querySelector("select, input")).toBeNull();
-    expect(q(box, ".tc-bar").textContent).toContain("Tested by someone");
-    expect(q(box, ".tc-key").textContent).toBe("TC-1");
+  it("gives a reader no tool", () => {
+    const tools = testCasesToolsHTML(input({ body: "## Test Cases\n- [ ] a", cases: [tc()] }), {
+      ...deps,
+      readOnly: true,
+      runCases: { block: "", reason: "" },
+    });
+    expect(tools).toEqual({ actions: "", notes: "" });
   });
+});
 
-  it("counts the cases per status in the header", () => {
-    const html = testCasesBlockHTML(
-      input({
-        cases: [
-          tc({ key: "TC-1", status: "pass", covered: true }),
-          tc({ key: "TC-2", status: "fail", covered: true }),
-          tc({ key: "TC-3" }),
-        ],
-      }),
-      deps,
-    );
-    const tally = q(dom(html), ".tc-tally");
-    expect(tally.textContent).toBe("1 pass1 fail1 pending");
-    expect(tally.querySelectorAll(".tc-tally-item svg")).toHaveLength(3);
-    expect(html).toContain('class="seg-progress seg-progress-xs"');
-    expect(q(dom(html), ".sec-title .count").textContent).toBe("3");
-  });
-
-  it("keeps the row to status, key, title and last run; controls live in the detail", () => {
-    const box = dom(
-      testCasesBlockHTML(
-        input({ cases: [tc({ status: "fail", covered: true }), tc({ id: "c2", key: "TC-2" })] }),
-        { ...deps, openKeys: new Set(["TC-2"]) },
-      ),
-    );
-    const first = q<HTMLDetailsElement>(box, "#tc-TC-1");
-    expect(first.open).toBe(false);
-    expect(q<HTMLDetailsElement>(box, "#tc-TC-2").open).toBe(true);
-    const summary = q(first, "summary");
-    expect(summary.querySelector("select, input, button")).toBeNull();
-    expect(q(summary, ".tc-status").getAttribute("aria-label")).toBe("Fail");
-    expect(q(summary, ".tc-last").textContent).toBe("Not run yet");
-    const sel = q<HTMLSelectElement>(first, '.tc-bar select[data-tc-act="status"]');
+describe("the management bar of a case", () => {
+  it("draws status, covered and the moves, with the moves that can't happen off", () => {
+    const box = dom(caseBarHTML(tc({ status: "fail", covered: true }), 0, 2));
+    const sel = q<HTMLSelectElement>(box, 'select[data-tc-act="status"]');
     expect(sel.value).toBe("fail");
     expect(sel.className).toBe("badge badge-danger badge-pill tc-status-select");
-    expect(q<HTMLInputElement>(first, '.tc-bar [data-tc-act="covered"]').checked).toBe(true);
-    expect(q<HTMLButtonElement>(first, '[data-tc-act="up"]').disabled).toBe(true);
-    expect(q<HTMLButtonElement>(box, '#tc-TC-2 [data-tc-act="down"]').disabled).toBe(true);
+    const cov = q<HTMLInputElement>(box, 'label.check > input[data-tc-act="covered"]');
+    expect(cov.checked).toBe(true);
+    expect(cov.getAttribute("aria-label")).toContain("TC-1");
+    expect(q<HTMLButtonElement>(box, '[data-tc-act="up"]').disabled).toBe(true);
+    expect(q<HTMLButtonElement>(box, '[data-tc-act="down"]').disabled).toBe(false);
+    const del = q<HTMLButtonElement>(box, '[data-tc-act="delete"]');
+    expect(del.className).toBe("icon-btn icon-btn-danger");
+    expect(del.getAttribute("aria-label")).toContain("TC-1");
+    expect(q(box, '[data-tc-act="edit"] svg').getAttribute("aria-hidden")).toBe("true");
   });
 
-  it("shows priority in the row only when it is high or critical", () => {
-    const box = dom(
-      testCasesBlockHTML(
-        input({
-          cases: [
-            tc({ key: "TC-1", priority: "medium" }),
-            tc({ key: "TC-2", priority: "high" }),
-            tc({ key: "TC-3", priority: "critical" }),
-          ],
-        }),
-        deps,
-      ),
-    );
-    expect(box.querySelector("#tc-TC-1 summary .tag")).toBeNull();
-    expect(q(box, "#tc-TC-2 summary .tag").textContent).toBe("High");
-    expect(q(box, "#tc-TC-2 summary .tag").className).toBe("tag tag-warn tag-inline");
-    expect(q(box, "#tc-TC-3 summary .tag").getAttribute("title")).toBe("Priority");
+  it("does not offer waived in the status picker of a case that is not waived", () => {
+    const box = dom(caseBarHTML(tc({ status: "pass" }), 0, 1));
+    const values = Array.from(q<HTMLSelectElement>(box, "select").options, (o) => o.value);
+    expect(values.length).toBeGreaterThan(0);
+    expect(values).not.toContain("waived");
   });
 
-  it("sums up the runs in the row, newest first in the detail", () => {
-    const older = run({ id: "r1", verdict: "fail", ran_at: "2026-09-01T10:00:00Z" });
-    const newer = run({ id: "r2", verdict: "pass", ran_at: new Date().toISOString() });
-    const box = dom(testCasesBlockHTML(input({ cases: [tc({ runs: [older, newer] })] }), deps));
-    expect(q(box, ".tc-last").textContent).toBe("2 runs · just now");
-    expect(q(box, ".tc-runs > .tc-run").className).toContain("tc-run-pass");
-    const folded = q<HTMLDetailsElement>(box, "details.tc-older");
-    expect(folded.open).toBe(false);
-    expect(q(folded, "summary").textContent).toBe("1 earlier run");
-    expect(q(folded, ".tc-run").className).toContain("tc-run-fail");
-  });
-
-  it("renders description, steps and expected through the page's markdown", () => {
-    const html = testCasesBlockHTML(
-      input({ cases: [tc({ steps: "1. open", expected: "it opens" })] }),
-      deps,
-    );
-    expect(html).toContain("<p>1. open</p>");
-    expect(html).toContain("<p>it opens</p>");
-    expect(html).not.toContain("Description</div>");
-  });
-
-  it("escapes titles and keys", () => {
-    const html = testCasesBlockHTML(
-      input({ cases: [tc({ title: "<img src=x onerror=alert(1)>" })] }),
-      deps,
-    );
-    expect(html).not.toContain("<img");
+  it("gives a reader the state with no control that changes it", () => {
+    const box = dom(readOnlyBarHTML(tc({ status: "fail", covered: true })));
+    expect(box.querySelector("select, input, button")).toBeNull();
+    expect(q(box, ".tc-bar").textContent).toContain("Tested by someone");
+    expect(q(box, ".tc-bar").textContent).toContain(t("lib.test_cases.status.fail"));
   });
 });
 
@@ -369,6 +304,15 @@ describe("testCasesSignature", () => {
     ).not.toBe(sig);
   });
 
+  it("changes when the criteria a case covers or its preconditions change", () => {
+    const sig = testCasesSignature(base);
+    const c = base.cases[0];
+    expect(testCasesSignature({ ...base, cases: [tc({ ...c, covers: ["AC-1"] })] })).not.toBe(sig);
+    expect(
+      testCasesSignature({ ...base, cases: [tc({ ...c, preconditions: "Logged in" })] }),
+    ).not.toBe(sig);
+  });
+
   it("changes when the import offer appears", () => {
     expect(testCasesSignature(input({ body: "## Test Cases\n- [ ] a" }))).not.toBe(
       testCasesSignature(input()),
@@ -401,28 +345,6 @@ describe("testCaseFormHTML", () => {
     expect(q<HTMLElement>(box, "#tc-add-title-error").hidden).toBe(true);
     expect(box.querySelectorAll(".form-error[role=alert]").length).toBe(2);
     expect(box.querySelector(".tc-form-err")).toBeNull();
-  });
-});
-
-describe("case detail", () => {
-  it("draws covered as a Check and the parts under section heads", () => {
-    const box = dom(
-      testCasesBlockHTML(
-        {
-          cases: [tc({ covered: true, steps: "1. go", expected: "in" })],
-          attachments: [],
-          comments: [],
-          body: "",
-        },
-        deps,
-      ),
-    );
-    const cov = q<HTMLInputElement>(box, 'label.check > input[data-tc-act="covered"]');
-    expect(cov.checked).toBe(true);
-    expect(cov.getAttribute("aria-label")).toContain("TC-1");
-    const heads = [...box.querySelectorAll(".tc-detail .sec-head.sec-head-sm > h4.sec-title")];
-    expect(heads.map((h) => h.textContent)).toEqual(["Steps", "Expected result", "Latest run"]);
-    expect(box.querySelector(".tc-sub, .tc-covered")).toBeNull();
   });
 });
 
@@ -464,55 +386,24 @@ describe("after the import", () => {
     expect(offersRemoveSection({ cases: [tc()], body })).toBe(true);
     expect(offersRemoveSection({ cases: [], body })).toBe(false);
     expect(offersRemoveSection({ cases: [tc()], body: "Intro" })).toBe(false);
-    const html = testCasesBlockHTML({ cases: [tc()], attachments: [], comments: [], body }, deps);
-    expect(html).toContain('data-tc-act="remove-section"');
-    const box = dom(html);
+    const { notes } = testCasesToolsHTML(
+      { cases: [tc()], attachments: [], comments: [], body },
+      {},
+    );
+    expect(notes).toContain('data-tc-act="remove-section"');
+    const box = dom(notes);
     const note = box.querySelector('.callout-warn[role="status"]');
     expect(note?.querySelector('[data-tc-act="remove-section"]')).not.toBeNull();
   });
 });
 
-describe("statuses set by hand", () => {
-  it("reads a status that differs from the latest run, or one with no run", () => {
-    expect(setByHand(tc({ status: "pass", runs: [run({ verdict: "pass" })] }))).toBe(false);
-    expect(setByHand(tc({ status: "pass", runs: [run({ verdict: "fail" })] }))).toBe(true);
-    expect(setByHand(tc({ status: "pending" }))).toBe(false);
-    expect(setByHand(tc({ status: "pass" }))).toBe(true);
-  });
-
-  it("marks the row", () => {
-    const html = testCasesBlockHTML(
-      { cases: [tc({ status: "fail" })], attachments: [], comments: [], body: "" },
-      deps,
-    );
-    expect(html).toContain("tc-by-hand");
-  });
-});
-
 describe("buttons", () => {
-  it("draws the block's actions and the form's foot with the button component", () => {
-    const input = { cases: [tc()], attachments: [], comments: [], body: "## Test cases\n" };
-    const html = testCasesBlockHTML(input, deps);
-    expect(html).toMatch(/<button class="btn btn-sm" type="button" data-tc-act="add">/);
-    expect(html).not.toContain("btn-flat");
+  it("draws the form's foot with the button component", () => {
     const form = testCaseFormHTML();
     expect(form).toContain(
       '<button class="btn btn-ghost btn-sm" type="button" data-tc-act="cancel">',
     );
     expect(form).toContain('<button class="btn btn-primary btn-sm" type="submit">');
-  });
-
-  it("names every icon button of a case and turns off the moves that can't happen", () => {
-    const box = document.createElement("div");
-    box.innerHTML = testCasesBlockHTML(
-      { cases: [tc()], attachments: [], comments: [], body: "" },
-      deps,
-    );
-    const del = box.querySelector<HTMLButtonElement>('[data-tc-act="delete"]');
-    expect(del?.className).toBe("icon-btn icon-btn-danger");
-    expect(del?.getAttribute("aria-label")).toContain("TC-1");
-    expect(box.querySelector<HTMLButtonElement>('[data-tc-act="up"]')?.disabled).toBe(true);
-    expect(box.querySelector('[data-tc-act="edit"] svg')?.getAttribute("aria-hidden")).toBe("true");
   });
 });
 
@@ -523,10 +414,10 @@ describe("run cases", () => {
   ];
 
   it("turns the button off with the reason", () => {
-    const html = testCasesBlockHTML(
+    const html = testCasesToolsHTML(
       { cases: [tc()], attachments: [], comments: [], body: "" },
       { ...deps, runCases: { block: "no_browser", reason: "nobody has the browser" } },
-    );
+    ).actions;
     const box = document.createElement("div");
     box.innerHTML = html;
     const btn = box.querySelector<HTMLButtonElement>('[data-tc-act="run"]');
@@ -536,14 +427,14 @@ describe("run cases", () => {
 
   it("says why it is off in the block, not only in the tooltip", () => {
     const input = { cases: [tc()], attachments: [], comments: [], body: "" };
-    const off = testCasesBlockHTML(input, {
+    const off = testCasesToolsHTML(input, {
       ...deps,
       runCases: { block: "no_browser", reason: "nobody has the browser" },
-    });
+    }).notes;
     const note = dom(off).querySelector<HTMLElement>('.callout-warn[role="status"]');
     expect(note?.querySelector(".callout-text")?.textContent).toBe("nobody has the browser");
     expect(note?.querySelector<HTMLAnchorElement>('a.btn[href="/agents/"]')).not.toBeNull();
-    const on = testCasesBlockHTML(input, { ...deps, runCases: { block: "", reason: "" } });
+    const on = testCasesToolsHTML(input, { ...deps, runCases: { block: "", reason: "" } }).notes;
     expect(on).not.toContain("tc-run-off");
   });
 

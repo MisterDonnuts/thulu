@@ -258,7 +258,7 @@ func (d *Dispatcher) ContinueStage(ctx context.Context, t *Task, message string)
 	if agentType == nil {
 		return apperr.NotFound("task.errors.agent_not_found", "agent", agentName)
 	}
-	if info, _ := d.stagesFor(t).Get(stage); len(t.ProjectIDs) > 0 && !info.Initial {
+	if d.needsWorktree(t, stage) {
 		t = d.ensureWorktrees(ctx, t)
 	}
 	go d.launchStage(ctx, t, stage, agentName, agentType, launchOpts{

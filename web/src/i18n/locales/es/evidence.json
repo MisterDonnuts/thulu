@@ -73,7 +73,9 @@
     "tags_hint": "separadas por comas",
     "tags_placeholder": "checkout, smoke",
     "saved": "{key} guardado.",
-    "created": "{key} creado. Ahora pedile a un agente que lo grabe."
+    "created": "{key} creado. Ahora pedile a un agente que lo grabe.",
+    "safe_for_prod": "Seguro para correr en producción",
+    "safe_for_prod_hint": "Sólo lee: no crea pedidos, pagos, emails ni cambios de datos. Lo marca una persona; un agente no puede, y una toma que graba un agente lo desmarca."
   },
   "cases": {
     "all": "Todos",
@@ -192,7 +194,13 @@
     "take_upload": "Subido {when}.",
     "took": "duró {duration}",
     "video_aria": "Video de la última corrida de {key}",
-    "what": "Qué tiene que funcionar"
+    "what": "Qué tiene que funcionar",
+    "measured_metric": "Medido · {metric} {value}",
+    "page_errors": {
+      "one": "{count} error de la página",
+      "other": "{count} errores de la página"
+    },
+    "timing": "Tiempos"
   },
   "empty": {
     "title": "Empezá tu biblioteca de casos",
@@ -498,6 +506,8 @@
     "deploy": "Después de un deploy",
     "deploy_ref": "Después del deploy {ref}",
     "api": "Desde el CI",
+    "agent": "La lanzó un agente",
+    "agent_task": "La lanzó un agente para la tarea {task}",
     "recording": "Primera corrida después de grabar",
     "recording_by": "Primera corrida después de que {who} lo grabó"
   },
@@ -591,5 +601,25 @@
     "deadline": "La tanda pasó su tiempo límite y se cortó.",
     "daemon_restarted": "Thulu se reinició mientras corría esta tanda. Correlo de nuevo.",
     "runner_lost": "El runner se detuvo antes de terminar esta corrida. Correlo de nuevo."
+  },
+  "findings": {
+    "http": "{status} {method} {url}",
+    "failed": "Request fallido: {method} {url} ({error})",
+    "pageerror": "Error no capturado: {text}",
+    "console": "Error de consola: {text}"
+  },
+  "timing": {
+    "lab": "Números de laboratorio de una corrida, no de campo",
+    "profile": "perfil {profile}",
+    "cpu": "CPU {factor}x",
+    "waits_cut": {
+      "one": "{wait} de espera cortada del video ({count} espera)",
+      "other": "{wait} de espera cortada del video ({count} esperas)"
+    },
+    "waits_filmed": "esperas filmadas en tiempo real",
+    "steps_dropped": "la lista por paso era demasiado grande para guardarla acá; está en el archivo de métricas",
+    "col_step": "Paso",
+    "response": "Respuesta",
+    "dead": "ninguna (muerto)"
   }
 }

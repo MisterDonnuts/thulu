@@ -9,7 +9,6 @@
     "bad_cache_range": "range tiene que ser 7d, 30d o 90d, no {range:%q}",
     "container_not_found": "el contenedor {id} no está en la última lectura; actualizá y probá de nuevo",
     "not_stoppable": "un contenedor de tipo {kind} no se detiene desde acá",
-    "sandbox_not_found": "ningún sandbox activo corre en el contenedor {id}; actualizá y probá de nuevo",
     "not_orphan": "{name} no es huérfano: lo explica una corrida de la tarea, así que se para desde la corrida"
   },
   "log": {

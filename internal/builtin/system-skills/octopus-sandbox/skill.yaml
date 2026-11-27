@@ -5,5 +5,5 @@ enforcement: on_demand
 requires: []
 # Bump on every change: the daemon syncs this skill at boot only when version exceeds the stored
 # one.
-version: 6
+version: 7
 mcp: thulu-sandbox

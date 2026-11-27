@@ -6,6 +6,58 @@ const ctx = {
 };
 
 describe("historyText", () => {
+  it("says who skipped a column and why, and why a skip went away", () => {
+    const added = { stage: "verify", reason: "docs only", by: "agent:thulu-refiner" };
+    expect(historyText({ kind: "stage_skip_added", payload: added }, ctx)).toBe(
+      "thulu-refiner skips QA: docs only",
+    );
+    const removed = (p: Record<string, unknown>) =>
+      historyText(
+        { kind: "stage_skip_removed", payload: { stage: "verify", by: "ana@example.com", ...p } },
+        ctx,
+      );
+    expect(removed({ cause: "removed", reason: "touches UI" })).toBe(
+      "ana@example.com made QA run again: touches UI",
+    );
+    expect(removed({ cause: "removed", reason: "touches UI", passed: true })).toBe(
+      "ana@example.com made QA run again, so the task goes back there: touches UI",
+    );
+    expect(removed({ cause: "removed", reason: "r", passed: true, deferred: true })).toContain(
+      "when the current run ends",
+    );
+    expect(removed({ cause: "entered", reason: "moved here by ana@example.com" })).toBe(
+      "QA runs: ana@example.com moved the task there",
+    );
+    expect(removed({ cause: "ui_diff", by: "octopus", reason: "x" })).toBe(
+      "QA runs after all: the branch changes UI files",
+    );
+    expect(removed({ cause: "diff_unreadable" })).toContain("could not be read");
+    expect(removed({ cause: "refinement_dropped" })).toContain("no longer skips it");
+    expect(removed({ cause: "board_changed" })).toContain("another board");
+    expect(historyText({ kind: "stage_skip_removed", payload: {} }, ctx)).toBe("");
+  });
+
+  it("says why a column was passed over", () => {
+    expect(
+      historyText(
+        { kind: "stage_skipped", payload: { stage: "verify", task_skip: true, reason: "docs" } },
+        ctx,
+      ),
+    ).toBe("Passed over QA, which this task skips: docs");
+    expect(
+      historyText({ kind: "stage_skipped", payload: { stage: "verify", required: ["ui"] } }, ctx),
+    ).toBe("Passed over QA, which waits on ui");
+    expect(
+      historyText(
+        {
+          kind: "stage_entered",
+          payload: { from: "verify", to: "in_progress", via: "skip_removed" },
+        },
+        ctx,
+      ),
+    ).toBe("QA → Development (a skip was removed)");
+  });
+
   it("names stages instead of ids and says how a move happened", () => {
     expect(
       historyText({ kind: "stage_entered", payload: { from: "verify", to: "in_progress" } }, ctx),
@@ -17,6 +69,45 @@ describe("historyText", () => {
       ),
     ).toBe("QA → Development (the auditor sent it back)");
     expect(historyText({ kind: "stage_entered", payload: null }, ctx)).toBe("");
+  });
+
+  it("says a run's result did not apply and who waits for it", () => {
+    expect(
+      historyText(
+        {
+          kind: "run_outlived",
+          payload: { agent: "refiner", stage: "verify", task_stage: "in_progress" },
+        },
+        ctx,
+      ),
+    ).toBe("refiner finished in QA after the task moved to Development; its result did not apply");
+    expect(
+      historyText(
+        {
+          kind: "stage_launch_deferred",
+          payload: { agent: "tester", stage: "in_progress", busy_stage: "verify" },
+        },
+        ctx,
+      ),
+    ).toBe("tester waits for the agent of QA before starting in Development");
+    expect(historyText({ kind: "run_outlived", payload: {} }, ctx)).toBe("");
+  });
+
+  it("lists the checks of an audit the daemon skipped", () => {
+    const payload = {
+      stage: "in_progress",
+      agent: "thulu-developer",
+      checks: [
+        { check: "exit", state: "clear" },
+        { check: "locked_tests", state: "clear" },
+        { check: "diff_size", state: "unread" },
+        { check: "brand_new", state: "clear" },
+      ],
+    };
+    expect(historyText({ kind: "auditor_skipped", payload }, ctx)).toBe(
+      "Audit of thulu-developer skipped in Development: no signals (exit code, locked tests, diff size (not readable), brand_new)",
+    );
+    expect(historyText({ kind: "auditor_skipped", payload: { stage: "verify" } }, ctx)).toBe("");
   });
 
   it("says which task a copy came from", () => {

@@ -498,6 +498,55 @@ func (e *Engine) stepMention(ctx context.Context, st *runState, step *Step) (map
 	return map[string]any{"task_id": taskID, "title": title, "agent": agent, "mentioned": true}, nil
 }
 
+func (e *Engine) stepMove(ctx context.Context, st *runState, step *Step) (map[string]any, error) {
+	if e.deps.Tasks == nil {
+		return nil, apperr.Unavailable("automation.errors.move_unavailable")
+	}
+	taskID, err := renderTemplate(step.Move.TaskID, st.ctx)
+	if err != nil {
+		return nil, err
+	}
+	taskID = strings.TrimSpace(taskID)
+	if taskID == "" {
+		return nil, apperr.Invalid("automation.errors.move_task_empty")
+	}
+	note, err := renderTemplate(step.Move.Note, st.ctx)
+	if err != nil {
+		return nil, err
+	}
+	res, err := e.deps.Tasks.MoveTask(ctx, MoveRequest{
+		WorkspaceID: st.automation.WorkspaceID, TaskID: taskID, Stage: step.Move.Stage, BoardID: step.Move.Board,
+		Note: strings.TrimSpace(note), AutomationID: st.automation.ID, ChainDepth: st.depth + 1,
+		// A move into a stage with an agent launches it: the same budget as a task or a mention.
+		BeforeAgent: func(string) error { return e.checkBudget(ctx, st) },
+	})
+	if err != nil {
+		return nil, err
+	}
+	if res.Moved {
+		st.run.ItemsEmitted++
+		if res.Agent != "" {
+			st.run.AgentRuns++
+		}
+	}
+	out := map[string]any{"task_id": res.TaskID, "title": res.Title, "from": res.From, "to": res.To,
+		"moved": res.Moved, "gated": res.Gated}
+	if len(res.Approvals) > 0 {
+		out["approvals"] = stringsToAny(res.Approvals)
+	}
+	if res.Agent != "" {
+		out["agent"] = res.Agent
+	}
+	return out, nil
+}
+
+func (e *Engine) stepDeployWatch(ctx context.Context, st *runState, step *Step) (map[string]any, error) {
+	if e.deps.Watches == nil {
+		return nil, apperr.Unavailable("automation.errors.deploy_watch_unavailable")
+	}
+	return e.deps.Watches.Observe(ctx, st.automation.WorkspaceID, strings.TrimSpace(step.DeployWatch.Watch))
+}
+
 // Enforced before the spend: automations burn the client's model credits unattended.
 func (e *Engine) checkBudget(ctx context.Context, st *runState) error {
 	limit := st.automation.Parsed.Policy.MaxAgentRunsPerDay
@@ -514,4 +563,12 @@ func (e *Engine) checkBudget(ctx context.Context, st *runState) error {
 		return apperr.Wrap(ErrBudgetExhausted, "automation.errors.budget_spent", "spent", spent+st.run.AgentRuns, "limit", limit)
 	}
 	return nil
+}
+
+func stringsToAny(in []string) []any {
+	out := make([]any, len(in))
+	for i, v := range in {
+		out[i] = v
+	}
+	return out
 }

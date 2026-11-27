@@ -1,0 +1,70 @@
+{
+  "title": "Te necesita",
+  "chip": "Te espera",
+  "verdict_lost": "El archivo de veredicto del agente no llegó a Thulu, así que este resumen sale de los resultados de prueba de la corrida.",
+  "fallback": {
+    "question": "Un agente te hizo una pregunta y espera la respuesta.",
+    "approval": "Esta etapa espera tu aprobación.",
+    "failure": "La última corrida falló. Volvé a correrla o devolvé la tarea.",
+    "decision": "El agente se frenó y necesita tu decisión."
+  },
+  "actions": {
+    "answer": "Responder",
+    "rerun": "Volver a correr {stage}",
+    "rerun_typical": "Volver a correr {stage} (unos {span})"
+  },
+  "waive": {
+    "cases": "Casos a eximir",
+    "reason": "Motivo",
+    "reason_help": "Obligatorio. Production Readiness lo lista como un hueco conocido.",
+    "submit": "Eximir los casos marcados",
+    "need_case": "Marcá al menos un caso para eximir.",
+    "need_reason": "Escribí por qué se eximen estos casos.",
+    "done": {
+      "one": "Se eximió {count} caso.",
+      "other": "Se eximieron {count} casos."
+    },
+    "done_advanced": "Se eximieron los casos. La tarea pasó a {stage}.",
+    "failed": "No se pudieron eximir los casos: {error}",
+    "unsupported": "Esta versión de Thulu todavía no exime casos. Actualizá el daemon."
+  },
+  "send_back": {
+    "note": "Nota para el agente",
+    "note_help": "Obligatoria. Queda en Comments junto con el movimiento, como respuesta al freno del agente."
+  },
+  "later": {
+    "at": "{label} en {stage}"
+  },
+  "running": {
+    "line": "{stage} · {agent} trabajando",
+    "line_now": "{stage} · {agent} trabajando · empezó recién",
+    "line_ago": "{stage} · {agent} trabajando · empezó hace {ago}",
+    "someone": "el agente"
+  },
+  "pill_count": "Te necesita · {count}",
+  "status": {
+    "label": "Estado de la tarea",
+    "running": "Corriendo",
+    "queued": "Esperando para arrancar",
+    "missing": "Ver qué falta",
+    "skip": "Eximir casos…",
+    "approval": "Revisar la aprobación",
+    "stop": "Abrir el freno"
+  },
+  "action": {
+    "rerun_title": "Volver a correr {stage}",
+    "rerun": "Volver a correr",
+    "rerun_example": "La base de staging volvió. Probá de nuevo el login.",
+    "send_back_title": "Devolver la tarea",
+    "send_back": "Devolver",
+    "send_back_example": "El formulario de login sigue aceptando una contraseña vacía. Arreglalo antes de volver a probar.",
+    "move_title": "Mover la tarea",
+    "move": "Mover",
+    "move_example": "Probado a mano en staging. Pasan todos los casos.",
+    "to": "Etapa",
+    "why": "¿Por qué?",
+    "why_help": "Obligatorio. Va a Comentarios como tu decisión y lo lee el próximo agente.",
+    "need_stage": "Elegí una etapa.",
+    "need_reason": "Escribí por qué."
+  }
+}

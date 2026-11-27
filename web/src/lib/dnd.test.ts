@@ -88,6 +88,17 @@ describe("blockedMoveMessage", () => {
     ).toBe("Waiting on approval: Design, QA");
   });
 
+  it("says which checks hold the move when the approvals are already approved", () => {
+    expect(
+      blockedMoveMessage({
+        error: "Human review waits for the checks GitHub requires: PR #7: build still running.",
+        blocking_approvals: [{ key: "merge", label: "Merge", status: "approved" }],
+        blocking_flags: [{ kind: "approval", label: "Merge" }],
+        required_checks: [{ number: 7, state: "pending" }],
+      }),
+    ).toBe("Human review waits for the checks GitHub requires: PR #7: build still running.");
+  });
+
   it("reports pending flags from an older daemon", () => {
     expect(
       blockedMoveMessage({ blocking_flags: [{ kind: "review", label: "needs a human" }] }),

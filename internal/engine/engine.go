@@ -217,13 +217,18 @@ type Event struct {
 	ToolUseID string
 
 	ResultBytes int
-	ResultTail  string
-	Synthetic   bool
+	// ResultHead is where a tool's JSON answer names what it made (a created task's id); not every
+	// engine fills it.
+	ResultHead string
+	ResultTail string
+	Synthetic  bool
 
 	ModelUsage []ModelUsage
 }
 
 const ResultTailBytes = 2048
+
+const ResultHeadBytes = 512
 
 type ModelUsage struct {
 	Model         string

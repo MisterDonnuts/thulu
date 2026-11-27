@@ -41,7 +41,9 @@ const noInlineScript = {
 };
 
 export default defineConfig({
-  server: { port: 4321 },
+  // Strict: lib/auth.ts sends API calls to :8585 only from this port, so a dev server that moved
+  // to 4322 would send every call to itself.
+  server: { port: 4321, strictPort: true },
   // 0 stops Astro inlining small scripts, which the CSP would block.
   vite: { build: { assetsInlineLimit: 0 }, plugins: [octopusMessages()] },
   integrations: [noInlineScript],

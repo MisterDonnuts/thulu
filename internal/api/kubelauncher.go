@@ -51,7 +51,10 @@ type podRec struct {
 	watched   bool
 }
 
-var _ task.AgentLauncher = (*kubeLauncher)(nil)
+var (
+	_ task.AgentLauncher  = (*kubeLauncher)(nil)
+	_ task.LiveRunScanner = (*kubeLauncher)(nil)
+)
 
 func (s *Server) kubeAgentLauncher(ctx context.Context, kube *kuberuntime.Runtime) task.AgentLauncher {
 	kl := newKubeLauncher(ctx, kube, s.runsDir,
@@ -220,8 +223,8 @@ func (l *kubeLauncher) WithLogSink(sink func(ctx context.Context, a *agent.Agent
 
 // The pod is deleted only after cb returns, so the run stays discoverable by ListExited until its
 // side effects are recorded.
-func (l *kubeLauncher) OnExit(_ context.Context, containerID string, cb func(exitCode int, outputDir, worktreePath string)) {
-	rec, ok := l.lookup(containerID)
+func (l *kubeLauncher) OnExit(ctx context.Context, containerID string, cb func(exitCode int, outputDir, worktreePath string)) {
+	rec, ok := l.recOf(ctx, containerID)
 	if !ok {
 		return
 	}
@@ -271,11 +274,85 @@ func (l *kubeLauncher) captureLogs(ctx context.Context, containerID string, rec 
 }
 
 func (l *kubeLauncher) ContainerAlive(containerID string) bool {
-	rec, ok := l.lookup(containerID)
+	rec, ok := l.recOf(context.Background(), containerID)
 	if !ok {
 		return false
 	}
 	return l.rt.PodAlive(context.Background(), containerID, rec.namespace)
+}
+
+// ScanLiveTaskAgents lists the run pods still going, and records each in byPod: after a restart
+// that map is empty, and without it ContainerAlive, KillRun and OnExit knew none of them.
+func (l *kubeLauncher) ScanLiveTaskAgents(ctx context.Context) ([]task.LiveTaskAgent, error) {
+	pods, err := l.rt.ListPodsAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]task.LiveTaskAgent, 0, len(pods))
+	for i := range pods {
+		p := &pods[i]
+		if !p.Running || p.Stage == kubeChatStage {
+			continue
+		}
+		if _, ok := task.InstanceTaskID(p.InstanceID); !ok {
+			continue
+		}
+		rec := l.adopt(p)
+		out = append(out, task.LiveTaskAgent{
+			ExitedTaskAgent: task.ExitedTaskAgent{
+				ContainerID: p.Name,
+				InstanceID:  p.InstanceID,
+				AgentType:   p.AgentType,
+				OutputDir:   rec.outputDir,
+				LaunchKind:  task.ParseLaunchKind(p.LaunchKind),
+			},
+			StartedAt: p.StartedAt,
+		})
+	}
+	return out, nil
+}
+
+// The chat runtime's pods carry this stage; they are not runs.
+const kubeChatStage = "chat"
+
+// recOf is the pod's record, found by name in the managed namespaces when this daemon did not
+// launch it. Only a pod still running is recorded: a finished one is Reconcile's.
+func (l *kubeLauncher) recOf(ctx context.Context, podName string) (podRec, bool) {
+	if rec, ok := l.lookup(podName); ok {
+		return rec, true
+	}
+	if l.rt == nil {
+		return podRec{}, false
+	}
+	p, ok := l.rt.FindPod(ctx, podName)
+	if !ok || !p.Running {
+		return podRec{}, false
+	}
+	return l.adopt(&p), true
+}
+
+// adopt records a pod another daemon launched. A pod already recorded keeps its record, watch
+// included.
+func (l *kubeLauncher) adopt(p *kuberuntime.RunningPod) podRec {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if rec, ok := l.byPod[p.Name]; ok {
+		return rec
+	}
+	taskID, ok := task.InstanceTaskID(p.InstanceID)
+	if !ok {
+		taskID = p.TaskID
+	}
+	rec := podRec{
+		namespace: p.Namespace,
+		outputDir: runOutputDir(l.runsDir, p.InstanceID),
+		agentName: p.AgentType,
+		taskID:    taskID,
+		stage:     p.Stage,
+		startedAt: p.StartedAt,
+	}
+	l.byPod[p.Name] = rec
+	return rec
 }
 
 // Pods with an armed exit watch are skipped: their OnExit records the exit, and the janitor re-runs
@@ -328,7 +405,7 @@ func (l *kubeLauncher) forget(podName string) {
 // No SteerRun on purpose: it would need pods/exec, which the daemon's ClusterRole withholds (see
 // internal/sandbox/execagent).
 func (l *kubeLauncher) RunLogs(runID string) string {
-	rec, ok := l.lookup(runID)
+	rec, ok := l.recOf(context.Background(), runID)
 	if !ok {
 		return ""
 	}
@@ -352,7 +429,7 @@ func (l *kubeLauncher) podDeadline(workspaceID string) int64 {
 }
 
 func (l *kubeLauncher) KillRun(ctx context.Context, runID string) error {
-	rec, ok := l.lookup(runID)
+	rec, ok := l.recOf(ctx, runID)
 	if !ok {
 		return apperr.NotFound("api.launcher.errors.run_not_tracked", "run", runID)
 	}

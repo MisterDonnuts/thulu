@@ -60,6 +60,9 @@ export function templateWith(
 
 export function columnAgentText(stage: Stage, state: ColumnAgent): string {
   if (stage.initial || stage.terminal) return "";
+  if (state.with === 0 && stage.default_agent) {
+    return t("lib.column_agent.one", { agent: stage.default_agent });
+  }
   if (state.with === 0) return t("lib.column_agent.none");
   if (state.agents.length === 1 && state.with === state.projects) {
     return t("lib.column_agent.one", { agent: state.agents[0] });
@@ -71,8 +74,12 @@ export function columnAgentText(stage: Stage, state: ColumnAgent): string {
   });
 }
 
-export function waitsForPerson(state: ColumnAgent): boolean {
-  return state.with === 0;
+// A column's own default agent covers it even when no project template names one.
+export function waitsForPerson(
+  state: ColumnAgent,
+  stage: Pick<Stage, "default_agent"> = {},
+): boolean {
+  return state.with === 0 && !stage.default_agent;
 }
 
 export function takesAgent(stage: Pick<Stage, "initial" | "terminal">): boolean {

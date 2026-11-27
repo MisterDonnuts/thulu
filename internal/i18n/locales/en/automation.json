@@ -8,7 +8,9 @@
     "check_suite": "a check suite completed",
     "task_created": "a task was created",
     "task_stage_changed": "a task entered a new stage",
-    "task_failed": "an agent run failed"
+    "task_failed": "an agent run failed",
+    "deployment_status": "a GitHub deployment changed state (success, failure, in progress…)",
+    "workflow_run": "a GitHub Actions workflow run was requested, started or completed"
   },
   "runs": {
     "timeout": "recipe exceeded its {timeout} timeout",
@@ -159,7 +161,13 @@
     "yaml_kind_mapping": "a block of keys",
     "yaml_kind_duration": "a duration like 15m",
     "yaml_kind_bool": "true or false",
-    "yaml_kind_number": "a number"
+    "yaml_kind_number": "a number",
+    "step_move_required": "step {step:%q} needs move.task_id and move.stage",
+    "move_unavailable": "move steps are not available on this install",
+    "move_task_empty": "move.task_id rendered empty",
+    "step_deploy_watch_required": "step {step:%q} needs deploy_watch.watch",
+    "deploy_watch_unavailable": "this daemon has no deploy watches wired, so a deploy_watch step cannot run",
+    "managed_by_required": "a managed automation needs the name of what manages it"
   },
   "log": {
     "mint_key_failed": "mint key for {id}: {err}",

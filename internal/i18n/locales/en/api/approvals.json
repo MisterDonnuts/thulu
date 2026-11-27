@@ -9,20 +9,42 @@
     "note_required": "{decision} needs a note saying why",
     "open_limit": "agents already asked for {max} approvals on this task that nobody has decided: wait for those before asking for more",
     "stage_requirement": "{approval:%q} is required by the stage and cannot be removed: waive it instead, with a note",
-    "gate_closed_create": "A new task starts in {stage}, which needs approval to leave: {approvals}. Create it in {stage} and move it once approved."
+    "unknown_stage": "{stage:%q} is not a stage of this task's board",
+    "stage_not_ahead": "an approval can hold the current stage ({current}) or a later one that is not the last; {stage:%q} is not",
+    "gate_closed_create": "A new task starts in {stage}, which needs approval to leave: {approvals}. Create it in {stage} and move it once approved.",
+    "required_checks": "{approval:%q} waits for the checks GitHub requires before a merge: {checks}",
+    "required_checks_waive": "only an admin can waive {approval:%q} while the required checks are not green: {checks}",
+    "gate_checks": "{stage} waits for the checks GitHub requires before a merge, which {approvals} asks for: {checks}. The task can move on once they pass."
+  },
+  "comments": {
+    "approved_ahead_of_checks": "**{approval}** approved while the checks GitHub requires still run: {checks}. The task stays in **{stage}** until they pass.",
+    "reset_pushed": "New commits on [PR #{number}]({url}) (head `{sha}`): **{approval}** goes back to pending. Approve it again once you have looked at them."
   },
   "events": {
     "skipped": "moved past without a decision ({cause}): {approvals}",
     "waived_note": "skipped by an administrative move ({cause})"
   },
   "log": {
+    "post_decision": "post the decision of approval {approval} on task {task}",
     "hook_task": "read task {task} for an approval webhook",
-    "skipped": "read the approvals task {task} skipped"
+    "skipped": "read the approvals task {task} skipped",
+    "checks_root": "read the parent of task {task} for its pull requests",
+    "checks_read": "read the required checks of {pr}",
+    "checks_note": "leave the required checks note on task {task}",
+    "checks_reset": "send the approvals of task {task} back to pending after a push"
   },
   "prompts": {
     "brief_heading": "## Approvals\n\n",
     "brief_line": "- **{label}**{stage}: {status}\n",
     "brief_note": "  {by}: {note}\n",
     "brief_stage": " ({stage})"
+  },
+  "checks": {
+    "pr": "PR #{number}: {reason}",
+    "failing": "{checks} failed",
+    "running": "{checks} still running",
+    "missing": "{checks} not reported yet",
+    "behind": "the branch is behind its base, which must be up to date",
+    "unknown": "the required checks could not be read from GitHub; try again"
   }
 }

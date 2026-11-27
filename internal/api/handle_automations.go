@@ -52,7 +52,19 @@ func (s *Server) parseWithRefs(ctx context.Context, ws, src string) error {
 	if err != nil {
 		return err
 	}
+	if err := refuseDeployWatchStep(spec); err != nil {
+		return err
+	}
 	return s.checkAutomationRefs(ctx, ws, spec)
+}
+
+// A deploy_watch step reads a watch's endpoint or cloud with the daemon's own access, so only the
+// automation the daemon generates for that watch may carry one.
+func refuseDeployWatchStep(spec *automation.Spec) error {
+	if automation.HasDeployWatchStep(spec.Steps) {
+		return apperr.Invalid("api.automations.errors.deploy_watch_step_reserved")
+	}
+	return nil
 }
 
 func (s *Server) automationReach(r *http.Request) automation.Scope {
@@ -162,6 +174,10 @@ func (s *Server) handleUpdateAutomation(w http.ResponseWriter, r *http.Request) 
 	if !decodeBody(w, r, &body) {
 		return
 	}
+	if err := s.managedAutomationRefusal(r.Context(), cur); err != nil {
+		writeError(w, r, 0, err)
+		return
+	}
 	if body.Spec == "" {
 		writeErrKey(w, r, http.StatusBadRequest, "api.automations.errors.spec_required")
 		return
@@ -219,6 +235,10 @@ func (s *Server) handleDeleteAutomation(w http.ResponseWriter, r *http.Request) 
 	if !ok {
 		return
 	}
+	if err := s.managedAutomationRefusal(r.Context(), cur); err != nil {
+		writeError(w, r, 0, err)
+		return
+	}
 	if err := s.auto.store.Delete(r.Context(), cur.ID, s.automationReach(r)); err != nil {
 		writeError(w, r, http.StatusInternalServerError, err)
 		return
@@ -237,6 +257,9 @@ func (s *Server) handleValidateAutomation(w http.ResponseWriter, r *http.Request
 		return
 	}
 	spec, err := automation.ParseSpec(body.Spec)
+	if err == nil {
+		err = refuseDeployWatchStep(spec)
+	}
 	if err != nil {
 		writeJSON(w, http.StatusOK, map[string]any{"valid": false, "error": apperr.LocalizeCtx(r.Context(), err)})
 		return

@@ -113,6 +113,30 @@ func TestServiceRestartsOnlyAFailedRunner(t *testing.T) {
 	}
 }
 
+// A stopping runner kills its runs' processes and reports them before the service manager kills
+// it; on Linux, whatever is left in the unit's cgroup dies with it.
+func TestServiceGivesTheRunnerTimeToStop(t *testing.T) {
+	var plist bytes.Buffer
+	if err := launchdPlist.Execute(&plist, struct {
+		Spec
+		Label string
+	}{Spec: testSpec(), Label: Label}); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(plist.String(), "<key>ExitTimeOut</key><integer>60</integer>") {
+		t.Errorf("plist leaves launchd's 20 s exit timeout:\n%s", plist.String())
+	}
+	var unit bytes.Buffer
+	if err := systemdUnit.Execute(&unit, unitEscaped(testSpec())); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"\nTimeoutStopSec=60\n", "\nKillMode=control-group\n"} {
+		if !strings.Contains(unit.String(), want) {
+			t.Errorf("unit lacks %q:\n%s", strings.TrimSpace(want), unit.String())
+		}
+	}
+}
+
 func TestSystemdUnitRunsTheRunner(t *testing.T) {
 	var buf bytes.Buffer
 	s := Spec{Binary: "/usr/local/bin/octopus", Config: "/home/x/.octopus/runner.json", Log: "/home/x/.octopus/runner.log", Path: "/usr/bin"}

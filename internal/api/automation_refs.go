@@ -28,6 +28,8 @@ func (s *Server) checkStepRefs(ctx context.Context, ws string, steps []automatio
 			err = s.checkTaskStepRefs(ctx, ws, st.Task)
 		case st.Mention != nil:
 			err = s.checkAgentRef(ws, "agent", st.Mention.Agent)
+		case st.Move != nil:
+			err = s.checkMoveStepRefs(ws, st.Move)
 		case st.Query != nil:
 			err = s.checkQueryStepRefs(ctx, ws, st.Query)
 		case st.Fanout != nil:
@@ -65,6 +67,33 @@ func (s *Server) checkTaskStepRefs(ctx context.Context, ws string, t *automation
 		}
 	}
 	return nil
+}
+
+// Without a board the stage has to be a column of some board of the workspace; the run checks it
+// against the task's own board.
+func (s *Server) checkMoveStepRefs(ws string, m *automation.MoveStep) error {
+	if m.Board == "" {
+		if err := literalRef("stage", m.Stage); err != nil || s.boards == nil {
+			return err
+		}
+		boards := []string{s.boards.DefaultBoardIDFor(ws)}
+		for _, b := range s.boards.BoardList() {
+			if workspaceVisible(b.WorkspaceID, ws, false) {
+				boards = append(boards, b.ID)
+			}
+		}
+		for _, id := range boards {
+			if _, ok := s.boards.Board(id).Get(types.Stage(m.Stage)); ok {
+				return nil
+			}
+		}
+		return apperr.Invalid("api.automations.errors.unknown_stage_any", "stage", m.Stage)
+	}
+	board, err := s.checkBoardRef(ws, "board", m.Board)
+	if err != nil {
+		return err
+	}
+	return s.checkStageRef(board, "stage", m.Stage)
 }
 
 func (s *Server) checkQueryStepRefs(ctx context.Context, ws string, q *automation.QueryStep) error {

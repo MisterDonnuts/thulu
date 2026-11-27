@@ -2,57 +2,16 @@ package hostrun
 
 import (
 	"context"
-	"log"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/MisterDonnuts/thulu/internal/apperr"
-	"github.com/MisterDonnuts/thulu/internal/i18n"
 	"github.com/MisterDonnuts/thulu/internal/logx"
 )
 
 const pidFile = ".octopus-run.pid"
-
-// sweepLeftovers stops what a previous runner process left running and removes its run folders. A
-// Thulu project's clone in one goes to its mirror first (saveLeftover); a folder whose work could not
-// be saved stays for the next start.
-func sweepLeftovers(ctx context.Context, runsDir string) {
-	entries, err := os.ReadDir(runsDir)
-	if err != nil {
-		return
-	}
-	mirrors := filepath.Join(filepath.Dir(runsDir), "repos")
-	for _, e := range entries {
-		if !e.IsDir() {
-			continue
-		}
-		root := filepath.Join(runsDir, e.Name())
-		killLeftover(ctx, root)
-		if !saveLeftovers(ctx, root, mirrors, e.Name()) {
-			log.Printf("[runner] %s", i18n.Log("hostrun.log.run_kept", "path", root))
-			continue
-		}
-		removeSession(root)
-		if err := os.RemoveAll(root); err != nil {
-			logx.Warn(err, "hostrun.log.remove_failed", "path", root)
-			continue
-		}
-		log.Printf("[runner] %s", i18n.Log("hostrun.log.swept", "job", e.Name()))
-	}
-}
-
-// killLeftover stops the process group whose leader's pid a run left in root.
-func killLeftover(ctx context.Context, root string) {
-	b, err := os.ReadFile(filepath.Join(root, pidFile)) //nolint:gosec // G304: a file this runner wrote in its own work dir
-	if err != nil {
-		return
-	}
-	if pid, err := strconv.Atoi(strings.TrimSpace(string(b))); err == nil && pid > 1 && leftoverGroup(ctx, pid, root) {
-		killGroup(pid)
-	}
-}
 
 // saveLeftovers saves every Thulu project clone under root and reports whether all of them are safe.
 // A folder project's entry is a symlink to a worktree that outlives the run.
@@ -137,6 +96,9 @@ func inMirror(ctx context.Context, clone, mirror string) bool {
 	return false
 }
 
+// removeSession removes what Claude Code keeps about a run outside its folder: the session under
+// ~/.claude/projects and the folder under /tmp/claude-<uid> where it writes the output of every
+// background Bash command, which grows as long as the command logs.
 func removeSession(root string) {
 	resolved, err := filepath.EvalSymlinks(root)
 	if err != nil {
@@ -145,15 +107,20 @@ func removeSession(root string) {
 	if dir := claudeProjectsDir(resolved); dir != "" {
 		logx.Warn(os.RemoveAll(dir), "hostrun.log.remove_failed", "path", dir)
 	}
+	removeClaudeTmp(resolved)
 }
 
-// While the leader lives its command line must name root, so a pid reused by another process is
-// left alone.
-// Once the leader is gone, any process still in pgid is the run's: no new process gets a pid equal
-// to a live group id.
-func leftoverGroup(ctx context.Context, pgid int, root string) bool {
-	if out, err := commandLine(ctx, pgid); err == nil {
-		return strings.Contains(out, root)
-	}
-	return groupHasMembers(ctx, pgid)
+// The machine's shared temp folder; tests point it at a folder of their own.
+var tmpRoot = "/tmp"
+
+// claudeTmpDir is the folder Claude Code keeps for a session started in dir (resolved): it ignores
+// TMPDIR and uses /tmp/claude-<uid>/<dir with every non-alphanumeric as "-">, the same name as
+// claudeProjectsDir. Checked in Claude Code 2.1.332, which reads CLAUDE_CODE_TMPDIR to move it.
+func claudeTmpDir(dir string) string {
+	return filepath.Join(realPath(tmpRoot), "claude-"+strconv.Itoa(os.Getuid()), nonAlnum.ReplaceAllString(dir, "-"))
+}
+
+func removeClaudeTmp(resolved string) {
+	dir := claudeTmpDir(resolved)
+	logx.Warn(os.RemoveAll(dir), "hostrun.log.remove_failed", "path", dir)
 }

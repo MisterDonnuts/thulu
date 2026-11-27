@@ -209,7 +209,32 @@
     "runner_upload": "el proyecto {name} se subió como carpeta: un runner no tiene un remoto donde empujar su trabajo, así que sus corridas quedan acá",
     "runner_no_remote": "el proyecto {name} no tiene URL de repositorio: un runner empuja su trabajo al remoto y el daemon lo trae de ahí",
     "runner_path_without_runner": "el proyecto {name} no tiene runner, así que no puede tener una carpeta en uno",
-    "runner_path_update_failed": "guardar la carpeta del runner"
+    "runner_path_update_failed": "guardar la carpeta del runner",
+    "release_mode_invalid": "el modo de release {mode:%q} no es válido: usá {auto}, {batch} o dejalo vacío",
+    "release_environment_invalid": "el entorno de release {env:%q} tiene que empezar con una letra o un dígito y usar sólo letras, dígitos, espacios, puntos, guiones y guiones bajos (64 como mucho)",
+    "gates_profile_too_big": "el perfil de quality gates supera los {max} bytes",
+    "gates_profile_not_object": "el perfil de quality gates tiene que ser un objeto JSON",
+    "gates_profile_unknown_key": "el perfil de quality gates tiene una clave desconocida {key:%q}; las claves son: {keys}",
+    "gates_profile_bad_value": "el perfil de quality gates tiene un valor de tipo equivocado en {key:%q}",
+    "gates_profile_unknown_check": "accept_unverified nombra un chequeo desconocido {check:%q}; los chequeos son: {checks}",
+    "gates_profile_no_reason": "accept_unverified no da motivo para el chequeo {check:%q}: escribí por qué puede quedar sin verificar",
+    "gates_profile_reason_too_long": "el motivo que accept_unverified da al chequeo {check:%q} supera los {max} caracteres",
+    "worktree_head": "leer el HEAD del worktree del proyecto {project}",
+    "bad_commit": "no es un id de commit",
+    "no_default_commit": "el proyecto {project} no tiene una rama default contra la cual comparar",
+    "worktree_diff": "listar los archivos cambiados en el proyecto {project}",
+    "worktree_blobs": "leer los blobs de tests del proyecto {project}",
+    "history_sha_invalid": "la ancestría pide SHAs de commit (7 a 40 caracteres hex), no {base} y {head}",
+    "deploy_watch_not_found": "no existe esa vigilancia de deploy",
+    "deploy_watch_workflow_invalid": "el workflow {target:%q} tiene que ser su nombre o su archivo (deploy.yml), empezar con una letra o un dígito, tener 100 caracteres como mucho y no llevar comillas ni llaves",
+    "deploy_watch_workflow_path": "la ruta del workflow {target:%q} tiene que ser un archivo .yml o .yaml dentro de {dir}",
+    "deploy_watch_environment_invalid": "el entorno de GitHub {target:%q} tiene que empezar con una letra o un dígito y usar sólo letras, dígitos, espacios, puntos, guiones y guiones bajos (64 como mucho)",
+    "deploy_watch_cloud_target": "una vigilancia de cloud lleva el id de uno de los entornos del proyecto; {target:%q} no es uno",
+    "deploy_watch_url_invalid": "{target:%q} no es una URL http o https que Thulu pueda consultar (2048 caracteres como mucho, sin espacios, comillas ni llaves)",
+    "deploy_watch_url_credentials": "la URL a consultar no puede llevar usuario ni contraseña: Thulu la guardaría en la vigilancia y la mostraría en la página del proyecto",
+    "deploy_watch_source_invalid": "Thulu no vigila la fuente {source:%q}; usá una de: {known}",
+    "deploy_watch_interval_webhook": "la fuente {source} llega por webhook de GitHub y no lleva intervalo",
+    "deploy_watch_interval_range": "el intervalo {interval} tiene que ser de minutos enteros, entre {min} y {max}"
   },
   "log": {
     "list_conflict_files": "listar los archivos en conflicto en {dir}",
@@ -236,7 +261,8 @@
     "measure_hosted": "medir el repositorio alojado {path}",
     "clone_state": "guardar el estado del clon del proyecto {id}",
     "remove_base_marker": "borrar la marca de origen {path}",
-    "resolve_host": "resolver el host de git {host}"
+    "resolve_host": "resolver el host de git {host}",
+    "history_fetch": "traer la rama por defecto del proyecto {project} antes de leer qué incluye un deploy"
   },
   "hooks": {
     "migrated_header": "# Migrado desde la columna project.{column}.\n# Editalo como quieras: este archivo es ahora la única fuente del comando.\n"

@@ -56,6 +56,10 @@ const (
 
 var promptGrace = 10 * time.Second
 
+// StaleAfter is the age past which a login container belongs to no flow: the flow's timer removes it
+// at flowTTL, and only a daemon that died before then leaves it behind.
+const StaleAfter = flowTTL + time.Minute
+
 type Config struct {
 	Docker Docker
 	Image  func(engineName string) (image, env string)

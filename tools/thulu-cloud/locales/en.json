@@ -76,7 +76,8 @@
     "handshake_no_key": "an MCP session needs the run's key on the handshake (X-API-Key or Authorization: Bearer)",
     "message_key_mismatch": "this message does not carry the key its session was opened with",
     "list_only_session": "this session was opened without a credential: it can list tools, not call them",
-    "collect_target_missing": "collect needs the environment and its credential in the body: the daemon resolves them and sends them (this server holds no key to ask for them)"
+    "collect_target_missing": "collect needs the environment and its credential in the body: the daemon resolves them and sends them (this server holds no key to ask for them)",
+    "deploys_body_invalid": "environment_id is required"
   },
   "text": {
     "truncated": "[…{label} truncated: {bytes} more bytes omitted by thulu-cloud]",
@@ -100,7 +101,8 @@
     "collect_no_usable_source": {
       "one": "the {count} active mapping has no source shaped for provider '{provider}'",
       "other": "none of the {count} active mapping(s) has a source shaped for provider '{provider}'"
-    }
+    },
+    "deploys_provider_unavailable": "deploy markers come only from Google Cloud (Cloud Run revisions); provider {provider} has none to read"
   },
   "log": {
     "listening": "thulu-cloud MCP server listening on :{port}",

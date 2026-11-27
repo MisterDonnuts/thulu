@@ -33,14 +33,20 @@ import {
   BundleError,
   choicesOf,
   copyActionText,
+  entryTitle,
   filterEntries,
+  flowTypeRows,
+  flowWrites,
   getWorkshopItem,
   itemKey,
   listWorkshop,
+  offersDefaultBoard,
   planWorkshop,
   previewBody,
   readBundleFile,
   resultIsEmpty,
+  stageChangeCounts,
+  stageChangeTone,
   statusTone,
   tagLabel,
   tagsOf,
@@ -49,12 +55,14 @@ import {
   writesOf,
   type Action,
   type ApplyResult,
+  type FlowView,
   type ItemRef,
   type Plan,
   type PlanInput,
   type PlanItem,
   type PlanNotice,
   type Resolution,
+  type StageChange,
   type WorkshopEntry,
   type WorkshopFile,
   type WorkshopKind,
@@ -114,6 +122,26 @@ const BADGE_LABEL: Record<Resolution | "keep_yours", () => string> = {
 const KIND_LABEL: Record<WorkshopKind, () => string> = {
   agent: () => t("workshop.kind.agent"),
   skill: () => t("workshop.kind.skill"),
+  flow: () => t("workshop.kind.flow"),
+};
+
+const KIND_ICON: Record<WorkshopKind, string> = {
+  agent: "i-bot",
+  skill: "i-skills",
+  flow: "i-board",
+};
+
+const EMPTY_LIST: Record<WorkshopKind, () => string> = {
+  agent: () => t("workshop.list.empty_agent"),
+  skill: () => t("workshop.list.empty_skill"),
+  flow: () => t("workshop.list.empty_flow"),
+};
+
+const STAGE_CHANGE_LABEL: Record<StageChange, () => string> = {
+  add: () => t("workshop.plan.stage_change.add"),
+  change: () => t("workshop.plan.stage_change.change"),
+  same: () => t("workshop.plan.stage_change.same"),
+  remove: () => t("workshop.plan.stage_change.remove"),
 };
 
 const APPLY_LABEL: Record<ReturnType<typeof applyVerb>, (count: number) => string> = {
@@ -131,6 +159,10 @@ const NOTICE_TEXT: Partial<Record<string, (name: string, refs: string) => string
   image_import: (name, refs) => t("workshop.notice.image_import", { name, refs }),
   tools_skipped: (_name, refs) => t("workshop.notice.tools_skipped", { refs }),
   reserved: (name) => t("workshop.notice.reserved", { name }),
+  flow_stage_has_tasks: (name, refs) => t("workshop.notice.flow_stage_has_tasks", { name, refs }),
+  flow_type_has_tasks: (name, refs) => t("workshop.notice.flow_type_has_tasks", { name, refs }),
+  flow_missing_agent: (name, refs) => t("workshop.notice.flow_missing_agent", { name, refs }),
+  flow_board_renamed: (name, refs) => t("workshop.notice.flow_board_renamed", { name, refs }),
 };
 
 const IMPORT_ERROR: Record<BundleError["code"], () => string> = {
@@ -158,6 +190,8 @@ export function mountWorkshop(signal: AbortSignal, opts: WorkshopModalOpts): Wor
   let input: PlanInput | null = null;
   let plan: Plan | null = null;
   let busy = false;
+  // "Make it the default board" for the flow the plan installs; reset with each new plan.
+  let flowDefault = false;
   // Bumped by every plan request that replaces the plan on screen; a rename answer
   // arriving after a newer request is dropped.
   let planRequests = 0;
@@ -204,7 +238,7 @@ export function mountWorkshop(signal: AbortSignal, opts: WorkshopModalOpts): Wor
       list.innerHTML = emptyRowHTML(errText(e), { as: "div", tone: "danger" });
       return;
     }
-    for (const k of ["agent", "skill"] as const) {
+    for (const k of ["flow", "agent", "skill"] as const) {
       const n = entries.filter((e) => e.kind === k).length;
       const el = document.getElementById(`ws-shop-tab-${k}-count`);
       if (el) setCount(el, n, { pill: true, hideZero: true });
@@ -232,6 +266,8 @@ export function mountWorkshop(signal: AbortSignal, opts: WorkshopModalOpts): Wor
   }
 
   function statusLabel(e: WorkshopEntry): string {
+    // A flow's "other one" is its own board, edited since it was installed.
+    if (e.kind === "flow" && e.status === "changed") return t("workshop.status.flow_changed");
     return STATUS_LABEL[e.status]();
   }
 
@@ -249,9 +285,7 @@ export function mountWorkshop(signal: AbortSignal, opts: WorkshopModalOpts): Wor
     if (rows.length === 0) {
       const empty = entries.some((e) => e.kind === kind)
         ? t("workshop.list.no_match")
-        : kind === "agent"
-          ? t("workshop.list.empty_agent")
-          : t("workshop.list.empty_skill");
+        : EMPTY_LIST[kind]();
       list.innerHTML = emptyRowHTML(empty, { as: "div" });
       return;
     }
@@ -261,7 +295,7 @@ export function mountWorkshop(signal: AbortSignal, opts: WorkshopModalOpts): Wor
           ${
             pickable(e)
               ? checkHTML({
-                  labelHTML: `<span class="visually-hidden">${esc(t("workshop.list.pick", { name: e.name }))}</span>`,
+                  labelHTML: `<span class="visually-hidden">${esc(t("workshop.list.pick", { name: entryTitle(e) }))}</span>`,
                   checked: picked(e),
                   cls: "wsp-pick",
                   inputAttrs: { "data-pick": e.name },
@@ -269,7 +303,7 @@ export function mountWorkshop(signal: AbortSignal, opts: WorkshopModalOpts): Wor
               : ""
           }
           ${catalogItemHTML({
-            name: e.name,
+            name: entryTitle(e),
             description: e.description,
             badgesHTML: badgeHTML(statusLabel(e), statusTone(e.status)),
             current: e.name === selected,
@@ -328,16 +362,66 @@ export function mountWorkshop(signal: AbortSignal, opts: WorkshopModalOpts): Wor
     try {
       const full = await getWorkshopItem(e.kind, e.name);
       if (selected !== e.name || kind !== e.kind) return;
-      detail.innerHTML = detailHTML(e, full.files);
+      detail.innerHTML = detailHTML(e, full.files, full.flow);
       wireDetail(e);
     } catch (err) {
       opts.toast(errText(err), "err");
     }
   }
 
-  function detailHTML(e: WorkshopEntry, files: WorkshopFile[] | null): string {
+  function flowRows(e: WorkshopEntry, view: FlowView | undefined): Array<[string, string]> {
+    const rows: Array<[string, string]> = [[t("workshop.detail.agents"), chips(e.agents)]];
+    if (e.boards?.length) rows.push([t("workshop.detail.boards"), chips(e.boards)]);
+    if (view?.max_kick_backs) {
+      rows.push([
+        t("workshop.detail.kick_backs"),
+        esc(t("workshop.detail.kick_backs_value", { count: view.max_kick_backs })),
+      ]);
+    }
+    return rows;
+  }
+
+  // The board a flow installs: each column with its agent and gates, then each task type.
+  function flowBoardHTML(view: FlowView | undefined): string {
+    if (!view) return "";
+    const columns = factsHTML(
+      view.stages.map((st) => {
+        const badges = [
+          st.default_agent
+            ? badgeHTML(st.default_agent, "neutral", { mono: true })
+            : `<span class="wsp-none">${esc(t("workshop.detail.no_agent"))}</span>`,
+          ...(st.required_approvals ?? []).map((a) =>
+            badgeHTML(a.label, "accent", { title: t("workshop.detail.approval") }),
+          ),
+        ];
+        return { label: st.label || st.id, valueHTML: chipList(badges) };
+      }),
+    );
+    const types = flowTypeRows(view).map((tt) => {
+      const parts = [
+        tt.skips.length
+          ? esc(t("workshop.detail.type_skips", { stages: tt.skips.join(", ") }))
+          : esc(t("workshop.detail.type_walks_all")),
+        ...tt.agents.map((a) =>
+          esc(
+            a.agent
+              ? t("workshop.detail.type_agent", { stage: a.stage, agent: a.agent })
+              : t("workshop.detail.type_no_agent", { stage: a.stage }),
+          ),
+        ),
+      ];
+      return { label: tt.label, valueHTML: parts.join("<br>") };
+    });
+    return `<h4 class="wsp-sub">${esc(t("workshop.detail.columns", { count: view.stages.length }))}</h4>
+      ${columns}
+      ${types.length ? `<h4 class="wsp-sub">${esc(t("workshop.detail.types", { count: types.length }))}</h4>${factsHTML(types)}` : ""}`;
+  }
+
+  function detailHTML(e: WorkshopEntry, files: WorkshopFile[] | null, view?: FlowView): string {
     const rows: Array<[string, string]> = [];
-    if (e.kind === "agent") {
+    if (e.kind === "flow") {
+      rows.push(...flowRows(e, view));
+    } else if (e.kind === "agent") {
       rows.push([t("workshop.detail.skills"), chips(e.skills, true, NONE_F)]);
       rows.push([t("workshop.detail.stages"), stageChips(e.stages)]);
       rows.push([t("workshop.detail.mcp"), chips(e.mcp)]);
@@ -368,7 +452,7 @@ export function mountWorkshop(signal: AbortSignal, opts: WorkshopModalOpts): Wor
           });
     const action = installLabel(e);
     return `${entityHeadHTML({
-      title: e.name,
+      title: entryTitle(e),
       level: 3,
       badgesHTML: badgeHTML(statusLabel(e), statusTone(e.status)),
       actions: [
@@ -383,6 +467,7 @@ export function mountWorkshop(signal: AbortSignal, opts: WorkshopModalOpts): Wor
       <div class="wsp-detail-body">
         ${e.description ? `<p class="wsp-desc">${esc(e.description)}</p>` : ""}
         ${factsHTML(rows.map(([label, valueHTML]) => ({ label, valueHTML })))}
+        ${flowBoardHTML(view)}
         ${fileBlock}
       </div>
       <div class="wsp-detail-foot">
@@ -420,6 +505,8 @@ export function mountWorkshop(signal: AbortSignal, opts: WorkshopModalOpts): Wor
     if (e.disabled) return t("workshop.detail.disabled");
     if (e.status === "installed") return t("workshop.detail.already");
     if (e.status === "reserved") return t("workshop.detail.reserved");
+    if (e.kind === "flow" && e.agents?.length)
+      return t("workshop.detail.flow_brings", { count: e.agents.length });
     if (e.kind === "agent" && e.skills?.length)
       return t("workshop.detail.brings", { count: e.skills.length });
     return "";
@@ -439,6 +526,7 @@ export function mountWorkshop(signal: AbortSignal, opts: WorkshopModalOpts): Wor
   async function startPlan(next: PlanInput) {
     input = next;
     plan = null;
+    flowDefault = false;
     showPlan();
     planEl.innerHTML = emptyStateHTML({
       size: "sm",
@@ -456,11 +544,70 @@ export function mountWorkshop(signal: AbortSignal, opts: WorkshopModalOpts): Wor
   }
 
   function actionText(it: PlanItem, isImport: boolean): string {
+    if (it.kind === "flow") return flowActionText(it);
     const asCopy = copyActionText(it);
     if (asCopy) return asCopy;
     if (it.action === "update" && isImport) return t("workshop.plan.action.update_import");
     if (it.disabled) return t("workshop.plan.action.disabled");
     return ACTION_LABEL[it.action]();
+  }
+
+  function flowActionText(it: PlanItem): string {
+    switch (it.resolution) {
+      case "install":
+        return t("workshop.plan.flow.install", { board: it.target });
+      case "copy":
+        return t("workshop.plan.flow.copy", { board: it.target });
+      case "update":
+      case "replace":
+        return t("workshop.plan.flow.rewrite", { board: it.target });
+      case "keep":
+        return it.action === "conflict"
+          ? t("workshop.plan.flow.conflict", { board: it.target })
+          : t("workshop.plan.flow.keep", { board: it.target });
+      case "skip":
+        return t("workshop.plan.flow.skip");
+    }
+  }
+
+  function stageSummary(it: PlanItem): string {
+    const n = stageChangeCounts(it);
+    if (it.resolution === "install" || it.resolution === "copy") {
+      return t("workshop.plan.flow.creates", { count: n.add });
+    }
+    const parts: string[] = [];
+    if (n.add) parts.push(t("workshop.plan.flow.adds", { count: n.add }));
+    if (n.change) parts.push(t("workshop.plan.flow.changes", { count: n.change }));
+    if (n.remove) parts.push(t("workshop.plan.flow.removes", { count: n.remove }));
+    return parts.length ? parts.join(", ") : t("workshop.plan.flow.same_columns");
+  }
+
+  // Each column the flow leaves on the board, toned by what the apply does to it.
+  function flowStagesHTML(it: PlanItem): string {
+    if (!it.stages?.length) return "";
+    const showChange = it.resolution !== "install" && it.resolution !== "copy";
+    const badges = it.stages.map((st) => {
+      const text = st.agent ? `${st.label} · ${st.agent}` : st.label;
+      const title = showChange ? STAGE_CHANGE_LABEL[st.change]() : undefined;
+      return badgeHTML(text, showChange ? stageChangeTone(st.change) : "neutral", { title });
+    });
+    return `<div class="wsp-item-stages"><span class="wsp-item-sub">${esc(stageSummary(it))}</span>${chipList(badges)}</div>`;
+  }
+
+  function defaultBoardHTML(p: Plan): string {
+    if (!offersDefaultBoard(p)) return "";
+    return checkHTML({
+      label: t("workshop.plan.flow.make_default"),
+      hint: t("workshop.plan.flow.make_default_hint"),
+      checked: flowDefault,
+      cls: "wsp-default-board",
+      inputAttrs: { "data-flow-default": true },
+    });
+  }
+
+  function itemTitle(it: PlanItem): string {
+    if (it.kind !== "flow") return it.name;
+    return entryTitle(entries.find((e) => e.kind === "flow" && e.name === it.name) ?? it);
   }
 
   function itemSub(it: PlanItem, isImport: boolean): string {
@@ -526,7 +673,7 @@ export function mountWorkshop(signal: AbortSignal, opts: WorkshopModalOpts): Wor
       : "";
     const items = p.items
       .map((it) => {
-        const icon = it.kind === "agent" ? "i-bot" : "i-skills";
+        const icon = KIND_ICON[it.kind];
         const seg =
           it.options.length > 1
             ? segmentedHTML(
@@ -547,17 +694,18 @@ export function mountWorkshop(signal: AbortSignal, opts: WorkshopModalOpts): Wor
         const copyName =
           it.resolution === "copy"
             ? fieldHTML({
-                label: t("workshop.plan.copy_name"),
+                label:
+                  it.kind === "flow" ? t("workshop.plan.board_id") : t("workshop.plan.copy_name"),
                 for: `ws-copy-${itemKey(it)}`,
                 layout: "inline",
                 cls: "wsp-copy-name",
                 control: `<input type="text" id="${esc(`ws-copy-${itemKey(it)}`)}" spellcheck="false" autocomplete="off" data-copy-key="${esc(itemKey(it))}" value="${esc(it.target)}" />`,
               })
             : "";
-        return `<div class="wsp-item">${icoSvg(icon)}<span class="wsp-item-name">${esc(it.name)}</span>${badgeHTML(
+        return `<div class="wsp-item">${icoSvg(icon)}<span class="wsp-item-name">${esc(itemTitle(it))}</span>${badgeHTML(
           BADGE_LABEL[badgeOf(it)](),
           writesTone(it.resolution),
-        )}<span class="wsp-item-sub">${esc(itemSub(it, isImport))}</span>${seg}${copyName}</div>`;
+        )}<span class="wsp-item-sub">${esc(itemSub(it, isImport))}</span>${it.kind === "flow" ? flowStagesHTML(it) : ""}${seg}${copyName}</div>`;
       })
       .join("");
     const applyLabel =
@@ -567,6 +715,7 @@ export function mountWorkshop(signal: AbortSignal, opts: WorkshopModalOpts): Wor
         <p class="wsp-plan-lead">${esc(lead)}</p>
         ${notices}
         <div class="wsp-items">${items}</div>
+        ${defaultBoardHTML(p)}
       </div>
       <div class="wsp-plan-foot">
         ${buttonHTML({ label: t("workshop.plan.back"), attrs: { "data-plan-back": true } })}
@@ -584,6 +733,11 @@ export function mountWorkshop(signal: AbortSignal, opts: WorkshopModalOpts): Wor
           () => void rechoose(r.dataset.key ?? "", r.value as Resolution),
         ),
       );
+    planEl
+      .querySelector<HTMLInputElement>("[data-flow-default]")
+      ?.addEventListener("change", (e) => {
+        flowDefault = (e.target as HTMLInputElement).checked;
+      });
     planEl
       .querySelectorAll<HTMLButtonElement>("[data-notice-copy]")
       .forEach((b) =>
@@ -661,7 +815,11 @@ export function mountWorkshop(signal: AbortSignal, opts: WorkshopModalOpts): Wor
       const renamed = withTypedNames(plan, typed);
       planRequests++;
       if (renamed) plan = await planWorkshop(input, renamed);
-      const res = await applyWorkshop(input, choicesOf(plan));
+      const res = await applyWorkshop(
+        input,
+        choicesOf(plan),
+        flowDefault && offersDefaultBoard(plan),
+      );
       busy = false;
       picks = [];
       renderPicks();
@@ -701,10 +859,18 @@ export function mountWorkshop(signal: AbortSignal, opts: WorkshopModalOpts): Wor
     const body = resultIsEmpty(r)
       ? `<p class="wsp-plan-lead">${esc(t("workshop.result.nothing"))}</p>`
       : factsHTML(groups.map(([label, value]) => ({ label, value })));
+    const boards = flowWrites(res.plan).map((it) => it.target);
     const newAgent = [...r.installed, ...r.copied].some((x) => x.kind === "agent");
-    const hint = newAgent
-      ? `<p class="wsp-plan-lead">${esc(t("workshop.result.agent_hint"))}</p>`
-      : "";
+    const hint = boards.length
+      ? `<p class="wsp-plan-lead">${esc(t("workshop.result.flow_hint"))} ${boards
+          .map(
+            (b) =>
+              `<a class="wsp-board-link" href="/tasks/?board=${encodeURIComponent(b)}">${esc(t("workshop.result.open_board", { board: b }))}</a>`,
+          )
+          .join(" ")}</p>`
+      : newAgent
+        ? `<p class="wsp-plan-lead">${esc(t("workshop.result.agent_hint"))}</p>`
+        : "";
     planEl.innerHTML = `<div class="wsp-plan-body">
         <h4>${icoSvg("i-check")}${esc(t("workshop.result.title"))}</h4>
         ${body}

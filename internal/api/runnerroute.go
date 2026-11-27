@@ -22,6 +22,10 @@ var (
 	_ task.RunKiller     = (*routedLauncher)(nil)
 	_ task.RunSteerer    = (*routedLauncher)(nil)
 	_ task.SteerChecker  = (*routedLauncher)(nil)
+
+	_ task.LiveRunScanner    = (*routedLauncher)(nil)
+	_ task.ExitWatchCanceler = (*routedLauncher)(nil)
+	_ task.LiveRunScanner    = (*taskLauncher)(nil)
 )
 
 // Guard only: the dispatcher already chose the machine. A task with code on a machine must never
@@ -81,6 +85,20 @@ func (l *routedLauncher) ScanExitedTaskAgents(ctx context.Context) ([]task.Exite
 	}
 	jobs, err := l.runner.ScanExitedTaskAgents(ctx)
 	return append(out, jobs...), err
+}
+
+// Only the base launcher's runs: a machine's runs keep their own records and callbacks.
+func (l *routedLauncher) ScanLiveTaskAgents(ctx context.Context) ([]task.LiveTaskAgent, error) {
+	if s, ok := l.base.(task.LiveRunScanner); ok {
+		return s.ScanLiveTaskAgents(ctx)
+	}
+	return nil, task.ErrLiveScanUnsupported
+}
+
+func (l *routedLauncher) CancelExitWatch(containerID string) {
+	if c, ok := l.side(containerID).(task.ExitWatchCanceler); ok {
+		c.CancelExitWatch(containerID)
+	}
 }
 
 func newRoutedLauncher(base task.AgentLauncher, projects *project.Store) *routedLauncher {

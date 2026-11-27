@@ -1,0 +1,290 @@
+{
+  "cli": {
+    "usage": "Usage:\n  thulu-gates run [--base <ref>] [--out <dir>] [--only a,b] [--skip a,b] [--perf] [--mutation]\n                  [--critical <glob>]... [--coverage-min 80] [--dup-max 3] [--quiet]\n                  [--cache-dir <dir>] [--quarantine <file>] [--profile <file>] [--reuse]\n  thulu-gates doctor [--json]\n\nChecks: tests, coverage_new, duplication, lint, typecheck, sast, secrets, deps, licenses,\nphantom_deps, suppressions, mutation (with --mutation), perf (with --perf).\nBase: git merge-base origin/<default> HEAD. Out: $TMPDIR/thulu-gates/<timestamp>.\nExit: 0 pass, 1 blocking findings, 2 tool error.",
+    "missing_value": "{flag} needs a value",
+    "not_a_number": "{flag} takes a number, got \"{value}\"",
+    "unknown_flag": "unknown flag {flag}",
+    "unknown_check": "unknown check \"{id}\" (checks: {ids})",
+    "unknown_command": "unknown command \"{command}\"",
+    "bad_base": "--base {ref} does not name a commit",
+    "no_base": "neither origin/{branch} nor {branch} exists in this clone, so there is no base to compare against. Pass --base <commit>: the task brief gives it as the base commit",
+    "config_unparsable": "{path} is not valid JSON; using the defaults",
+    "not_selected": "not selected (--only)",
+    "skipped_by_flag": "skipped with --skip",
+    "start": "thulu-gates: base {base}, head {head}, {files} changed files, stack: {stacks}",
+    "running": "thulu-gates: {id}…",
+    "check_crashed": "thulu-gates failed inside this check: {detail}",
+    "out_contains_repo": "--out {out} is the repo or one of its parent directories; pick a directory of its own",
+    "worktree_failed": "could not check out base in a worktree: {detail}",
+    "wrote": "Reports: {out}/report.json, {out}/report.md, {out}/sarif/",
+    "quarantine_unreadable": "the quarantine file {path} is not valid JSON; no test is left out and it will not be written",
+    "quarantine_not_saved": "could not write the quarantine file {path}: {detail}",
+    "profile_missing": "the gate profile {path} does not exist; running without it",
+    "profile_unparsable": "the gate profile {path} is not a JSON object; running without it",
+    "profile_no_entry": "the gate profile {path} has no entry for {name} (it has: {names}); running without it",
+    "config_accept_ignored": "{path} sets accept_unverified, which only the project profile in Thulu can set; ignored",
+    "accept_not_object": "accept_unverified in the gate profile {path} must map check ids to reasons; ignored",
+    "accept_unknown_check": "accept_unverified in the gate profile {path} names an unknown check {id} (checks: {ids}); ignored",
+    "accept_no_reason": "accept_unverified in the gate profile {path} gives {id} no reason; a person has to write why, so it is not accepted",
+    "reuse_dirty": "not reusing a stored report: the tree has uncommitted or untracked files",
+    "reuse_miss": "no stored report for this head, base and config; running the checks"
+  },
+  "common": {
+    "missing_tool": "not installed: {tools}. Install: {install}",
+    "timeout": "stopped after {seconds} s (time budget)",
+    "tool_failed": "{tool} failed: {detail}",
+    "no_changes": "no changed files",
+    "no_findings": "no findings on new lines",
+    "blocking_findings": {
+      "one": "{count} blocking finding on new lines",
+      "other": "{count} blocking findings on new lines"
+    },
+    "warning_findings": {
+      "one": "{count} warning",
+      "other": "{count} warnings"
+    },
+    "preexisting": {
+      "one": "{count} pre-existing on base (does not block)",
+      "other": "{count} pre-existing on base (do not block)"
+    },
+    "base_not_compared": "base could not be checked, so nothing was compared with it"
+  },
+  "tests": {
+    "no_projects": "the diff touches no project with tests",
+    "no_runner": "no test runner found for the touched projects",
+    "nothing_ran_missing": "nothing ran; missing: {what}",
+    "failed": {
+      "one": "{count} failing test",
+      "other": "{count} failing tests"
+    },
+    "passed": "all tests pass",
+    "passed_partial": "tests pass; not run for: {missing}",
+    "go_build_failed": "{pkg} does not build",
+    "base_incomplete": "the base run did not cover the suite, so it is no baseline",
+    "base_unavailable": "base could not be checked",
+    "fails_on_base": "fails on base too",
+    "hangs_on_base": "{name} does not finish, on base either: quarantined",
+    "hangs_head": "{name} does not finish on this branch; {where}",
+    "passes_on_base": "it finishes on base",
+    "cannot_exclude": "this runner cannot leave a single test out",
+    "rest_not_verified": "the run stopped after {seconds} s; the rest of the suite is not verified",
+    "quarantined": {
+      "one": "{count} quarantined test not run",
+      "other": "{count} quarantined tests not run"
+    },
+    "quarantine_unsupported": "quarantined tests ran anyway ({runners} cannot leave a single test out)",
+    "no_report": "the runner exited without its results report",
+    "none_ran": "no test ran",
+    "incomplete": "not verified: {reason}",
+    "karma_disconnected": "Karma ran {executed} of {total} tests and the browser disconnected",
+    "karma_error": "Karma ran {executed} of {total} tests and ended in ERROR",
+    "karma_none": "Karma ran {executed} of {total} tests",
+    "karma_partial": "Karma ran only {executed} of {total} tests"
+  },
+  "coverage": {
+    "no_report": "the tests ran but left no coverage report (install a coverage provider, e.g. @vitest/coverage-v8 or pytest-cov)",
+    "no_tests_run": "no coverage: the tests check did not run",
+    "no_data_for": "no coverage data for the changed files: {files}",
+    "no_new_lines": "no new executable lines",
+    "below": "{pct}% of new lines covered ({covered}/{total}), minimum {min}%",
+    "below_ungated": "{pct}% of new lines covered ({covered}/{total}); under {lines} new lines, not gated",
+    "under_warn": "{pct}% of new lines covered ({covered}/{total}), under {warn}%",
+    "ok": "{pct}% of new lines covered ({covered}/{total})",
+    "file_no_data": "no coverage report mentions this file: no test loaded it, or the runner only reports files the tests import",
+    "uncovered": "new lines {lines} never ran in the tests",
+    "tests_not_finished": "not verified: the tests check did not finish, so its coverage covers only part of the suite"
+  },
+  "duplication": {
+    "no_new_lines": "no new source lines",
+    "clone": "lines {start}-{end} repeat {other}:{otherStart}-{otherEnd}",
+    "fail": "{pct}% of new lines duplicated ({dup}/{total}, maximum {max}%); {clones} clones",
+    "warn": "{pct}% of new lines duplicated ({dup}/{total}, maximum {max}%)",
+    "ok": "{pct}% of {total} new lines duplicated (maximum {max}%)",
+    "clone_base": "lines {start}-{end} repeat {other}:{otherStart}-{otherEnd}, a copy already on base"
+  },
+  "lint": {
+    "no_projects": "the diff touches no project to lint",
+    "clean": "no lint findings on new lines",
+    "clean_partial": "no lint findings on new lines; not run: {missing}",
+    "not_formatted": "not formatted ({tool})",
+    "complexity_new": "{fn} has complexity {ccn}, over {max}",
+    "complexity_grew": "{fn} went from complexity {old} to {ccn} (limit {max})",
+    "not_configured": "no linter configured for the touched files (eslint or prettier config, golangci-lint, ruff...)",
+    "not_formatted_base": "not formatted ({tool}), already so on base",
+    "complexity_base": "{fn} has complexity {ccn}, over {max}; it was {old} on base"
+  },
+  "typecheck": {
+    "no_projects": "the diff touches no project to type-check",
+    "nothing_to_check": "no type checker configured for the touched projects",
+    "errors": {
+      "one": "{count} new type error",
+      "other": "{count} new type errors"
+    },
+    "clean": "no type errors",
+    "clean_preexisting": "no new type errors ({count} already on base)"
+  },
+  "secrets": {
+    "builtin_match": "looks like a secret ({rule})",
+    "builtin_clean": "no secrets on new lines (gitleaks not installed; built-in patterns only)",
+    "builtin_found": {
+      "one": "{count} secret on new lines (built-in patterns; gitleaks not installed)",
+      "other": "{count} secrets on new lines (built-in patterns; gitleaks not installed)"
+    },
+    "clean": "no secrets in the branch's commits or uncommitted files",
+    "found": {
+      "one": "{count} secret in the branch",
+      "other": "{count} secrets in the branch"
+    }
+  },
+  "deps": {
+    "no_changes": "no dependencies added or changed",
+    "not_found": "{name} does not exist in the {ecosystem} registry",
+    "version_not_found": "{name}@{version} does not exist in the registry",
+    "recent": "{name} was first published {days} days ago (under {min})",
+    "phantom_fail": {
+      "one": "{count} dependency does not resolve in its registry",
+      "other": "{count} dependencies do not resolve in their registry"
+    },
+    "unreachable": {
+      "one": "registry unreachable for {count} package; existence not verified",
+      "other": "registry unreachable for {count} packages; existence not verified"
+    },
+    "all_exist": {
+      "one": "{count} changed dependency exists in its registry",
+      "other": "{count} changed dependencies exist in their registries"
+    },
+    "vuln_fixable": "{pkg} {version}: {id} {summary} (fix available; {tool})",
+    "vuln_nofix": "{pkg} {version}: {id} {summary} (no fix yet; {tool})",
+    "vuln_fail": {
+      "one": "{count} fixable high or critical vulnerability in changed dependencies",
+      "other": "{count} fixable high or critical vulnerabilities in changed dependencies"
+    },
+    "vuln_none": "no known vulnerabilities",
+    "vuln_preexisting": "no new vulnerabilities ({count} already on base)"
+  },
+  "licenses": {
+    "unknown": "license of {name} unknown",
+    "not_allowed": "{name} is licensed {license}, outside licenses_allow",
+    "not_in_default": "{name} is licensed {license}, outside the default permissive list (set licenses_allow to decide)",
+    "fail": {
+      "one": "{count} dependency with a license outside licenses_allow",
+      "other": "{count} dependencies with a license outside licenses_allow"
+    },
+    "ok": {
+      "one": "{count} changed dependency with an allowed license",
+      "other": "{count} changed dependencies with allowed licenses"
+    }
+  },
+  "suppressions": {
+    "gate_config": "{file} configures a gate; a change here needs a person's approval",
+    "no_rule": "{kind} without the rule it silences",
+    "no_reason": "{kind} without a reason of at least {min} words on the same line",
+    "file_level": "{kind} silences the whole file",
+    "fail": {
+      "one": "{count} suppression or gate-config change needs attention",
+      "other": "{count} suppressions or gate-config changes need attention"
+    },
+    "none": "no new suppressions",
+    "valid_only": {
+      "one": "{count} new suppression, with rule and reason",
+      "other": "{count} new suppressions, each with rule and reason"
+    }
+  },
+  "mutation": {
+    "not_requested": "not requested (--mutation)",
+    "nothing_changed": "no changed source lines to mutate",
+    "mutmut_config": "mutmut 3 reads its targets from [tool.mutmut] source_paths (paths_to_mutate in older 3.x releases); add it to pyproject.toml",
+    "survived": "mutant survived: {mutator}",
+    "not_covered": "no test reaches this mutant: {mutator}",
+    "critical_fail": "efficacy {efficacy}% in critical files, minimum {min}%",
+    "survivors": "{survived} of {total} mutants survived or no test reached them (efficacy {efficacy}%)",
+    "all_killed": "all {total} mutants killed",
+    "no_mutants": "the tool produced no mutants on the changed lines"
+  },
+  "perf": {
+    "not_requested": "not requested (--perf)",
+    "nothing_to_run": "no Go benchmarks in the changed packages and no perf.command in .thulu/gates.json",
+    "no_base_worktree": "could not check out base to compare against",
+    "bench_failed": "benchmarks failed on head: {detail}",
+    "hyperfine_no_times": "hyperfine finished on {side} but its JSON has no run times ({file})",
+    "command_failed": "perf.command failed on {side} (exit {code}): {detail}",
+    "method": "Base and head interleaved on the same machine, {rounds} rounds; two-sided Mann-Whitney U, median with 95% CI.",
+    "row": "{name}: {delta}% slower (p={p}, n={n})",
+    "regressions": {
+      "one": "{count} significant regression over {threshold}%",
+      "other": "{count} significant regressions over {threshold}%"
+    },
+    "minor": {
+      "one": "{count} significant regression under {threshold}%",
+      "other": "{count} significant regressions under {threshold}%"
+    },
+    "no_change": {
+      "one": "{count} benchmark, no regression detected",
+      "other": "{count} benchmarks, no regression detected"
+    }
+  },
+  "doctor": {
+    "header": "Stack: {stacks}",
+    "no_stack": "none detected (listing every stack)",
+    "missing": {
+      "one": "{count} tool missing; checks that need it report skip with the install command.",
+      "other": "{count} tools missing; checks that need them report skip with the install command."
+    },
+    "all_found": "Every tool is installed."
+  },
+  "report": {
+    "verdict_pass": "PASS",
+    "verdict_fail": "FAIL",
+    "dirty": "(+ uncommitted changes)",
+    "header": "Base `{base}` · Head `{head}` · Stack: {stack} · {duration}",
+    "blocking_list": "Blocking: {ids}",
+    "error_list": "Could not finish: {ids}",
+    "col": {
+      "check": "Check",
+      "status": "Status",
+      "blocks": "Blocks",
+      "tool": "Tool",
+      "summary": "Summary",
+      "time": "Time",
+      "benchmark": "Benchmark",
+      "base": "Base (median [95% CI])",
+      "head": "Head (median [95% CI])",
+      "result": "Result"
+    },
+    "yes": "yes",
+    "status": {
+      "pass": "pass",
+      "fail": "FAIL",
+      "warn": "warn",
+      "skip": "skip",
+      "error": "ERROR",
+      "accepted": "accepted"
+    },
+    "blocking_findings": "Blocking findings",
+    "warnings": "Warnings",
+    "more": "- and {count} more in {sarif}",
+    "perf": "Performance",
+    "perf_verdict": {
+      "regression": "regression",
+      "minor_regression": "regression under threshold",
+      "improvement": "faster",
+      "no_change": "no detectable change",
+      "new": "new, no base",
+      "too_few": "too few samples"
+    },
+    "not_run": "Not run",
+    "reproduce": "Reproduce",
+    "preexisting": "Pre-existing on base (do not block)",
+    "quarantine": "Quarantined tests not run",
+    "quarantine_added": "Quarantined in this run (they fail or hang on base too)",
+    "quarantine_file": "Quarantine file: `{path}`. Delete an entry to run that test again.",
+    "quarantine_changed": "(this branch changes its file)",
+    "not_verified": "Not verified",
+    "not_verified_skip": "skipped: {why}",
+    "not_verified_error": "did not finish: {why}",
+    "accepted": "Accepted as not verified (project profile)",
+    "accepted_line": "accepted: {reason}. Why it was not verified: {why}",
+    "reused": "Reused from {time} (the run in `{out}`): no check ran again.",
+    "reused_partly": "Reused from {time} (the run in `{out}`); ran again: {ids}."
+  }
+}

@@ -1,0 +1,48 @@
+import os
+import subprocess
+
+STRIPE_KEY = "not-a-key-in-this-fixture"
+
+
+def median(values: list[float]) -> float:
+    ordered = sorted(values)
+    mid = len(ordered) // 2
+    if len(ordered) % 2 == 0:
+        return (ordered[mid - 1] + ordered[mid]) / 2
+    return ordered[mid]
+
+
+def mean(values: list[float]) -> float:
+    if not values:
+        raise ValueError("average of an empty list")
+    total = 0.0
+    for v in values:
+        total += v
+    result = total / len(values)
+    rounded = round(result * 100) / 100
+    return rounded
+
+
+def normalize(values: list[float], top: float) -> list[float]:
+    out = []  # noqa
+    for v in values:
+        if v == None:  # type: ignore
+            continue
+        out.append(min(max(v / top, 0), 1))
+    return out
+
+
+def run(cmd: str) -> int:
+    return subprocess.call(cmd, shell=True)
+
+
+def half(x: int) -> str:
+    return x / 2
+
+
+class Window:
+    def __init__(self, size: int) -> None:
+        self.size = size
+
+    def fits(self, n: int) -> bool:
+        return n <= self.size

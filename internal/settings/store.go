@@ -98,7 +98,7 @@ func DerivePriorities(board []types.StageInfo) SandboxPriorities {
 // by SeedSandboxPriorities.
 var defaults = map[string]any{
 	SandboxMaxKey:              3,
-	SandboxIdleEvictSecondsKey: 30 * 60,
+	SandboxIdleEvictSecondsKey: DefaultSandboxIdleEvictSeconds,
 	SandboxAcquireBlockMsKey:   2 * 60_000,
 	ChatMaxKey:                 5,
 	ChatIdleEvictSecondsKey:    30 * 60,
@@ -400,8 +400,10 @@ func (s *Store) SetSandboxMax(ctx context.Context, n int) error {
 	return s.PutJSON(ctx, SandboxMaxKey, n)
 }
 
+const DefaultSandboxIdleEvictSeconds = 30 * 60
+
 func (s *Store) SandboxIdleEvictSeconds(ctx context.Context) (int, error) {
-	return s.getInt(ctx, SandboxIdleEvictSecondsKey, 30*60)
+	return s.getInt(ctx, SandboxIdleEvictSecondsKey, DefaultSandboxIdleEvictSeconds)
 }
 
 func (s *Store) SandboxAcquireBlockMs(ctx context.Context) (int, error) {

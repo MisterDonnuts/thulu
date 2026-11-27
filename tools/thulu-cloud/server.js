@@ -1459,6 +1459,41 @@ app.post("/collect", express.json({ limit: "1mb" }), async (req, res) => {
   }
 });
 
+// A deploy watch polls this: the daemon sends the environment and the credential it authorized for
+// the deploys tool, same contract as /collect, and gets the deploy markers of the window back.
+app.post("/deploys", express.json({ limit: "256kb" }), async (req, res) => {
+  const { environment_id: envId, environment, credential } = req.body || {};
+  if (!envId) {
+    res.status(400).json({ error: t("errors.deploys_body_invalid") });
+    return;
+  }
+  if (environment?.environment_id !== envId || !credential?.payload) {
+    res.status(400).json({ error: t("errors.collect_target_missing") });
+    return;
+  }
+  try {
+    const env = withCredential(environment, credential);
+    if (env.provider !== "gcp") {
+      res.json({
+        environment_id: envId,
+        deploys: [],
+        unavailable: true,
+        reason: env.provider === "aws"
+          ? t("text.deploys_aws_unavailable")
+          : t("text.deploys_provider_unavailable", { provider: env.provider }),
+      });
+      return;
+    }
+    const hours = Math.min(Math.max(Number(req.body.window_hours) || 24, 1), MAX_RANGE_HOURS);
+    const to = new Date();
+    const from = new Date(to.getTime() - hours * 3600 * 1000);
+    const { deploys, truncated_services: truncated } = await gcpDeploys(env, from, to);
+    res.json({ environment_id: envId, provider: "gcp", deploys, ...(truncated ? { truncated_services: truncated } : {}) });
+  } catch (err) {
+    res.status(502).json({ error: err?.message ?? String(err) });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(tLog("log.listening", { port: PORT }));
   console.log(tLog("log.octopus_api", { url: OCTOPUS_API }));

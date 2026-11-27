@@ -214,6 +214,9 @@ export interface PayloadSource {
 
 const PR_URL = "https://github.com/acme/web/pull/42";
 
+// A deploy or a workflow run is not about a pull request.
+const NO_PR = { pr_url: "", pr_number: 0, pr_title: "", branch: "", base_ref: "" };
+
 // Must match the flattened GitHub payload in internal/api/automation_events.go; every key present,
 // empty when absent.
 function githubBase(event: string): Record<string, unknown> {
@@ -236,6 +239,13 @@ function githubBase(event: string): Record<string, unknown> {
     issue_number: 0,
     issue_title: "",
     ref: "",
+    head_sha: "",
+    before: "",
+    default_branch: "main",
+    is_default_branch: false,
+    base_ref: "main",
+    merged: false,
+    merge_sha: "",
     task_id: "",
     task_title: "",
     task_stage: "",
@@ -351,9 +361,42 @@ function eventPayload(
         pr_title: "",
         ref: "refs/heads/main",
         branch: "",
+        base_ref: "",
+        head_sha: "9f2c1e7a0b",
+        before: "51d0c3e8f4",
+        is_default_branch: true,
       };
     case "github.check_suite":
       return { ...githubBase(event), action: "completed" };
+    case "github.deployment_status":
+      return {
+        ...githubBase(event),
+        ...NO_PR,
+        action: "created",
+        environment: "production",
+        deploy_state: "success",
+        sha: "9f2c1e7a0b",
+        ref: "main",
+        deployment_id: 77,
+        target_url: "https://acme.example.com",
+        evidence_batch_ids: [],
+      };
+    case "github.workflow_run":
+      return {
+        ...githubBase(event),
+        ...NO_PR,
+        action: "completed",
+        workflow_name: "deploy-production",
+        workflow_path: ".github/workflows/deploy.yml",
+        run_id: 9001,
+        run_url: "https://github.com/acme/web/actions/runs/9001",
+        run_status: "completed",
+        conclusion: "success",
+        head_branch: "main",
+        sha: "9f2c1e7a0b",
+        head_sha: "9f2c1e7a0b",
+        run_event: "push",
+      };
     case "task.stage_changed":
       return { ...taskBase(board), stage: next, from: first, to: next };
     case "task.failed":
@@ -449,6 +492,8 @@ function summarize(s: RunStepView): StepSummary | null {
           : { text: t("lib.automation_editor.summary.commented", { title }), taskID: task };
       }
       return null;
+    case "move":
+      return moveSummary(o, title, task);
     case "query": {
       if ("has_data" in o) {
         return o.has_data
@@ -465,6 +510,21 @@ function summarize(s: RunStepView): StepSummary | null {
     default:
       return null;
   }
+}
+
+function moveSummary(o: Record<string, unknown>, title: string, task: string): StepSummary {
+  const to = str(o.to);
+  if (o.moved === true) {
+    return { text: t("lib.automation_editor.summary.moved", { title, stage: to }), taskID: task };
+  }
+  if (o.gated === true) {
+    const approvals = Array.isArray(o.approvals) ? o.approvals.map(str).join(", ") : "";
+    return {
+      text: t("lib.automation_editor.summary.move_gated", { title, stage: to, approvals }),
+      taskID: task,
+    };
+  }
+  return { text: t("lib.automation_editor.summary.move_noop", { title, stage: to }), taskID: task };
 }
 
 export function isJSONOutput(output?: string): boolean {

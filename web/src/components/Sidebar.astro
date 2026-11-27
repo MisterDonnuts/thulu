@@ -1,5 +1,6 @@
 ---
-import Button from "./Button.astro";
+import Kbd from "./Kbd.astro";
+import { MOD_KEY } from "../lib/shortcuts";
 import Count from "./Count.astro";
 import Dot from "./Dot.astro";
 import Icon from "./Icon.astro";
@@ -141,16 +142,33 @@ import { t } from "../i18n";
           <span class="sb-label">{t("nav.sections.chats")}</span>
           <Count pill size="sm" tone="accent" n={0} hideZero id="sb-chat-badge" class="sb-count" />
         </button>
-        <Button
-          id="chat-new-btn"
-          class="sb-add"
-          iconOnly
-          size="xs"
-          variant="ghost"
-          icon="plus"
-          label={t("nav.buttons.new_chat")}
-        />
+        <button
+          id="chat-search-btn"
+          type="button"
+          class="cx-ibtn sb-chat-search"
+          aria-label={t("chat.rows.search")}
+          title={t("chat.rows.search")}
+          aria-expanded="false"
+          aria-controls="chat-search"><Icon name="search" size="sm" /></button
+        >
       </div>
+      <input
+        id="chat-search"
+        class="sb-chat-filter"
+        type="search"
+        autocomplete="off"
+        placeholder={t("chat.rows.search_placeholder")}
+        aria-label={t("chat.rows.search")}
+        hidden
+      />
+      <button id="chat-new-btn" type="button" class="cx-new sb-chat-new" aria-current="false"
+        ><Icon name="plus" />{t("nav.buttons.new_chat")}<Kbd
+          keys={[MOD_KEY, "J"]}
+          size="sm"
+          decorative
+          class="sb-chat-kbd"
+        /></button
+      >
       <!-- ChatDrawer's script owns chat state and fills #chat-rows. -->
       <div id="chat-rows" class="chat-rows"></div>
     </section>
@@ -496,6 +514,13 @@ import { t } from "../i18n";
     border-top: 1px solid var(--line);
     padding-top: var(--s-3);
   }
+  .sb-chat-new {
+    width: auto;
+    margin: var(--s-1) var(--s-2);
+  }
+  .sb-chat-kbd {
+    margin-left: auto;
+  }
   html[data-sidebar="closed"] .sb-section-chats {
     width: 100%;
     align-items: center;
@@ -545,10 +570,23 @@ import { t } from "../i18n";
     background: var(--surface-2);
     color: var(--fg);
   }
+  .sb-chat-search {
+    width: 22px;
+    height: 22px;
+    margin-right: var(--s-2);
+  }
+  .sb-chat-filter {
+    margin: 0 var(--s-2) var(--s-2);
+    width: auto;
+    padding: 5px var(--s-3);
+    font-size: var(--t-sm);
+  }
   html[data-sidebar="closed"] .sb-label,
-  html[data-sidebar="closed"] .sb-add,
   html[data-sidebar="closed"] .sb-list,
-  html[data-sidebar="closed"] .chat-rows {
+  html[data-sidebar="closed"] .chat-rows,
+  html[data-sidebar="closed"] .sb-chat-search,
+  html[data-sidebar="closed"] .sb-chat-filter,
+  html[data-sidebar="closed"] .sb-chat-new {
     display: none;
   }
 
@@ -561,11 +599,6 @@ import { t } from "../i18n";
     position: absolute;
     margin-left: 20px;
     margin-bottom: 18px;
-  }
-
-  /* New chat: an xs ghost icon button (Button), kept at its size in the row. */
-  .sb-add {
-    flex-shrink: 0;
   }
 
   /* ── board rows ── */
@@ -774,6 +807,7 @@ import { t } from "../i18n";
     html[data-sidebar="closed"] .sb-label,
     html[data-sidebar="closed"] .sb-list,
     html[data-sidebar="closed"] .chat-rows,
+    html[data-sidebar="closed"] .sb-chat-new,
     html[data-sidebar="closed"] .sb-link-label,
     html[data-sidebar="closed"] .sb-group-label {
       display: revert;

@@ -40,6 +40,11 @@ type Interviewer struct {
 	PreviousCompose   string
 	PreviousWorkspace struct{ Name, Slug, ID string }
 	PreviousCluster   struct{ Namespace, Release, RuntimeClass, AgentImage string }
+	// The setup already ran here: the workspace has a default board, so the board question offers
+	// to leave it alone and defaults to that.
+	Rerun bool
+	// The flow the earlier run installed (Config.Board), kept when this run leaves the boards alone.
+	PreviousBoard string
 
 	archChecked bool
 	Stack       string
@@ -67,7 +72,7 @@ func (iv *Interviewer) Run() error {
 		return err
 	}
 	setup := []func() error{iv.askIdentity, iv.askDatabase, iv.askNetwork, iv.askKubernetes, iv.askMCP, iv.askLicense, iv.askWorkspace}
-	tail := []func() error{iv.askEngines, iv.askRunner, iv.askPostBoot}
+	tail := []func() error{iv.askEngines, iv.askRunner, iv.askPostBoot, iv.askFlow}
 	if iv.Cfg.Quick {
 		if err := iv.withDefaults(setup); err != nil {
 			return err

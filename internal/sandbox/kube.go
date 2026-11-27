@@ -68,6 +68,11 @@ type sbRec struct {
 	token     string
 }
 
+// SandboxPodDeadline is the backstop on a sandbox pod's life: whatever a lost row or a failed
+// remove leaves behind, Kubernetes ends it after this long. A sandbox still in use is recreated by
+// its next exec.
+const SandboxPodDeadline = 24 * time.Hour
+
 const (
 	sandboxContainerName = "sandbox"
 	execAgentAuthEnv     = "OCTOPUS_EXEC_TOKEN"
@@ -414,25 +419,36 @@ func (k *Kube) execTokenOf(ctx context.Context, pod *corev1.Pod) string {
 }
 
 func (k *Kube) recFor(ctx context.Context, podName string) (sbRec, bool) {
+	rec, ok, err := k.lookupRec(ctx, podName)
+	logx.Warn(err, "sandbox.log.rehydrate", "pod", podName)
+	return rec, ok
+}
+
+// lookupRec finds the pod by its label in any namespace when this daemon has no record of it, as
+// after a restart. A failed List is an error, never "no such pod": the caller would forget a pod
+// that still runs.
+func (k *Kube) lookupRec(ctx context.Context, podName string) (sbRec, bool, error) {
 	k.mu.Lock()
 	rec, ok := k.pods[podName]
 	k.mu.Unlock()
 	if ok && rec.namespace != "" {
-		return rec, true
+		return rec, true, nil
 	}
 	pods, err := k.client.CoreV1().Pods("").List(ctx, metav1.ListOptions{
 		LabelSelector: sandboxLabel + "=" + strings.TrimPrefix(podName, kuberuntime.SandboxPodPrefix),
 	})
-	if err != nil || len(pods.Items) == 0 {
-		logx.Warn(err, "sandbox.log.rehydrate", "pod", podName)
-		return sbRec{}, false
+	if err != nil {
+		return sbRec{}, false, apperr.Wrap(err, "sandbox.errors.find_pod", "name", podName)
+	}
+	if len(pods.Items) == 0 {
+		return sbRec{}, false, nil
 	}
 	pod := pods.Items[0]
 	rec = sbRec{namespace: pod.Namespace, token: k.execTokenOf(ctx, &pod)}
 	k.mu.Lock()
 	k.pods[podName] = rec
 	k.mu.Unlock()
-	return rec, true
+	return rec, true, nil
 }
 
 // With a provisioner, failure is fatal: a sandbox runs untrusted tenant code and must not land in
@@ -502,12 +518,14 @@ func (k *Kube) buildPod(name string, opts CreateOpts, cache bool) *corev1.Pod {
 	// OnRootMismatch avoids chowning the cache's hundreds of thousands of files on every sandbox
 	// start.
 	fsGroupPolicy := corev1.FSGroupChangeOnRootMismatch
+	deadline := int64(SandboxPodDeadline / time.Second)
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Labels: labels},
 		Spec: corev1.PodSpec{
 			RestartPolicy:                corev1.RestartPolicyNever,
 			AutomountServiceAccountToken: &automount,
 			RuntimeClassName:             rc,
+			ActiveDeadlineSeconds:        &deadline,
 			// Numeric non-root uid so restricted Pod Security can verify it; overrides the image's
 			// root user, so apt-get does not work here.
 			SecurityContext: &corev1.PodSecurityContext{
@@ -751,12 +769,38 @@ func (k *Kube) Alive(ctx context.Context, containerID string) bool {
 	return podUsable(pod)
 }
 
+// Remove reports a pod it could not look up: the manager then keeps the row, evicted, and its GC
+// retries. Only a pod no namespace has is gone.
 func (k *Kube) Remove(ctx context.Context, containerID string) error {
-	rec, ok := k.recFor(ctx, containerID)
+	rec, ok, err := k.lookupRec(ctx, containerID)
+	if err != nil {
+		return err
+	}
 	if !ok {
 		return nil
 	}
 	return k.removePod(ctx, rec.namespace, containerID)
+}
+
+// ListSandboxes lists the sandbox pods of every namespace, row or not, for the manager's orphan
+// sweep. A pod already being deleted is left out.
+func (k *Kube) ListSandboxes(ctx context.Context) ([]ListedContainer, error) {
+	list, err := k.client.CoreV1().Pods("").List(ctx, metav1.ListOptions{LabelSelector: sandboxLabel})
+	if err != nil {
+		return nil, apperr.Wrap(err, "sandbox.errors.list_pods")
+	}
+	out := make([]ListedContainer, 0, len(list.Items))
+	for i := range list.Items {
+		pod := &list.Items[i]
+		if pod.DeletionTimestamp != nil || !strings.HasPrefix(pod.Name, kuberuntime.SandboxPodPrefix) {
+			continue
+		}
+		out = append(out, ListedContainer{
+			ID: pod.Name, Name: pod.Namespace + "/" + pod.Name, Owner: pod.Labels[sandboxLabel],
+			State: string(pod.Status.Phase), Created: pod.CreationTimestamp.Time,
+		})
+	}
+	return out, nil
 }
 
 // Owner references are best-effort (they may have failed to attach), and an explicit delete frees
@@ -813,24 +857,6 @@ func (k *Kube) SweepTerminated(ctx context.Context, olderThan time.Duration) (in
 
 func sandboxPodName(taskID string) string { return kuberuntime.SandboxPodPrefix + sanitizeDNS(taskID) }
 
-// Capped at 55 so the "sandbox-" prefix keeps the name within 63 chars.
-func sanitizeDNS(s string) string {
-	s = strings.ToLower(s)
-	var b strings.Builder
-	for _, r := range s {
-		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' {
-			b.WriteRune(r)
-		} else {
-			b.WriteRune('-')
-		}
-	}
-	out := strings.Trim(b.String(), "-")
-	if len(out) > 55 {
-		out = out[:55]
-	}
-	return out
-}
-
 func mintToken() (string, error) {
 	buf := make([]byte, 24)
 	if _, err := rand.Read(buf); err != nil {
@@ -843,6 +869,7 @@ var (
 	_ StorageReleaser   = (*Kube)(nil)
 	_ TerminatedSweeper = (*Kube)(nil)
 	_ ClusterAddresser  = (*Kube)(nil)
+	_ OrphanLister      = (*Kube)(nil)
 )
 
 func (k *Kube) CacheQuotaBytes() int64 {

@@ -5,6 +5,7 @@ import (
 	"context"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"slices"
 	"strings"
 	"time"
@@ -85,8 +86,24 @@ func runCLI(ctx context.Context, env, argv []string) ([]byte, error) {
 	cmd.Env = env
 	var out bytes.Buffer
 	cmd.Stdout = &out
-	err := cmd.Run()
+	err := runGrouped(cmd)
 	return out.Bytes(), err
+}
+
+// How long Wait waits for a probe's child that keeps its output pipe once the probe is done.
+const probeWaitDelay = 2 * time.Second
+
+// runGrouped runs cmd in a process group of its own: a timeout kills the group, not the CLI alone, so
+// what the CLI started (an MCP server, a helper) does not stay behind under launchd. The group is
+// killed from Cancel, before Wait reaps the CLI, while its pid cannot belong to anyone else.
+func runGrouped(cmd *exec.Cmd) error {
+	setProcessGroup(cmd)
+	cmd.Cancel = func() error {
+		kill(cmd)
+		return nil
+	}
+	cmd.WaitDelay = probeWaitDelay
+	return apperr.Wrap(cmd.Run(), "hostrun.errors.run_cli", "command", filepath.Base(cmd.Path))
 }
 
 // installedEngines names the engines whose CLI this machine has on its PATH.

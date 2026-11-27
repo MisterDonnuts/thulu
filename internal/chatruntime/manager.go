@@ -1,7 +1,6 @@
 package chatruntime
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"log"
@@ -41,9 +40,19 @@ type TurnResult struct {
 	InputTokens int64
 	DurationMs  int64
 	SessionID   string
-	RawLogPath  string
 	IsError     bool
 	Tools       []chat.ToolCall
+	Effects     []chat.Effect
+
+	Model         string
+	OutputTokens  int64
+	CacheRead     int64
+	CacheCreation int64
+	// ContextTokens is what the last request of the turn carried: the conversation's real size.
+	ContextTokens int64
+	CostUSD       float64
+	NumTurns      int
+	StopReason    string
 }
 
 const maxToolHint = 120
@@ -52,6 +61,8 @@ const maxTurnTools = 50
 
 type AcquireOpts struct {
 	Code map[string]types.CodeView
+	// TurnID names the turn's live feed and transcript (BeginLive); "" runs the turn unrecorded.
+	TurnID string
 }
 
 type Manager struct {
@@ -84,8 +95,11 @@ type Manager struct {
 	// mint a delegated key after EndDelegation revoked them.
 	chats ChatReader
 
-	chatMu  syncx.KeyedMutex
-	turns   sync.Map
+	chatMu syncx.KeyedMutex
+	turns  sync.Map
+	// cancels holds each running turn's cancel, for CancelTurn.
+	cancels sync.Map
+	live    liveTurns
 	keyMu   sync.Mutex
 	keyByID map[string]string
 
@@ -94,7 +108,14 @@ type Manager struct {
 	// pass the cap check against the same free slot. Guarded by capMu.
 	capMu   sync.Mutex
 	pending map[string]int
+
+	// orphanEvery spaces ReapOrphans; zero means orphanSweepInterval.
+	orphanEvery time.Duration
 }
+
+// orphanSweepInterval spaces the sweeps for chat containers and pods no live row claims. Reconcile
+// does the same at boot; this catches what a failed remove or a half-done teardown leaves later.
+const orphanSweepInterval = 5 * time.Minute
 
 type RunKeyMinter interface {
 	MintRunKey(ctx context.Context, scope auth.RunScope, workspaceID string, ttl time.Duration) (rawKey, keyID string, err error)
@@ -194,6 +215,24 @@ func (m *Manager) BeginTurn(chatID string) error {
 }
 
 func (m *Manager) EndTurn(chatID string) { m.turns.Delete(chatID) }
+
+// ErrTurnCanceled is how a turn its person stopped fails.
+var ErrTurnCanceled error = apperr.New("chatruntime.errors.turn_canceled")
+
+// CancelTurn stops the chat's running turn; the backend kills the engine's processes as it does on
+// a timeout. False when no turn is running.
+func (m *Manager) CancelTurn(chatID string) bool {
+	v, ok := m.cancels.Load(chatID)
+	if !ok {
+		return false
+	}
+	cancel, ok := v.(context.CancelCauseFunc)
+	if !ok {
+		return false
+	}
+	cancel(ErrTurnCanceled)
+	return true
+}
 
 type LLMAuthFunc func(env map[string]string, workspaceID, agentName string, agentType *types.AgentType) error
 
@@ -602,6 +641,12 @@ func (m *Manager) ExecTurn(ctx context.Context, c *chat.Chat, at *types.AgentTyp
 	}
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(timeoutSecs)*time.Second)
 	defer cancel()
+	ctx, stop := context.WithCancelCause(ctx)
+	m.cancels.Store(c.ID, stop)
+	defer func() {
+		m.cancels.Delete(c.ID)
+		stop(nil)
+	}()
 
 	// Once per turn: the same answer places the chat and pays its engine.
 	turn, err := m.resolveTurn(ctx, c, at)
@@ -621,7 +666,10 @@ func (m *Manager) ExecTurn(ctx context.Context, c *chat.Chat, at *types.AgentTyp
 		if err != nil {
 			return nil, err
 		}
-		res, err := m.execOnce(ctx, containerID, c, at, turn, text)
+		res, err := m.execOnce(ctx, containerID, c, at, turn, text, opts.TurnID)
+		if errors.Is(context.Cause(ctx), ErrTurnCanceled) {
+			return nil, ErrTurnCanceled
+		}
 		if err == nil {
 			logx.Warn(m.store.Touch(c.ID), "chatruntime.log.touch", "chat", c.ID)
 			return res, nil
@@ -631,6 +679,9 @@ func (m *Manager) ExecTurn(ctx context.Context, c *chat.Chat, at *types.AgentTyp
 			return nil, err
 		}
 		log.Printf("[chat] %s", i18n.Log("chatruntime.log.exec_dead_container", "chat", c.ID, "attempt", attempt+1))
+		if lt := m.liveTurn(c.ID, opts.TurnID); lt != nil {
+			lt.reset()
+		}
 		mu := m.chatLock(c.ID)
 		mu.Lock()
 		m.backendFor(containerID).Remove(ctx, containerID)
@@ -726,7 +777,7 @@ func turnCredentialEnv(caps engine.Capabilities, env map[string]string) []string
 }
 
 func (m *Manager) execOnce(
-	ctx context.Context, containerID string, c *chat.Chat, at *types.AgentType, turn *turnAuth, text string,
+	ctx context.Context, containerID string, c *chat.Chat, at *types.AgentType, turn *turnAuth, text, turnID string,
 ) (*TurnResult, error) {
 	execEnv := make([]string, 0, len(turn.env)+4)
 	execEnv = append(execEnv, turn.env...)
@@ -739,33 +790,22 @@ func (m *Manager) execOnce(
 	}
 	execEnv = append(execEnv, "CHAT_MAX_TURNS="+at.TurnsForStage(string(types.StageChat)))
 
+	// Every line goes to the live feed (and its transcript) and to the parser, as the engine
+	// prints it. A backend that only returns stdout at the end feeds both then.
+	feed := newTurnFeed(m.liveTurn(c.ID, turnID), turn.eng)
+	lines := &lineWriter{sink: feed.line}
+
 	start := time.Now()
-	out, err := m.backendFor(containerID).Exec(ctx, ExecSpec{ContainerID: containerID, Env: execEnv, Stdin: text})
+	out, err := m.backendFor(containerID).Exec(ctx, ExecSpec{ContainerID: containerID, Env: execEnv, Stdin: text, Stdout: lines})
+	if lines.n == 0 && len(out.Stdout) > 0 {
+		lines.feed(out.Stdout)
+	}
+	lines.Flush()
+	res := feed.close()
 	if err != nil {
 		return nil, err
 	}
-
-	res := &TurnResult{
-		DurationMs: time.Since(start).Milliseconds(),
-		RawLogPath: filepath.Join(at.Dir, "runs", c.ID+".jsonl"),
-	}
-	for ev := range turn.eng.ParseStream(bytes.NewReader(out.Stdout)) {
-		if ev.SessionID != "" {
-			res.SessionID = ev.SessionID
-		}
-		if ev.Kind == engine.EventToolUse {
-			res.Tools = append(res.Tools, chat.ToolCall{Name: ev.ToolName, Hint: engine.ToolHint(ev.ToolInput, maxToolHint)})
-			continue
-		}
-		if ev.Kind != engine.EventResult {
-			continue
-		}
-		res.Text = ev.Result
-		res.IsError = ev.IsError
-		if ev.Usage != nil {
-			res.InputTokens = int64(ev.Usage.InputTokens)
-		}
-	}
+	res.DurationMs = time.Since(start).Milliseconds()
 
 	if res.IsError {
 		return nil, apperr.New("chatruntime.errors.turn_failed", "detail", strings.TrimSpace(res.Text))
@@ -836,6 +876,15 @@ func (m *Manager) ReapIdle(ctx context.Context) {
 	}
 }
 
+// staleTurnSweeper kills what turns of a daemon that is gone left in a chat container: the turns
+// themselves and what they started in the background. Only that daemon's memory knew of them.
+// SweepStaleTurns reports whether the container stays; one that cannot be swept is removed.
+type staleTurnSweeper interface {
+	SweepStaleTurns(ctx context.Context, containerID string) bool
+}
+
+// Reconcile runs at boot: it releases the chats whose container is gone, removes the containers no
+// chat claims, and sweeps the turns the daemon before left running in the containers it keeps.
 func (m *Manager) Reconcile(ctx context.Context) {
 	if !m.backend.Available() {
 		return
@@ -854,6 +903,10 @@ func (m *Manager) Reconcile(ctx context.Context) {
 		if !m.backend.Running(ctx, rt.ContainerID) {
 			log.Printf("[chat] %s", i18n.Log("chatruntime.log.reconcile_container_gone", "chat", rt.ChatID, "container", rt.ContainerID))
 			m.backend.Remove(ctx, rt.ContainerID)
+			logx.Warn(m.markReleased(ctx, rt.ChatID), "chatruntime.log.mark_released", "chat", rt.ChatID)
+			continue
+		}
+		if sw, ok := m.backend.(staleTurnSweeper); ok && !m.TurnInFlight(rt.ChatID) && !sw.SweepStaleTurns(ctx, rt.ContainerID) {
 			logx.Warn(m.markReleased(ctx, rt.ChatID), "chatruntime.log.mark_released", "chat", rt.ChatID)
 			continue
 		}
@@ -876,6 +929,58 @@ func (m *Manager) Reconcile(ctx context.Context) {
 
 func (m *Manager) StartGC(ctx context.Context, interval time.Duration) {
 	go syncx.TickUntil(ctx, interval, m.ReapIdle)
+	every := m.orphanEvery
+	if every <= 0 {
+		every = orphanSweepInterval
+	}
+	go syncx.TickUntil(ctx, every, func(ctx context.Context) { m.ReapOrphans(ctx) })
+}
+
+// ReapOrphans removes the chat containers (pods in Kubernetes) no live row claims: one whose row
+// was released while its remove failed, or one a create left after its teardown failed. It lists
+// the containers before the rows, and stands down while a create is in flight, whose container
+// exists before its row says so.
+func (m *Manager) ReapOrphans(ctx context.Context) int {
+	if !m.backend.Available() || m.creating() {
+		return 0
+	}
+	managed, err := m.backend.ListManaged(ctx)
+	if err != nil {
+		log.Printf("[chat] %s", i18n.Log("chatruntime.log.reconcile_list_managed_failed", "err", err))
+		return 0
+	}
+	if len(managed) == 0 {
+		return 0
+	}
+	live, err := m.store.ListLive()
+	if err != nil {
+		log.Printf("[chat] %s", i18n.Log("chatruntime.log.reconcile_list_failed", "err", err))
+		return 0
+	}
+	claimed := make(map[string]bool, len(live))
+	for _, rt := range live {
+		claimed[rt.ContainerID] = true
+	}
+	removed := 0
+	for _, id := range managed {
+		if claimed[id] {
+			continue
+		}
+		if m.creating() {
+			return removed
+		}
+		log.Printf("[chat] %s", i18n.Log("chatruntime.log.reconcile_remove_orphan", "container", id))
+		m.backend.Remove(ctx, id)
+		removed++
+	}
+	return removed
+}
+
+// creating reports a create in flight: its reservation lasts until the row records the container.
+func (m *Manager) creating() bool {
+	m.capMu.Lock()
+	defer m.capMu.Unlock()
+	return m.pendingTotal() > 0
 }
 
 func isContainerGoneErr(err error) bool {

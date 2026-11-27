@@ -8,6 +8,7 @@ import (
 	"github.com/MisterDonnuts/thulu/internal/automation"
 	"github.com/MisterDonnuts/thulu/internal/githubapp"
 	"github.com/MisterDonnuts/thulu/internal/i18n"
+	"github.com/MisterDonnuts/thulu/internal/logx"
 	"github.com/MisterDonnuts/thulu/internal/task"
 )
 
@@ -33,7 +34,8 @@ type githubEventPayload struct {
 		ID int64 `json:"id"`
 	} `json:"installation"`
 	Repository struct {
-		FullName string `json:"full_name"`
+		FullName      string `json:"full_name"`
+		DefaultBranch string `json:"default_branch"`
 	} `json:"repository"`
 	PullRequest struct {
 		Number  int    `json:"number"`
@@ -42,7 +44,16 @@ type githubEventPayload struct {
 		Draft   bool   `json:"draft"`
 		Head    struct {
 			Ref string `json:"ref"`
+			SHA string `json:"sha"`
 		} `json:"head"`
+		Base struct {
+			Ref string `json:"ref"`
+		} `json:"base"`
+		Merged         bool   `json:"merged"`
+		MergeCommitSHA string `json:"merge_commit_sha"`
+		MergedBy       struct {
+			Login string `json:"login"`
+		} `json:"merged_by"`
 	} `json:"pull_request"`
 	Issue struct {
 		Number  int    `json:"number"`
@@ -73,6 +84,9 @@ type githubEventPayload struct {
 		Type  string `json:"type"`
 	} `json:"sender"`
 	Ref string `json:"ref"`
+	// A push's commits: before and after it.
+	Before string `json:"before"`
+	After  string `json:"after"`
 }
 
 // Attribute by installation only: a repository can be linked from several workspaces and a PR URL
@@ -130,6 +144,7 @@ func (s *Server) automationPayload(ctx context.Context, event, workspaceID strin
 		"issue_title":   ev.Issue.Title,
 		"ref":           ev.Ref,
 	}
+	addGithubCommitFields(payload, ev)
 	if prURL != "" {
 		if t := s.taskForPR(ctx, workspaceID, prURL); t != nil {
 			payload["task_id"] = t.ID
@@ -144,24 +159,37 @@ func (s *Server) automationPayload(ctx context.Context, event, workspaceID strin
 	return payload, dedupeKey
 }
 
+// addGithubCommitFields adds the commits a release recipe keys on: a push's head_sha and before
+// with whether it landed on the default branch, and a pull request's head, base and merge commit.
+// Every key is present on every GitHub event, empty when it does not apply.
+func addGithubCommitFields(payload map[string]any, ev githubEventPayload) {
+	def := ev.Repository.DefaultBranch
+	head := ev.PullRequest.Head.SHA
+	if ev.After != "" {
+		head = ev.After
+	}
+	mergeSHA := ""
+	if ev.PullRequest.Merged {
+		mergeSHA = strings.ToLower(ev.PullRequest.MergeCommitSHA)
+	}
+	payload["head_sha"] = strings.ToLower(head)
+	payload["before"] = strings.ToLower(ev.Before)
+	payload["default_branch"] = def
+	payload["is_default_branch"] = def != "" && ev.Ref == "refs/heads/"+def
+	payload["base_ref"] = ev.PullRequest.Base.Ref
+	payload["merged"] = ev.PullRequest.Merged
+	payload["merge_sha"] = mergeSHA
+}
+
 // Only workspaceID's tasks: pr_urls is written by agents, so a URL on another tenant's card proves
 // nothing.
 func (s *Server) taskForPR(ctx context.Context, workspaceID, prURL string) *task.Task {
-	if workspaceID == "" {
-		return nil
-	}
-	all, err := s.taskStore.ListByWorkspace(ctx, workspaceID)
+	t, err := s.taskStore.FindByPRURL(ctx, workspaceID, prURL)
 	if err != nil {
+		logx.Warn(err, "api.automations.log.task_for_pr", "workspace", workspaceID)
 		return nil
 	}
-	for i := range all {
-		for _, url := range all[i].PRURLs {
-			if url == prURL {
-				return &all[i]
-			}
-		}
-	}
-	return nil
+	return t
 }
 
 func githubEventKind(event string) string {
@@ -178,6 +206,10 @@ func githubEventKind(event string) string {
 		return automation.EventPush
 	case "check_suite":
 		return automation.EventCheckSuite
+	case "deployment_status":
+		return automation.EventDeployment
+	case "workflow_run":
+		return automation.EventWorkflowRun
 	}
 	return ""
 }

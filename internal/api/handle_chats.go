@@ -28,12 +28,15 @@ import (
 
 type chatView struct {
 	chat.Chat
-	Archived           bool   `json:"archived"`
-	Status             string `json:"status"`
-	LastMessagePreview string `json:"last_message_preview,omitempty"`
-	LastMessageAt      string `json:"last_message_at,omitempty"`
-	TaskTitle          string `json:"task_title,omitempty"`
-	TaskBoardID        string `json:"task_board_id,omitempty"`
+	Archived bool `json:"archived"`
+	// Status is running (a turn is on), needs_you (an action waits for confirmation), error (the
+	// last turn failed) or idle.
+	Status             string               `json:"status"`
+	Queue              []chat.QueuedMessage `json:"queue"`
+	LastMessagePreview string               `json:"last_message_preview,omitempty"`
+	LastMessageAt      string               `json:"last_message_at,omitempty"`
+	TaskTitle          string               `json:"task_title,omitempty"`
+	TaskBoardID        string               `json:"task_board_id,omitempty"`
 }
 
 type chatTaskRef struct{ title, boardID string }
@@ -67,9 +70,12 @@ func (s *Server) chatView(ctx context.Context, c *chat.Chat, withPreview bool) c
 }
 
 func (s *Server) chatViewWith(ctx context.Context, c *chat.Chat, withPreview bool, tasks *chatTasks) chatView {
-	v := chatView{Chat: *c, Archived: c.Archived(), Status: "idle"}
-	if s.chatSvc.Runtime().TurnInFlight(c.ID) {
+	v := chatView{Chat: *c, Archived: c.Archived(), Status: "idle", Queue: s.chatSvc.Queue(c.ID)}
+	switch {
+	case s.chatSvc.Runtime().TurnInFlight(c.ID):
 		v.Status = "running"
+	case s.chatHasPendingAction(ctx, c.ID):
+		v.Status = "needs_you"
 	}
 	ref := tasks.get(ctx, c.TaskID)
 	v.TaskTitle, v.TaskBoardID = ref.title, ref.boardID
@@ -77,9 +83,17 @@ func (s *Server) chatViewWith(ctx context.Context, c *chat.Chat, withPreview boo
 		if last, err := s.chatSvc.Store().LastMessage(ctx, c.ID); err == nil && last != nil {
 			v.LastMessagePreview = chatPreview(last.InLocale(i18n.FromContext(ctx)).Text)
 			v.LastMessageAt = last.CreatedAt.Format(time.RFC3339)
+			if v.Status == "idle" && last.Metadata[chat.MetaError] == "true" && last.Metadata[chat.MetaCanceled] != "true" {
+				v.Status = "error"
+			}
 		}
 	}
 	return v
+}
+
+func (s *Server) chatHasPendingAction(ctx context.Context, chatID string) bool {
+	pending, err := s.chatSvc.Store().ListActions(ctx, chatID, chat.ActionPending)
+	return err == nil && len(pending) > 0
 }
 
 // The drawer renders markdown before cutting to one line; 600 runes lets opening markup ("**Cambio
@@ -227,11 +241,18 @@ func (s *Server) handlePatchChat(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Title    *string `json:"title"`
 		Archived *bool   `json:"archived"`
+		// TaskID links the chat to a task; "" unlinks it.
+		TaskID *string `json:"task_id"`
 	}
 	if !decodeBody(w, r, &body) {
 		return
 	}
 	store := s.chatSvc.Store()
+	if body.TaskID != nil && strings.TrimSpace(*body.TaskID) != c.TaskID {
+		if !s.relinkChatTask(w, r, c, strings.TrimSpace(*body.TaskID)) {
+			return
+		}
+	}
 	if body.Title != nil && strings.TrimSpace(*body.Title) != "" {
 		if err := store.RenameChat(r.Context(), c.ID, strings.TrimSpace(*body.Title)); err != nil {
 			writeError(w, r, http.StatusInternalServerError, err)
@@ -251,6 +272,39 @@ func (s *Server) handlePatchChat(w http.ResponseWriter, r *http.Request) {
 	}
 	s.chatBus.Publish(chat.Event{Type: chat.EventChatUpdated, Chat: updated}.For(updated))
 	writeJSON(w, http.StatusOK, s.chatView(r.Context(), updated, true))
+}
+
+// relinkChatTask moves a person's chat to another task (or none). The chat's container mounted the
+// old task's code, so it goes and the next turn starts one with the new task's.
+func (s *Server) relinkChatTask(w http.ResponseWriter, r *http.Request, c *chat.Chat, taskID string) bool {
+	switch {
+	case !c.Personal() || c.ThreadID != "":
+		writeErrKey(w, r, http.StatusConflict, "api.chats.errors.task_fixed")
+		return false
+	case c.Delegated(time.Now()) && taskID != "":
+		writeErrKey(w, r, http.StatusConflict, "api.chats.errors.task_while_delegated")
+		return false
+	case s.chatSvc.Runtime().TurnInFlight(c.ID):
+		writeErrKey(w, r, http.StatusConflict, "api.chats.errors.turn_running_retry")
+		return false
+	}
+	if taskID != "" {
+		t, ok := s.taskRowForCaller(w, r, taskID)
+		if !ok {
+			return false
+		}
+		if t.WorkspaceID != "" && t.WorkspaceID != c.WorkspaceID {
+			writeErrKey(w, r, http.StatusBadRequest, "api.chats.errors.task_other_workspace")
+			return false
+		}
+		taskID = t.ID
+	}
+	if err := s.chatSvc.Store().SetTask(r.Context(), c.ID, taskID); err != nil {
+		writeError(w, r, http.StatusInternalServerError, err)
+		return false
+	}
+	logx.Warn(s.chatSvc.Runtime().Evict(r.Context(), c.ID), "api.chats.log.evict_relinked_chat", "chat", c.ID)
+	return true
 }
 
 func (s *Server) handleDeleteChat(w http.ResponseWriter, r *http.Request) {
@@ -331,6 +385,13 @@ func (s *Server) handlePostChatMessage(w http.ResponseWriter, r *http.Request) {
 	}
 	var body struct {
 		Text string `json:"text"`
+		// Mode is what the message does while a turn runs: "queue" waits for it, "steer" stops it
+		// and goes first. Empty refuses, as before queues existed.
+		Mode string `json:"mode"`
+		// Refs are the tasks the text mentions with #; the agent reads their context with it.
+		Refs []string `json:"refs"`
+		// HandoffFrom names a chat whose conversation this one continues, with another agent.
+		HandoffFrom string `json:"handoff_from"`
 	}
 	if !decodeBody(w, r, &body) {
 		return
@@ -339,12 +400,32 @@ func (s *Server) handlePostChatMessage(w http.ResponseWriter, r *http.Request) {
 		writeErrKey(w, r, http.StatusBadRequest, "api.chats.errors.text_required")
 		return
 	}
+	mode := chatruntime.PostMode(body.Mode)
+	if mode != chatruntime.PostRefuse && mode != chatruntime.PostQueue && mode != chatruntime.PostSteer {
+		writeErrKey(w, r, http.StatusBadRequest, "api.chats.errors.bad_mode")
+		return
+	}
 	author, ok := requireAuthor(w, r)
 	if !ok {
 		return
 	}
+	post := chatruntime.Post{Author: author.Name, Text: body.Text, Mode: mode, Meta: map[string]string{}}
+	turnCtx, ok := s.chatTurnContext(w, r, c, body.Refs, body.HandoffFrom, post.Meta)
+	if !ok {
+		return
+	}
+	if turnCtx != "" {
+		post.TurnText = turnCtx + body.Text
+	}
+	if len(post.Meta) == 0 {
+		post.Meta = nil
+	}
 
-	msg, err := s.chatSvc.PostMessage(r.Context(), c.ID, author.Name, body.Text)
+	msg, queued, err := s.chatSvc.Post(r.Context(), c.ID, post)
+	if err == nil && queued != nil {
+		writeJSON(w, http.StatusAccepted, map[string]any{"queued": queued})
+		return
+	}
 	if err != nil {
 		switch {
 		case errors.Is(err, chatruntime.ErrTurnInFlight):

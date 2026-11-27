@@ -40,6 +40,9 @@ func startInfra(ctx context.Context, docker *client.Client, kubeRT *kubert.Runti
 		cfg.Kube = kubeInfraSource(kubeRT)
 	case docker != nil:
 		cfg.Docker = docker
+		images := newImageCheck(docker, os.Getenv)
+		go images.run(ctx)
+		cfg.ExtraProblems = images.Problems
 	}
 	if d := srv.Dispatcher(); d != nil {
 		cfg.Admission = func() infra.Admission {

@@ -856,6 +856,7 @@ func podInfo(pod *corev1.Pod) RunningPod {
 		Stage:       pod.Labels[LabelStage],
 		InstanceID:  pod.Annotations[AnnotationInstanceID],
 		AgentType:   pod.Annotations[AnnotationAgentType],
+		LaunchKind:  pod.Annotations[AnnotationLaunchKind],
 		Running:     !done,
 	}
 	if done {

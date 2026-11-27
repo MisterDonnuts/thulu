@@ -44,9 +44,22 @@
     "ci": "CI",
     "review": "Revisión",
     "mergeable": "Merge",
-    "updated": "Actualizado"
+    "updated": "Actualizado",
+    "required": "Checks requeridos"
   },
   "pr_number": "PR #{number}",
   "no_credential": "Este proyecto no tiene credencial de GitHub.",
-  "add_credential": "Agregá una"
+  "add_credential": "Agregá una",
+  "required": {
+    "failing": "falló {checks}",
+    "running": "{checks} sigue corriendo",
+    "missing": "{checks} todavía no reportó",
+    "behind": "la rama quedó atrás de la base, que pide estar al día",
+    "unknown": "no se pudieron leer de GitHub",
+    "passed": {
+      "one": "Pasó el check requerido",
+      "other": "Pasaron los {count} checks requeridos"
+    },
+    "pr": "PR #{number}: {reason}"
+  }
 }

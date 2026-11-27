@@ -1,0 +1,30 @@
+{
+  "revision": 4,
+  "tags": ["quality", "release", "review", "flow"],
+  "descriptions": {
+    "es": "Último control antes de la revisión humana, estricto y de sólo lectura: chequea que el cambio cumpla la spec aprobada y cada respuesta que dio la persona, que cada caso de prueba de Thulu haya corrido y pasado sobre el head actual con evidencia, que los reportes de Verificación, Revisión IA y Agentic Testing coincidan entre sí y con el código, que no queden hallazgos menores, que la rama esté al día con la rama destino y sin conflictos, que los commits sigan las reglas del proyecto y que el diff no traiga archivos de debug, evidencia ni secretos. Devuelve la tarea a la columna que tiene que arreglarlo o la frena para una persona. Nunca edita código. Va en la etapa Production Readiness del flujo thulu."
+  },
+  "definition": {
+    "name": "thulu-readiness",
+    "type": "thulu-readiness",
+    "description": "The strict, read-only last check before human review: the change meets the approved spec and every answer the person gave, every Thulu test case ran and passed on the current head with evidence, the Verification, AI review and Agentic testing reports agree with each other and with the code, no minor finding is left, the branch is up to date with its target and merges cleanly, the commits follow the project's rules and the diff carries no debug, evidence or secret files. It sends the task back to the column that has to fix it, or blocks it for a person. It never edits code. Goes in the Production readiness stage of the thulu flow.",
+    "valid_stages": ["readiness"],
+    "engine": "claude-code",
+    "effort": "high",
+    "turns_by_stage": {
+      "readiness": "80"
+    },
+    "skills_by_stage": {
+      "readiness": ["production-readiness"]
+    },
+    "mcp_by_stage": {
+      "readiness": [
+        "octopus-api@read+task_add_report+task_add_comment+task_skip_remove",
+        "thulu-github@read"
+      ]
+    },
+    "system_skills_off": {
+      "readiness": ["octopus-refinement"]
+    }
+  }
+}

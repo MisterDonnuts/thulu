@@ -24,5 +24,7 @@
     "label": "La aprobación \"{key}\" necesita una etiqueta",
     "key": "La clave \"{key}\" tiene que ser minúsculas [a-z0-9_], hasta 32 caracteres",
     "duplicate": "Dos aprobaciones comparten la clave \"{key}\""
-  }
+  },
+  "checks": "Esperar los checks requeridos",
+  "checks_title": "Aprobar espera a que estén en verde los checks que GitHub exige en el pull request (protección de rama o rulesets). Esta columna o una anterior tiene que abrir el pull request."
 }

@@ -308,8 +308,12 @@ func (e *Engine) dispatch(ctx context.Context, st *runState, step *Step, row *Ru
 		return e.stepTask(ctx, st, step)
 	case StepMention:
 		return e.stepMention(ctx, st, step)
+	case StepMove:
+		return e.stepMove(ctx, st, step)
 	case StepFanout:
 		return e.stepFanout(ctx, st, step, row)
+	case StepDeployWatch:
+		return e.stepDeployWatch(ctx, st, step)
 	default:
 		return nil, apperr.Internal("automation.errors.unknown_step_kind")
 	}

@@ -22,7 +22,9 @@
     "type_holds_tasks": "task type {type:%q} still holds {count} task(s) — pass ?move_to=<type> to re-type them (empty for untyped)",
     "type_list_unchanged": "{cause} — the type list was left unchanged",
     "types_save_after_move_failed": "{cause} ({count} task(s) already moved)",
-    "unknown_board": "unknown board {board:%q}"
+    "unknown_board": "unknown board {board:%q}",
+    "agent_unknown": "stage {stage:%q}: this workspace has no agent {agent:%q}",
+    "agent_wrong_stage": "the agent {agent:%q} does not run in the stage {stage:%q}; add the stage to the agent's valid stages first"
   },
   "log": {
     "count_by_type": "count tasks by type for board {board}",

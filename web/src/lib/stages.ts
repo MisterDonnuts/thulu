@@ -20,6 +20,17 @@ export interface Stage {
   required_approvals?: RequiredApproval[] | null;
   on_changes_requested?: string;
   changes_kick_back_to?: string;
+  agent_verdict?: boolean;
+  lock_tests?: boolean;
+  skip_unless?: string[] | null;
+  // Tasks may not skip this column (internal/types StageInfo.NoSkip).
+  no_skip?: boolean;
+  release_resources?: boolean;
+  merge_target?: boolean;
+  pr_draft?: boolean;
+  pr_ready?: boolean;
+  // Per board: every new task gets it unless its project or its type names another.
+  default_agent?: string;
 }
 
 export interface Board {
@@ -32,6 +43,10 @@ export interface Board {
   stage_count?: number;
   task_count?: number;
   open_count?: number;
+  // Send-backs a task gets before it blocks for a person; 0 or absent is no cap.
+  max_kick_backs?: number;
+  // The Workshop flow the board came from; edited once its columns or types changed since.
+  flow?: { name: string; revision: number; edited?: boolean };
 }
 
 export interface BoardsResponse {
@@ -47,6 +62,8 @@ export interface TaskType {
   position: number;
   default?: boolean;
   skips: string[];
+  // Per column, the agent tasks of this type run instead of the column's; "" is none.
+  agents?: Record<string, string> | null;
   task_count?: number;
 }
 
@@ -104,4 +121,13 @@ export function stagePillHTML(
 ): string {
   const label = stage?.label ?? "";
   return tagHTML(label === "" ? stageID : label, { ...opts, color: stage?.color, dot: true });
+}
+
+// Whether moving a task from one column to another goes back on its board, as the daemon reads it
+// (a person must give a reason then). A column the board does not know, or a virtual one, is never
+// back.
+export function movesBack(stages: readonly Stage[], from: string, to: string): boolean {
+  const f = stages.find((s) => s.id === from);
+  const t = stages.find((s) => s.id === to);
+  return Boolean(f && t && !f.virtual && !t.virtual && t.position < f.position);
 }

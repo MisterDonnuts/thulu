@@ -85,6 +85,7 @@
     "prewarm_tar_failed": "falló el empaquetado del snapshot:\n{log}",
     "prewarm_failed": "el precalentado falló (salida {code}):\n{log}",
     "init_files_pack": "empaquetar los archivos de apoyo del script de arranque",
+    "exec_file_write": "no se pudo escribir {path} en el sandbox (exit {code}): {stderr}",
     "init_files_write": "escribir los archivos de apoyo del script de arranque en el sandbox: {stderr}",
     "setup_log_save": "no se pudo guardar la fila del registro de instalaciones",
     "setup_log_load": "no se pudo leer el registro de instalaciones",
@@ -94,7 +95,12 @@
     "app_failed": "la app no levantó: {reason}",
     "app_failed_cause": "la app no levantó: {reason}: {cause}",
     "app_no_script": "el proyecto no tiene script de inicio con el que levantar la app",
-    "app_source": "una app necesita exactamente una fuente y un dueño: un directorio del host o un archivo"
+    "app_source": "una app necesita exactamente una fuente y un dueño: un directorio del host o un archivo",
+    "remove_stale_container": "borrar el contenedor de sandbox viejo {name}",
+    "remove_container": "borrar el contenedor de sandbox {container}",
+    "reap_exec": "correr el reaper en el contenedor de sandbox {container}",
+    "reap_failed": "el reaper del contenedor de sandbox {container} terminó con código {code}: {stderr}",
+    "find_pod": "sandbox/kube: buscar el pod de sandbox {name}"
   },
   "log": {
     "adopting_pod": "se adopta el pod existente {ns}/{name} (fase={phase})",
@@ -146,6 +152,7 @@
     "sweep_terminated": "[sandbox] no se pudieron barrer los sandboxes terminados",
     "swept_pod": "se barrió el pod terminado {ns}/{name} (fase={phase}, terminó hace {age})",
     "touch_failed": "no se pudo actualizar la actividad de {task}: {err}",
+    "exec_file_failed": "escribir {path} en el sandbox {container} para el comando: {err}",
     "write_response_failed": "no se pudo escribir la respuesta: {err}",
     "init_meta_failed": "init: no se pudo escribir el archivo meta de la corrida de la tarea {task}, proyecto {dir}: {err}",
     "init_preview_env_failed": "init: no hay URL de preview para el puerto {port} de la tarea {task}, el script corre sin {env}: {err}",
@@ -156,7 +163,16 @@
     "setup_log_failed": "registrar la instalación de la tarea {task}, proyecto {project}",
     "cache_measure_failed": "medir la caché de dependencias del workspace {workspace}",
     "cache_usage_decode": "no se pudo leer una medición de la caché del workspace {workspace}; esa parte queda vacía",
-    "app_teardown": "borrar el sandbox de la app de {owner}"
+    "app_teardown": "borrar el sandbox de la app de {owner}",
+    "replaced_stale_container": "tarea {task}: se borró el contenedor viejo {name}, que ninguna fila registraba, antes de crear su sandbox",
+    "orphan_list_failed": "listar los contenedores de sandbox para encontrar los que ninguna fila registra",
+    "orphan_remove_failed": "borrar el contenedor de sandbox {container} ({name}) que ninguna fila registra: {err}",
+    "orphan_removed": "se borró el contenedor de sandbox {container} ({name}, dueño {owner}, {state}, de hace {age}): ninguna fila viva lo registra",
+    "orphan_removed_by_person": "se borró a pedido de una persona el contenedor de sandbox {container}, que ninguna fila registraba",
+    "tmp_size_ignored": "{env} no es un tamaño como 2g o 512m, ni off: /tmp queda con el tamaño por defecto",
+    "reaped_process": "se mató en el sandbox de {owner} (contenedor {container}), dejado por la corrida {run}: {process}",
+    "reap_survivor": "sigue vivo en el sandbox de {owner} (contenedor {container}) después de matar lo que dejó la corrida {run}: {process}",
+    "orphan_rows_failed": "listar las filas de sandbox para encontrar los contenedores que ninguna fila registra"
   },
   "output": {
     "truncated": "\n[…se recortaron {bytes} bytes]"
@@ -171,7 +187,7 @@
     "attached": "se adjuntó {filename:%q} ({size} bytes, {mime_type}) a la tarea",
     "exec_command": "Comando de shell (lo interpreta `bash -lc`).",
     "exec_cwd": "Directorio de trabajo. Por defecto /workspace.",
-    "exec_description": "Corre un comando de shell dentro del contenedor sandbox de la tarea. Cada llamada usa un shell nuevo (no queda estado entre llamadas: `cd` no persiste). Usalo para builds, tests, lint o para levantar servidores de desarrollo (usá `setsid nohup ... &` para desacoplar un proceso largo). La salida se corta en ~100KB por stream; si necesitás el log completo, redirigilo a un archivo y leelo después.",
+    "exec_description": "Corre un comando de shell dentro del contenedor sandbox de la tarea. Cada llamada usa un shell nuevo (no queda estado entre llamadas: `cd` no persiste). Usalo para builds, tests y lint. Un proceso largo (un servidor de desarrollo) va en el script de arranque y se levanta con init_run; nunca lo desacoples de exec con setsid, nohup ni disown. Lo que un exec deje corriendo se mata cuando termina tu corrida. La salida se corta en ~100KB por stream; si necesitás el log completo, redirigilo a un archivo y leelo después.",
     "exec_env": "Variables de entorno extra que se suman a las del sandbox.",
     "exec_failed": "falló el exec: {error}",
     "exec_timeout": "Se corta a la fuerza después de estos ms. Por defecto 300000 (5min), máximo 1800000 (30min).",

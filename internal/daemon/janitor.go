@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"log"
 	"os"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -23,10 +24,16 @@ import (
 	"github.com/MisterDonnuts/thulu/internal/dockerx"
 	"github.com/MisterDonnuts/thulu/internal/i18n"
 	"github.com/MisterDonnuts/thulu/internal/migrate"
+	"github.com/MisterDonnuts/thulu/internal/personallogin"
 	"github.com/MisterDonnuts/thulu/internal/project"
 	"github.com/MisterDonnuts/thulu/internal/sandbox"
 	"github.com/MisterDonnuts/thulu/internal/task"
 )
+
+type runReconciler interface {
+	Reconcile(ctx context.Context)
+	ExitSettled(ctx context.Context, instanceID string) bool
+}
 
 type Janitor struct {
 	docker      *client.Client
@@ -34,8 +41,15 @@ type Janitor struct {
 	tasks       *task.Store
 	retention   *retention
 	agentImages func(ctx context.Context) ([]string, error)
+	// Set on Docker only: the Kubernetes janitor reconciles runs itself.
+	runs runReconciler
+	// Containers created before it belong to flows and runs of a daemon that is gone.
+	bootTime time.Time
 
-	interval             time.Duration
+	interval time.Duration
+	// Short: an agent whose exit a restart lost waits this long to be finished, and the browser of
+	// a run that ended this long to be removed.
+	runsInterval         time.Duration
 	agentExitedTTL       time.Duration
 	chatExitedTTL        time.Duration
 	sandboxExitedTTL     time.Duration
@@ -60,7 +74,9 @@ func newJanitor(d *client.Client, s *sandbox.Manager, t *task.Store, ret *retent
 		sandboxMgr:           s,
 		tasks:                t,
 		retention:            ret,
+		bootTime:             time.Now(),
 		interval:             1 * time.Hour,
+		runsInterval:         1 * time.Minute,
 		agentExitedTTL:       2 * time.Hour,
 		chatExitedTTL:        2 * time.Hour,
 		sandboxExitedTTL:     6 * time.Hour,
@@ -81,20 +97,29 @@ func newJanitor(d *client.Client, s *sandbox.Manager, t *task.Store, ret *retent
 // container.
 func (j *Janitor) Start(ctx context.Context) {
 	go func() {
+		if j.docker != nil {
+			// Every login flow lived in the memory of the daemon that just died.
+			j.reapStaleLogins(ctx, j.bootTime)
+		}
 		select {
 		case <-ctx.Done():
 			return
 		case <-time.After(2 * time.Minute):
 		}
+		j.sweepRuns(ctx)
 		j.Sweep(ctx)
 		sweepTick := time.NewTicker(j.interval)
 		defer sweepTick.Stop()
+		runsTick := time.NewTicker(j.runsInterval)
+		defer runsTick.Stop()
 		diskTick := time.NewTicker(j.diskCheckInterval)
 		defer diskTick.Stop()
 		for {
 			select {
 			case <-ctx.Done():
 				return
+			case <-runsTick.C:
+				j.sweepRuns(ctx)
 			case <-sweepTick.C:
 				j.Sweep(ctx)
 			case <-diskTick.C:
@@ -102,6 +127,22 @@ func (j *Janitor) Start(ctx context.Context) {
 			}
 		}
 	}()
+}
+
+// sweepRuns finishes the runs whose exit a restart lost, and removes what no run or flow owns any
+// more: the agent of a deleted task, a login flow past its lifetime, the browser of a run that
+// ended. A run's exit callback removes its browser, but a run that ended while the daemon was down
+// has no callback, and its Chromium held up to 1.5 GiB until the hourly sweep.
+func (j *Janitor) sweepRuns(ctx context.Context) {
+	if j.runs != nil {
+		j.runs.Reconcile(ctx)
+	}
+	if j.docker == nil {
+		return
+	}
+	j.reapDeletedTaskAgents(ctx, time.Now())
+	j.reapStaleLogins(ctx, time.Now().Add(-personallogin.StaleAfter))
+	j.reapOrphanBrowsers(ctx)
 }
 
 func (j *Janitor) Sweep(ctx context.Context) { j.sweep(ctx, false) }
@@ -139,9 +180,9 @@ func (j *Janitor) sweepDocker(ctx context.Context, pressure bool) {
 	if pressure {
 		agentTTL, chatTTL, sandboxTTL = j.pressureExitedTTL, j.pressureExitedTTL, j.pressureExitedTTL
 	}
-	agents := j.reapExitedByLabel(ctx, agent.LabelManaged+"=true", agentTTL, "agent")
-	chats := j.reapExitedByLabel(ctx, agent.LabelChat+"=true", chatTTL, "chat")
-	sandboxes := j.reapExitedByLabel(ctx, sandbox.SandboxLabel+"=true", sandboxTTL, "sandbox")
+	agents := j.reapExitedByLabel(ctx, agent.LabelManaged+"=true", agentTTL, "agent", j.agentExitSettled)
+	chats := j.reapExitedByLabel(ctx, agent.LabelChat+"=true", chatTTL, "chat", nil)
+	sandboxes := j.reapExitedByLabel(ctx, sandbox.SandboxLabel+"=true", sandboxTTL, "sandbox", nil)
 	j.reapOrphanBrowsers(ctx)
 	imageBytes := j.pruneDanglingImages(ctx) + j.pruneOctopusImages(ctx)
 	cacheBytes := j.pruneBuildCache(ctx, pressure)
@@ -193,7 +234,22 @@ func pressureSweepDue(freePercent float64, minPercent int, last, now time.Time, 
 	return last.IsZero() || now.Sub(last) >= cooldown
 }
 
-func (j *Janitor) reapExitedByLabel(ctx context.Context, label string, ttl time.Duration, kind string) int {
+// An agent container whose exit nobody finished keeps its outputs and replay inside it: settled
+// says when it may go.
+func (j *Janitor) agentExitSettled(ctx context.Context, labels map[string]string, names []string) bool {
+	if j.runs == nil {
+		return true
+	}
+	inst := labels[agent.LabelInstance]
+	if inst == "" && len(names) > 0 {
+		inst = strings.TrimPrefix(names[0], "/")
+	}
+	return j.runs.ExitSettled(ctx, inst)
+}
+
+func (j *Janitor) reapExitedByLabel(ctx context.Context, label string, ttl time.Duration, kind string,
+	settled func(ctx context.Context, labels map[string]string, names []string) bool,
+) int {
 	f := filters.NewArgs(
 		filters.Arg("label", label),
 		filters.Arg("status", "exited"),
@@ -216,6 +272,10 @@ func (j *Janitor) reapExitedByLabel(ctx context.Context, label string, ttl time.
 		}
 		finished, parseErr := time.Parse(time.RFC3339Nano, info.State.FinishedAt)
 		if parseErr != nil || finished.After(cutoff) {
+			continue
+		}
+		if settled != nil && !settled(ctx, c.Labels, c.Names) {
+			log.Printf("[janitor] %s", i18n.Log("daemon.log.kept_unsettled_exit", "kind", kind, "id", shortID(c.ID)))
 			continue
 		}
 		if rmErr := j.docker.ContainerRemove(ctx, c.ID, container.RemoveOptions{Force: true}); rmErr != nil {
@@ -242,7 +302,7 @@ func (j *Janitor) releaseFailedTaskSandboxes(ctx context.Context) int {
 	released := 0
 	for i := range all {
 		t := &all[i]
-		if !sandboxReleasable(t, now, j.failedTaskSandboxTTL, grace, j.docker != nil) {
+		if !sandboxReleasable(t, now, j.failedTaskSandboxTTL, grace, j.docker != nil) && !j.releasedGroupSandbox(ctx, t) {
 			continue
 		}
 		if err := j.sandboxMgr.Release(ctx, t.ID); err != nil {
@@ -254,6 +314,28 @@ func (j *Janitor) releaseFailedTaskSandboxes(ctx context.Context) int {
 		released++
 	}
 	return released
+}
+
+// A group whose tasks all reached a stage with release_resources (or a terminal one) gave its
+// sandbox up on entry; one still standing came back after (an agent called the sandbox anyway, or
+// the daemon died before releasing). Only the root owns it, and an absent one is not released
+// again every sweep.
+func (j *Janitor) releasedGroupSandbox(ctx context.Context, t *task.Task) bool {
+	if !releasedGroupRoot(ctx, j.tasks, t) {
+		return false
+	}
+	sb, err := j.sandboxMgr.Sandbox(ctx, t.ID)
+	return err == nil && sb != nil
+}
+
+// A running task is the dispatcher's, as in isJanitorReleasableStatus: pulling the sandbox from
+// under a release agent mid-run only makes its next call rebuild it.
+func releasedGroupRoot(ctx context.Context, tasks *task.Store, t *task.Task) bool {
+	if t.IsSubtask() || t.Status == task.StatusRunning || !tasks.InReleaseStage(t) {
+		return false
+	}
+	done, err := tasks.AllInGroupReleased(ctx, t.ID)
+	return err == nil && done
 }
 
 // Running and Idle are excluded: the dispatcher owns running tasks, the queue's idle eviction owns

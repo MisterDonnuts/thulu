@@ -18,6 +18,9 @@ type chatAgentView struct {
 	LLMReady    bool     `json:"llm_ready"`
 	LLMError    string   `json:"llm_error,omitempty"`
 	MCP         []string `json:"mcp"`
+	Engine      string   `json:"engine,omitempty"`
+	Model       string   `json:"model,omitempty"`
+	Effort      string   `json:"effort,omitempty"`
 }
 
 func (s *Server) handleListChatAgents(w http.ResponseWriter, r *http.Request) {
@@ -48,6 +51,9 @@ func (s *Server) handleListChatAgents(w http.ResponseWriter, r *http.Request) {
 			PromptReady: s.agentHasPrompt(r.Context(), tenant, at.Name, stage),
 			LLMReady:    true,
 			MCP:         nonNil(at.MCPByStage[stage]),
+			Engine:      at.Engine,
+			Model:       at.Model,
+			Effort:      at.Effort,
 		}
 		if s.taskDispatcher != nil {
 			if err := s.taskDispatcher.LLMCredentialReady(r.Context(), wid, &at, at.Name); err != nil {

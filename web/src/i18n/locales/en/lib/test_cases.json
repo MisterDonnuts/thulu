@@ -2,8 +2,10 @@
   "status": {
     "pending": "Pending",
     "pass": "Pass",
+    "waived": "Waived",
     "fail": "Fail",
     "blocked": "Blocked",
+    "queued": "Running again",
     "skipped": "Skipped"
   },
   "priority": {
@@ -21,6 +23,10 @@
       "one": "{count} pass",
       "other": "{count} pass"
     },
+    "waived": {
+      "one": "{count} waived",
+      "other": "{count} waived"
+    },
     "fail": {
       "one": "{count} fail",
       "other": "{count} fail"
@@ -28,6 +34,10 @@
     "blocked": {
       "one": "{count} blocked",
       "other": "{count} blocked"
+    },
+    "queued": {
+      "one": "{count} running again",
+      "other": "{count} running again"
     },
     "skipped": {
       "one": "{count} skipped",

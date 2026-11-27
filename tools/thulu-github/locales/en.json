@@ -317,7 +317,7 @@
       }
     },
     "run_dispatch": {
-      "description": "Trigger a workflow_dispatch. The workflow file must include 'on: workflow_dispatch' — check with workflow_view first, along with the inputs it declares. GitHub answers 204 with no run id, so this tool polls briefly and returns the run it created; watch it with run_watch. Starting a deploy is not reversible from here beyond run_cancel, and a run that lands in 'waiting' needs a human.",
+      "description": "Trigger a workflow_dispatch. The workflow file must include 'on: workflow_dispatch' — check with workflow_view first, along with the inputs it declares. GitHub answers 204 with no run id, so this tool polls briefly and returns the run it created; watch it with run_watch. Starting a deploy is not reversible from here beyond run_cancel, and a run that lands in 'waiting' needs a human. In a task run Thulu mints the token only after a person approves the deploy_prod approval on your task: request it with task_request_approval(key: \"deploy_prod\") first.",
       "params": {
         "repo": "owner/name.",
         "workflow_id": "Workflow id (number) or filename (e.g. 'deploy.yml').",
@@ -371,6 +371,7 @@
     "no_github_token": "no GitHub token available: connect this project to GitHub in Thulu (GitHub App installation or a project credential)",
     "repo_format": "repo must be 'owner/name', got {repo}",
     "repo_token_failed": "no GitHub token for {repo} (HTTP {status}): {body}",
+    "token_refused": "Thulu refused a GitHub token with {permission} (HTTP 403): {body}",
     "logs_zip": "run logs returned as a zip archive — thulu-github does not unzip on the server. Call run_jobs({repo, run_id, failed_only: true}) to get the job ids, then run_logs({repo, run_id, job_id}) for that job's plain text logs.",
     "invalid_state": "state must be 'approved' or 'rejected', got '{state}'",
     "no_reviewable_environment": "no pending environment on this run that this token may review — run_pending_deployments lists who can approve it",

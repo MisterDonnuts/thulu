@@ -1,5 +1,5 @@
 import { t } from "../i18n";
-import type { Approval } from "./approvals";
+import { approvalLabel, type Approval } from "./approvals";
 import { isBlocker, isBlocking, questionItems, type TaskQuestion } from "./questions";
 import { agoLabel } from "./task-card";
 import { agentChipHTML } from "./chips";
@@ -133,7 +133,7 @@ export function approvalRowsHTML(as: InboxApproval[], stageLabels: Map<string, s
           { html: taskCell(a, approvalsAnchor(a.task_id, a.board_id ?? "")) },
           {
             html:
-              badgeHTML(a.label, "accent", { size: "sm", cls: "inbox-kind" }) +
+              badgeHTML(approvalLabel(a), "accent", { size: "sm", cls: "inbox-kind" }) +
               (changes ? badgeHTML(t("lib.inbox.changes_requested"), "warn", { size: "sm" }) : "") +
               (a.reason ? `<div class="inbox-what">${esc(a.reason)}</div>` : "") +
               `<div class="inbox-acts">${buttonHTML({ label: t("lib.inbox.approve"), size: "sm", attrs: { "data-approve": a.id, "data-task": a.task_id } })}</div>`,

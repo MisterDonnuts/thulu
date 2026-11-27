@@ -9,7 +9,6 @@
     "bad_cache_range": "range must be 7d, 30d or 90d, not {range:%q}",
     "container_not_found": "no container {id} in the last sample; refresh and try again",
     "not_stoppable": "a {kind} container is not stopped from here",
-    "sandbox_not_found": "no live sandbox runs in container {id}; refresh and try again",
     "not_orphan": "{name} is not an orphan: a run of the task accounts for it, so it is stopped through the run"
   },
   "log": {

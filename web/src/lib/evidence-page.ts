@@ -18,12 +18,14 @@ import {
   checksTableHTML,
   envGroupsHTML,
   failuresHTML,
+  findingsHTML,
   historyHTML,
   offProps,
   prodBadgeHTML,
   runnerErrorHTML,
   sandboxReasonHTML,
   statusPillHTML,
+  timingHTML,
   type ListCtx,
 } from "./evidence-html";
 import {
@@ -1520,6 +1522,7 @@ export function startEvidencePage(signal: AbortSignal): void {
     priority: $("cf-priority") as HTMLSelectElement,
     project: $("cf-project") as HTMLSelectElement,
     tags: $("cf-tags") as HTMLInputElement,
+    safe: $("cf-safe") as HTMLInputElement,
     save: $("cf-save") as HTMLButtonElement,
   };
   let editingCase: EvCase | null = null;
@@ -1539,6 +1542,7 @@ export function startEvidencePage(signal: AbortSignal): void {
       c?.project_id ??
       (state.caseFilters.projectId === PROJECT_NONE ? "" : state.caseFilters.projectId);
     cf.tags.value = (c?.tags ?? state.caseFilters.tags).join(", ");
+    cf.safe.checked = Boolean(c?.safe_for_prod);
     clearFormErrors(caseForm);
     caseModal.open(cf.title);
   }
@@ -1555,7 +1559,7 @@ export function startEvidencePage(signal: AbortSignal): void {
       setFieldError(cf.title, t("evidence.case_form.title_required"), { focus: true });
       return;
     }
-    const body = {
+    const body: Record<string, unknown> = {
       title,
       description: cf.description.value,
       steps: cf.steps.value,
@@ -1565,6 +1569,10 @@ export function startEvidencePage(signal: AbortSignal): void {
       project_id: cf.project.value,
     };
     const was = editingCase;
+    // Sent only when it changes (on a new case, only when ticked): the daemon takes it from a
+    // signed-in person, never from a key.
+    const safe = cf.safe.checked;
+    if (was ? safe !== Boolean(was.safe_for_prod) : safe) body.safe_for_prod = safe;
     const done = busy(cf.save, t("evidence.saving"));
     try {
       const r = was
@@ -1846,6 +1854,13 @@ export function startEvidencePage(signal: AbortSignal): void {
       blocks.push(
         `${sectionHeadHTML({ title: t("evidence.detail.checks"), level: 4 })}${checksTableHTML(r.checks)}`,
       );
+    if (r.findings?.length)
+      blocks.push(
+        `${sectionHeadHTML({ title: t("evidence.detail.page_errors", { count: r.findings.reduce((n, f) => n + f.count, 0) }), level: 4 })}${findingsHTML(r.findings)}`,
+      );
+    const timing = timingHTML(r.metrics);
+    if (timing)
+      blocks.push(`${sectionHeadHTML({ title: t("evidence.detail.timing"), level: 4 })}${timing}`);
     const shots = r.shot_ids ?? [];
     if (shots.length)
       blocks.push(

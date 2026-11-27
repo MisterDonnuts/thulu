@@ -1,205 +1,335 @@
-/* Every rule is scoped under .activity or #pane-approvals so it outranks the page's own comment and approval rules. */
+/* Comments in the Task tab (the Task View Lab's .ov-cm): one card per thread with its replies
+   inside, the threads that wait for the person pinned above the composer, the agent questions as
+   cards that open in place. Every rule is scoped under .activity or #pane-approvals so it outranks
+   the page's own comment and approval rules; the shared pieces drawn here (tags, avatars, the
+   composer, chips) take their drawer look in styles/primitives/task-drawer.css. */
 
 .activity {
   display: flex;
   flex-direction: column;
-  gap: var(--s-4);
+  gap: 12px;
   min-width: 0;
 }
 .activity .act-head {
   margin-bottom: 0;
 }
 
-.activity .act-stream {
+.activity .cm-list {
   display: flex;
   flex-direction: column;
-  gap: var(--s-5);
+  gap: 10px;
   min-width: 0;
 }
-.activity .act-stream:empty {
+.activity .cm-list:empty {
   display: none;
 }
+.activity .cm-empty {
+  margin: 0;
+  padding: 12px 4px;
+  color: var(--fg-3);
+}
 
-.activity .act-c {
-  display: grid;
-  grid-template-columns: 24px minmax(0, 1fr);
-  column-gap: var(--s-3);
-  align-items: start;
-  border-radius: var(--r-sm);
-}
-.activity .act-c.flash {
-  background: var(--color-accent-faint);
-}
-.activity .act-main {
+/* One thread: a card with the first comment; replies sit inside it, behind a rule. */
+.activity .cm {
   display: flex;
   flex-direction: column;
-  gap: var(--s-1);
+  gap: 6px;
   min-width: 0;
 }
-.activity .act-meta {
-  display: flex;
-  align-items: center;
-  min-height: var(--s-7);
+.activity .cm-thread {
+  padding: 11px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-1);
 }
-.activity .act-time,
-.activity .act-day {
-  font-size: var(--t-xs);
-  color: var(--fg-2);
-  white-space: nowrap;
+.activity .cm-thread:focus {
+  outline: none;
 }
-.activity .act-time {
-  flex: none;
-}
-.activity .comment-atts {
-  margin-top: var(--s-1);
-}
-
-.activity .act-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 var(--s-1);
-}
-.activity .act-btn {
-  white-space: nowrap;
-}
-.activity .act-fold:focus-visible,
-.activity .act-group-btn:focus-visible,
-.activity .act-q-ref:focus-visible,
-.activity .act-sys-link:focus-visible,
-.activity .act-thread:focus-visible {
+.activity .cm-thread:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
-
-.activity .act-thread {
+.activity .cm.pending {
+  border-color: color-mix(in srgb, var(--warn) 50%, transparent);
+  box-shadow: 0 0 0 3px var(--warn-soft);
+}
+.activity .cm.flash {
+  animation: cm-flash 1.8s ease;
+}
+@keyframes cm-flash {
+  0%,
+  45% {
+    box-shadow: 0 0 0 2px var(--accent);
+  }
+  100% {
+    box-shadow: 0 0 0 2px transparent;
+  }
+}
+.activity .cm-hd {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.activity .cm-hd .nm {
+  font-weight: 600;
+  color: var(--fg);
+}
+.activity .cm-in {
+  color: var(--fg-3);
+}
+.activity .cm-hd .when {
+  margin-left: auto;
+  color: var(--fg-4);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.activity .cm-bd {
   min-width: 0;
-  border-radius: var(--r-sm);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--fg);
 }
-.activity .act-thread:focus {
-  outline: none;
+.activity .cm-bd.clamp {
+  max-height: 6.2em;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(#000 60%, transparent);
+  mask-image: linear-gradient(#000 60%, transparent);
 }
-.activity .act-thread > .act-actions {
-  margin: 2px 0 0 calc(24px + var(--s-3) - var(--s-2));
+.activity .cm > .more {
+  align-self: flex-start;
+  font-size: 12px;
 }
-@media (hover: hover) and (pointer: fine) {
-  .activity .act-thread {
-    position: relative;
-  }
-  .activity .act-thread:not(.is-open, .is-resolved, :has(.thread-composer)) > .act-actions {
-    position: absolute;
-    top: -6px;
-    right: 0;
-    z-index: 1;
-    margin: 0;
-    padding: 0 var(--s-1);
-    border: 1px solid var(--line);
-    border-radius: var(--r-md);
-    background: var(--surface-3);
-    box-shadow: var(--shadow-2);
-    opacity: 0;
-    pointer-events: none;
-  }
-  .activity .act-thread:not(.is-open, .is-resolved, :has(.thread-composer)):hover > .act-actions,
-  .activity
-    .act-thread:not(.is-open, .is-resolved, :has(.thread-composer)):focus-within
-    > .act-actions {
-    opacity: 1;
-    pointer-events: auto;
-  }
+.activity .mention {
+  padding: 0 3px;
+  border-radius: 4px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 500;
 }
-@container drawer (max-width: 479px) {
-  .activity .act-thread:not(.is-open, .is-resolved, :has(.thread-composer)) > .act-actions {
-    position: static;
-    margin: 2px 0 0 calc(var(--s-2) * -1);
-    padding: 0;
-    border: 0;
-    background: transparent;
-    box-shadow: none;
-    opacity: 1;
-    pointer-events: auto;
-  }
+.activity .comment-atts {
+  margin-top: 2px;
 }
-.activity .act-thread > .thread-apply {
-  margin: var(--s-1) 0 0 calc(24px + var(--s-3));
+
+/* What a typed thread asks of the person, and the links under its first comment. */
+.activity .cm-acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 2px;
 }
-.activity .act-replies {
+.activity .cm-ft {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  font-size: 12px;
+}
+.activity .cm-ft .act-btn {
+  font-size: 12px;
+}
+.activity .cm-ft .act-btn[aria-disabled="true"] {
+  color: var(--fg-4);
+  cursor: default;
+}
+.activity .cm-thread > .thread-apply {
+  margin-top: 2px;
+}
+
+.activity .cm-replies {
   display: flex;
   flex-direction: column;
-  gap: var(--s-4);
-  margin: var(--s-2) 0 0 var(--s-5);
-  padding-left: var(--s-4);
-  border-left: 1px solid var(--line);
+  gap: 12px;
+  margin: 4px 0 0 11px;
+  padding-left: 16px;
+  border-left: 2px solid var(--line-strong);
 }
 /* A thread with no replies still shows the agent answering it: the typing slot lives in here. */
-.activity .act-replies.is-empty:not(:has(> .typing-row:not(:empty))) {
+.activity .cm-replies.is-empty:not(:has(> .typing-row:not(:empty))) {
   display: none;
 }
-.activity .act-replies .typing-row {
+.activity .cm-replies .typing-row {
   margin: 0;
 }
+.activity .cm-replies .typing-row:empty {
+  display: none;
+}
 .activity .act-fold {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--s-2);
-  width: 100%;
-  min-height: 32px;
-  padding: 0 var(--s-3);
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  background: transparent;
-  color: var(--fg-2);
+  align-self: flex-start;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
   font: inherit;
-  font-size: var(--t-sm);
+  font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
 }
 .activity .act-fold:hover {
-  background: var(--color-surface-hover);
-  color: var(--fg);
+  text-decoration: underline;
 }
-.activity .act-fold .ico {
+.activity .act-fold:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.activity .act-sys-reply {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--fg-3);
+}
+.activity .act-sys-reply .ico {
+  flex: none;
   width: 14px;
   height: 14px;
+  color: var(--fg-4);
+}
+.activity .act-sys-reply .act-time {
+  margin-left: auto;
+  color: var(--fg-4);
+  white-space: nowrap;
 }
 
+/* A resolved thread folds to one line until someone shows it. */
 .activity .act-resolved {
-  margin-inline: calc(-1 * var(--s-2));
+  margin: 0;
 }
 .activity .act-resolved-ico {
   display: inline-flex;
   flex: none;
   width: 24px;
   justify-content: center;
-  color: var(--color-success);
+  color: var(--ok);
 }
 .activity .act-resolved-ico .ico {
   width: 14px;
   height: 14px;
 }
 
-.activity .act-q-ref {
+/* The stop's full report, folded under what it asks. */
+.activity .cm-full {
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: var(--fg-3);
+}
+.activity .cm-full > summary {
   display: inline-flex;
   align-items: center;
-  gap: var(--s-2);
-  min-height: 32px;
-  padding: 0 var(--s-2);
-  margin-left: calc(var(--s-2) * -1);
-  border: 0;
-  border-radius: var(--r-sm);
-  background: transparent;
+  gap: 5px;
   color: var(--accent);
-  font: inherit;
-  font-size: var(--t-base);
+  font-weight: 500;
   cursor: pointer;
+  list-style: none;
 }
-.activity .act-q-ref:hover {
-  background: var(--color-accent-faint);
+.activity .cm-full > summary::-webkit-details-marker {
+  display: none;
 }
-.activity .act-q-ref .ico {
+.activity .cm-full > summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.activity .cm-full > summary .ico {
+  width: 13px;
+  height: 13px;
+  transition: transform 0.15s;
+}
+.activity .cm-full[open] > summary .ico {
+  transform: rotate(90deg);
+}
+.activity .cm-full-link {
+  margin: 0;
+}
+.activity .cm-pause {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0 0;
+  border-top: 1px dashed var(--line);
+  font-size: 12px;
+  color: var(--fg-3);
+}
+.activity .cm-pause .ico {
+  flex: none;
   width: 14px;
   height: 14px;
+}
+
+/* Rounds: each one is labelled with what stopped it; the earlier ones fold to that line. */
+.activity .act-round {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+.activity .act-round + .act-round {
+  margin-top: var(--s-2);
+}
+.activity .act-round-head,
+.activity .act-round-title {
+  margin: 0;
+  font-size: var(--t-xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--fg-2);
+}
+.activity .act-round-head {
+  padding-bottom: var(--s-1);
+  border-bottom: 1px solid var(--line);
+}
+.activity .act-round-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  width: 100%;
+  min-height: 32px;
+  padding: 0 var(--s-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--fg-2);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.activity .act-round-toggle:hover {
+  background: var(--color-surface-hover);
+  color: var(--fg);
+}
+.activity .act-round-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.activity .act-round-caret {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  transition: transform var(--dur-fast, 120ms) ease;
+}
+.activity .act-round-toggle[aria-expanded="true"] .act-round-caret {
+  transform: rotate(90deg);
+}
+.activity .act-round-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.activity .act-round-count {
+  flex: none;
+  font-weight: 400;
+  color: var(--fg-3);
+  font-variant-numeric: tabular-nums;
+}
+.activity .act-round-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  padding-left: var(--s-3);
+  border-left: 1px solid var(--line);
 }
 
 .activity .act-run {
@@ -311,80 +441,187 @@
   border-left: 1px solid var(--line);
 }
 
-.activity .act-pinned {
+/* "Waiting for you": the stop, the approvals and the questions that wait on the person, above the
+   composer. */
+.activity .pinned {
   display: flex;
   flex-direction: column;
-  gap: var(--s-3);
+  gap: 8px;
 }
-.activity .act-pinned:empty {
-  display: none;
+.activity .pin-h {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--warn);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
 }
-.activity .act-q {
+.activity .pin-h .ico {
+  width: 16px;
+  height: 16px;
+}
+.activity .pin-list {
   display: flex;
   flex-direction: column;
-  gap: var(--s-2);
-  padding: var(--s-4);
-  border: 1px solid var(--color-special-border);
-  border-radius: var(--r-lg);
-  background: var(--color-special-bg);
+  gap: 8px;
 }
-.activity .act-q-head {
+
+/* Filters and order, between the composer and the threads. */
+.activity .cm-tools {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--s-2);
-  font-size: var(--t-sm);
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* An agent question: a row that opens to what it asked and the answer in violet, or the form. */
+.activity .qcard {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-1);
+}
+.activity .q-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 0;
+  background: none;
   color: var(--fg);
+  font: inherit;
+  font-size: 12.5px;
+  line-height: 1.5;
+  text-align: left;
+  cursor: pointer;
 }
-.activity .act-q-head > .ico {
-  width: 16px;
-  height: 16px;
-  color: var(--color-special);
+.activity .q-row:hover,
+.activity .q-row[aria-expanded="true"] {
+  background: var(--surface-2);
 }
-.activity .act-q-who {
+.activity .q-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.activity .q-row .nm {
+  font-weight: 600;
+  white-space: nowrap;
+}
+.activity .q-heads {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--fg-3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.activity .q-state {
+  color: var(--fg-4);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.activity .q-state.wait {
+  color: var(--warn);
   font-weight: 600;
 }
-.activity .act-q-pin {
-  margin-left: auto;
-  font-size: var(--t-xs);
-  color: var(--fg-2);
+.activity .qcard .chev {
+  display: grid;
+  color: var(--fg-4);
+  transition: transform 0.15s;
 }
-.activity .act-q .q-card {
+.activity .qcard .chev .ico {
+  width: 16px;
+  height: 16px;
+}
+.activity .q-row[aria-expanded="true"] .chev {
+  transform: rotate(90deg);
+}
+.activity .q-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 14px 14px 44px;
+  background: var(--surface-2);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.activity .q-body[hidden] {
+  display: none;
+}
+.activity .q-info {
+  color: var(--fg-4);
+  font-size: 12px;
+}
+.activity .q-body .q .h {
+  color: var(--fg-4);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.activity .q-body .a {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 4px;
+  color: var(--color-special);
+  font-weight: 500;
+}
+.activity .q-body .a .cm-av {
+  --avatar-size: 18px;
+  margin-top: 1px;
+  font-size: 8px;
+}
+.activity .q-opts {
+  margin-top: 4px;
+  color: var(--fg-3);
+  font-size: 12px;
+}
+.activity .q-opts summary {
+  color: var(--fg-4);
+  cursor: pointer;
+}
+.activity .q-opts ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+.activity .q-muted {
+  color: var(--fg-3);
+}
+.activity .q-body .cm-replies {
+  margin-left: 0;
+}
+@container drawer (max-width: 699px) {
+  .activity .q-heads {
+    display: none;
+  }
+  .activity .q-row .nm {
+    margin-right: auto;
+  }
+}
+
+/* An open question's form inside its card. */
+.activity .q-body .q-card {
   margin: 0;
   padding: 0;
   border: 0;
   background: transparent;
 }
-.activity .act-q .q-actions {
+.activity .q-body .q-head {
+  display: none;
+}
+.activity .q-body .q-actions {
   justify-content: flex-start;
   flex-wrap: wrap;
 }
 .activity .q-actions .q-cancel {
   margin-left: auto;
 }
-.activity .act-c .q-card {
-  margin-top: var(--s-1);
-}
 
-.activity .act-composer-main {
-  position: sticky;
-  bottom: calc(var(--s-6) * -1);
-  z-index: var(--z-sticky);
-  margin: 0 calc(var(--s-6) * -1) calc(var(--s-6) * -1);
-  padding: var(--s-3) var(--s-6) var(--s-6);
-  border-top: 1px solid var(--line);
-  background: var(--surface-1);
-}
-/* At a fractional scroll offset the composer's last pixel row can round short and let the stream show through. */
-.activity .act-composer-main::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 100%;
-  height: 2px;
-  background: var(--surface-1);
-}
 .activity .notify-slot:empty {
   display: none;
 }
@@ -396,48 +633,32 @@
   margin-top: 0;
 }
 
+/* An agent answering an @mention: its avatar, "is replying" and three dots. */
 .activity .act-typing-line {
+  display: flex;
   align-items: center;
-  font-size: var(--t-sm);
-  color: var(--fg-2);
+  gap: 8px;
+  font-size: 12px;
+  color: var(--fg-3);
 }
 .activity .act-typing-line .typing-who {
   display: inline-flex;
   align-items: center;
-  gap: var(--s-2);
+  gap: 8px;
 }
 .activity .typing-row {
   margin: 0;
 }
+.activity .typing-row:empty {
+  display: none;
+}
 .activity .act-typing-line .typing-dots {
   margin: 0;
-}
-.activity .act-c.act-typing-line {
-  grid-template-columns: 24px auto auto;
-  justify-content: start;
-}
-
-@media (max-width: 520px) {
-  .activity .act-replies {
-    margin-left: var(--s-3);
-    padding-left: var(--s-3);
-  }
-  .activity .act-thread > .act-actions {
-    margin-left: calc(var(--s-2) * -1);
-  }
-  .activity .act-thread > .thread-apply {
-    margin-left: 0;
-  }
-  .activity .act-head .sec-actions {
-    margin-left: 0;
-    width: 100%;
-  }
 }
 
 @media (pointer: coarse) {
   .activity .act-fold,
-  .activity .act-group-btn,
-  .activity .act-q-ref,
+  .activity .act-round-toggle,
   .activity .notify-agent {
     min-height: 44px;
   }
@@ -482,9 +703,22 @@
   font-size: var(--t-xs);
   color: var(--fg-2);
 }
+#pane-approvals .ap-checks {
+  margin: 0;
+  font-size: var(--t-xs);
+  color: var(--warn);
+}
 #pane-approvals .ap-menu-wrap {
   position: relative;
   margin-left: auto;
+}
+#pane-approvals .approval-files p,
+#pane-approvals .approval-files ul {
+  margin: 0;
+}
+#pane-approvals .approval-files ul {
+  padding-left: var(--s-4);
+  overflow-wrap: anywhere;
 }
 #pane-approvals .approval-reason,
 #pane-approvals .approval-decided,

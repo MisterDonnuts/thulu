@@ -50,7 +50,9 @@
     "task_owned_elsewhere": "task {id} already exists here in workspace {workspace}, and an import does not move existing tasks to {target}. Import into {workspace}, or into another install",
     "board_owned_by_fallback": "board {id} already exists here in {workspace}, the workspace nobody owns that keeps what this install did before it had workspaces. An import moves it to {target} only when {target} is the only workspace and {workspace} has no projects or tasks. Import into another install",
     "project_owned_by_fallback": "project {id} already exists here in {workspace}, the workspace nobody owns that keeps what this install did before it had workspaces, and an import does not move it to {target}. Import into another install",
-    "task_owned_by_fallback": "task {id} already exists here in {workspace}, the workspace nobody owns that keeps what this install did before it had workspaces, and an import does not move it to {target}. Import into another install"
+    "task_owned_by_fallback": "task {id} already exists here in {workspace}, the workspace nobody owns that keeps what this install did before it had workspaces, and an import does not move it to {target}. Import into another install",
+    "export_locked_files": "export locked test files for {task}",
+    "export_criteria": "export the acceptance criteria of task {task}"
   },
   "hints": {
     "credential_reenter": "stored encrypted; re-enter on the new host and re-grant to its projects/environments",

@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -82,6 +83,10 @@ const HostRunEnv = "OCTOPUS_HOST_RUN"
 // RunnerIDEnv carries the machine the dispatcher placed a run on; the launcher routes by it alone.
 const RunnerIDEnv = "OCTOPUS_RUNNER_ID"
 
+// RunIDEnv names the job a process on a runner belongs to. Every process a run starts inherits it,
+// even one that leaves the run's process group or session, so the runner can find it again.
+const RunIDEnv = "THULU_RUN_ID"
+
 // SteerEnabledEnv is "1" when the dispatcher armed the run for mid-run messages.
 const SteerEnabledEnv = "STEER_ENABLED"
 
@@ -146,6 +151,14 @@ type JobSpec struct {
 	// Where the runner pushes its work on the projects it fetched from the daemon: the daemon has the
 	// task branch checked out, so a push there would be refused.
 	ResultRef string `json:"result_ref,omitempty"`
+	// What to read of the task's locked tests at the run's end (testlock.go); nil reads nothing.
+	TestLock *TestLock `json:"test_lock,omitempty"`
+	// The longest the run may take, from the claim; 0 for no limit. The daemon stops a run that goes
+	// over; the runner stops it on its own a little later, so a run whose daemon is gone still ends.
+	DeadlineSeconds int `json:"deadline_seconds,omitempty"`
+	// The most memory the run (the agent and everything it starts) may take on the machine, in MB; 0
+	// leaves it to the machine's run_memory_limit_mb, which also caps this value.
+	MemoryLimitMB int `json:"memory_limit_mb,omitempty"`
 }
 
 // A job whose every project carries its folder, or comes from the daemon, needs nothing from the
@@ -154,7 +167,8 @@ func (s JobSpec) SelfContained() bool {
 	if len(s.Projects) == 0 {
 		return false
 	}
-	for _, p := range s.Projects {
+	for i := range s.Projects {
+		p := &s.Projects[i]
 		if p.Path == "" && !p.FromDaemon() {
 			return false
 		}
@@ -172,7 +186,8 @@ func (s JobSpec) MinProtocol() int {
 	if s.ChatTurn() {
 		need = max(need, ProtocolChatTurn)
 	}
-	for _, p := range s.Projects {
+	for i := range s.Projects {
+		p := &s.Projects[i]
 		if p.FromDaemon() {
 			return max(need, ProtocolDaemonCode)
 		}
@@ -207,6 +222,9 @@ type JobProject struct {
 	Push bool `json:"push,omitempty"`
 	// Empty for a folder of the machine; SourceDaemon for a project kept by Thulu.
 	Source string `json:"source,omitempty"`
+	// The project's quality-gate profile (a JSON object), handed to thulu-gates through
+	// $THULU_GATES_PROFILE. A runner from before it ignores the field and runs the gates without it.
+	GatesProfile json.RawMessage `json:"gates_profile,omitempty"`
 }
 
 func (p JobProject) FromDaemon() bool { return p.Source == SourceDaemon }
@@ -288,6 +306,32 @@ type FinishRequest struct {
 	Pushed   []PushedBranch `json:"pushed,omitempty"`
 	Error    string         `json:"error,omitempty"`
 	Warnings []string       `json:"warnings,omitempty"`
+	// Files of the output dir that did not fit the upload budget; the rest reached the daemon.
+	OutputsSkipped []SkippedOutput `json:"outputs_skipped,omitempty"`
+	// Why the outputs upload failed after its retries: none of the run's files reached the daemon.
+	OutputsError string `json:"outputs_error,omitempty"`
+	// What JobSpec.TestLock asked for, one entry per project the runner could read.
+	TestFiles []TestFiles `json:"test_files,omitempty"`
+	// Why the runner stopped the run on its own (StopDeadline, StopDaemonLost, StopMemoryLimit,
+	// StopMachineLowMemory); empty when the run ended by itself or the daemon stopped it.
+	StopReason string `json:"stop_reason,omitempty"`
+}
+
+// The reasons a runner stops a run without being told to.
+const (
+	// The run went over JobSpec.DeadlineSeconds.
+	StopDeadline = "deadline"
+	// The daemon did not answer a heartbeat for longer than the lease it granted.
+	StopDaemonLost = "daemon_lost"
+	// The run's processes together went over the run's memory limit.
+	StopMemoryLimit = "memory_limit"
+	// The machine ran low on memory and this was the largest run on it.
+	StopMachineLowMemory = "machine_low_memory"
+)
+
+// The daemon's answer to an outputs upload when it left files out; 204 when it kept them all.
+type OutputsResponse struct {
+	Skipped []SkippedOutput `json:"skipped,omitempty"`
 }
 
 type PushedBranch struct {
@@ -320,6 +364,13 @@ func hashSecret(secret string) string {
 // What a runner reports about its machine: the folders its owner allowed, the git repositories
 // found inside them, and the projects its local config already maps (adopted into the dashboard
 // once). The daemon never reads the disk; it shows this list and the runner re-checks every path.
+// WorktreesResponse answers GET /runner/v1/worktrees: the task branches still open (a task of the
+// group not in a terminal stage), by project, for every project of the runner's workspace. A
+// runner removes the task worktrees and clones nothing here names.
+type WorktreesResponse struct {
+	Projects map[string][]string `json:"projects"`
+}
+
 type Inventory struct {
 	Roots     []string          `json:"roots"`
 	Repos     []InventoryRepo   `json:"repos"`
@@ -327,6 +378,41 @@ type Inventory struct {
 	Truncated bool              `json:"truncated,omitempty"`
 	ScannedAt time.Time         `json:"scanned_at"`
 	Engines   []EngineState     `json:"engines,omitempty"`
+	// The machine's local_tools as its runner.json sets it. Only the machine changes it; the daemon
+	// shows it.
+	LocalTools *LocalToolsState `json:"local_tools,omitempty"`
+	// Whether the runner takes new runs now, or waits for the machine to free memory.
+	Admission *AdmissionState `json:"admission,omitempty"`
+}
+
+// The admission states: the runner claims runs, or it waits because the machine has less memory
+// available than its min_free_memory_mb.
+const (
+	AdmissionAccepting       = "accepting"
+	AdmissionPausedLowMemory = "paused_low_memory"
+)
+
+type AdmissionState struct {
+	State       string    `json:"state"`
+	AvailableMB int64     `json:"available_mb,omitempty"`
+	MinFreeMB   int64     `json:"min_free_mb,omitempty"`
+	Since       time.Time `json:"since"`
+}
+
+// LocalToolsState is how much of its own tooling a machine gives its runs: the mode (thulu,
+// selected or all), the MCPs selected adds, and whether a Claude Code policy turns bypass mode off.
+// The local_tools modes.
+const (
+	LocalToolsThulu    = "thulu"
+	LocalToolsSelected = "selected"
+	LocalToolsAll      = "all"
+)
+
+type LocalToolsState struct {
+	Mode           string   `json:"mode"`
+	MCP            []string `json:"mcp,omitempty"`
+	BypassDisabled bool     `json:"bypass_disabled,omitempty"`
+	AllowedTools   int      `json:"allowed_tools,omitempty"`
 }
 
 // EngineState is what the machine says about one engine's CLI: whether it is on the PATH and whose

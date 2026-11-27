@@ -13,11 +13,11 @@ const css = readFileSync(
 // Mirrors threadHTML() in pages/tasks.astro: the typing slot sits in the replies box, which
 // carries is-empty while the thread has no replies.
 function thread(typing) {
-  document.body.innerHTML = `<div class="activity"><article class="act-thread">
+  document.body.innerHTML = `<div class="activity"><article class="cm cm-thread">
     <div class="act-c">root</div>
-    <div class="act-replies is-empty"><div class="typing-row thread-typing" data-thread-typing="r1">${typing}</div></div>
+    <div class="cm-replies is-empty"><div class="typing-row thread-typing" data-thread-typing="r1">${typing}</div></div>
   </article></div>`;
-  return document.querySelector(".act-replies");
+  return document.querySelector(".cm-replies");
 }
 
 describe("a thread with no replies", () => {

@@ -2,8 +2,10 @@
   "status": {
     "pending": "Pendiente",
     "pass": "Aprobado",
+    "waived": "Eximido",
     "fail": "Fallido",
     "blocked": "Bloqueado",
+    "queued": "Corriendo de nuevo",
     "skipped": "Omitido"
   },
   "priority": {
@@ -21,6 +23,10 @@
       "one": "{count} aprobado",
       "other": "{count} aprobados"
     },
+    "waived": {
+      "one": "{count} eximido",
+      "other": "{count} eximidos"
+    },
     "fail": {
       "one": "{count} fallido",
       "other": "{count} fallidos"
@@ -28,6 +34,10 @@
     "blocked": {
       "one": "{count} bloqueado",
       "other": "{count} bloqueados"
+    },
+    "queued": {
+      "one": "{count} corriendo de nuevo",
+      "other": "{count} corriendo de nuevo"
     },
     "skipped": {
       "one": "{count} omitido",

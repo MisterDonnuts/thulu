@@ -239,12 +239,12 @@ func TestRelaunchAndApprovalNotesNameASeededColumnInTheReadersLanguage(t *testin
 	d, store := newStageTestDispatcher(t, reg)
 	tk := createIn(t, store, "in_progress", "")
 
-	relaunch := NoteOf("api.tasks.comments.relaunch_requested", "stage", d.StageNote(tk, tk.Stage), "turns", 30)
-	if got := relaunch.Render("es"); !strings.Contains(got, "**En curso**") {
-		t.Errorf("es relaunch note = %q, want the column as En curso", got)
+	relaunch := NoteOf("api.tasks.timeline.relaunch_requested", "stage", d.StageNote(tk, tk.Stage), "turns", 30)
+	if got := relaunch.Render("es"); !strings.Contains(got, "En curso") {
+		t.Errorf("es relaunch event = %q, want the column as En curso", got)
 	}
-	if got := relaunch.Render("en"); !strings.Contains(got, "**In progress**") {
-		t.Errorf("en relaunch note = %q, want the column as In progress", got)
+	if got := relaunch.Render("en"); !strings.Contains(got, "In progress") {
+		t.Errorf("en relaunch event = %q, want the column as In progress", got)
 	}
 
 	d.autoAdvanceStage(context.Background(), tk, tk.ID, "in_progress", 0, "")

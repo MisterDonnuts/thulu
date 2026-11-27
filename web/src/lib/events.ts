@@ -310,6 +310,11 @@ export class EventChannel {
 
 export const events = new EventChannel();
 
+// A chat turn's engine lines, live while it runs; the turn id is its user message's.
+export function chatTurnTopic(chatID: string, turnID: string): string {
+  return ["chatturn", chatID, turnID].join(":");
+}
+
 export function logsTopic(runID: string): string {
   return `logs:${runID}`;
 }

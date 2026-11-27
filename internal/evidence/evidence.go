@@ -46,6 +46,8 @@ const (
 	TriggerDeploy    = "deploy"
 	TriggerAPI       = "api"
 	TriggerRecording = "recording"
+	// Queued by an agent run through octopus-api; trigger_ref is the run's task.
+	TriggerAgent = "agent"
 )
 
 const (
@@ -164,6 +166,8 @@ const (
 	ArtifactChapters = "chapters"
 	ArtifactShot     = "shot"
 	ArtifactPoster   = "poster"
+	// The run's timing, page errors and waits as the runner measured them (JSON).
+	ArtifactMetrics = "metrics"
 )
 
 // Must match the priorities task test cases use.
@@ -183,6 +187,8 @@ const (
 	maxSecretValue   = 4096
 	maxTakeBytes     = 1 << 20
 	maxReportBytes   = 256 << 10
+	maxMetricsBytes  = 256 << 10
+	maxFindings      = 200
 	RunHistory       = 20
 	DefaultListLimit = 50
 	MaxListLimit     = 500
@@ -218,6 +224,8 @@ type Case struct {
 	UpdatedAt     time.Time           `json:"updated_at"`
 	Latest        map[string]RunBrief `json:"latest,omitempty"`
 	Runs          []Run               `json:"runs,omitempty"`
+	// A person marked the case as harmless to replay against production. Never set by an API key.
+	SafeForProd bool `json:"safe_for_prod"`
 }
 
 type RunBrief struct {
@@ -235,6 +243,7 @@ type CasePatch struct {
 	Priority    *string   `json:"priority,omitempty"`
 	Tags        *[]string `json:"tags,omitempty"`
 	ProjectID   *string   `json:"project_id,omitempty"`
+	SafeForProd *bool     `json:"safe_for_prod,omitempty"`
 }
 
 const ProjectNone = "none"
@@ -395,7 +404,13 @@ type Batch struct {
 	ErrorCause    string `json:"error_cause,omitempty"`
 	Locale        string `json:"-"`
 	SandboxLog    string `json:"sandbox_log,omitempty"`
-	Runs          []Run  `json:"runs,omitempty"`
+	// SafeOnly ran only cases marked safe for production; TaskID is the task that queued it.
+	SafeOnly bool   `json:"safe_only"`
+	TaskID   string `json:"task_id"`
+	// Keys of the cases a safe_only batch left out because nobody marked them safe for production.
+	// Only on the response that queued the batch.
+	SkippedUnsafe []string `json:"skipped_unsafe,omitempty"`
+	Runs          []Run    `json:"runs,omitempty"`
 }
 
 type Check struct {
@@ -404,6 +419,21 @@ type Check struct {
 	Observed string `json:"observed"`
 	Pass     bool   `json:"pass"`
 	Measured bool   `json:"measured"`
+	// A perf check: the metric (lcp, response...) and the value measured, in ms (CLS without unit).
+	Metric string   `json:"metric,omitempty"`
+	Value  *float64 `json:"value,omitempty"`
+}
+
+// Something the page complained about during a run, filed under the step that was running.
+type Finding struct {
+	Step     int    `json:"step"`
+	Kind     string `json:"kind"`
+	Text     string `json:"text,omitempty"`
+	URL      string `json:"url,omitempty"`
+	Status   int    `json:"status,omitempty"`
+	Method   string `json:"method,omitempty"`
+	Resource string `json:"resource,omitempty"`
+	Count    int    `json:"count"`
 }
 
 type Failure struct {
@@ -441,6 +471,9 @@ type Run struct {
 	FinishedAt    *time.Time      `json:"finished_at"`
 	ErrorCause    string          `json:"error_cause,omitempty"`
 	Artifacts     []Artifact      `json:"artifacts,omitempty"`
+	// Only on a single run (GetRun): the runner's timing and the page errors.
+	Metrics  json.RawMessage `json:"metrics,omitempty"`
+	Findings []Finding       `json:"findings,omitempty"`
 }
 
 type RunResult struct {
@@ -455,6 +488,9 @@ type RunResult struct {
 	ChaptersID string    `json:"chapters_id"`
 	PosterID   string    `json:"poster_id"`
 	ShotIDs    []string  `json:"shot_ids"`
+	// Optional: a runner from before this field sends neither.
+	Metrics  json.RawMessage `json:"metrics,omitempty"`
+	Findings []Finding       `json:"findings,omitempty"`
 }
 
 type RunFilter struct {
@@ -545,7 +581,7 @@ func ValidCaseStatus(s string) bool {
 
 func ValidArtifactKind(k string) bool {
 	switch k {
-	case ArtifactVideo, ArtifactTake, ArtifactChapters, ArtifactShot, ArtifactPoster:
+	case ArtifactVideo, ArtifactTake, ArtifactChapters, ArtifactShot, ArtifactPoster, ArtifactMetrics:
 		return true
 	}
 	return false

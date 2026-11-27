@@ -177,10 +177,14 @@ tools:
   # No scope grants these three; they must be named in the agent's tool list
   # (thulu-github@run_view+run_dispatch),
   # the same rule as octopus-api's cross-board tools.
+  # requires_approval: the daemon mints run_dispatch's Actions: write for a task run only once a
+  # person approved that approval on the run's task (githubToolApprovals keeps a copy; a test checks
+  # the two agree).
   - name: run_dispatch
-    description: Trigger a workflow_dispatch and return the run it created.
+    description: Trigger a workflow_dispatch and return the run it created. In a task run, only after a person approves deploy_prod on the task.
     scope: deploy
     requires: {github: [github:actions:write]}
+    requires_approval: deploy_prod
   - name: deployment_approve
     description: Approve or reject the environments a run is waiting on. Only when the run's token is a required reviewer — granting it to the agent that dispatches collapses the human gate.
     scope: deploy

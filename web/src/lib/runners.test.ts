@@ -3,7 +3,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { api, ApiError } from "./api";
 import {
   activeRunners,
+  admissionLines,
   loadRunnersOrOff,
+  localToolsLines,
   mixWarning,
   revokeMessage,
   runnerBadgeHTML,
@@ -132,6 +134,47 @@ describe("loadRunnersOrOff", () => {
   it("returns the list when it loads", async () => {
     vi.spyOn(api, "get").mockResolvedValue([rn()]);
     expect(await loadRunnersOrOff()).toEqual([rn()]);
+  });
+});
+
+describe("localToolsLines", () => {
+  it("says nothing for a runner that has not reported it", () => {
+    expect(localToolsLines(undefined)).toEqual([]);
+  });
+
+  it("names the selected MCPs and where the setting lives", () => {
+    const [line] = localToolsLines({ mode: "selected", mcp: ["pg", "claude.ai Slack"] });
+    expect(line).toContain("Thulu's MCPs plus pg, claude.ai Slack");
+    expect(line).toContain("thulu runner config local-tools");
+  });
+
+  it("tells thulu and all apart", () => {
+    expect(localToolsLines({ mode: "thulu" })[0]).toContain("only Thulu's MCPs");
+    expect(localToolsLines({ mode: "all" })[0]).toContain("every MCP the machine has");
+  });
+
+  it("warns when a policy turns bypass off with no allowed tools", () => {
+    const lines = localToolsLines({ mode: "thulu", bypass_disabled: true, allowed_tools: 0 });
+    expect(lines).toHaveLength(2);
+    expect(lines[1]).toContain("allowed_tools is empty");
+    expect(
+      localToolsLines({ mode: "thulu", bypass_disabled: true, allowed_tools: 2 })[1],
+    ).toContain("only what allowed_tools lists");
+  });
+});
+
+describe("admissionLines", () => {
+  it("says why a runner takes no runs", () => {
+    expect(
+      admissionLines({ state: "paused_low_memory", available_mb: 1229, min_free_mb: 2048 }),
+    ).toEqual(["Not taking runs: 1.2 GB free, needs 2 GB."]);
+  });
+
+  it("says nothing while it takes runs, or before it reported", () => {
+    expect(admissionLines({ state: "accepting", available_mb: 9000, min_free_mb: 2048 })).toEqual(
+      [],
+    );
+    expect(admissionLines(undefined)).toEqual([]);
   });
 });
 

@@ -2,9 +2,7 @@
 // What picker.css paints, read in jsdom against the markup lib/ui/picker.ts
 // writes. It lives here, not next to picker.test.ts, because it reads the
 // sheet off the disk (Vitest hands a CSS import over empty) and src/ has no
-// Node types. jsdom resolves no var() and matches no :focus-within, so it
-// reads the declared background without the focus; the focused list is
-// left to the browser.
+// Node types. The focused list (:focus-within) is left to the browser.
 
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -18,16 +16,22 @@ const sheet = readFileSync(
   "utf8",
 );
 
+// jsdom computes an unset background too, so the active option counts as
+// marked when it paints differently from an option that is not active.
 function marksActive(el) {
   const opt = el.querySelector(".nselect-item.active");
-  if (!opt) throw new Error("no active option");
-  return getComputedStyle(opt).getPropertyValue("background") !== "";
+  const rest = el.querySelector(".nselect-item:not(.active)");
+  if (!opt || !rest) throw new Error("needs an active option and another one");
+  const bg = (o) => getComputedStyle(o).getPropertyValue("background");
+  return bg(opt) !== bg(rest);
 }
 
 beforeAll(() => {
   Element.prototype.scrollIntoView = vi.fn();
   const style = document.createElement("style");
-  style.textContent = sheet;
+  // The token sheet is not loaded; jsdom resolves var(), so give the one the
+  // marked option paints with a value, or it computes to transparent.
+  style.textContent = `:root { --surface-4: rgb(1, 2, 3); }\n${sheet}`;
   document.head.appendChild(style);
 });
 

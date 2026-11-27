@@ -42,6 +42,10 @@ func (fakeTargets) ResolveCollectTarget(_ context.Context, envID string) (*Colle
 	}, nil
 }
 
+func (f fakeTargets) ResolveDeployTarget(ctx context.Context, envID string) (*CollectTarget, error) {
+	return f.ResolveCollectTarget(ctx, envID)
+}
+
 func testCollector(s *Store, url string) *Collector {
 	c := NewCollector(s, fixedInterval(300), url)
 	c.SetTargets(fakeTargets{})

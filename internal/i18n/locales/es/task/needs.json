@@ -1,0 +1,26 @@
+{
+  "account": {
+    "title": "Cuenta en la app",
+    "help": "El caso necesita entrar a la app que se prueba, por ejemplo con un usuario de prueba o un rol de admin."
+  },
+  "third_party_account": {
+    "title": "Cuenta de un tercero",
+    "help": "El caso pasa por otro servicio (pagos, email, login social) y necesita una cuenta ahí."
+  },
+  "device": {
+    "title": "Dispositivo físico",
+    "help": "El caso necesita un teléfono real, un lector de tarjetas u otro hardware al que el agente no llega."
+  },
+  "environment": {
+    "title": "Entorno",
+    "help": "El caso necesita un entorno andando, como staging o una base con datos, o su dirección."
+  },
+  "judgment": {
+    "title": "Criterio de una persona",
+    "help": "Sólo una persona puede decir si el resultado está bien (textos, diseño, una decisión). El video muestra qué pasó."
+  },
+  "other": {
+    "title": "Otra cosa",
+    "help": "Cualquier otra cosa que el agente no pudo conseguir solo."
+  }
+}

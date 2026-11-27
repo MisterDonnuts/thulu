@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -300,6 +301,9 @@ func (s *Server) handleTaskMerge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
+	if s.mergeWaitsForChecks(w, r, t, target == proj.DefaultBranch) {
+		return
+	}
 	if !s.publishTaskBranch(w, r, t, proj.ID) {
 		return
 	}
@@ -328,8 +332,34 @@ func (s *Server) handleTaskMerge(w http.ResponseWriter, r *http.Request) {
 		}
 		logx.Warn(s.taskStore.RecordEvent(ctx, t.ID, task.EventBranchMerged, proj.ID, author.Label(), summary, resp),
 			"api.tasks.log.merge_event", "task", t.ID)
+		// Only the default branch is what gets deployed. A subtask's branch is part of its parent's
+		// work, which moves when the parent merges.
+		if target == proj.DefaultBranch && res.Commit != "" && !t.IsSubtask() {
+			s.onPRMerged(context.WithoutCancel(ctx), t, prMerge{
+				ProjectID: proj.ID, SHA: res.Commit, Base: target, By: author.Label(), Source: mergeSourceHosted, Recorded: true,
+			})
+		}
 	}
 	writeJSON(w, http.StatusOK, resp)
+}
+
+// mergeWaitsForChecks answers 409 to a merge into the default branch while the task's pull requests
+// on GitHub have required checks that are not green and its flow asks for them before a merge. Only
+// a task with an uploaded project and a GitHub one reaches this: the uploaded half waits for the
+// GitHub half's checks. That merge never moves the task by itself, since the open pull request
+// still has to merge (advanceMerged). Another target, or a subtask's branch, moves nothing on.
+func (s *Server) mergeWaitsForChecks(w http.ResponseWriter, r *http.Request, t *task.Task, intoDefault bool) bool {
+	if !intoDefault || t.IsSubtask() {
+		return false
+	}
+	ctx := r.Context()
+	holds := s.mergeChecksHolds(ctx, t)
+	if len(holds) == 0 {
+		return false
+	}
+	writeJSON(w, http.StatusConflict, keyedRefusal(ctx, map[string]any{"required_checks": holds},
+		"api.tasks.errors.merge_required_checks", "checks", task.ChecksText(ctx, holds)))
+	return true
 }
 
 func (s *Server) publishTaskBranch(w http.ResponseWriter, r *http.Request, t *task.Task, projectID string) bool {

@@ -1,7 +1,9 @@
+import { newProblems, patchLock } from "./board-rules";
 import { t } from "../i18n";
 import { api } from "./api";
 import { roleWithin } from "./api-keys";
 import { sessionInfo } from "./auth";
+import { skippableReason, skipWhyText } from "./stage-skips";
 import type { Stage } from "./stages";
 
 // A session with no role (no-login install) reads as allowed; the daemon still authorizes every
@@ -78,8 +80,39 @@ export function flowWarningText(w: FlowWarning, stages: readonly Stage[]): strin
   });
 }
 
-export const FLAG_KEYS = ["initial", "terminal", "auto_advance", "push_branch", "open_pr"] as const;
+export const FLAG_KEYS = [
+  "initial",
+  "terminal",
+  "auto_advance",
+  "push_branch",
+  "open_pr",
+  "agent_verdict",
+  "lock_tests",
+  "pr_draft",
+  "pr_ready",
+  "merge_target",
+  "release_resources",
+  "no_skip",
+] as const;
 export type FlagKey = (typeof FLAG_KEYS)[number];
+
+// The pull request and release flags, shown in their own section of the column dialog.
+export const PR_FLAGS: readonly FlagKey[] = [
+  "pr_draft",
+  "pr_ready",
+  "merge_target",
+  "release_resources",
+];
+
+// Mirror the daemon's validateEdgeFlags: no agent runs in the start or the finishing column.
+const EDGE_FLAGS: readonly FlagKey[] = [
+  "agent_verdict",
+  "lock_tests",
+  "release_resources",
+  "pr_draft",
+];
+// A pull request never lands in the start column.
+const START_FLAGS: readonly FlagKey[] = ["merge_target", "pr_ready"];
 
 export const WIP_GROUPS = ["", "work", "review"] as const;
 export type WipGroup = (typeof WIP_GROUPS)[number];
@@ -90,31 +123,90 @@ export interface FlagState {
   reason: string;
 }
 
-// Mirrors the daemon's board rules; change together: one start column, at least one finishing
-// column,
-// never both, and a finishing column does not auto-advance.
+// A flag is locked when flipping it would break one of the daemon's board rules (board-rules.ts
+// mirrors them, tested against the daemon on shared boards). The start and finishing flags keep
+// their own wording.
 export function flagState(stage: Stage, flag: FlagKey, stages: readonly Stage[]): FlagState {
   const checked = Boolean(stage[flag]);
-  const lock = (reason: string): FlagState => ({ checked, disabled: true, reason });
+  const reason =
+    edgeFlagLock(stage, flag, checked, stages) || flipLock(stage, flag, checked, stages);
+  return { checked, disabled: reason !== "", reason };
+}
+
+function edgeFlagLock(
+  stage: Stage,
+  flag: FlagKey,
+  checked: boolean,
+  stages: readonly Stage[],
+): string {
   switch (flag) {
     case "initial":
-      if (checked) return lock(t("lib.board_editor.locks.initial_move"));
-      if (stage.terminal) return lock(t("lib.board_editor.locks.initial_terminal"));
-      break;
+      if (checked) return t("lib.board_editor.locks.initial_move");
+      return stage.terminal ? t("lib.board_editor.locks.initial_terminal") : "";
     case "terminal":
       if (checked && stages.filter((s) => s.terminal).length <= 1) {
-        return lock(t("lib.board_editor.locks.last_terminal"));
+        return t("lib.board_editor.locks.last_terminal");
       }
-      if (!checked && stage.initial) return lock(t("lib.board_editor.locks.terminal_initial"));
-      break;
+      return !checked && stage.initial ? t("lib.board_editor.locks.terminal_initial") : "";
     case "auto_advance":
-      if (!checked && stage.terminal) return lock(t("lib.board_editor.locks.terminal_no_advance"));
-      break;
+      return !checked && stage.terminal ? t("lib.board_editor.locks.terminal_no_advance") : "";
     case "push_branch":
     case "open_pr":
-      break;
+    case "agent_verdict":
+    case "lock_tests":
+    case "pr_draft":
+    case "pr_ready":
+    case "merge_target":
+    case "release_resources":
+      return "";
+    case "no_skip":
+      return checked ? "" : noSkipLock(stage);
   }
-  return { checked, disabled: false, reason: "" };
+}
+
+// Why "can't be skipped" can't be turned on: the column is never skipped anyway (the same rule
+// the drawer and the daemon apply), or skip_unless already lets the board skip it.
+function noSkipLock(stage: Stage): string {
+  const why = skippableReason(stage);
+  if (why !== "") return skipWhyText(why);
+  return stage.skip_unless?.length ? t("lib.board_editor.locks.no_skip_skip_unless") : "";
+}
+
+function flipLock(stage: Stage, flag: FlagKey, checked: boolean, stages: readonly Stage[]): string {
+  const board = stages.some((s) => s.id === stage.id) ? stages : [...stages, stage];
+  return patchLock(board, stage.id, applyPatch(board, stage.id, flagPatch(stage, flag, !checked)));
+}
+
+// Why patching a column this way would break the board; "" when the daemon would take it.
+export function stagePatchLock(
+  stages: readonly Stage[],
+  id: string,
+  patch: Partial<Stage>,
+): string {
+  return patchLock(stages, id, applyPatch(stages, id, patch));
+}
+
+// Why no approval can be added to a column that has none yet (it may be skipped); "" when one can.
+// A column that already has approvals keeps its add button: the save runs them through
+// stagePatchLock.
+export function approvalsAddLock(stages: readonly Stage[], stage: Stage): string {
+  if (stage.required_approvals?.length) return "";
+  return stagePatchLock(stages, stage.id, { required_approvals: [{ key: "new", label: "new" }] });
+}
+
+// The columns before `stage` that may receive its changes sent back: the daemon refuses a target
+// that may be skipped. The current target stays listed so the select shows it.
+export function kickBackChoices(stages: readonly Stage[], stage: Stage): Stage[] {
+  const idx = stages.findIndex((s) => s.id === stage.id);
+  return stages
+    .slice(0, Math.max(idx, 0))
+    .filter(
+      (s) =>
+        s.id === stage.changes_kick_back_to ||
+        !newProblems(stages, applyPatch(stages, stage.id, { changes_kick_back_to: s.id })).some(
+          (p) => p.rule === "skip_unless_kick_back_target",
+        ),
+    );
 }
 
 // auto_advance must be cleared in the same write, or the daemon refuses the board.
@@ -123,7 +215,41 @@ export function flagPatch(stage: Stage, flag: FlagKey, value: boolean): Partial<
   if (flag === "terminal" && value) {
     if (stage.auto_advance) patch.auto_advance = false;
   }
+  // The daemon refuses a start or finishing column that keeps an agent's flags: clear them in the
+  // same write.
+  if ((flag === "terminal" || flag === "initial") && value) {
+    const cleared = flag === "initial" ? [...EDGE_FLAGS, ...START_FLAGS] : EDGE_FLAGS;
+    for (const f of cleared) if (stage[f]) patch[f] = false;
+    if (stage.skip_unless?.length) patch.skip_unless = [];
+  }
   return patch;
+}
+
+// Must match the daemon's maxSkipUnless and stage id rule, which skip_unless values follow.
+export const MAX_SKIP_UNLESS = 8;
+
+export type SkipUnlessParse = { values: string[] } | { problem: string };
+
+// "ui, api" → ["ui", "api"]. Empty runs the column for every task.
+export function parseSkipUnless(raw: string): SkipUnlessParse {
+  const values = [
+    ...new Set(
+      raw
+        .split(/[\s,]+/)
+        .map((v) => v.trim().toLowerCase())
+        .filter(Boolean),
+    ),
+  ];
+  const bad = values.find((v) => !validId(v));
+  if (bad) return { problem: t("lib.board_editor.skip_unless.invalid", { value: bad }) };
+  if (values.length > MAX_SKIP_UNLESS) {
+    return { problem: t("lib.board_editor.skip_unless.too_many", { max: MAX_SKIP_UNLESS }) };
+  }
+  return { values };
+}
+
+export function skipUnlessText(stage: Pick<Stage, "skip_unless">): string {
+  return (stage.skip_unless ?? []).join(", ");
 }
 
 // Mirrors the daemon: setting `initial` clears it on every other column in the same write.

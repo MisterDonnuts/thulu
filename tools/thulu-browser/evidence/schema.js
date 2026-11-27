@@ -4,14 +4,26 @@
 import { z } from "zod";
 
 import { t } from "../i18n.js";
+import { IMPACTS } from "../lib/a11y.js";
+import { METRICS } from "../lib/perf.js";
+import { COLOR_SCHEMES, CPU_MAX, NETWORKS } from "../lib/throttle.js";
+
+// think: what a blind tester says while working the page out, for the think-aloud section.
+export const NOTE_LEVELS = ["step", "fact", "issue", "think"];
+export { IMPACTS };
 
 const text = z.string().trim().min(1);
 const target = text.describe(t("params.take_target"));
 const ms = (max) => z.number().int().min(0).max(max);
 
 export const TONES = ["focus", "ok", "warn", "bad"];
-export const CHECKS = ["visible", "hidden", "text", "value", "count", "url", "title"];
+export const CHECKS = ["visible", "hidden", "text", "value", "count", "url", "title", "perf"];
 export const MATCHES = ["equals", "contains", "regex"];
+export { METRICS };
+
+const pattern = z.string().max(200).refine((p) => {
+  try { new RegExp(p); return true; } catch { return false; }
+}, { message: t("errors.ignore_not_regex") });
 
 const base = {
   label: z.string().trim().max(160).optional(),
@@ -76,12 +88,21 @@ export const stepSchema = z.discriminatedUnion("kind", [
     expected: z.string().max(500),
     observed: z.string().max(500).optional(),
     check: z.enum(CHECKS).optional(),
+    metric: z.enum(METRICS).optional(),
     target: target.optional(),
     match: z.enum(MATCHES).optional(),
     timeout_ms: ms(30_000).optional(),
     detail: z.string().max(1_000).optional(),
   }),
-  step("note", { text: text.max(300), level: z.enum(["step", "fact", "issue"]).default("step") }),
+  step("a11y", {
+    case: text.max(80).optional(),
+    include: z.array(target).max(10).optional(),
+    exclude: z.array(target).max(10).optional(),
+    tags: z.array(text.max(40)).max(20).optional(),
+    fail_on: z.enum(IMPACTS).optional(),
+    disable_rules: z.array(text.max(80)).max(30).optional(),
+  }),
+  step("note", { text: text.max(300), level: z.enum(NOTE_LEVELS).default("step") }),
   // Runs only inside the page (page.evaluate), never in the server process.
   step("script", { code: text.max(20_000) }),
   step("use", { flow: text, params: z.record(z.string(), z.string()).optional() }),
@@ -96,8 +117,19 @@ export const stepSchema = z.discriminatedUnion("kind", [
     if (s.observed === undefined && !s.check) {
       ctx.addIssue({ code: "custom", message: t("errors.verify_needs_observed") });
     }
-    if (s.check && !["url", "title"].includes(s.check) && !s.target) {
+    if (s.check && !["url", "title", "perf"].includes(s.check) && !s.target) {
       ctx.addIssue({ code: "custom", message: t("errors.verify_needs_target", { check: s.check }) });
+    }
+    if (s.check === "perf") {
+      if (!s.metric) ctx.addIssue({ code: "custom", message: t("errors.perf_needs_metric", { metrics: METRICS.join(", ") }) });
+      const max = s.expected.trim() === "" ? NaN : Number(s.expected);
+      if (!Number.isFinite(max) || max < 0) {
+        ctx.addIssue({ code: "custom", message: t("errors.perf_expected_number", { expected: s.expected }) });
+      }
+      if (s.match) ctx.addIssue({ code: "custom", message: t("errors.perf_no_match") });
+      if (s.target) ctx.addIssue({ code: "custom", message: t("errors.perf_no_target") });
+    } else if (s.metric) {
+      ctx.addIssue({ code: "custom", message: t("errors.metric_needs_perf") });
     }
   }
   if (s.kind === "scroll" && !s.direction && !s.target) {
@@ -117,6 +149,12 @@ export const takeSchema = z.object({
   locale: z.string().max(35).optional(),
   allowed_hosts: z.array(text).max(20).optional(),
   redact_css: z.array(text).max(20).optional(),
+  network: z.enum(NETWORKS).optional(),
+  cpu_throttle: z.number().min(1).max(CPU_MAX).optional(),
+  color_scheme: z.enum(COLOR_SCHEMES).optional(),
+  ignore_errors: z.array(pattern).max(20).optional(),
+  // false films the app's waits in real time (a UX take); by default they are cut and marked.
+  cut_waits: z.boolean().optional(),
   steps: z.array(stepSchema).min(1).max(500),
 }).strict();
 

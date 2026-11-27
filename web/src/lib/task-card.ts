@@ -4,7 +4,14 @@ import { prNumberOf } from "./pr-section";
 import { safeUrl } from "./safe-url";
 import type { NextAgent } from "./stage-agents";
 import { subtaskProgressHTML, subtaskRowName, type SubtaskProgress } from "./subtasks";
-import { reasonLine, runBadgeTone, runPillHTML, runWord, type RunWord } from "./task-detail";
+import {
+  reasonLine,
+  runBadgeTone,
+  runPillHTML,
+  runWord,
+  type BlockInfo,
+  type RunWord,
+} from "./task-detail";
 import { unitShort } from "./time";
 import { badgeHTML, dotHTML, esc, icoSvg, isHexColor, listRowHTML, tagHTML } from "./ui";
 
@@ -44,6 +51,7 @@ export interface RunWordInput {
   pending_approvals?: number;
   status_reason?: string;
   open_questions?: number;
+  block?: BlockInfo | null;
 }
 
 export function askedWhileWorking(t_: RunWordInput): boolean {
@@ -107,7 +115,7 @@ export function cardStateRow(
 ): CardStateRow | null {
   let word: RunWord | null = null;
   if (!opts.terminal) {
-    word = runWord(t_.status, false);
+    word = runWord(t_.status, false, t_.block);
     if (!word && (Number(t_.pending_approvals) || 0) > 0)
       word = runWord("awaiting_approval", false);
   }
@@ -127,7 +135,7 @@ export function cardStateHTML(row: CardStateRow | null): string {
   if (!row) return "";
   const out: string[] = [];
   const w = row.word;
-  if (w) out.push(runPillHTML(w));
+  if (w) out.push(runPillHTML(w, "", { cls: "badge-fit" }));
   if (row.asked)
     out.push(
       badgeHTML(t("lib.task_card.asked"), "warn", {
@@ -163,6 +171,8 @@ export interface CardMeta {
   blocked: string;
   blocks: number;
   next?: NextAgent | null;
+  // The labels of the columns ahead that the task skips (stage_skips).
+  skips?: string[];
 }
 
 export function cardMetaHTML(m: CardMeta): string {
@@ -193,7 +203,15 @@ export function cardMetaHTML(m: CardMeta): string {
           icon: "i-arrow-right",
         })
       : "";
-  return repos + machines + tags + blocked + blocks + nextAgentHTML(m.next ?? null);
+  const skipped = m.skips ?? [];
+  const skips = skipped.length
+    ? tagHTML(t("lib.task_card.skips", { count: skipped.length }), {
+        size: "sm",
+        dashed: true,
+        title: t("lib.task_card.skips_title", { stages: skipped.join(", ") }),
+      })
+    : "";
+  return repos + machines + tags + blocked + blocks + skips + nextAgentHTML(m.next ?? null);
 }
 
 export function machineTagHTML(name: string, size?: "sm"): string {

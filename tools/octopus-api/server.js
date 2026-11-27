@@ -59,6 +59,22 @@ const SCOPE_IMPLIES = {
 
 const CROSS_BOARD_SCOPE = "board";
 
+// "release" is outside the ladder too: these tools move other tasks of the board or queue an Evidence
+// batch against production. The daemon refuses them to a run whose grant does not name them, so a
+// scope here would only list a tool that fails.
+const RELEASE_SCOPE = "release";
+
+// How often a wait polls the batch. The env var exists for the tests.
+const EVIDENCE_POLL_MS = Number(process.env.EVIDENCE_POLL_MS || 10000);
+const EVIDENCE_WAIT_MAX_SECONDS = 600;
+// A client that sent no progress token hears nothing until the call returns, and MCP clients cut a
+// silent call off after about a minute. Without a token the wait stops here and returns the batch
+// id to check again with evidence_batch_get.
+const EVIDENCE_WAIT_SILENT_SECONDS = Number(process.env.EVIDENCE_WAIT_SILENT_SECONDS || 45);
+const BATCH_FINISHED = new Set(["done", "canceled", "error"]);
+const RUN_PROBLEM = new Set(["fail", "error", "blocked"]);
+const DAY_MS = 86400000;
+
 async function callApi(method, path, body, { rawBody = false, rawResponse = false } = {}) {
   const opts = { method, headers: { ...octopusAuthHeaders() } };
   if (rawBody && typeof body === "string") {
@@ -112,6 +128,46 @@ const ASK_LIMITS = {
 const chars = (s) => [...s].length;
 
 const isText = (v) => typeof v === "string" && v.trim() !== "";
+
+// Same limit the daemon enforces on a case run's observed (task.MaxObservedRunes); change both
+// together. Refusing here names the fix (one sentence, detail in note) before a round trip.
+const OBSERVED_MAX = 280;
+
+// The need kinds come from the daemon's catalog (GET /test-cases/need-kinds), never from a list
+// kept here: a kind added to the catalog reaches the tool description without a change to this
+// server. The catalog ships in the daemon binary, so one copy serves every session for a while.
+const NEED_KINDS_TTL_MS = 10 * 60 * 1000;
+let needKindsCache = { at: 0, text: "" };
+
+async function needKindsText() {
+  if (needKindsCache.text && Date.now() - needKindsCache.at < NEED_KINDS_TTL_MS) return needKindsCache.text;
+  try {
+    const kinds = await callApi("GET", "/test-cases/need-kinds");
+    const text = (Array.isArray(kinds) ? kinds : [])
+      .filter((k) => isText(k?.kind))
+      .map((k) => {
+        const title = isText(k.title) ? ` (${k.title.trim()})` : "";
+        const help = isText(k.help) ? `: ${k.help.trim()}` : "";
+        return `${k.kind}${title}${help}`;
+      })
+      .join("; ");
+    if (text) needKindsCache = { at: Date.now(), text };
+    return text;
+  } catch {
+    // A keyless catalog probe, or a daemon that does not answer: the last list, or none.
+    return needKindsCache.text;
+  }
+}
+
+// task_test_case_run as tools/list shows it: the needs.kind description names the catalog's kinds.
+function withNeedKinds(tool, kinds) {
+  if (tool.name !== "task_test_case_run") return tool;
+  const copy = structuredClone(tool);
+  copy.inputSchema.properties.needs.items.properties.kind.description = kinds
+    ? t("tools.task_test_case_run.params.needs_kind", { kinds })
+    : t("tools.task_test_case_run.params.needs_kind_unlisted");
+  return copy;
+}
 
 function askBody(a) {
   if (a.kind !== "question" && a.kind !== "blocker") {
@@ -198,9 +254,138 @@ function askBody(a) {
   };
 }
 
+// The required-argument check lets a whitespace-only reason through; the daemon would refuse it
+// anyway, but the refusal named here says what to write.
+function skipReason(reason) {
+  if (!isText(reason)) throw new Error(t("errors.skip_reason_required"));
+  return reason.trim();
+}
+
+// What happened to the task after a skip removal, in the words the agent acts on.
+function skipRemovedNote(res) {
+  if (!res?.passed) return t("text.skip_removed_ahead");
+  if (res.deferred) return t("text.skip_removed_deferred");
+  if (res.moved_back) return t("text.skip_removed_back");
+  return t("text.skip_removed_not_moved");
+}
+
 function sessionTaskID(ctx, tool) {
   if (!ctx?.taskId) throw new Error(t("errors.run_tool_without_task", { tool }));
   return ctx.taskId;
+}
+
+function stageTaskSummary(task, projectID, now) {
+  const updated = Date.parse(task.updated_at ?? "");
+  const out = {
+    id: task.id,
+    title: task.title,
+    stage: task.stage,
+    status: task.status || "",
+    type_id: task.type_id || "",
+    project_ids: task.project_ids ?? [],
+    pr_urls: task.pr_urls ?? {},
+    merge_shas: task.merge_shas ?? {},
+    updated_at: task.updated_at,
+    days_since_update: Number.isNaN(updated) ? null : Math.floor((now - updated) / DAY_MS),
+  };
+  if (projectID) out.merge_sha = task.merge_shas?.[projectID] ?? null;
+  return out;
+}
+
+function clampWait(seconds) {
+  const n = Math.floor(Number(seconds) || 0);
+  return Math.min(Math.max(n, 0), EVIDENCE_WAIT_MAX_SECONDS);
+}
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Sends notifications/progress for the call when the client asked for them (a progressToken in
+// _meta); null otherwise. A notification that fails to send never fails the tool.
+function progressReporter(extra) {
+  const token = extra?._meta?.progressToken;
+  if (token === undefined || token === null || typeof extra.sendNotification !== "function") return null;
+  let progress = 0;
+  return async (b) => {
+    progress += 1;
+    const done = (b.passed ?? 0) + (b.failed ?? 0) + (b.blocked ?? 0) + (b.errored ?? 0) + (b.canceled ?? 0);
+    const message = t("progress.batch", { id: b.id, status: b.status, done, total: b.total ?? 0 });
+    try {
+      await extra.sendNotification({ method: "notifications/progress", params: { progressToken: token, progress, message } });
+    } catch {
+      // The client went away or ignores progress; the wait goes on.
+    }
+  };
+}
+
+// Polls until the batch finishes or the wait runs out; a wait of 0 returns the batch as it is.
+// Without a progress reporter the wait is cut to EVIDENCE_WAIT_SILENT_SECONDS; cappedAt says so.
+async function waitForBatch(batch, waitSeconds, report = null) {
+  const asked = clampWait(waitSeconds);
+  const wait = report ? asked : Math.min(asked, EVIDENCE_WAIT_SILENT_SECONDS);
+  const deadline = Date.now() + wait * 1000;
+  let b = batch;
+  while (!BATCH_FINISHED.has(b.status) && Date.now() < deadline) {
+    await sleep(Math.min(EVIDENCE_POLL_MS, Math.max(deadline - Date.now(), 0)));
+    b = await callApi("GET", `/evidence/batches/${enc(b.id)}`);
+    if (report) await report(b);
+  }
+  const timedOut = wait > 0 && !BATCH_FINISHED.has(b.status);
+  return { batch: b, timedOut, cappedAt: timedOut && wait < asked ? wait : null };
+}
+
+// skipped is what the daemon left out of a safe_only batch; only the response that queued it knows.
+function batchSummary(b, { timedOut = false, skipped = null, cappedAt = null } = {}) {
+  const runs = Array.isArray(b.runs) ? b.runs : [];
+  const finished = BATCH_FINISHED.has(b.status);
+  const out = {
+    batch_id: b.id,
+    environment_id: b.environment_id,
+    status: b.status,
+    finished,
+    timed_out: timedOut,
+    safe_only: !!b.safe_only,
+    total: b.total ?? runs.length,
+    passed: b.passed ?? 0,
+    failed: b.failed ?? 0,
+    blocked: b.blocked ?? 0,
+    errored: b.errored ?? 0,
+    canceled: b.canceled ?? 0,
+    failures: runs
+      .filter((r) => RUN_PROBLEM.has(r.status))
+      .map((r) => ({
+        case: r.case_key,
+        title: r.case_title,
+        status: r.status,
+        error: r.error || r.failures?.[0]?.error || "",
+      })),
+    trigger: b.trigger,
+    trigger_ref: b.trigger_ref,
+    task_id: b.task_id || "",
+    created_at: b.created_at,
+    finished_at: b.finished_at ?? null,
+  };
+  if (skipped) {
+    out.skipped_side_effect = skipped.length;
+    out.skipped_side_effect_cases = skipped;
+  }
+  if (b.error) out.error = b.error;
+  if (cappedAt !== null) out.wait_capped_seconds = cappedAt;
+  if (timedOut) out.next = t("hints.batch_check_again", { id: b.id });
+  return out;
+}
+
+// A deploy batch's trigger_ref is "owner/repo@<sha7> · environment" (internal/evidence/service.go).
+async function deployBatchFor(environmentID, sha) {
+  const q = new URLSearchParams({
+    environment_id: environmentID,
+    trigger: "deploy",
+    ref: `@${String(sha).trim().toLowerCase().slice(0, 7)}`,
+    limit: "1",
+  });
+  const res = await callApi("GET", `/evidence/batches?${q}`);
+  const found = res?.batches?.[0];
+  if (!found) throw new Error(t("errors.deploy_batch_not_found", { env: environmentID, sha }));
+  return found.id;
 }
 
 function ok(value) {
@@ -279,6 +464,113 @@ async function createTaskOnBoard(boardID, args) {
   });
 }
 
+// A report's body past this many characters is cut in a listing; report_id returns it whole. Agent
+// reports run to 20 KB and a task collects dozens, so a full listing would flood the context.
+const REPORT_EXCERPT_CHARS = 4000;
+
+// selectReports narrows the Reports tab to what the caller asked: one report whole by report_id, or
+// the reports of a stage and kind, newest first, each body cut to REPORT_EXCERPT_CHARS.
+function selectReports(reports, { stage, kind, report_id } = {}) {
+  const list = Array.isArray(reports) ? reports : [];
+  if (report_id) {
+    const r = list.find((x) => x.id === report_id);
+    if (!r) throw new Error(t("errors.report_not_found", { id: report_id }));
+    return r;
+  }
+  return list
+    .filter((r) => (!stage || r.stage === stage) && (!kind || r.kind === kind))
+    .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
+    .map((r) => {
+      const body = String(r.body ?? "");
+      const cut = body.length > REPORT_EXCERPT_CHARS;
+      return {
+        id: r.id, stage: r.stage, author: r.author, kind: r.kind, title: r.title,
+        created_at: r.created_at, verdict: r.verdict_meta?.verdict,
+        chars: body.length, truncated: cut, body: cut ? body.slice(0, REPORT_EXCERPT_CHARS) : body,
+      };
+    });
+}
+
+// Kinds that record each tool call or a liveness tick: hundreds per run, none of them a step a
+// person or an agent asks about. task_events leaves them out unless kind names one.
+const NOISY_EVENT_KINDS = new Set(["agent_tool_call", "agent_heartbeat", "runner_heartbeat", "session_snapshot"]);
+const EVENTS_DEFAULT_LIMIT = 100;
+// An event's payload past this many characters is cut: an auditor_prompt carries the whole prompt.
+const EVENT_PAYLOAD_CHARS = 20000;
+
+// selectEvents turns the task's activity into what fits a context: one event with its payload by
+// event_id, or the latest events (oldest first, as they read) without payloads, the noisy kinds left
+// out unless kind asks for one.
+function selectEvents(events, { kind, since, limit, event_id } = {}) {
+  const list = Array.isArray(events) ? events : (events?.events ?? []);
+  if (event_id) {
+    const e = list.find((x) => x.id === event_id);
+    if (!e) throw new Error(t("errors.event_not_found", { id: event_id }));
+    const payload = e.payload == null ? "" : (typeof e.payload === "string" ? e.payload : JSON.stringify(e.payload));
+    const cut = payload.length > EVENT_PAYLOAD_CHARS;
+    return { ...e, payload: cut ? payload.slice(0, EVENT_PAYLOAD_CHARS) : e.payload, payload_truncated: cut };
+  }
+  const max = Number.isInteger(limit) && limit > 0 ? limit : EVENTS_DEFAULT_LIMIT;
+  const kept = list.filter((e) => (kind ? e.kind === kind : !NOISY_EVENT_KINDS.has(e.kind))
+    && (!since || String(e.created_at) > since));
+  return {
+    total: kept.length,
+    events: kept.slice(-max).map((e) => ({
+      id: e.id, created_at: e.created_at, kind: e.kind, actor: e.actor, summary: e.summary,
+      round: e.round, ref_id: e.ref_id || undefined,
+    })),
+  };
+}
+
+// The model sees an image only under the API's per-image limit; text past the cap is cut.
+const ATTACHMENT_IMAGE_MAX_BYTES = 3_750_000;
+const ATTACHMENT_TEXT_MAX_CHARS = 100_000;
+const IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/gif", "image/webp"]);
+const TEXT_EXTENSIONS = /\.(txt|log|md|markdown|json|jsonl|ya?ml|csv|tsv|xml|html?|sarif|diff|patch)$/i;
+const EXT_TYPES = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp" };
+
+function attachmentKind(a) {
+  const ext = String(a.filename || "").split(".").pop().toLowerCase();
+  const mime = String(a.mime_type || EXT_TYPES[ext] || "").split(";")[0].trim().toLowerCase();
+  if (IMAGE_TYPES.has(mime)) return { kind: "image", mime };
+  if (mime.startsWith("text/") || /json|xml|yaml|csv/.test(mime) || TEXT_EXTENSIONS.test(a.filename || "")) {
+    return { kind: "text", mime };
+  }
+  if (mime.startsWith("video/")) return { kind: "video", mime };
+  return { kind: "other", mime };
+}
+
+// readAttachment opens one of the task's attachments for the model: an image as an image, text and
+// JSON (a take, a log, a SARIF) as text. It looks the attachment up in the task's own list first, so
+// an id from another task is refused here as it is by the daemon.
+async function readAttachment(taskID, attachmentID) {
+  const listed = await callApi("GET", `/tasks/${enc(taskID)}/attachments`);
+  const list = Array.isArray(listed) ? listed : (listed?.attachments ?? []);
+  const a = list.find((x) => x.id === attachmentID);
+  if (!a) throw new Error(t("errors.attachment_not_found", { id: attachmentID }));
+  const { kind, mime } = attachmentKind(a);
+  if (kind === "video") throw new Error(t("errors.attachment_video", { name: a.filename }));
+  if (kind === "other") throw new Error(t("errors.attachment_unreadable", { name: a.filename, type: mime || "?" }));
+  if (kind === "image" && a.size > ATTACHMENT_IMAGE_MAX_BYTES) {
+    throw new Error(t("errors.attachment_too_big", { name: a.filename, size: a.size, max: ATTACHMENT_IMAGE_MAX_BYTES }));
+  }
+  const r = await fetch(`${OCTOPUS_API}/task-attachments/${enc(attachmentID)}`, { headers: { ...octopusAuthHeaders() } });
+  if (!r.ok) {
+    throw new Error(t("errors.daemon_http", {
+      method: "GET", path: `/task-attachments/${attachmentID}`, status: r.status, msg: await r.text(),
+    }));
+  }
+  const header = { type: "text", text: JSON.stringify({ id: a.id, filename: a.filename, mime_type: mime, size: a.size }) };
+  if (kind === "image") {
+    const data = Buffer.from(await r.arrayBuffer()).toString("base64");
+    return { content: [header, { type: "image", data, mimeType: mime }] };
+  }
+  const text = await r.text();
+  const cut = text.length > ATTACHMENT_TEXT_MAX_CHARS;
+  const body = cut ? text.slice(0, ATTACHMENT_TEXT_MAX_CHARS) + "\n" + t("text.attachment_truncated", { chars: text.length }) : text;
+  return { content: [header, { type: "text", text: body }] };
+}
+
 const TOOLS = [
   {
     scope: "read",
@@ -294,6 +586,52 @@ const TOOLS = [
       type: "object",
       properties: { id: { type: "string", description: t("tools.task_get.params.id") } },
       required: ["id"],
+    },
+  },
+
+  {
+    scope: "read",
+    name: "task_reports",
+    description: t("tools.task_reports.description"),
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: t("tools.task_reports.params.id") },
+        stage: { type: "string", description: t("tools.task_reports.params.stage") },
+        kind: { type: "string", description: t("tools.task_reports.params.kind") },
+        report_id: { type: "string", description: t("tools.task_reports.params.report_id") },
+      },
+      required: ["id"],
+    },
+  },
+
+  {
+    scope: "read",
+    name: "task_events",
+    description: t("tools.task_events.description"),
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: t("tools.task_events.params.id") },
+        kind: { type: "string", description: t("tools.task_events.params.kind") },
+        since: { type: "string", description: t("tools.task_events.params.since") },
+        limit: { type: "number", description: t("tools.task_events.params.limit") },
+        event_id: { type: "string", description: t("tools.task_events.params.event_id") },
+      },
+      required: ["id"],
+    },
+  },
+  {
+    scope: "read",
+    name: "task_attachment_read",
+    description: t("tools.task_attachment_read.description"),
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: t("tools.task_attachment_read.params.id") },
+        attachment_id: { type: "string", description: t("tools.task_attachment_read.params.attachment_id") },
+      },
+      required: ["id", "attachment_id"],
     },
   },
 
@@ -469,6 +807,40 @@ const TOOLS = [
     },
   },
   {
+    scope: "read",
+    name: "task_criteria_get",
+    description: t("tools.task_criteria_get.description"),
+    inputSchema: {
+      type: "object",
+      properties: { id: { type: "string", description: t("tools.task_criteria_get.params.id") } },
+      required: ["id"],
+    },
+  },
+  {
+    scope: "write",
+    name: "task_criteria_set",
+    description: t("tools.task_criteria_set.description"),
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: t("tools.task_criteria_set.params.id") },
+        criteria: {
+          type: "array",
+          description: t("tools.task_criteria_set.params.criteria"),
+          items: {
+            type: "object",
+            properties: {
+              key: { type: "string", description: t("tools.task_criteria_set.params.criteria_key") },
+              text: { type: "string", description: t("tools.task_criteria_set.params.criteria_text") },
+            },
+            required: ["key", "text"],
+          },
+        },
+      },
+      required: ["id", "criteria"],
+    },
+  },
+  {
     scope: "write",
     name: "task_checklist_check",
     description: t("tools.task_checklist_check.description"),
@@ -589,6 +961,7 @@ const TOOLS = [
       properties: {
         id: { type: "string" },
         turns: { type: "integer", description: t("tools.task_relaunch.params.turns") },
+        reason: { type: "string", description: t("tools.task_relaunch.params.reason") },
       },
       required: ["id"],
     },
@@ -641,6 +1014,10 @@ const TOOLS = [
       properties: {
         id: { type: "string" },
         body: { type: "string", description: t("tools.task_add_comment.params.body") },
+        reply_to: {
+          type: "string",
+          description: t("tools.task_add_comment.params.reply_to"),
+        },
         parent_id: {
           type: "string",
           description: t("tools.task_add_comment.params.parent_id"),
@@ -747,8 +1124,37 @@ const TOOLS = [
         label: { type: "string", description: t("tools.task_request_approval.params.label") },
         reason: { type: "string", description: t("tools.task_request_approval.params.reason") },
         key: { type: "string", description: t("tools.task_request_approval.params.key") },
+        stage: { type: "string", description: t("tools.task_request_approval.params.stage") },
       },
       required: ["label", "reason"],
+    },
+  },
+  {
+    scope: "write",
+    name: "task_skip_add",
+    description: t("tools.task_skip_add.description"),
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: t("tools.task_skip_add.params.id") },
+        stage: { type: "string", description: t("tools.task_skip_add.params.stage") },
+        reason: { type: "string", description: t("tools.task_skip_add.params.reason") },
+      },
+      required: ["id", "stage", "reason"],
+    },
+  },
+  {
+    scope: "write",
+    name: "task_skip_remove",
+    description: t("tools.task_skip_remove.description"),
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: t("tools.task_skip_remove.params.id") },
+        stage: { type: "string", description: t("tools.task_skip_remove.params.stage") },
+        reason: { type: "string", description: t("tools.task_skip_remove.params.reason") },
+      },
+      required: ["id", "stage", "reason"],
     },
   },
 
@@ -784,6 +1190,15 @@ const TOOLS = [
               description: { type: "string", description: t("tools.task_test_case_add.params.cases_description") },
               steps: { type: "string", description: t("tools.task_test_case_add.params.cases_steps") },
               expected: { type: "string", description: t("tools.task_test_case_add.params.cases_expected") },
+              preconditions: {
+                type: "string",
+                description: t("tools.task_test_case_add.params.cases_preconditions"),
+              },
+              covers: {
+                type: "array",
+                items: { type: "string" },
+                description: t("tools.task_test_case_add.params.cases_covers"),
+              },
               priority: { type: "string", enum: ["low", "medium", "high", "critical"] },
             },
             required: ["title"],
@@ -806,6 +1221,12 @@ const TOOLS = [
         description: { type: "string" },
         steps: { type: "string" },
         expected: { type: "string" },
+        preconditions: { type: "string", description: t("tools.task_test_case_update.params.preconditions") },
+        covers: {
+          type: "array",
+          items: { type: "string" },
+          description: t("tools.task_test_case_update.params.covers"),
+        },
         priority: { type: "string", enum: ["low", "medium", "high", "critical"] },
         status: { type: "string", enum: ["pending", "pass", "fail", "blocked", "skipped"] },
         covered: { type: "boolean" },
@@ -837,8 +1258,44 @@ const TOOLS = [
         id: { type: "string", description: t("tools.task_test_case_run.params.id") },
         case: { type: "string", description: t("tools.task_test_case_run.params.case") },
         verdict: { type: "string", enum: ["pass", "fail", "blocked"] },
-        observed: { type: "string", description: t("tools.task_test_case_run.params.observed") },
+        observed: {
+          type: "string",
+          maxLength: OBSERVED_MAX,
+          description: t("tools.task_test_case_run.params.observed"),
+        },
         note: { type: "string", description: t("tools.task_test_case_run.params.note") },
+        needs: {
+          type: "array",
+          description: t("tools.task_test_case_run.params.needs"),
+          items: {
+            type: "object",
+            properties: {
+              // No enum: the kinds are the daemon's catalog, listed in this description at tools/list.
+              kind: { type: "string", description: t("tools.task_test_case_run.params.needs_kind_unlisted") },
+              label: { type: "string", description: t("tools.task_test_case_run.params.needs_label") },
+              secrets: {
+                type: "array",
+                description: t("tools.task_test_case_run.params.needs_secrets"),
+                items: {
+                  type: "object",
+                  properties: {
+                    name: { type: "string", description: t("tools.task_test_case_run.params.secrets_name") },
+                    label: { type: "string", description: t("tools.task_test_case_run.params.secrets_label") },
+                  },
+                  required: ["name", "label"],
+                },
+              },
+            },
+            required: ["kind", "label"],
+          },
+        },
+        tried: {
+          type: "string",
+          enum: ["none", "simulated", "partial"],
+          description: t("tools.task_test_case_run.params.tried"),
+        },
+        tried_result: { type: "string", description: t("tools.task_test_case_run.params.tried_result") },
+        writes_data: { type: "boolean", description: t("tools.task_test_case_run.params.writes_data") },
         video_attachment_id: { type: "string", description: t("tools.task_test_case_run.params.video_attachment_id") },
         take_attachment_id: { type: "string", description: t("tools.task_test_case_run.params.take_attachment_id") },
         report_id: {
@@ -966,6 +1423,21 @@ const TOOLS = [
           type: "object",
           additionalProperties: { type: "array", items: { type: "string" } },
         },
+        auditor_mode: {
+          type: "string",
+          enum: ["always", "signals"],
+          description: t("tools.agent_type_update_settings.params.auditor_mode"),
+        },
+        auditor_max_diff_lines: {
+          type: "integer",
+          minimum: 0,
+          description: t("tools.agent_type_update_settings.params.auditor_max_diff_lines"),
+        },
+        auditor_max_diff_files: {
+          type: "integer",
+          minimum: 0,
+          description: t("tools.agent_type_update_settings.params.auditor_max_diff_files"),
+        },
         system_skills_off: {
           type: "object",
           additionalProperties: { type: "array", items: { type: "string" } },
@@ -1029,6 +1501,137 @@ const TOOLS = [
       required: ["id"],
     },
   },
+  {
+    scope: "read",
+    name: "stage_tasks_list",
+    description: t("tools.stage_tasks_list.description"),
+    inputSchema: {
+      type: "object",
+      properties: {
+        stage: { type: "string", description: t("tools.stage_tasks_list.params.stage") },
+        project_id: { type: "string", description: t("tools.stage_tasks_list.params.project_id") },
+      },
+      required: ["stage"],
+    },
+  },
+  {
+    scope: RELEASE_SCOPE,
+    name: "tasks_move_batch",
+    description: t("tools.tasks_move_batch.description"),
+    inputSchema: {
+      type: "object",
+      properties: {
+        task_ids: {
+          type: "array",
+          items: { type: "string" },
+          minItems: 1,
+          maxItems: 50,
+          description: t("tools.tasks_move_batch.params.task_ids"),
+        },
+        from_stage: { type: "string", description: t("tools.tasks_move_batch.params.from_stage") },
+        to_stage: { type: "string", description: t("tools.tasks_move_batch.params.to_stage") },
+        note: { type: "string", description: t("tools.tasks_move_batch.params.note") },
+        deployed_sha: { type: "string", description: t("tools.tasks_move_batch.params.deployed_sha") },
+        project_id: { type: "string", description: t("tools.tasks_move_batch.params.project_id") },
+        require_included: { type: "boolean", description: t("tools.tasks_move_batch.params.require_included") },
+      },
+      required: ["task_ids", "from_stage", "to_stage", "note"],
+    },
+  },
+  {
+    scope: RELEASE_SCOPE,
+    name: "evidence_batch_run",
+    description: t("tools.evidence_batch_run.description"),
+    inputSchema: {
+      type: "object",
+      properties: {
+        environment_id: { type: "string", description: t("tools.evidence_batch_run.params.environment_id") },
+        tag: { type: "string", description: t("tools.evidence_batch_run.params.tag") },
+        case_ids: { type: "array", items: { type: "string" }, description: t("tools.evidence_batch_run.params.case_ids") },
+        project_id: { type: "string", description: t("tools.evidence_batch_run.params.project_id") },
+        safe_only: { type: "boolean", description: t("tools.evidence_batch_run.params.safe_only") },
+        branch: { type: "string", description: t("tools.evidence_batch_run.params.branch") },
+        wait_seconds: {
+          type: "integer",
+          minimum: 0,
+          maximum: EVIDENCE_WAIT_MAX_SECONDS,
+          description: t("tools.evidence_batch_run.params.wait_seconds"),
+        },
+      },
+      required: ["environment_id"],
+    },
+  },
+  {
+    scope: RELEASE_SCOPE,
+    name: "deploy_watch_set",
+    description: t("tools.deploy_watch_set.description"),
+    inputSchema: {
+      type: "object",
+      properties: {
+        source: {
+          type: "string",
+          enum: ["github_workflow", "github_deployment", "cloud", "http"],
+          description: t("tools.deploy_watch_set.params.source"),
+        },
+        target: { type: "string", description: t("tools.deploy_watch_set.params.target") },
+        interval: { type: "string", description: t("tools.deploy_watch_set.params.interval") },
+        project_id: { type: "string", description: t("tools.deploy_watch_set.params.project_id") },
+      },
+      required: ["source", "target"],
+    },
+  },
+  {
+    scope: RELEASE_SCOPE,
+    name: "deploy_watch_list",
+    description: t("tools.deploy_watch_list.description"),
+    inputSchema: { type: "object", properties: {} },
+  },
+  {
+    scope: RELEASE_SCOPE,
+    name: "deploy_watch_delete",
+    description: t("tools.deploy_watch_delete.description"),
+    inputSchema: {
+      type: "object",
+      properties: {
+        watch_id: { type: "string", description: t("tools.deploy_watch_delete.params.watch_id") },
+      },
+      required: ["watch_id"],
+    },
+  },
+  {
+    scope: "read",
+    name: "evidence_batch_get",
+    description: t("tools.evidence_batch_get.description"),
+    inputSchema: {
+      type: "object",
+      properties: {
+        batch_id: { type: "string", description: t("tools.evidence_batch_get.params.batch_id") },
+        environment_id: { type: "string", description: t("tools.evidence_batch_get.params.environment_id") },
+        sha: { type: "string", description: t("tools.evidence_batch_get.params.sha") },
+        wait_seconds: {
+          type: "integer",
+          minimum: 0,
+          maximum: EVIDENCE_WAIT_MAX_SECONDS,
+          description: t("tools.evidence_batch_get.params.wait_seconds"),
+        },
+      },
+    },
+  },
+  {
+    scope: "read",
+    name: "deploy_contents",
+    description: t("tools.deploy_contents.description"),
+    inputSchema: {
+      type: "object",
+      properties: {
+        project_id: { type: "string", description: t("tools.deploy_contents.params.project_id") },
+        sha: { type: "string", description: t("tools.deploy_contents.params.sha") },
+        stage: { type: "string", description: t("tools.deploy_contents.params.stage") },
+        prev_sha: { type: "string", description: t("tools.deploy_contents.params.prev_sha") },
+      },
+      required: ["project_id", "sha"],
+    },
+  },
 
   {
     scope: "write",
@@ -1058,6 +1661,12 @@ const TOOLS = [
         default_branch: { type: "string" },
         description: { type: "string" },
         stage_template: { type: "object", additionalProperties: { type: "string" } },
+        release_mode: {
+          type: "string",
+          enum: ["", "auto", "batch"],
+          description: t("tools.project_update.params.release_mode"),
+        },
+        release_environment: { type: "string", description: t("tools.project_update.params.release_environment") },
       },
       required: ["id"],
     },
@@ -1389,6 +1998,11 @@ const HANDLERS = {
     return ok(await callApi("GET", `/tasks?board=${enc(boardID)}`));
   },
   task_get: async ({ id }) => ok(await callApi("GET", `/tasks/${enc(id)}`)),
+  task_reports: async ({ id, stage, kind, report_id }) =>
+    ok(selectReports(await callApi("GET", `/tasks/${enc(id)}/reports`), { stage, kind, report_id })),
+  task_events: async ({ id, kind, since, limit, event_id }) =>
+    ok(selectEvents(await callApi("GET", `/tasks/${enc(id)}/events`), { kind, since, limit, event_id })),
+  task_attachment_read: async ({ id, attachment_id }) => readAttachment(id, attachment_id),
   task_create: async (args, ctx) => {
     if (args.board_id !== undefined) {
       throw new Error(t("errors.task_create_board_id"));
@@ -1436,6 +2050,11 @@ const HANDLERS = {
     ok(await callApi("GET", `/tasks/${enc(id)}/sections`)),
   task_section_set: async ({ id, slug, content, title }) =>
     ok(await callApi("PUT", `/tasks/${enc(id)}/sections/${enc(slug)}`, { content, title })),
+  task_criteria_get: async ({ id }) => ok(await callApi("GET", `/tasks/${enc(id)}/criteria`)),
+  task_criteria_set: async ({ id, criteria }) => {
+    if (!Array.isArray(criteria)) throw new Error(t("errors.criteria_not_array"));
+    return ok(await callApi("PUT", `/tasks/${enc(id)}/criteria`, { criteria }));
+  },
   task_checklist_check: async ({ id, slug, index, checked, note }) =>
     ok(await callApi("PATCH", `/tasks/${enc(id)}/sections/${enc(slug)}/items/${enc(index)}`, {
       checked,
@@ -1456,13 +2075,18 @@ const HANDLERS = {
     ok(await callApi("DELETE", `/task-attachments/${enc(attachment_id)}`)),
   task_delete: async ({ id }) => ok(await callApi("DELETE", `/tasks/${enc(id)}`)),
   task_clone: async ({ id }) => ok(await callApi("POST", `/tasks/${enc(id)}/clone`)),
-  task_relaunch: async ({ id, turns }) =>
-    ok(await callApi("POST", `/tasks/${enc(id)}/relaunch`, turns ? { turns } : {})),
-  task_add_comment: async ({ id, body, parent_id, attachment_ids }) =>
+  task_relaunch: async ({ id, turns, reason }) =>
+    ok(await callApi("POST", `/tasks/${enc(id)}/relaunch`, {
+      ...(turns ? { turns } : {}),
+      ...(isText(reason) ? { reason } : {}),
+    })),
+  // reply_to is the name the prompts teach; parent_id stays for older ones. The daemon files a reply
+  // to any comment under its thread's root.
+  task_add_comment: async ({ id, body, reply_to, parent_id, attachment_ids }) =>
     ok(await callApi("POST", `/tasks/${enc(id)}/comments`, {
       attachment_ids: attachment_ids || [],
       body,
-      parent_id: parent_id || undefined,
+      parent_id: reply_to || parent_id || undefined,
     })),
   task_add_report: async ({ id, title, body }) =>
     ok(await callApi("POST", `/tasks/${enc(id)}/reports`, { kind: "evidence", title: title || "", body })),
@@ -1482,14 +2106,33 @@ const HANDLERS = {
       })}`,
     );
   },
-  task_request_approval: async ({ label, reason, key }, ctx) => {
+  task_request_approval: async ({ label, reason, key, stage }, ctx) => {
     const taskID = sessionTaskID(ctx, "task_request_approval");
     const res = await callApi("POST", `/tasks/${enc(taskID)}/approvals`, {
       label,
       reason,
       ...(key ? { key } : {}),
+      ...(stage ? { stage } : {}),
     });
     return ok({ approval: res, note: t("text.approval_requested_note") });
+  },
+  // The daemon decides who may add a skip (the refinement run or a person); a refusal comes back as
+  // its 403 or 409 and nothing changes. A blank reason is refused here, before the round trip.
+  task_skip_add: async ({ id, stage, reason }) => {
+    const res = await callApi("POST", `/tasks/${enc(id)}/stage-skips`, { stage, reason: skipReason(reason) });
+    return ok({ skip: res?.skip, stage_skips: res?.stage_skips ?? [], note: t("text.skip_added_note") });
+  },
+  task_skip_remove: async ({ id, stage, reason }) => {
+    const res = await callApi("POST", `/tasks/${enc(id)}/stage-skips/${enc(stage)}/remove`, {
+      reason: skipReason(reason),
+    });
+    return ok({
+      removed: res?.removed,
+      moved_back: !!res?.moved_back,
+      deferred: !!res?.deferred,
+      stage_skips: res?.stage_skips ?? [],
+      note: skipRemovedNote(res),
+    });
   },
 
   task_test_cases: async ({ id }) => ok(await callApi("GET", `/tasks/${enc(id)}/test-cases`)),
@@ -1507,6 +2150,9 @@ const HANDLERS = {
     ok(await callApi("DELETE", testCasePath(id, key))),
   task_test_case_run: async (args) => {
     const { id, case: key, ...run } = args;
+    if (typeof run.observed === "string" && chars(run.observed.trim()) > OBSERVED_MAX) {
+      throw new Error(t("errors.observed_too_long", { max: OBSERVED_MAX, count: chars(run.observed.trim()) }));
+    }
     return ok(await callApi("POST", `${testCasePath(id, key)}/runs`, run));
   },
 
@@ -1546,6 +2192,72 @@ const HANDLERS = {
 
   project_list: async () => ok(await callApi("GET", "/projects")),
   project_get: async ({ id }) => ok(await callApi("GET", `/projects/${enc(id)}`)),
+  deploy_contents: async ({ project_id, sha, stage, prev_sha }) => {
+    const q = new URLSearchParams({ sha });
+    if (stage) q.set("stage", stage);
+    if (prev_sha) q.set("prev", prev_sha);
+    return ok(await callApi("GET", `/projects/${enc(project_id)}/deploy-contents?${q}`));
+  },
+  stage_tasks_list: async ({ stage, project_id }, ctx) => {
+    const board = await currentBoardID(ctx);
+    const q = new URLSearchParams({ board, stage });
+    if (project_id) q.set("project", project_id);
+    const tasks = await callApi("GET", `/tasks?${q}`);
+    const now = Date.now();
+    return ok({
+      board_id: board,
+      stage,
+      tasks: (Array.isArray(tasks) ? tasks : []).map((task) => stageTaskSummary(task, project_id, now)),
+    });
+  },
+  tasks_move_batch: async (a, ctx) => {
+    const board = await currentBoardID(ctx);
+    const body = {
+      board_id: board,
+      task_ids: a.task_ids,
+      from_stage: a.from_stage,
+      to_stage: a.to_stage,
+      note: a.note,
+    };
+    if (a.deployed_sha) body.deployed_sha = a.deployed_sha;
+    if (a.project_id) body.project_id = a.project_id;
+    if (a.require_included) body.require_included = true;
+    return ok(await callApi("POST", "/tasks/batch-move", body));
+  },
+  deploy_watch_set: async (a, ctx) => {
+    const task = sessionTaskID(ctx, "deploy_watch_set");
+    const body = { source: a.source, target: a.target };
+    if (a.interval) body.interval = a.interval;
+    if (a.project_id) body.project_id = a.project_id;
+    return ok(await callApi("PUT", `/tasks/${enc(task)}/deploy-watches`, body));
+  },
+  deploy_watch_list: async (_a, ctx) => {
+    const task = sessionTaskID(ctx, "deploy_watch_list");
+    return ok(await callApi("GET", `/tasks/${enc(task)}/deploy-watches`));
+  },
+  deploy_watch_delete: async (a, ctx) => {
+    const task = sessionTaskID(ctx, "deploy_watch_delete");
+    return ok(await callApi("DELETE", `/tasks/${enc(task)}/deploy-watches/${enc(a.watch_id)}`));
+  },
+  evidence_batch_run: async (a, { progress } = {}) => {
+    const body = {};
+    for (const k of ["tag", "project_id", "branch"]) if (a[k]) body[k] = a[k];
+    if (Array.isArray(a.case_ids) && a.case_ids.length) body.case_ids = a.case_ids;
+    if (a.safe_only) body.safe_only = true;
+    const queued = await callApi("POST", `/evidence/environments/${enc(a.environment_id)}/run`, body);
+    const { batch, timedOut, cappedAt } = await waitForBatch(queued, a.wait_seconds, progress);
+    return ok(batchSummary(batch, { timedOut, cappedAt, skipped: queued.skipped_unsafe ?? [] }));
+  },
+  evidence_batch_get: async (a, { progress } = {}) => {
+    let id = a.batch_id;
+    if (!id) {
+      if (!a.environment_id || !a.sha) throw new Error(t("errors.batch_get_args"));
+      id = await deployBatchFor(a.environment_id, a.sha);
+    }
+    const first = await callApi("GET", `/evidence/batches/${enc(id)}`);
+    const { batch, timedOut, cappedAt } = await waitForBatch(first, a.wait_seconds, progress);
+    return ok(batchSummary(batch, { timedOut, cappedAt }));
+  },
   project_create: async (args) => ok(await callApi("POST", "/projects", args)),
   project_update: async (args) => {
     const { id, ...patch } = args;
@@ -1587,11 +2299,12 @@ function buildServer({ scope, allowedTools = null, taskId = "", catalog = false,
     { capabilities: { tools: {} } },
   );
 
-  server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: listed.map(({ scope: _s, ...rest }) => rest),
-  }));
+  server.setRequestHandler(ListToolsRequestSchema, async () => {
+    const kinds = listed.some((tool) => tool.name === "task_test_case_run") ? await needKindsText() : "";
+    return { tools: listed.map(({ scope: _s, ...rest }) => withNeedKinds(rest, kinds)) };
+  });
 
-  server.setRequestHandler(CallToolRequestSchema, async (req) => {
+  server.setRequestHandler(CallToolRequestSchema, async (req, extra) => {
     if (listOnly) {
       return { isError: true, content: [{ type: "text", text: t("errors.list_only_session") }] };
     }
@@ -1605,6 +2318,8 @@ function buildServer({ scope, allowedTools = null, taskId = "", catalog = false,
         reason = t("errors.tool_not_allowed", { name });
       } else if (known.scope === CROSS_BOARD_SCOPE) {
         reason = t("errors.tool_cross_board", { name });
+      } else if (known.scope === RELEASE_SCOPE) {
+        reason = t("errors.tool_release_named", { name });
       } else {
         reason = t("errors.tool_scope_required", { name, required: known.scope, scope });
       }
@@ -1633,7 +2348,7 @@ function buildServer({ scope, allowedTools = null, taskId = "", catalog = false,
       };
     }
     try {
-      return await handler(args, { taskId });
+      return await handler(args, { taskId, progress: progressReporter(extra) });
     } catch (err) {
       return {
         isError: true,
@@ -1719,6 +2434,7 @@ app.listen(PORT, () => {
       read: byScope("read"),
       write: byScope("write"),
       cross_board: byScope(CROSS_BOARD_SCOPE),
+      release: byScope(RELEASE_SCOPE),
     }),
   );
   console.log(tLog("log.sse_endpoint"));

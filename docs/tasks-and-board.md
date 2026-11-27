@@ -171,8 +171,51 @@ there the task waits in the column.
   stage's tasks feed.
 - **ingest_flags** and **blocked_by_flags**: with `ingest_flags`, a
   `flags.yaml` in the run output becomes agent approvals with no stage, and
-  those only hold a task on stages with `blocked_by_flags`. Neither is set on
-  the factory board.
+  those only hold a task on stages with `blocked_by_flags`. Its `surface:` key
+  sets the task's `flow_flags`. An agent key calling `flags/import` from a
+  stage without `ingest_flags` gets 403. Neither is set on the factory board.
+- **default_agent** (per board): the agent every new task on the board gets
+  for this column, unless its project template, its task type (`agents` on the
+  type) or the request names another.
+- **agent_verdict**: the stage's agent may end a clean run with `verdict.md`
+  (`continue`, `kick_back`, `block`). A clean run without the file, or with
+  one that does not parse, leaves the task blocked in the stage
+  (`verdict_missing`).
+- **lock_tests**: a clean run here locks the test files it added or changed
+  (plus `locked-tests.txt`); a later run that changes one opens the system
+  approval `test_change` and the task waits for a person. On a project whose
+  code lives on a runner, the runner reads the git blobs at the run's end and
+  sends them with the run's result, so the lock holds there too; a runner
+  older than this sends nothing and the task records `locked_tests_unchecked`.
+  One difference on a runner: a locked test that the default branch changed
+  after the lock, brought in by a rebase, still opens `test_change`.
+- **skip_unless** (`[ui, …]`, at most 8): auto-advance passes over the stage
+  unless the task's `flow_flags` hold one of the values; `flow_flags` null runs
+  everything. Cannot combine with approvals, `open_pr`, `pr_draft`, `pr_ready`,
+  `push_branch`, `lock_tests`, `release_resources` or `merge_target`, and no
+  send-back may target it.
+- **no_skip**: a task may never skip this column through its `stage_skips`
+  (the per-task list the refinement agent or a person writes). Cannot combine
+  with `skip_unless`. The first and last columns, virtual ones, the
+  `ingest_flags` column, columns with approvals and the PR/release columns are
+  never skippable without it.
+- **pr_draft**: entering opens the pull request as a draft (regular when the
+  repository refuses drafts). **pr_ready**: entering takes it out of draft.
+- **merge_target** (at most one, after a stage that opens the PR): where a
+  merged pull request moves the task, once every repository of the task has
+  merged. The merge commit SHA lands in `merge_shas`. A pending approval on the
+  way is waived with a note naming who merged.
+- **release_resources**: entering frees the task's sandbox and worktrees as a
+  terminal stage would. No later non-terminal stage may push, open a PR or
+  lock tests, and the stage cannot send changes back.
+
+Board-level: **max_kick_backs** (0 to 20, default 0 = no cap) is how many
+send-backs a task takes (auditor, `verdict.md`, changes requested with
+`kick_back`) before the next one leaves it blocked where it is. Apart from the
+cap, a stage whose `verdict.md` sends the task back a second time for the same
+single-round reason (`branch_behind`, `commit_rules`, `forbidden_files`,
+`spec_mismatch`, `evidence_missing`, `review_shallow`, `reports_inconsistent`,
+`nits`) blocks it instead (`kick_back_repeated`).
 
 ### Rules
 

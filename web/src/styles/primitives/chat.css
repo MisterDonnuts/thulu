@@ -1,0 +1,1194 @@
+/* The chat: one feed and one composer shared by the chat panel and a task's Chat tab
+   (lib/ui/chat.ts writes the markup, lib/chat/ drives it). */
+
+/* ── pane: header, context bar, feed, composer ── */
+.cx-pane {
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  background: var(--surface-1);
+}
+.cx-inner {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+}
+.cx-pane[data-size="page"] .cx-inner {
+  max-width: 780px;
+  margin: 0 auto;
+}
+.cx-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-3) 10px var(--s-3) 14px;
+  border-bottom: 1px solid var(--line);
+  min-height: 49px;
+  flex: none;
+}
+.cx-title {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--t-md);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--fg);
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+}
+.cx-title:disabled {
+  cursor: default;
+}
+.cx-ibtn {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--r-md);
+  display: inline-grid;
+  place-items: center;
+  color: var(--fg-3);
+  flex: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+.cx-ibtn:hover {
+  background: var(--surface-2);
+  color: var(--fg);
+}
+.cx-ibtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.cx-ibtn .ico {
+  width: 14px;
+  height: 14px;
+}
+.cx-ctx {
+  display: flex;
+  gap: var(--s-2);
+  padding: var(--s-3) 14px;
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+  align-items: center;
+  flex: none;
+}
+.cx-ctx:empty {
+  display: none;
+}
+
+/* ── chips: a task, an option, a queued message ── */
+.cx-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 2px var(--s-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-pill);
+  background: var(--surface-1);
+  font: inherit;
+  font-size: var(--t-sm);
+  color: var(--fg-2);
+  white-space: nowrap;
+  max-width: 100%;
+  min-width: 0;
+  text-decoration: none;
+}
+button.cx-chip {
+  cursor: pointer;
+}
+.cx-chip .ico {
+  width: 14px;
+  height: 14px;
+}
+.cx-chip-id {
+  font-family: var(--font-mono);
+  font-size: var(--t-xs);
+  color: var(--fg-3);
+}
+.cx-chip-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  max-width: 220px;
+}
+.cx-chip-add {
+  border-style: dashed;
+  color: var(--fg-3);
+}
+.cx-chip-add:hover {
+  color: var(--fg);
+  border-color: var(--color-border-control);
+}
+.cx-chip[aria-pressed="true"] {
+  background: var(--warn-soft);
+  border-color: var(--warn-line);
+  color: var(--warn);
+}
+.cx-chip-x {
+  color: var(--fg-4);
+  margin-left: 2px;
+  display: inline-grid;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+.cx-chip-x:hover {
+  color: var(--fg);
+}
+.cx-chip-x .ico {
+  width: 12px;
+  height: 12px;
+}
+/* A task id the agent wrote, made a link inside an answer. */
+.cx-it {
+  display: inline-flex;
+  gap: var(--s-1);
+  align-items: baseline;
+  padding: 0 var(--s-2);
+  border-radius: 5px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 500;
+  white-space: nowrap;
+  text-decoration: none;
+  font-size: 0.95em;
+}
+.cx-it-id {
+  font-family: var(--font-mono);
+  font-size: 0.8em;
+  opacity: 0.85;
+}
+
+/* ── feed ── */
+.cx-feed {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--s-5) 14px var(--s-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+.cx-feed > * {
+  flex: 0 0 auto;
+}
+.cx-pane[data-size="page"] .cx-feed {
+  padding-inline: var(--s-7);
+}
+.cx-user {
+  align-self: flex-end;
+  max-width: 86%;
+  background: var(--surface-4);
+  border-radius: 12px 12px var(--r-sm) 12px;
+  padding: var(--s-3) var(--s-4);
+  font-size: 13.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--fg);
+}
+.cx-user[data-pending] {
+  opacity: 0.6;
+}
+.cx-when {
+  display: block;
+  font-size: var(--t-xs);
+  color: var(--fg-3);
+  margin-top: 2px;
+  text-align: right;
+  white-space: normal;
+}
+.cx-note {
+  font-size: var(--t-xs);
+  color: var(--fg-3);
+  white-space: normal;
+}
+.cx-note button {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+}
+.cx-turn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  min-width: 0;
+}
+.cx-who {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  font-weight: 600;
+  font-size: var(--t-base);
+  color: var(--fg);
+}
+.cx-who-model {
+  font-weight: 400;
+  color: var(--fg-3);
+  font-size: var(--t-sm);
+}
+
+/* What the agent did during a turn, folded. */
+.cx-steps {
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--color-well);
+  min-width: 0;
+}
+.cx-steps > summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) 10px;
+  color: var(--fg-2);
+  font-size: 12.5px;
+  cursor: pointer;
+  min-width: 0;
+}
+.cx-steps > summary::-webkit-details-marker {
+  display: none;
+}
+.cx-steps-car {
+  color: var(--fg-3);
+  transition: transform var(--dur-fast);
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+.cx-steps[open] > summary .cx-steps-car {
+  transform: rotate(90deg);
+}
+.cx-steps-sum {
+  display: flex;
+  gap: var(--s-1);
+  min-width: 0;
+}
+.cx-steps-kinds {
+  color: var(--fg-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.cx-steps-body {
+  border-top: 1px solid var(--line);
+  padding: var(--s-2) 10px var(--s-3);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+.cx-steps-body:empty {
+  display: none;
+}
+.cx-step {
+  display: grid;
+  grid-template-columns: 14px auto minmax(0, 1fr) auto;
+  gap: var(--s-3);
+  align-items: baseline;
+  font-size: var(--t-sm);
+  color: var(--fg-2);
+  min-width: 0;
+}
+.cx-step .ico {
+  width: 14px;
+  height: 14px;
+  align-self: center;
+}
+.cx-step-name {
+  font-weight: 600;
+  color: var(--fg);
+  white-space: nowrap;
+}
+.cx-step-hint {
+  font-family: var(--font-mono);
+  font-size: var(--t-xs);
+  color: var(--fg-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.cx-step-hint[data-plain] {
+  font-family: var(--font-sans);
+  font-size: var(--t-sm);
+}
+.cx-step-secs {
+  font-size: var(--t-xs);
+  color: var(--fg-3);
+  white-space: nowrap;
+}
+.cx-step[data-state="ok"] > .ico {
+  color: var(--ok);
+}
+.cx-step[data-state="err"] > .ico {
+  color: var(--danger);
+}
+.cx-step[data-state="run"] > .ico,
+.cx-step[data-state="say"] > .ico {
+  color: var(--fg-3);
+}
+.cx-step[data-state="say"] {
+  grid-template-columns: 14px minmax(0, 1fr);
+  color: var(--fg);
+  font-size: 12.5px;
+}
+.cx-steps-more {
+  font-size: var(--t-xs);
+  color: var(--fg-3);
+}
+
+.cx-answer {
+  font-size: 13.5px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  min-width: 0;
+  color: var(--fg);
+}
+.cx-answer:empty {
+  display: none;
+}
+.cx-answer p {
+  margin: 0 0 var(--s-3);
+}
+.cx-answer :is(ul, ol) {
+  margin: 0 0 var(--s-3);
+  padding-left: var(--s-6);
+}
+.cx-answer li {
+  margin: 2px 0;
+}
+.cx-answer > :last-child,
+.cx-answer > * > :last-child {
+  margin-bottom: 0;
+}
+.cx-answer code {
+  font-family: var(--font-mono);
+  font-size: 0.84em;
+  color: var(--warn);
+  background: var(--surface-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 0 var(--s-1);
+}
+.cx-answer pre {
+  background: var(--color-well);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: var(--s-3) 10px;
+  overflow-x: auto;
+}
+.cx-answer pre code {
+  color: var(--fg);
+  background: none;
+  border: 0;
+  padding: 0;
+}
+.cx-answer :is(h1, h2, h3, h4) {
+  font-size: var(--t-md);
+  margin: var(--s-4) 0 var(--s-2);
+}
+.cx-answer table {
+  border-collapse: collapse;
+  font-size: var(--t-sm);
+  display: block;
+  overflow-x: auto;
+  margin: 0 0 var(--s-3);
+}
+.cx-answer :is(td, th) {
+  border: 1px solid var(--line-strong);
+  padding: 3px var(--s-3);
+}
+.cx-answer img {
+  max-width: 100%;
+  border-radius: var(--r-md);
+}
+
+/* What the turn changed in Thulu, from its octopus-api calls. */
+.cx-fx {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  padding: 7px 10px;
+  border: 1px solid var(--accent-line);
+  background: var(--accent-soft);
+  border-radius: var(--r-lg);
+  font-size: var(--t-sm);
+}
+.cx-fx-label {
+  color: var(--fg-2);
+  font-weight: 600;
+}
+.cx-fx-row {
+  color: var(--fg-2);
+  display: flex;
+  gap: var(--s-2);
+  align-items: center;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.cx-fx-row[data-error] {
+  color: var(--danger);
+}
+.cx-fx-row .ico {
+  width: 14px;
+  height: 14px;
+}
+
+.cx-foot {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  color: var(--fg-3);
+  font-size: 11.5px;
+  align-items: center;
+}
+.cx-foot-acts {
+  margin-left: auto;
+  display: flex;
+  gap: 2px;
+}
+.cx-foot .cx-ibtn {
+  width: 26px;
+  height: 26px;
+}
+
+/* The line under a live turn: what it is doing now, how long, and Stop. */
+.cx-working {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px var(--s-3) 7px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-lg);
+  background: var(--surface-1);
+  font-size: 12.5px;
+  min-width: 0;
+  color: var(--fg);
+}
+.cx-working-now {
+  color: var(--fg-3);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
+}
+.cx-working-clock {
+  color: var(--fg-3);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-sm);
+}
+.cx-working[data-stopped] {
+  color: var(--fg-3);
+}
+.cx-spin {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--accent-line);
+  border-top-color: var(--accent);
+  animation: cx-spin 1s linear infinite;
+  flex: none;
+  display: inline-block;
+}
+.cx-spin-sm {
+  width: 10px;
+  height: 10px;
+}
+@keyframes cx-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cx-spin {
+    animation: none;
+  }
+}
+
+.cx-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-1) 10px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line-strong);
+  background: var(--surface-1);
+  font: inherit;
+  font-size: var(--t-sm);
+  font-weight: 500;
+  color: var(--fg);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.cx-btn:hover {
+  border-color: var(--color-border-control);
+}
+.cx-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.cx-btn .ico {
+  width: 14px;
+  height: 14px;
+}
+.cx-btn-danger {
+  background: var(--danger);
+  color: var(--color-text-on-accent);
+  border-color: transparent;
+}
+
+/* A deletion waiting on the person, and a turn that failed. */
+.cx-ask,
+.cx-fail {
+  border: 1px solid var(--warn-line);
+  background: var(--warn-soft);
+  border-radius: var(--r-lg);
+  padding: 10px var(--s-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  font-size: var(--t-base);
+  color: var(--fg);
+  overflow-wrap: anywhere;
+}
+.cx-fail {
+  border-color: var(--danger-line);
+  background: var(--danger-soft);
+}
+.cx-ask[data-status="confirmed"],
+.cx-ask[data-status="canceled"] {
+  border-color: var(--line);
+  background: var(--color-well);
+}
+.cx-ask[data-status="failed"] {
+  border-color: var(--danger-line);
+  background: var(--danger-soft);
+}
+.cx-card-head {
+  display: flex;
+  gap: var(--s-3);
+  align-items: center;
+  font-weight: 600;
+  color: var(--warn);
+  font-size: 12.5px;
+}
+.cx-fail .cx-card-head {
+  color: var(--danger);
+}
+.cx-card-head .ico {
+  width: 14px;
+  height: 14px;
+}
+.cx-ask[data-status="confirmed"] .cx-card-head,
+.cx-ask[data-status="canceled"] .cx-card-head {
+  color: var(--fg-3);
+}
+.cx-card-sub {
+  font-size: 11.5px;
+  color: var(--fg-2);
+}
+.cx-card-row {
+  display: flex;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+}
+
+.cx-sep {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  color: var(--fg-3);
+  font-size: 11.5px;
+}
+.cx-sep::before,
+.cx-sep::after {
+  content: "";
+  height: 1px;
+  background: var(--line-strong);
+  flex: 1;
+}
+
+.cx-empty {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--s-4);
+  padding: var(--s-7) 18px;
+  min-height: 0;
+  overflow-y: auto;
+}
+.cx-pane[data-size="page"] .cx-empty {
+  max-width: 620px;
+  width: 100%;
+  margin: 0 auto;
+}
+.cx-empty-title {
+  margin: 0;
+  font-size: 19px;
+  letter-spacing: -0.01em;
+  color: var(--fg);
+}
+.cx-empty-text {
+  color: var(--fg-3);
+  margin: 0;
+  line-height: 1.5;
+}
+.cx-sugg {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.cx-sugg button {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-lg);
+  padding: 7px 10px;
+  color: var(--fg-2);
+  background: var(--surface-1);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.cx-sugg button:hover {
+  border-color: var(--accent-line);
+  color: var(--fg);
+}
+
+.cx-banner {
+  margin: 0 14px var(--s-3);
+  font-size: var(--t-xs);
+  color: var(--fg-3);
+  line-height: var(--lh-snug);
+  flex: none;
+}
+.cx-banner[hidden] {
+  display: none;
+}
+.cx-banner button,
+.cx-banner a {
+  margin-left: var(--s-2);
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+/* ── composer ── */
+.cx-composer {
+  margin: 0 var(--s-4) var(--s-4);
+  border: 1px solid var(--color-border-control);
+  border-radius: 12px;
+  background: var(--surface-1);
+  position: relative;
+  flex: none;
+}
+.cx-pane[data-size="page"] .cx-composer {
+  margin-inline: var(--s-7);
+}
+.cx-composer:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.cx-composer[data-disabled] {
+  opacity: 0.6;
+}
+.cx-composer-chips {
+  display: flex;
+  gap: var(--s-2);
+  padding: var(--s-3) 10px 0;
+  flex-wrap: wrap;
+}
+.cx-composer-chips:empty {
+  display: none;
+}
+.cx-composer textarea {
+  display: block;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  resize: none;
+  background: transparent;
+  color: var(--fg);
+  font: 13.5px/1.5 var(--font-sans);
+  padding: 10px var(--s-4) var(--s-2);
+  min-height: 44px;
+  max-height: 180px;
+}
+.cx-composer textarea::placeholder {
+  color: var(--fg-4);
+}
+.cx-composer-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  padding: var(--s-1) var(--s-2) var(--s-2);
+}
+.cx-composer-bar .cx-spacer {
+  flex: 1;
+}
+.cx-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 3px 7px 3px var(--s-1);
+  border-radius: var(--r-md);
+  font: inherit;
+  font-size: var(--t-sm);
+  color: var(--fg-2);
+  font-weight: 500;
+  max-width: 220px;
+  min-width: 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.cx-pick-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cx-pick .ico {
+  width: 14px;
+  height: 14px;
+}
+.cx-pick:hover,
+.cx-pick[aria-expanded="true"] {
+  background: var(--surface-2);
+  color: var(--fg);
+}
+.cx-pick:disabled {
+  cursor: default;
+}
+.cx-pick:disabled:hover {
+  background: none;
+}
+.cx-send {
+  height: 30px;
+  min-width: 30px;
+  border-radius: var(--r-lg);
+  background: var(--accent);
+  color: var(--color-text-on-accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  font: inherit;
+  font-size: var(--t-sm);
+  font-weight: 600;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+.cx-send .ico {
+  width: 14px;
+  height: 14px;
+}
+.cx-send-split {
+  padding: 0 var(--s-1) 0 10px;
+}
+.cx-send-split > button {
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.cx-send-dd {
+  border-left: 1px solid color-mix(in srgb, var(--color-text-on-accent) 30%, transparent);
+  padding-left: var(--s-1);
+  height: 100%;
+  display: grid;
+  place-items: center;
+}
+.cx-send:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.cx-hint {
+  font-size: var(--t-xs);
+  color: var(--fg-3);
+  padding: 0 var(--s-5) 10px;
+  margin-top: calc(-1 * var(--s-2));
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  flex: none;
+}
+.cx-pane[data-size="page"] .cx-hint {
+  padding-inline: 28px;
+}
+.cx-hint[hidden] {
+  display: none;
+}
+.cx-kbd {
+  font: 10.5px var(--font-mono);
+  color: var(--fg-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  padding: 0 5px;
+  background: var(--surface-1);
+}
+
+/* The lists # @ / open over the composer, and the send menu. */
+.cx-pop {
+  position: absolute;
+  left: var(--s-3);
+  right: var(--s-3);
+  bottom: calc(100% + var(--s-2));
+  background: var(--surface-1);
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  box-shadow: var(--shadow-popover);
+  padding: var(--s-2);
+  z-index: var(--z-popover);
+  max-height: 380px;
+  overflow-y: auto;
+}
+.cx-pop-head {
+  font-size: 10.5px;
+  color: var(--fg-3);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: var(--s-2) var(--s-3) var(--s-1);
+}
+.cx-opt {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 7px var(--s-3);
+  border-radius: 7px;
+  align-items: center;
+  text-align: left;
+  width: 100%;
+  background: none;
+  border: 0;
+  font: inherit;
+  color: var(--fg);
+  cursor: pointer;
+}
+.cx-opt:hover,
+.cx-opt[data-hl] {
+  background: var(--accent-soft);
+}
+.cx-opt[aria-disabled="true"] {
+  opacity: 0.5;
+}
+.cx-opt .ico {
+  width: 14px;
+  height: 14px;
+}
+.cx-opt-main {
+  min-width: 0;
+}
+.cx-opt-name {
+  display: block;
+  font-weight: 600;
+  font-size: 12.5px;
+}
+.cx-opt-name[data-plain] {
+  font-weight: 500;
+}
+.cx-opt-meta {
+  font-weight: 400;
+  color: var(--fg-3);
+  font-size: 11.5px;
+  margin-left: var(--s-2);
+}
+.cx-opt-desc {
+  display: block;
+  color: var(--fg-3);
+  font-size: 11.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cx-opt-tools {
+  display: flex;
+  gap: var(--s-1);
+  flex-wrap: wrap;
+  margin-top: 3px;
+}
+.cx-tag {
+  font-size: 10.5px;
+  padding: 0 var(--s-2);
+  border-radius: var(--r-sm);
+  background: var(--color-well);
+  color: var(--fg-2);
+  border: 1px solid var(--line);
+  white-space: nowrap;
+}
+.cx-opt-id {
+  font-family: var(--font-mono);
+  color: var(--fg-3);
+  font-size: var(--t-xs);
+}
+.cx-opt-cmd {
+  font: var(--t-sm) var(--font-mono);
+  color: var(--accent);
+  min-width: 72px;
+}
+.cx-pop-note {
+  font-size: 11.5px;
+  color: var(--fg-3);
+  padding: var(--s-2) var(--s-3) var(--s-1);
+  border-top: 1px solid var(--line);
+  margin-top: var(--s-1);
+}
+.cx-pop-note:first-child {
+  border-top: 0;
+  margin-top: 0;
+}
+.cx-menu {
+  position: absolute;
+  right: var(--s-2);
+  bottom: calc(100% + var(--s-2));
+  background: var(--surface-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-popover);
+  padding: var(--s-1);
+  z-index: var(--z-popover);
+  width: 250px;
+}
+.cx-menu button {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  width: 100%;
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-md);
+  background: none;
+  border: 0;
+  font: inherit;
+  color: var(--fg);
+  cursor: pointer;
+}
+.cx-menu button:hover {
+  background: var(--surface-2);
+}
+.cx-menu-title {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.cx-menu-sub {
+  font-size: 11.5px;
+  color: var(--fg-3);
+}
+
+/* ── state badges (sidebar rows, task list) ── */
+.cx-state {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: var(--r-pill);
+  white-space: nowrap;
+}
+.cx-state[data-state="needs_you"] {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+.cx-state[data-state="running"] {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+.cx-state[data-state="error"] {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.cx-state[data-state="idle"] {
+  background: var(--color-tint-1);
+  color: var(--fg-3);
+}
+
+/* ── sidebar: new chat and the chat rows ── */
+.cx-new {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) 10px;
+  margin: var(--s-1) 0;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-lg);
+  background: var(--surface-1);
+  color: var(--fg);
+  font: inherit;
+  font-weight: 500;
+  width: 100%;
+  cursor: pointer;
+}
+.cx-new:hover {
+  border-color: var(--accent-line);
+}
+.cx-new[aria-current="true"] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.cx-new .ico {
+  width: 14px;
+  height: 14px;
+}
+.cx-new .cx-kbd {
+  margin-left: auto;
+}
+.cx-group {
+  font-size: var(--t-xs);
+  color: var(--fg-3);
+  padding: var(--s-3) var(--s-3) 2px;
+}
+.cx-row {
+  line-height: 1.5;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-md);
+  align-items: center;
+  text-align: left;
+  width: 100%;
+  background: none;
+  border: 0;
+  font: inherit;
+  color: var(--fg);
+  cursor: pointer;
+}
+.cx-row:hover {
+  background: var(--surface-2);
+}
+.cx-row[aria-current="true"] {
+  background: var(--accent-soft);
+}
+.cx-row[data-archived] {
+  opacity: 0.6;
+}
+.cx-row-main {
+  min-width: 0;
+}
+.cx-row-title,
+.cx-row-sub {
+  display: block;
+}
+.cx-row-title {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12.5px;
+}
+.cx-row-sub {
+  color: var(--fg-3);
+  font-size: 11.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cx-row-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.cx-row-time {
+  font-size: var(--t-xs);
+  color: var(--fg-3);
+}
+.cx-unread {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: inline-block;
+}
+.cx-rows-more {
+  margin: var(--s-1) var(--s-3) var(--s-2);
+  padding: 0;
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: var(--fg-3);
+  font: inherit;
+  font-size: var(--t-xs);
+  cursor: pointer;
+}
+.cx-rows-more:hover {
+  color: var(--fg);
+}
+
+/* ── a task's Chat tab: which conversation is showing ── */
+.cx-convbar {
+  display: flex;
+  gap: var(--s-2);
+  padding: var(--s-3) 14px;
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+  align-items: center;
+  flex: none;
+}
+.cx-cv {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 3px 10px 3px var(--s-1);
+  border-radius: var(--r-pill);
+  font: inherit;
+  font-size: var(--t-sm);
+  color: var(--fg-2);
+  border: 1px solid var(--line-strong);
+  background: var(--surface-1);
+  white-space: nowrap;
+  flex: none;
+  cursor: pointer;
+}
+.cx-cv[data-plain] {
+  padding-left: 10px;
+}
+.cx-cv .ico {
+  width: 14px;
+  height: 14px;
+}
+.cx-cv[aria-pressed="true"] {
+  background: var(--fg);
+  color: var(--surface-0);
+  border-color: transparent;
+}
+.cx-cv[aria-pressed="true"] .avatar {
+  background: color-mix(in srgb, var(--surface-0) 18%, transparent);
+  color: inherit;
+}
+.cx-cv .cx-spin {
+  margin-left: var(--s-1);
+}
+
+@media (max-width: 640px) {
+  .cx-chip-text {
+    max-width: 160px;
+  }
+}

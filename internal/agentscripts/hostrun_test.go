@@ -253,3 +253,87 @@ func TestClaudeAdapter_HostRunKeepsTokenFileInRunTmp(t *testing.T) {
 		t.Error("host run wrote credentials under the person's ~/.config")
 	}
 }
+
+// flagValues returns the arguments after each use of a flag that takes several (--disallowedTools
+// a b --other), up to the next flag.
+func flagValues(args []string, flag string) []string {
+	var out []string
+	for i := 0; i < len(args); i++ {
+		if args[i] != flag {
+			continue
+		}
+		for i++; i < len(args) && !strings.HasPrefix(args[i], "--"); i++ {
+			out = append(out, args[i])
+		}
+		i--
+	}
+	return out
+}
+
+func TestClaudeAdapter_HostRunLocalTools(t *testing.T) {
+	local := filepath.Join(t.TempDir(), "local-mcp.json")
+	writeFile(t, local, `{"mcpServers":{}}`)
+	base := []string{"OCTOPUS_HOST_RUN=1", "OCTOPUS_LLM_SOURCE=runner_login", "MCP_CONFIG_ARGS=--mcp-config /x/.mcp.json"}
+	cases := []struct {
+		name       string
+		env        []string
+		strict     bool
+		configs    []string
+		disallowed []string
+	}{
+		{"thulu", []string{"OCTOPUS_LOCAL_TOOLS=thulu"}, true, []string{"/x/.mcp.json"}, []string{"AskUserQuestion"}},
+		{"thulu ignores a local file", []string{"OCTOPUS_LOCAL_TOOLS=thulu", "OCTOPUS_LOCAL_MCP_CONFIG=" + local}, true,
+			[]string{"/x/.mcp.json"}, []string{"AskUserQuestion"}},
+		{"selected", []string{"OCTOPUS_LOCAL_TOOLS=selected", "OCTOPUS_LOCAL_MCP_CONFIG=" + local}, true,
+			[]string{"/x/.mcp.json", local}, []string{"AskUserQuestion"}},
+		{"selected with connectors", []string{"OCTOPUS_LOCAL_TOOLS=selected", "OCTOPUS_LOCAL_MCP_CONFIG=" + local,
+			"OCTOPUS_LOCAL_MCP_CONNECTORS=1", "OCTOPUS_LOCAL_MCP_DENY=mcp__claude_ai_Gmail__*\nmcp__github__*"}, false,
+			[]string{"/x/.mcp.json", local}, []string{"AskUserQuestion", "mcp__claude_ai_Gmail__*", "mcp__github__*"}},
+		{"all", []string{"OCTOPUS_LOCAL_TOOLS=all"}, false, []string{"/x/.mcp.json"}, []string{"AskUserQuestion"}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			r, root := hostRun(t)
+			r.run(t, "claude-code.sh", "engine_auth_check && engine_run", "hello",
+				append(append([]string{"OCTOPUS_ROOT=" + root}, base...), tc.env...)...)
+			args := readLines(t, filepath.Join(r.log, "args"))
+			if got := slices.Contains(args, "--strict-mcp-config"); got != tc.strict {
+				t.Errorf("--strict-mcp-config = %v, want %v:\n%s", got, tc.strict, strings.Join(args, "\n"))
+			}
+			var configs []string
+			for i, a := range args {
+				if a == "--mcp-config" && i+1 < len(args) {
+					configs = append(configs, args[i+1])
+				}
+			}
+			if !slices.Equal(configs, tc.configs) {
+				t.Errorf("--mcp-config = %q, want %q", configs, tc.configs)
+			}
+			if got := flagValues(args, "--disallowedTools"); !slices.Equal(got, tc.disallowed) {
+				t.Errorf("--disallowedTools = %q, want %q", got, tc.disallowed)
+			}
+			if !slices.Contains(args, "--dangerously-skip-permissions") {
+				t.Errorf("without a policy the run keeps bypass mode:\n%s", strings.Join(args, "\n"))
+			}
+		})
+	}
+}
+
+func TestClaudeAdapter_HostRunBypassDisabledUsesAllowedTools(t *testing.T) {
+	r, root := hostRun(t)
+	r.run(t, "claude-code.sh", "engine_auth_check && engine_run", "hello",
+		"OCTOPUS_HOST_RUN=1", "OCTOPUS_ROOT="+root, "OCTOPUS_LLM_SOURCE=runner_login", "OCTOPUS_LOCAL_TOOLS=thulu",
+		"OCTOPUS_BYPASS_DISABLED=1", "OCTOPUS_ALLOWED_TOOLS=Bash(git log *)\nEdit\nmcp__octopus-api__*",
+	)
+	args := readLines(t, filepath.Join(r.log, "args"))
+	if slices.Contains(args, "--dangerously-skip-permissions") {
+		t.Fatalf("claude rejects --dangerously-skip-permissions under the policy:\n%s", strings.Join(args, "\n"))
+	}
+	if v, ok := flagValue(args, "--permission-mode"); !ok || v != "dontAsk" {
+		t.Errorf("--permission-mode = %q (%v)", v, ok)
+	}
+	want := []string{"Bash(git log *)", "Edit", "mcp__octopus-api__*"}
+	if got := flagValues(args, "--allowedTools"); !slices.Equal(got, want) {
+		t.Errorf("--allowedTools = %q, want %q", got, want)
+	}
+}

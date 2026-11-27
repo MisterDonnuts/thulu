@@ -52,6 +52,23 @@ test("a step one side never reached shows that side frozen", () => {
   assert.equal(left.reduce((s, e) => s + e.duration, 0), right.reduce((s, e) => s + e.duration, 0));
 });
 
+test("the first chapter of a step carries the waiting cut from it; filmed waits are not marked", () => {
+  const gaps = [{ step: 0, ms: 1200, reason: "nav", cut: true }, { step: 0, ms: 900, reason: "settle", cut: true },
+    { step: 1, ms: 3000, reason: "wait", cut: false }];
+  const reel = new Reel([seg(0, "a", 0, 100, 0), seg(0, "a", 500, 700, 500), seg(1, "b", 900, 1000, 900)], gaps);
+  assert.deepEqual(reel.chapters().map((c) => [c.step, c.waitMs]), [[0, 2100], [1, undefined]]);
+  assert.deepEqual(reel.cut, { ms: 2100, count: 2 });
+  assert.deepEqual(new Reel([seg(0, "a", 0, 100, 0)]).chapters(), [{ step: 0, label: "a", start: 0, end: 100 }],
+    "a reel with no gaps keeps its chapters as they were");
+});
+
+test("align says how long each side waited at a step", () => {
+  const before = new Reel([seg(0, "open", 0, 1000, 0), seg(1, "save", 2000, 2300, 2000)], [{ step: 1, ms: 900, reason: "settle", cut: true }]);
+  const after = new Reel([seg(0, "open", 0, 400, 0), seg(1, "save", 1000, 1900, 1000)], [{ step: 1, ms: 3200, reason: "settle", cut: true }]);
+  const { chapters } = align(before, after);
+  assert.deepEqual(chapters.map((c) => [c.step, c.waitLeft, c.waitRight]), [[0, undefined, undefined], [1, 900, 3200]]);
+});
+
 test("the concat script quotes paths and repeats the last file", () => {
   const s = concatScript([{ file: "/t/it's.jpg", duration: 250 }, { file: "/t/b.jpg", duration: 1000 }]);
   assert.equal(s, "ffconcat version 1.0\nfile '/t/it'\\''s.jpg'\nduration 0.2500\nfile '/t/b.jpg'\nduration 1.0000\nfile '/t/b.jpg'\n");

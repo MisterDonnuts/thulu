@@ -3,11 +3,26 @@ import { t } from "../i18n.js";
 /** @typedef {{ file: string, ts: number }} Frame */
 /** @typedef {{ step: number, label: string, start: number, end: number, frames: Frame[] }} Segment */
 /** @typedef {{ file: string, duration: number, step: number }} Entry  duration in ms */
+/** @typedef {{ step: number, ms: number, reason: string, cut: boolean }} Gap  a wait of the app */
+
+/** Waiting cut out of the video, by step. @param {Gap[]} gaps @returns {Map<number, number>} */
+export function cutByStep(gaps = []) {
+  const out = new Map();
+  for (const g of gaps) if (g.cut) out.set(g.step, (out.get(g.step) || 0) + g.ms);
+  return out;
+}
 
 export class Reel {
-  /** @param {Segment[]} segments */
-  constructor(segments = []) {
+  /** @param {Segment[]} segments  @param {Gap[]} gaps */
+  constructor(segments = [], gaps = []) {
     this.segments = segments.filter((s) => s.frames.length > 0 && s.end > s.start);
+    this.gaps = gaps;
+  }
+
+  /** Total waiting cut out of the video, in ms, and in how many places. */
+  get cut() {
+    const cut = this.gaps.filter((g) => g.cut);
+    return { ms: cut.reduce((s, g) => s + g.ms, 0), count: cut.length };
   }
 
   get empty() {
@@ -32,6 +47,7 @@ export class Reel {
     return out;
   }
 
+  /** Chapters by step; a step that had waiting cut carries waitMs on its first chapter. */
   chapters() {
     const out = [];
     let at = 0;
@@ -41,6 +57,12 @@ export class Reel {
       if (last && last.step === seg.step) last.end += len;
       else out.push({ step: seg.step, label: seg.label, start: at, end: at + len });
       at += len;
+    }
+    const waits = cutByStep(this.gaps);
+    for (const c of out) {
+      if (!waits.has(c.step)) continue;
+      c.waitMs = waits.get(c.step);
+      waits.delete(c.step);
     }
     return out;
   }
@@ -100,6 +122,8 @@ export function align(leftReel, rightReel) {
   const byStep = (entries) => Map.groupBy(entries, (e) => e.step);
   const L = byStep(left);
   const R = byStep(right);
+  const waitL = cutByStep(leftReel.gaps);
+  const waitR = cutByStep(rightReel.gaps);
 
   const out = { left: [], right: [], chapters: [] };
   let lastL = left[0]?.file ?? right[0].file;
@@ -115,7 +139,10 @@ export function align(leftReel, rightReel) {
     out.right.push(...hold(r, target - dr, lastR, step));
     lastL = out.left.at(-1).file;
     lastR = out.right.at(-1).file;
-    out.chapters.push({ step, label: labels.get(step) || `step ${step + 1}`, start: at, end: at + target });
+    const chapter = { step, label: labels.get(step) || `step ${step + 1}`, start: at, end: at + target };
+    // Each side says how long it waited, so the reviewer sees which side was slow.
+    if (waitL.has(step) || waitR.has(step)) Object.assign(chapter, { waitLeft: waitL.get(step) ?? 0, waitRight: waitR.get(step) ?? 0 });
+    out.chapters.push(chapter);
     at += target;
   }
   return out;

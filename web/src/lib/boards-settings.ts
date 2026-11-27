@@ -2,9 +2,19 @@ import { navigate } from "astro:transitions/client";
 import { t } from "../i18n";
 import { api, ApiError } from "./api";
 import { nextColor, normalizeHex, sessionMayEditBoards, slugify, validId } from "./board-editor";
-import { TYPE_TEMPLATES, isLockedStage, newType, toggleSkip } from "./board-types";
+import {
+  TYPE_AGENT_COLUMN,
+  TYPE_TEMPLATES,
+  isLockedStage,
+  newType,
+  typeAgentStages,
+  typeAgentValue,
+  walkStage,
+  withTypeAgent,
+} from "./board-types";
 import { columnHeadHTML } from "./board";
 import {
+  agentChoices,
   columnAgentText,
   projectAgentPicker,
   waitsForPerson,
@@ -29,6 +39,7 @@ import {
   cardHTML,
   checkHTML,
   confirmDialog,
+  disclosureHTML,
   dotHTML,
   emptyRowHTML,
   emptyStateHTML,
@@ -48,6 +59,7 @@ import {
   type MenuEntry,
   type MenuHandle,
 } from "./ui";
+import { entryTitle, flowRevisionBadgeHTML, listWorkshop, type WorkshopEntry } from "./workshop";
 
 const byId = (id: string) => document.getElementById(id);
 
@@ -127,6 +139,16 @@ export function behaviorChips(st: Stage): string[] {
   if (st.auto_advance) out.push(t("settings.boards.chips.auto_advance"));
   if (st.push_branch) out.push(t("settings.boards.chips.push_branch"));
   if (st.open_pr) out.push(t("settings.boards.chips.open_pr"));
+  if (st.pr_draft) out.push(t("settings.boards.chips.pr_draft"));
+  if (st.pr_ready) out.push(t("settings.boards.chips.pr_ready"));
+  if (st.merge_target) out.push(t("settings.boards.chips.merge_target"));
+  if (st.release_resources) out.push(t("settings.boards.chips.release_resources"));
+  if (st.agent_verdict) out.push(t("settings.boards.chips.agent_verdict"));
+  if (st.lock_tests) out.push(t("settings.boards.chips.lock_tests"));
+  if (st.skip_unless?.length) {
+    out.push(t("settings.boards.chips.skip_unless", { values: st.skip_unless.join(", ") }));
+  }
+  if (st.no_skip) out.push(t("settings.boards.chips.no_skip"));
   const approvals = (st.required_approvals ?? []).length;
   if (approvals) out.push(t("settings.boards.chips.approvals", { count: approvals }));
   if (st.wip_group === "work") out.push(t("settings.boards.chips.wip_work"));
@@ -183,12 +205,25 @@ export function mountBoardsSettings(signal: AbortSignal): void {
   const cards = byId("bs-cards");
   const listErr = byId("bs-list-error");
   const stagesOf = new Map<string, Stage[]>();
+  // The Workshop's flows, for the badge on a board installed from one; empty until they load.
+  let flowEntries: WorkshopEntry[] = [];
+
+  async function loadFlows() {
+    if (!boards.some((b) => b.flow)) return;
+    try {
+      flowEntries = (await listWorkshop()).filter((e) => e.kind === "flow");
+      renderCards();
+    } catch {
+      // The badge is a nicety; the board list stands without it.
+    }
+  }
 
   async function loadList() {
     try {
       await fetchBoards();
       if (listErr) listErr.hidden = true;
       renderCards();
+      void loadFlows();
       await Promise.all(
         boards.map(async (b) => {
           try {
@@ -219,12 +254,27 @@ export function mountBoardsSettings(signal: AbortSignal): void {
     return stages.map((s) => `<li>${stagePillHTML(s.id, s, { size: "sm" })}</li>`).join("");
   }
 
+  function flowBadgeHTML(b: Board): string {
+    if (!b.flow) return "";
+    const entry = flowEntries.find((e) => e.name === b.flow?.name);
+    const badge = badgeHTML(
+      t("settings.boards.card.flow", {
+        flow: entry ? entryTitle(entry) : b.flow.name,
+        rev: b.flow.revision,
+      }),
+      "neutral",
+      { title: t("settings.boards.card.flow_hint") },
+    );
+    return badge + flowRevisionBadgeHTML(b, flowEntries);
+  }
+
   function boardCardHTML(b: Board): string {
     return cardHTML({
       title: b.label,
       href: boardSettingsURL(b.id),
       headHTML:
         (b.default ? badgeHTML(t("settings.boards.card.default"), "accent") : "") +
+        flowBadgeHTML(b) +
         buttonHTML({
           label: t("settings.boards.card.actions", { board: b.label }),
           icon: "more",
@@ -588,6 +638,7 @@ export function mountBoardsSettings(signal: AbortSignal): void {
 
   const nameInput = byId("bs-name") as HTMLInputElement | null;
   const descInput = byId("bs-desc") as HTMLTextAreaElement | null;
+  const kickInput = byId("bs-kick-backs") as HTMLInputElement | null;
   const headStatus = byId("bs-head-status");
 
   function renderDetailHead() {
@@ -605,8 +656,12 @@ export function mountBoardsSettings(signal: AbortSignal): void {
     setText(byId("bs-detail-meta"), boardMeta(b));
     if (nameInput && document.activeElement !== nameInput) nameInput.value = b.label;
     if (descInput && document.activeElement !== descInput) descInput.value = b.description ?? "";
+    if (kickInput && document.activeElement !== kickInput) {
+      kickInput.value = String(b.max_kick_backs ?? 0);
+    }
     if (nameInput) nameInput.readOnly = !canEdit;
     if (descInput) descInput.readOnly = !canEdit;
+    if (kickInput) kickInput.readOnly = !canEdit;
     const more = byId("bs-detail-more");
     if (more) more.hidden = !canEdit;
   }
@@ -642,6 +697,29 @@ export function mountBoardsSettings(signal: AbortSignal): void {
     }
   }
 
+  async function saveKickBacks(input: HTMLInputElement) {
+    if (!board || !canEdit) return;
+    const n = parseKickBacks(input.value);
+    if (n === null) {
+      setFieldError(input, t("settings.boards.detail.kick_backs_invalid", { max: MAX_KICK_BACKS }));
+      return;
+    }
+    setFieldError(input, "");
+    if (n === (board.max_kick_backs ?? 0)) return;
+    setText(headStatus, t("settings.boards.detail.saving"));
+    try {
+      await api.patch(`/boards/${encodeURIComponent(board.id)}`, { max_kick_backs: n });
+      const id = board.id;
+      boards = boards.map((b) => (b.id === id ? { ...b, max_kick_backs: n } : b));
+      renderDetailHead();
+      setText(headStatus, t("settings.boards.detail.saved"));
+    } catch (e) {
+      setText(headStatus, "");
+      setFieldError(input, errText(e));
+    }
+  }
+
+  kickInput?.addEventListener("change", () => void saveKickBacks(kickInput));
   nameInput?.addEventListener("change", () => void saveField("label", nameInput));
   descInput?.addEventListener("change", () => void saveField("description", descInput));
   nameInput?.addEventListener("keydown", (e) => {
@@ -655,14 +733,14 @@ export function mountBoardsSettings(signal: AbortSignal): void {
     const state = agentPicker.state(st.id);
     const text = columnAgentText(st, state);
     if (!text) return "";
-    const warn = state.with === 0;
+    const warn = waitsForPerson(state, st);
     return `<p class="bs-col-agent${warn ? " is-warn" : ""}">${icoSvg(warn ? "i-alert" : "i-bot")}<span>${esc(text)}</span></p>`;
   }
 
   function columnBodyHTML(st: Stage): string {
     const chips = behaviorChips(st);
     const count = taskCounts.get(st.id) ?? 0;
-    const waits = waitsForPerson(agentPicker.state(st.id));
+    const waits = waitsForPerson(agentPicker.state(st.id), st);
     return `<div class="bs-col-body">
         ${agentLineHTML(st)}
         ${
@@ -765,6 +843,8 @@ export function mountBoardsSettings(signal: AbortSignal): void {
   let saveTimer = 0;
   let saving: Promise<void> | null = null;
   let openPop: { type: string; kind: "icon" | "color" } | null = null;
+  // Types whose agent list is open: renderTypes redraws the rows and would fold it on each save.
+  const openAgents = new Set<string>();
 
   const stageList = () => colEd?.editor.stages ?? [];
 
@@ -846,7 +926,48 @@ export function mountBoardsSettings(signal: AbortSignal): void {
           <legend>${esc(t("settings.boards.types.walks"))}</legend>
           ${walk}
         </fieldset>
+        ${typeAgentsHTML(tt)}
       </div>`;
+  }
+
+  // Per column, the agent tasks of this type run instead of the column's own.
+  function typeAgentsHTML(tt: TaskType): string {
+    const cols = typeAgentStages(stageList(), tt);
+    if (cols.length === 0) return "";
+    const set = Object.keys(tt.agents ?? {}).filter((id) => cols.some((c) => c.id === id)).length;
+    const rows = cols
+      .map((st) => {
+        const value = typeAgentValue(tt, st.id);
+        const names = agentChoices(agents, st.id);
+        if (value !== TYPE_AGENT_COLUMN && value !== "" && !names.includes(value))
+          names.push(value);
+        const column = st.default_agent
+          ? t("settings.boards.types.agent_column_named", { agent: st.default_agent })
+          : t("settings.boards.types.agent_column");
+        const opt = (v: string, label: string) =>
+          `<option value="${esc(v)}"${v === value ? " selected" : ""}>${esc(label)}</option>`;
+        const id = `bs-tt-${tt.id}-agent-${st.id}`;
+        return fieldHTML({
+          label: st.label,
+          for: id,
+          layout: "inline",
+          control: `<select id="${esc(id)}" data-type-agent="${esc(st.id)}"${canEdit ? "" : " disabled"}>${[
+            opt(TYPE_AGENT_COLUMN, column),
+            opt("", t("settings.boards.types.agent_none")),
+            ...names.map((n) => opt(n, n)),
+          ].join("")}</select>`,
+        });
+      })
+      .join("");
+    return disclosureHTML({
+      variant: "fields",
+      summary: set
+        ? t("settings.boards.types.agents_set", { count: set })
+        : t("settings.boards.types.agents"),
+      open: openAgents.has(tt.id),
+      bodyHTML: `<p class="field-help">${esc(t("settings.boards.types.agents_hint"))}</p><div class="form-stack">${rows}</div>`,
+      attrs: { "data-type-agents": tt.id },
+    });
   }
 
   function renderTypes() {
@@ -908,10 +1029,25 @@ export function mountBoardsSettings(signal: AbortSignal): void {
     } else if (input.dataset.field === "default") {
       taskTypes.forEach((x) => (x.default = x.id === tt.id));
     } else if (input.dataset.walk) {
-      tt.skips = toggleSkip(tt.skips, input.dataset.walk, input.checked);
+      Object.assign(tt, walkStage(tt, input.dataset.walk, input.checked));
+      renderTypes();
+    } else if (input.dataset.typeAgent) {
+      tt.agents = withTypeAgent(tt.agents, input.dataset.typeAgent, input.value);
     } else return;
     queueSave();
   });
+
+  typesEl?.addEventListener(
+    "toggle",
+    (e) => {
+      const details = e.target as HTMLElement;
+      const id = details.dataset.typeAgents;
+      if (!id) return;
+      if ((details as HTMLDetailsElement).open) openAgents.add(id);
+      else openAgents.delete(id);
+    },
+    true,
+  );
 
   typesEl?.addEventListener("click", (e) => {
     const target = e.target as HTMLElement;
@@ -1174,4 +1310,15 @@ function orUndefined(v: string | undefined): string | undefined {
 
 function errText(e: unknown): string {
   return e instanceof Error && e.message ? e.message : t("settings.boards.errors.network");
+}
+
+// Must match stage.MaxKickBacksLimit.
+export const MAX_KICK_BACKS = 20;
+
+export function parseKickBacks(raw: string): number | null {
+  const text = raw.trim();
+  if (text === "") return 0;
+  if (!/^\d+$/.test(text)) return null;
+  const n = Number(text);
+  return n <= MAX_KICK_BACKS ? n : null;
 }

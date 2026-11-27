@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
@@ -187,6 +188,12 @@ func (l *taskLauncher) collectRunOutputs(ctx context.Context, containerID string
 		}
 	}
 	inst := containerInstanceID(info)
+	if l.taskDeleted(ctx, inst) {
+		// teardownTask already removed the task's run outputs; copying them out now would bring
+		// back a folder nothing deletes again.
+		log.Printf("[task] %s", i18n.Log("api.launcher.log.outputs_of_deleted_task", "id", containerID, "instance", inst))
+		return "", wtPath
+	}
 	outDir = l.srv.runOutputDirOf(inst)
 	if outDir == "" {
 		log.Printf("[task] %s", i18n.Log("api.launcher.log.no_output_dir", "id", containerID, "instance", inst, "root", l.srv.runsDir))
@@ -196,6 +203,21 @@ func (l *taskLauncher) collectRunOutputs(ctx context.Context, containerID string
 		log.Printf("[task] %s", i18n.Log("api.launcher.log.copy_out_failed", "id", containerID, "err", err))
 	}
 	return outDir, wtPath
+}
+
+func (l *taskLauncher) taskDeleted(ctx context.Context, instanceID string) bool {
+	taskID, ok := task.InstanceTaskID(instanceID)
+	if !ok {
+		return false
+	}
+	if _, gone := l.srv.tornDown.Load(taskID); gone {
+		return true
+	}
+	if l.srv.taskStore == nil {
+		return false
+	}
+	_, err := l.srv.taskStore.GetRow(ctx, taskID)
+	return errors.Is(err, task.ErrNotFound)
 }
 
 func containerNameOf(names []string) string {
@@ -209,6 +231,8 @@ func (l *taskLauncher) ContainerAlive(containerID string) bool {
 	return l.srv.containerRunning(context.Background(), containerID)
 }
 
+// The janitor runs this every two minutes, so it leaves out the containers whose exit callback still
+// waits or runs: replaying those would finish the run twice.
 func (l *taskLauncher) ScanExitedTaskAgents(ctx context.Context) ([]task.ExitedTaskAgent, error) {
 	f := filters.NewArgs(
 		filters.Arg("label", agent.LabelManaged+"=true"),
@@ -223,16 +247,11 @@ func (l *taskLauncher) ScanExitedTaskAgents(ctx context.Context) ([]task.ExitedT
 		if dockerx.ForeignInstall(containers[i].Labels) {
 			continue
 		}
-		instanceID := containers[i].Labels[agent.LabelInstance]
-		if instanceID == "" {
-			// Containers launched while agent definitions moved to Postgres lack the instance
-			// label; the container name is the instance id.
-			instanceID = containerNameOf(containers[i].Names)
-		}
+		instanceID := agentInstanceOf(containers[i].Labels, containers[i].Names)
 		agentType := containers[i].Labels[agent.LabelType]
-		shortID := containers[i].ID
-		if len(shortID) > 12 {
-			shortID = shortID[:12]
+		shortID := shortContainerID(containers[i].ID)
+		if l.srv.watcher != nil && l.srv.watcher.Watching(shortID) {
+			continue
 		}
 		// A run whose exit a restart lost never had outputs copied out: copy now, while the
 		// container exists. An existing dir was filled by OnExit.
@@ -258,6 +277,62 @@ func (l *taskLauncher) ScanExitedTaskAgents(ctx context.Context) ([]task.ExitedT
 		})
 	}
 	return out, nil
+}
+
+// Containers launched while agent definitions moved to Postgres lack the instance label; the
+// container name is the instance id.
+func agentInstanceOf(labels map[string]string, names []string) string {
+	if inst := labels[agent.LabelInstance]; inst != "" {
+		return inst
+	}
+	return containerNameOf(names)
+}
+
+// ScanLiveTaskAgents lists the agent containers that still run, with the time Docker started them.
+func (l *taskLauncher) ScanLiveTaskAgents(ctx context.Context) ([]task.LiveTaskAgent, error) {
+	if l.srv.docker == nil {
+		// Kubernetes, or a daemon with no runtime: the dispatcher falls back to each task's current run.
+		return nil, task.ErrLiveScanUnsupported
+	}
+	f := filters.NewArgs(
+		filters.Arg("label", agent.LabelManaged+"=true"),
+		filters.Arg("status", "running"),
+	)
+	containers, err := l.srv.docker.ContainerList(ctx, container.ListOptions{Filters: f})
+	if err != nil {
+		return nil, err
+	}
+	out := make([]task.LiveTaskAgent, 0, len(containers))
+	for i := range containers {
+		c := &containers[i]
+		if dockerx.ForeignInstall(c.Labels) {
+			continue
+		}
+		instanceID := agentInstanceOf(c.Labels, c.Names)
+		if _, ok := task.InstanceTaskID(instanceID); !ok {
+			continue
+		}
+		live := task.LiveTaskAgent{ExitedTaskAgent: task.ExitedTaskAgent{
+			ContainerID: shortContainerID(c.ID),
+			InstanceID:  instanceID,
+			AgentType:   c.Labels[agent.LabelType],
+			OutputDir:   l.srv.runOutputDirOf(instanceID),
+			LaunchKind:  task.ParseLaunchKind(c.Labels[task.LabelLaunchKind]),
+		}}
+		if info, err := l.srv.docker.ContainerInspect(ctx, c.ID); err == nil && info.State != nil {
+			if started, perr := time.Parse(time.RFC3339Nano, info.State.StartedAt); perr == nil {
+				live.StartedAt = started
+			}
+		}
+		out = append(out, live)
+	}
+	return out, nil
+}
+
+func (l *taskLauncher) CancelExitWatch(containerID string) {
+	if l.srv.watcher != nil {
+		l.srv.watcher.Forget(containerID)
+	}
 }
 
 // Contract with snippets/steer-driver.js and entrypoint-base.sh.

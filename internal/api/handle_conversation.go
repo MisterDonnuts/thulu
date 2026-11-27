@@ -51,6 +51,7 @@ func (s *Server) handleConversation(w http.ResponseWriter, r *http.Request) {
 	seen := map[string]bool{}
 	if s.usageStore != nil {
 		runs := s.usageStore.SessionsForTask(r.Context(), s.usageScope(r), id)
+		live = liveRun(live, runs)
 		for i := range runs {
 			seen[runs[i].ID] = true
 			items = append(items, runItem(&runs[i], runs[i].ID == live))
@@ -66,6 +67,17 @@ func (s *Server) handleConversation(w http.ResponseWriter, r *http.Request) {
 
 	sort.SliceStable(items, func(i, j int) bool { return items[i].At.Before(items[j].At) })
 	writeJSON(w, http.StatusOK, conversationResponse{Items: items, LiveRunID: live})
+}
+
+// liveRun is the task's current run while it still runs. A task waiting on a person keeps the id of
+// the run that stopped there, and that run already has its finished usage row.
+func liveRun(current string, runs []usage.Session) string {
+	for i := range runs {
+		if runs[i].ID == current && !runs[i].FinishedAt.IsZero() {
+			return ""
+		}
+	}
+	return current
 }
 
 func runItem(sess *usage.Session, live bool) conversationItem {

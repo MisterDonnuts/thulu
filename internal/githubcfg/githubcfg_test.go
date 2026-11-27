@@ -71,3 +71,17 @@ func TestInvalidValuesFallBack(t *testing.T) {
 		}
 	}
 }
+
+func TestGraphQLURL(t *testing.T) {
+	for api, want := range map[string]string{
+		"https://api.github.com":            "https://api.github.com/graphql",
+		"https://ghe.example.com/api/v3":    "https://ghe.example.com/api/graphql",
+		"http://127.0.0.1:9999":             "http://127.0.0.1:9999/graphql",
+		"https://ghe.example.com/gh/api/v3": "https://ghe.example.com/gh/api/graphql",
+	} {
+		t.Setenv("OCTOPUS_GITHUB_API_URL", api)
+		if got := GraphQLURL(); got != want {
+			t.Errorf("GraphQLURL(%s) = %s, want %s", api, got, want)
+		}
+	}
+}

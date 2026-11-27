@@ -17,6 +17,7 @@ import {
   envGroupsHTML,
   envResultsHTML,
   failuresHTML,
+  findingsHTML,
   historyHTML,
   offProps,
   sandboxCardHTML,
@@ -27,6 +28,7 @@ import {
   statusPillHTML,
   type ListCtx,
   runnerErrorHTML,
+  timingHTML,
 } from "./evidence-html";
 import {
   groupEnvs,
@@ -562,6 +564,94 @@ describe("drawer parts", () => {
     expect(html).toContain("Measured");
     expect(html).toContain("Seen by the agent");
     expect(checksTableHTML([])).toContain("This run has no checks.");
+  });
+
+  it("says which metric a perf check measured and its value", () => {
+    const html = checksTableHTML([
+      {
+        label: "Paints fast",
+        expected: "2500",
+        observed: "1.8 s",
+        pass: true,
+        measured: true,
+        metric: "lcp",
+        value: 1830,
+      },
+      {
+        label: "Answers",
+        expected: "800",
+        observed: "420 ms",
+        pass: true,
+        measured: true,
+        metric: "response",
+        value: 420,
+      },
+    ]);
+    expect(html).toContain("Measured · LCP 1.8s");
+    expect(html).toContain("Measured · Response 420ms");
+  });
+
+  it("lists page errors by step, one line each, escaped", () => {
+    const html = findingsHTML([
+      {
+        step: 2,
+        kind: "http",
+        status: 500,
+        method: "POST",
+        url: "https://app.test/api/pay",
+        count: 2,
+      },
+      { step: 0, kind: "console", text: "total is <NaN>", count: 1 },
+      { step: 0, kind: "pageerror", text: "TypeError: x", count: 1 },
+      {
+        step: 1,
+        kind: "failed",
+        method: "GET",
+        url: "https://cdn.test/a.js",
+        text: "net::ERR_FAILED",
+        count: 1,
+      },
+    ]);
+    expect(html).toContain("Step 3");
+    expect(html).toContain("500 POST https://app.test/api/pay ×2");
+    expect(html).toContain("Console error: total is &lt;NaN&gt;");
+    expect(html).toContain("Uncaught error: TypeError: x");
+    expect(html).toContain("Request failed: GET https://cdn.test/a.js (net::ERR_FAILED)");
+    expect(findingsHTML([])).toBe("");
+  });
+
+  it("tables the runner's timing with its profile and the waits cut", () => {
+    const html = timingHTML({
+      profile: { network: "slow-4g", cpu_throttle: 4 },
+      steps: [
+        {
+          step: 0,
+          label: "Open",
+          response_ms: 1830,
+          vitals: { ttfb: 240, fcp: 900, lcp: 1830, cls: 0.12, inp: null },
+        },
+        { step: 1, label: "", response_ms: null, dead: true },
+      ],
+      waits: {
+        cut: true,
+        gaps: [
+          { step: 0, ms: 3200, reason: "nav", cut: true },
+          { step: 1, ms: 900, reason: "check", cut: false },
+        ],
+      },
+    });
+    expect(html).toContain(
+      "Lab numbers from one run, not field data · profile slow-4g · CPU 4x · 3.2s of waiting cut from the video (1 wait)",
+    );
+    expect(html).toContain(
+      'class="list-table list-table-top list-table-compact list-table-stack ev-timing"',
+    );
+    expect(html).toContain("0.12");
+    expect(html).toContain("none (dead)");
+    expect(html).toContain("Step 2");
+    expect(timingHTML({ waits: { cut: false, gaps: [] } })).toContain("waits filmed in real time");
+    expect(timingHTML(undefined)).toBe("");
+    expect(timingHTML({})).toBe("");
   });
 
   it("lists failures by step", () => {

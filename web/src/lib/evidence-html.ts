@@ -39,6 +39,11 @@ import {
   triggerLabel,
   whenLabel,
   caseHash,
+  findingLabel,
+  metricName,
+  metricValue,
+  profileLabel,
+  waitsCut,
   type BatchCounts,
   type CaseGroup,
   type Chapter,
@@ -48,6 +53,8 @@ import {
   type EvCheck,
   type EvEnvironment,
   type EvFailure,
+  type EvFinding,
+  type EvMetrics,
   type EvRun,
   type Permission,
 } from "./evidence-view";
@@ -828,10 +835,65 @@ export function checksTableHTML(checks: EvCheck[]): string {
       c.expected,
       c.observed,
       { html: statusPillHTML(c.pass ? "pass" : "fail") },
-      c.measured ? t("evidence.detail.measured") : t("evidence.detail.observed_by_agent"),
+      c.metric
+        ? t("evidence.detail.measured_metric", {
+            metric: metricName(c.metric),
+            value: metricValue(c.metric, c.value),
+          })
+        : c.measured
+          ? t("evidence.detail.measured")
+          : t("evidence.detail.observed_by_agent"),
     ],
   }));
   return tableHTML(cols, rows, { compact: true, top: true, stack: true, cls: "ev-checks" });
+}
+
+// Page errors never change a verdict: the list says what the page complained about, by step.
+export function findingsHTML(findings: EvFinding[]): string {
+  if (!findings.length) return "";
+  return `<ul class="ev-findings">${findings
+    .map(
+      (f) =>
+        `<li><span class="ev-dim">${esc(t("evidence.detail.step", { step: String(f.step + 1) }))}</span> <span class="ev-mono">${esc(findingLabel(f))}</span></li>`,
+    )
+    .join("")}</ul>`;
+}
+
+// A step without a label (an empty string included) shows as "Step n".
+function stepName(s: { step: number; label?: string }): string {
+  if (s.label) return s.label;
+  return t("evidence.detail.step", { step: String(s.step + 1) });
+}
+
+// The runner's timing per step, lab numbers from one run. Empty when the run measured nothing.
+export function timingHTML(m: EvMetrics | undefined): string {
+  const steps = m?.steps ?? [];
+  const notes: string[] = [];
+  const profile = profileLabel(m);
+  if (profile) notes.push(t("evidence.timing.profile", { profile }));
+  const cut = waitsCut(m);
+  if (m?.waits && !m.waits.cut) notes.push(t("evidence.timing.waits_filmed"));
+  else if (cut)
+    notes.push(
+      t("evidence.timing.waits_cut", { wait: metricValue("response", cut.ms), count: cut.count }),
+    );
+  if (m?.steps_dropped) notes.push(t("evidence.timing.steps_dropped"));
+  if (!steps.length && !notes.length) return "";
+  const lede = `<p class="ev-dim">${esc([t("evidence.timing.lab"), ...notes].join(" · "))}</p>`;
+  if (!steps.length) return lede;
+  const cols: TableColumn[] = [
+    { label: t("evidence.timing.col_step"), width: "fill" },
+    { label: t("evidence.timing.response") },
+    ...(["ttfb", "fcp", "lcp", "cls", "inp"] as const).map((k) => ({ label: metricName(k) })),
+  ];
+  const rows = steps.map((s): TableRow => ({
+    cells: [
+      stepName(s),
+      s.dead ? t("evidence.timing.dead") : metricValue("response", s.response_ms),
+      ...(["ttfb", "fcp", "lcp", "cls", "inp"] as const).map((k) => metricValue(k, s.vitals?.[k])),
+    ],
+  }));
+  return lede + tableHTML(cols, rows, { compact: true, top: true, stack: true, cls: "ev-timing" });
 }
 
 export function failuresHTML(failures: EvFailure[]): string {

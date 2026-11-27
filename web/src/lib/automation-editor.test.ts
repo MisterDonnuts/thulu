@@ -272,6 +272,50 @@ describe("batchCount", () => {
   });
 });
 
+describe("stepSummary of a move", () => {
+  it("says where the task went, or which approval held it", () => {
+    const moved = must(
+      stepSummary({
+        kind: "move",
+        status: "ok",
+        output:
+          '{"from":"release","gated":false,"moved":true,"task_id":"t-3","title":"Ship","to":"done"}',
+      }),
+    );
+    expect(moved.text).toBe('Moved "Ship" to done');
+    expect(moved.href).toBe("/tasks/#task-t-3");
+    const gated = must(
+      stepSummary({
+        kind: "move",
+        status: "ok",
+        output:
+          '{"approvals":["Deploy to production"],"gated":true,"moved":false,"task_id":"t-4","title":"Hold","to":"done"}',
+      }),
+    );
+    expect(gated.text).toContain("Deploy to production");
+    const noop = must(
+      stepSummary({
+        kind: "move",
+        status: "ok",
+        output: '{"gated":false,"moved":false,"task_id":"t-5","title":"Here","to":"done"}',
+      }),
+    );
+    expect(noop.text).toContain("already");
+  });
+});
+
+describe("samplePayload of a deploy", () => {
+  it("shapes deployment_status and workflow_run like the webhook does", () => {
+    const dep = must(samplePayload({ trigger: { event: "github.deployment_status" } }));
+    expect(dep.deploy_state).toBe("success");
+    expect(dep.evidence_batch_ids).toEqual([]);
+    expect(dep.pr_url).toBe("");
+    const run = must(samplePayload({ trigger: { event: "github.workflow_run" } }));
+    expect(run.conclusion).toBe("success");
+    expect(run.run_id).toBe(9001);
+  });
+});
+
 describe("stepSummary", () => {
   it("says which task a task step created, with its id for the link", () => {
     const s = must(

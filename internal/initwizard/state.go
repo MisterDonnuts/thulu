@@ -37,6 +37,10 @@ func LoadAnswers(root string) (*Config, error) {
 	if err := json.Unmarshal(raw, &cfg); err != nil {
 		return nil, apperr.Wrap(err, "initwizard.errors.parse_file", "path", AnswersFile)
 	}
+	if cfg.InstallFlow && cfg.Board == "" {
+		cfg.Board = ThuluFlow
+	}
+	cfg.InstallFlow = false
 	return &cfg, nil
 }
 

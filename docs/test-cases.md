@@ -39,7 +39,7 @@ them instead of relying on the section.
 | `steps` | text | markdown, usually a numbered list |
 | `expected` | text | markdown: the expected result |
 | `priority` | text | `low`, `medium` (default), `high`, `critical` |
-| `status` | text | `pending` (default), `pass`, `fail`, `blocked`, `skipped` |
+| `status` | text | `pending` (default), `pass`, `fail`, `blocked`, `skipped`; `waived` (a person skipped it with a reason, `POST /tasks/{id}/test-cases/waive`) and `queued` (a person gave the agent access and Testing runs it again) are set only by those actions, never by a status edit |
 | `covered` | bool | someone exercised it (a run exists, or QA ticked it by hand) |
 | `position` | int | order within the task; new cases go last |
 | `created_by`, `updated_by` | text | author, derived from the credential like comments |
@@ -54,8 +54,8 @@ them instead of relying on the section.
 | `id` | text pk | |
 | `test_case_id` | text | FK `test_cases(id) ON DELETE CASCADE` |
 | `task_id` | text | FK `tasks(id) ON DELETE CASCADE`; kept for listing and deletion |
-| `verdict` | text | `pass`, `fail`, `blocked` |
-| `observed` | text | what was seen, short |
+| `verdict` | text | `pass`, `fail`, `blocked`; `waived` for a person's waiver, with the reason as `note` |
+| `observed` | text | what was seen, at most 280 characters (the detail goes in `note`) |
 | `note` | text | markdown |
 | `video_attachment_id` | text | `''` or an attachment of the same task |
 | `take_attachment_id` | text | `''` or an attachment of the same task (the take JSON) |

@@ -2,14 +2,19 @@ import { t } from "../i18n";
 import { api } from "./api";
 import { badgeHTML, downloadBlob, setCount, type CountOptions } from "./ui";
 import type { BadgeTone } from "./badges";
+import type { Board, Stage, TaskType } from "./stages";
 
-export type WorkshopKind = "agent" | "skill";
+export type WorkshopKind = "agent" | "skill" | "flow";
+
+// Flows install a board; only agents and skills export to a file.
+export type ExportKind = Exclude<WorkshopKind, "flow">;
 
 export type WorkshopStatus = "available" | "installed" | "update" | "changed" | "reserved";
 
 export interface WorkshopEntry {
   kind: WorkshopKind;
   name: string;
+  label?: string;
   description?: string;
   tags: string[];
   revision: number;
@@ -25,6 +30,9 @@ export interface WorkshopEntry {
   image?: string;
   engine?: string;
   model?: string;
+  // Flows: the agents it assigns and the boards installed from it, oldest first.
+  agents?: string[];
+  boards?: string[];
 }
 
 export interface WorkshopFile {
@@ -33,8 +41,25 @@ export interface WorkshopFile {
   encoding?: "base64";
 }
 
+// A flow's board as it installs, in the reader's locale.
+export interface FlowView {
+  max_kick_backs?: number;
+  stages: Stage[];
+  types: TaskType[] | null;
+}
+
 export interface WorkshopDetail extends WorkshopEntry {
   files: WorkshopFile[];
+  flow?: FlowView;
+}
+
+export type StageChange = "add" | "change" | "same" | "remove";
+
+export interface FlowStageChange {
+  id: string;
+  label: string;
+  agent?: string;
+  change: StageChange;
 }
 
 export type Action = "install" | "same" | "update" | "conflict" | "reserved" | "rejected";
@@ -54,6 +79,7 @@ export interface PlanItem {
   used_by?: string[];
   as_copy?: boolean;
   skill_renames?: Record<string, string>;
+  stages?: FlowStageChange[];
 }
 
 export interface PlanNotice {
@@ -117,17 +143,26 @@ export function planWorkshop(
   return api.post<Plan>("/workshop/plan", { ...input, ...choices });
 }
 
-export function applyWorkshop(input: PlanInput, choices: Choices): Promise<ApplyResult> {
-  return api.post<ApplyResult>("/workshop/apply", { ...input, ...choices });
+// flowDefault makes the board a flow installs the workspace's default board.
+export function applyWorkshop(
+  input: PlanInput,
+  choices: Choices,
+  flowDefault = false,
+): Promise<ApplyResult> {
+  return api.post<ApplyResult>("/workshop/apply", {
+    ...input,
+    ...choices,
+    ...(flowDefault ? { flow_default: true } : {}),
+  });
 }
 
-export async function exportItem(kind: WorkshopKind, name: string): Promise<void> {
+export async function exportItem(kind: ExportKind, name: string): Promise<void> {
   const base = kind === "agent" ? "/types" : "/skills";
   const body = await api.getText(`${base}/${encodeURIComponent(name)}/export`);
   downloadBlob(new Blob([body], { type: "application/json" }), exportFilename(kind, name));
 }
 
-export function exportFilename(kind: WorkshopKind, name: string): string {
+export function exportFilename(kind: ExportKind, name: string): string {
   return `octopus-${kind}-${name}.json`;
 }
 
@@ -136,7 +171,7 @@ export async function exportItems(items: ItemRef[], filename: string): Promise<v
   downloadBlob(new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" }), filename);
 }
 
-export function exportAllFilename(kind: WorkshopKind): string {
+export function exportAllFilename(kind: ExportKind): string {
   return kind === "agent" ? "octopus-agents.json" : "octopus-skills.json";
 }
 
@@ -211,7 +246,7 @@ export function filterEntries(
     if (e.kind !== kind) return false;
     if (tags.some((tag) => !e.tags.includes(tag))) return false;
     const hay =
-      `${e.name} ${e.description ?? ""} ${e.tags.join(" ")} ${e.tags.map(tagLabel).join(" ")}`.toLowerCase();
+      `${e.name} ${e.label ?? ""} ${e.description ?? ""} ${e.tags.join(" ")} ${e.tags.map(tagLabel).join(" ")}`.toLowerCase();
     return words.every((w) => hay.includes(w));
   });
 }
@@ -221,6 +256,8 @@ const TAG_KEYS: Partial<Record<string, string>> = {
   docs: "workshop.tags.docs",
   example: "workshop.tags.example",
   release: "workshop.tags.release",
+  flow: "workshop.tags.flow",
+  default: "workshop.tags.default",
 };
 
 export function tagLabel(tag: string): string {
@@ -330,4 +367,92 @@ export class BundleError extends Error {
 
 export function previewBody(f: WorkshopFile): string | null {
   return f.encoding === "base64" ? null : f.body;
+}
+
+// Flows carry a person-facing label; agents and skills go by their name.
+export function entryTitle(e: Pick<WorkshopEntry, "name" | "label">): string {
+  return e.label ?? e.name;
+}
+
+// The flow items the apply writes: each installs or rewrites a board.
+export function flowWrites(plan: Plan): PlanItem[] {
+  return plan.items.filter((it) => it.kind === "flow" && writes(it.resolution));
+}
+
+// Only a new board can become the default from the plan; an update leaves the default alone.
+export function offersDefaultBoard(plan: Plan): boolean {
+  return flowWrites(plan).some((it) => it.resolution === "install" || it.resolution === "copy");
+}
+
+export function stageChangeCounts(it: PlanItem): Record<StageChange, number> {
+  const out: Record<StageChange, number> = { add: 0, change: 0, same: 0, remove: 0 };
+  for (const st of it.stages ?? []) out[st.change]++;
+  return out;
+}
+
+export function stageChangeTone(c: StageChange): BadgeTone {
+  switch (c) {
+    case "add":
+      return "ok";
+    case "change":
+      return "warn";
+    case "remove":
+      return "danger";
+    case "same":
+      return "muted";
+  }
+}
+
+// One task type of a flow as the detail lists it: the columns it skips and, per column, the agent
+// it runs instead of the column's ("" is none).
+export interface FlowTypeRow {
+  id: string;
+  label: string;
+  skips: string[];
+  agents: Array<{ stage: string; agent: string }>;
+}
+
+export function flowTypeRows(view: FlowView): FlowTypeRow[] {
+  const label = new Map(view.stages.map((st) => [st.id, st.label || st.id]));
+  const order = new Map(view.stages.map((st, i) => [st.id, i]));
+  const byOrder = (a: string, b: string) => (order.get(a) ?? 0) - (order.get(b) ?? 0);
+  return (view.types ?? []).map((tt) => ({
+    id: tt.id,
+    label: tt.label || tt.id,
+    skips: [...tt.skips].sort(byOrder).map((id) => label.get(id) ?? id),
+    agents: Object.keys(tt.agents ?? {})
+      .sort(byOrder)
+      .map((id) => ({ stage: label.get(id) ?? id, agent: tt.agents?.[id] ?? "" })),
+  }));
+}
+
+// A board installed from a flow whose catalog revision is newer than the one the board has.
+export function flowUpdateFor(
+  board: Pick<Board, "flow">,
+  entries: readonly WorkshopEntry[],
+): WorkshopEntry | undefined {
+  const flow = board.flow;
+  if (!flow) return undefined;
+  return entries.find(
+    (e) => e.kind === "flow" && e.name === flow.name && e.revision > flow.revision,
+  );
+}
+
+// The badge a board card shows when its flow has a newer revision: Update for an untouched board,
+// Conflict for one edited since the install, where updating asks what to keep.
+export function flowRevisionBadgeHTML(
+  board: Pick<Board, "flow">,
+  entries: readonly WorkshopEntry[],
+): string {
+  if (!flowUpdateFor(board, entries)) return "";
+  if (!board.flow?.edited) return updateBadgeHTML();
+  return badgeHTML(t("workshop.conflict_badge"), "warn", {
+    title: t("workshop.conflict_badge_hint"),
+  });
+}
+
+// /agents/?workshop=flow opens the Workshop on that tab; other pages link there.
+export function workshopTabFromQuery(search: string): WorkshopKind | null {
+  const tab = new URLSearchParams(search).get("workshop");
+  return tab === "agent" || tab === "skill" || tab === "flow" ? tab : null;
 }

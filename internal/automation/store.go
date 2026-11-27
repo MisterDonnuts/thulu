@@ -167,6 +167,9 @@ func Migrations(_ migrate.Inspector) ([]migrate.Migration, error) {
 				created_at    TIMESTAMP NOT NULL
 			);
 			CREATE INDEX IF NOT EXISTS idx_automation_task_origins_ws ON automation_task_origins(workspace_id)`},
+		// What owns a generated automation ("deploy_watch:<id>"); '' for a recipe a person wrote.
+		{ID: 7, SQL: `
+			ALTER TABLE automations ADD COLUMN IF NOT EXISTS managed_by TEXT NOT NULL DEFAULT ''`},
 	}, nil
 }
 
@@ -183,9 +186,22 @@ func NewStore(db *sql.DB) (*Store, error) {
 
 const automationCols = `id, workspace_id, name, description, enabled, spec,
 	trigger_kind, trigger_event, cron, tz, next_run_at, last_run_at, last_status,
-	created_at, updated_at`
+	created_at, updated_at, managed_by`
 
 func (s *Store) Create(ctx context.Context, workspaceID, spec string, enabled bool) (*Automation, error) {
+	return s.create(ctx, workspaceID, spec, enabled, "")
+}
+
+// CreateManaged stores an automation that managedBy owns: the API refuses to edit or delete it by
+// hand, and its owner changes it with Update and removes it with Delete.
+func (s *Store) CreateManaged(ctx context.Context, workspaceID, spec, managedBy string) (*Automation, error) {
+	if managedBy == "" {
+		return nil, apperr.Invalid("automation.errors.managed_by_required")
+	}
+	return s.create(ctx, workspaceID, spec, true, managedBy)
+}
+
+func (s *Store) create(ctx context.Context, workspaceID, spec string, enabled bool, managedBy string) (*Automation, error) {
 	parsed, err := ParseSpec(spec)
 	if err != nil {
 		return nil, err
@@ -196,6 +212,7 @@ func (s *Store) Create(ctx context.Context, workspaceID, spec string, enabled bo
 		Enabled:     enabled,
 		Spec:        spec,
 		Parsed:      parsed,
+		ManagedBy:   managedBy,
 		CreatedAt:   time.Now().UTC(),
 	}
 	a.UpdatedAt = a.CreatedAt
@@ -205,10 +222,10 @@ func (s *Store) Create(ctx context.Context, workspaceID, spec string, enabled bo
 	}
 	_, err = s.db.ExecContext(ctx, s.rb(`
 		INSERT INTO automations (`+automationCols+`)
-		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`),
+		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`),
 		a.ID, a.WorkspaceID, a.Name, a.Description, a.Enabled, a.Spec,
 		a.TriggerKind, a.Event, a.Cron, a.TZ, a.NextRunAt, a.LastRunAt, a.LastStatus,
-		a.CreatedAt, a.UpdatedAt)
+		a.CreatedAt, a.UpdatedAt, a.ManagedBy)
 	if err != nil {
 		return nil, err
 	}
@@ -384,7 +401,7 @@ func scanAutomation(scan scanner) (*Automation, error) {
 	var nextAt, lastAt sql.NullTime
 	err := scan(&a.ID, &a.WorkspaceID, &a.Name, &a.Description, &a.Enabled, &a.Spec,
 		&a.TriggerKind, &a.Event, &a.Cron, &a.TZ, &nextAt, &lastAt, &a.LastStatus,
-		&a.CreatedAt, &a.UpdatedAt)
+		&a.CreatedAt, &a.UpdatedAt, &a.ManagedBy)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}

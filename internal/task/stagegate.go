@@ -2,8 +2,6 @@ package task
 
 import (
 	"context"
-	"fmt"
-	"log"
 	"slices"
 	"strconv"
 	"strings"
@@ -27,17 +25,31 @@ const (
 	GateStageDeleted   GateCause = "stage_deleted"
 	GateBoardDeleted   GateCause = "board_deleted"
 	GateTypeRelocation GateCause = "type_relocation"
+	// The person already decided on GitHub: the move passes and waives what it skips, with the
+	// merger as author, so the approval does not stay pending for good.
+	GateMerge GateCause = "merge"
+	// A release agent moving a batch: the gate holds, as for an automation.
+	GateRelease GateCause = "release"
 )
 
 func (c GateCause) Administrative() bool {
-	return c == GateStageDeleted || c == GateBoardDeleted || c == GateTypeRelocation
+	return c == GateStageDeleted || c == GateBoardDeleted || c == GateTypeRelocation || c == GateMerge
 }
 
 // For an administrative move Blocking lists what the move skipped.
 // A required approval not opened yet has an empty ID; StageExitGate relies on that.
+// When Checks is set, the approved approvals in Blocking wait for the required checks of those pull
+// requests.
 type GateVerdict struct {
 	Passed   bool
 	Blocking []Approval
+	Checks   []ChecksHold
+}
+
+// OnlyChecks says whether the move waits for nothing but the required checks: every approval it
+// lists is already decided.
+func (v GateVerdict) OnlyChecks() bool {
+	return len(v.Checks) > 0 && !slices.ContainsFunc(v.Blocking, func(a Approval) bool { return !a.Status.Settled() })
 }
 
 func (v GateVerdict) Labels() string {
@@ -79,11 +91,19 @@ func (s *Store) StageExitCheck(ctx context.Context, t *Task, from, to Stage, cau
 			return GateVerdict{}, err
 		}
 	}
-	blocking := holdingApprovals(t, fromInfo, list, jumpedOver(reg, fromInfo, toInfo, toKnown))
+	skipped := jumpedOver(reg, fromInfo, toInfo, toKnown)
+	blocking := holdingApprovals(t, fromInfo, list, skipped)
 	if cause.Administrative() {
 		return GateVerdict{Passed: true, Blocking: blocking}, nil
 	}
-	return GateVerdict{Passed: len(blocking) == 0, Blocking: blocking}, nil
+	if len(blocking) > 0 {
+		return GateVerdict{Blocking: blocking}, nil
+	}
+	// Only asked once nothing else holds: it reads GitHub.
+	if held, holds := s.checksHeld(ctx, t, reg, fromInfo, list, skipped); len(held) > 0 {
+		return GateVerdict{Blocking: held, Checks: holds}, nil
+	}
+	return pass, nil
 }
 
 // Already-opened approvals of jumped stages hold the move, or stepping back then jumping forward
@@ -148,7 +168,7 @@ func (s *Store) StageExitGate(ctx context.Context, t *Task, from, to Stage, caus
 
 func (s *Store) stageEntered(ctx context.Context, t *Task) {
 	s.claimAwaitingApproval(ctx, t.ID)
-	s.cancelQuestionsLeftBehind(ctx, t)
+	s.settleQuestionsLeftBehind(ctx, t)
 	info, ok := s.board(t.BoardID).Get(t.Stage)
 	if !ok || info.Virtual {
 		return
@@ -189,7 +209,12 @@ func (d *Dispatcher) holdForApprovals(ctx context.Context, t *Task, taskID strin
 	if v.Passed {
 		return false
 	}
-	d.systemComment(ctx, taskID, NoteOf("task.approvals.comments.awaiting", "stage", d.stageNote(t, from), "approvals", v.Labels()))
+	note := NoteOf("task.approvals.comments.awaiting", "stage", d.stageNote(t, from), "approvals", v.Labels())
+	if v.OnlyChecks() {
+		note = NoteOf("task.approvals.comments.awaiting_checks", "stage", d.stageNote(t, from),
+			"approvals", v.Labels(), "checks", ChecksText(ctx, v.Checks))
+	}
+	d.systemComment(ctx, taskID, note)
 	d.setStatus(ctx, taskID, StatusAwaitingApproval)
 	// The last approval may have landed between the gate and the status write, with nothing parked
 	// yet for it to move.
@@ -203,7 +228,7 @@ func (d *Dispatcher) ApprovalsSettled(ctx context.Context, taskID string) {
 		return
 	}
 	stages := d.stagesFor(t)
-	next := stages.Next(t.Stage)
+	next, _ := d.nextStageFor(t, t.Stage)
 	if next != "" {
 		v, err := d.store.StageExitCheck(ctx, t, t.Stage, next, GateAutoAdvance)
 		if err != nil || !v.Passed {
@@ -245,6 +270,20 @@ func (d *Dispatcher) decideApproval(
 	if a.TaskID != t.ID {
 		return nil, apperr.NotFound("task.approvals.errors.not_found")
 	}
+	// A stage's own approval vouches for what its agent produced: approving it while that agent
+	// still works approves a definition, a design or a change that does not exist yet.
+	if status.Settled() && a.Source == ApprovalFromStage && a.Stage == t.Stage {
+		if _, runStage, alive := d.liveRun(t); alive && runStage == a.Stage {
+			return nil, apperr.Conflict("task.approvals.errors.stage_agent_working",
+				"approval", a.Label, "stage", d.stageNote(t, a.Stage))
+		}
+	}
+	// Nothing acts on changes requested in a stage the task has not reached, and entering it sends
+	// the approval back to pending with the note cleared: the request would be lost.
+	if status == ApprovalChangesRequested && d.stageAhead(t, a.Stage) {
+		return nil, apperr.Conflict("task.approvals.errors.changes_ahead",
+			"approval", a.Label, "stage", d.stageNote(t, a.Stage))
+	}
 	ref := ""
 	if status == ApprovalApproved {
 		ref = d.currentRef(ctx, t)
@@ -262,6 +301,7 @@ func (d *Dispatcher) decideApproval(
 	case ApprovalApproved, ApprovalPending:
 	}
 	d.store.recordApprovalEvent(ctx, kind, decided, by, summary)
+	d.relockTestChange(ctx, decided)
 	switch {
 	case status != ApprovalChangesRequested:
 		d.ApprovalsSettled(ctx, t.ID)
@@ -274,6 +314,18 @@ func (d *Dispatcher) decideApproval(
 // While a run works on the task, do nothing: a resume would be refused and a kick_back would move
 // the task under its container.
 // The decision stays changes_requested and deliverLateChanges delivers it when the run ends.
+// Whether stage comes after the task's current one on its board (an approval an agent asked to be
+// decided there).
+func (d *Dispatcher) stageAhead(t *Task, stage Stage) bool {
+	if stage == "" || stage == t.Stage {
+		return false
+	}
+	stages := d.stagesFor(t)
+	to, ok := stages.Get(stage)
+	from, fromOK := stages.Get(t.Stage)
+	return ok && fromOK && to.Position > from.Position
+}
+
 func (d *Dispatcher) changesRequested(ctx context.Context, taskID string, a *Approval) {
 	t, err := d.store.Get(ctx, taskID)
 	if err != nil || a.Stage == "" || a.Stage != t.Stage {
@@ -297,27 +349,20 @@ func (d *Dispatcher) applyChangesRequested(ctx context.Context, t *Task, list []
 	case types.ChangesStay:
 		return false
 	case types.ChangesKickBack:
-		target := changesKickBackTarget(stages, info)
+		// Only a stage before this one qualifies: a forward target would carry the task past the
+		// approvals holding it.
+		target := kickBackTarget(stages, t.Stage, info.ChangesKickBackTo)
 		if target == "" {
 			return false
 		}
+		notes := make([]Note, len(list))
 		for i := range list {
-			d.systemComment(ctx, t.ID, NoteOf("task.approvals.comments.kicked_back",
-				"approval", list[i].Label, "by", list[i].DecidedBy, "stage", d.stageNote(t, target), "note", quoteNote(list[i].DecidedNote)))
-		}
-		d.setStatus(ctx, t.ID, StatusIdle)
-		updated, err := d.store.Update(ctx, t.ID, Patch{Stage: &target})
-		if err != nil {
-			log.Printf("[task] %s", i18n.Log("task.approvals.log.kick_back_failed", "task", t.ID, "err", err))
-			return true
+			notes[i] = NoteOf("task.approvals.comments.kicked_back",
+				"approval", list[i].Label, "by", list[i].DecidedBy, "stage", d.stageNote(t, target), "note", quoteNote(list[i].DecidedNote))
 		}
 		last := list[len(list)-1]
-		logx.Warn(d.store.RecordEvent(ctx, t.ID, EventStageEntered, last.ID, last.DecidedBy,
-			fmt.Sprintf("%s → %s (changes_requested)", t.Stage, target), //i18n:ignore timeline arrow, same shape as the auditor's kick_back
-			map[string]string{"from": string(t.Stage), "to": string(target), "via": "changes_requested"}),
-			"task.approvals.log.record_event", "task", t.ID)
-		d.stageMoved(updated, t.Stage)
-		d.HandleStageEntered(ctx, updated, t.Stage)
+		d.kickBack(ctx, t, kickBackReq{From: t.Stage, Target: target, Via: ViaChangesRequested,
+			Actor: last.DecidedBy, RefID: last.ID, Reason: last.DecidedNote, Notes: notes})
 		return true
 	default:
 		msgs := make([]string, len(list))
@@ -335,22 +380,6 @@ func (d *Dispatcher) applyChangesRequested(ctx context.Context, t *Task, list []
 		}
 		return true
 	}
-}
-
-// Only a stage before info qualifies: a forward target would carry the task past the approvals
-// holding it.
-func changesKickBackTarget(stages stagepkg.Registry, info types.StageInfo) Stage {
-	behind := func(id Stage) bool {
-		to, ok := stages.Get(id)
-		return ok && !to.Virtual && to.Position < info.Position
-	}
-	if target := info.ChangesKickBackTo; target != "" && behind(target) {
-		return target
-	}
-	if target := stages.KickbackDefault(); target != "" && behind(target) {
-		return target
-	}
-	return ""
 }
 
 func quoteNote(note string) string {
@@ -459,4 +488,29 @@ func (d *Dispatcher) currentRef(ctx context.Context, t *Task) string {
 		parts = append(parts, pid+"@"+strings.TrimSpace(out))
 	}
 	return strings.Join(parts, ",")
+}
+
+// JumpedRequirements lists the labels of the approvals that the stages strictly between from and to
+// would ask a task of typeID for. Moving past them never opens them, so the gate cannot hold the
+// move; a caller that must never skip an approval refuses such a move instead.
+func JumpedRequirements(reg stagepkg.Registry, typeID string, from, to Stage) []string {
+	fromInfo, okFrom := reg.Get(from)
+	toInfo, okTo := reg.Get(to)
+	if !okFrom || !okTo {
+		return nil
+	}
+	var out []string
+	stages := reg.List()
+	for i := range stages {
+		st := &stages[i]
+		if st.Position <= fromInfo.Position || st.Position >= toInfo.Position {
+			continue
+		}
+		for _, req := range st.RequiredApprovals {
+			if requirementApplies(req, typeID) {
+				out = append(out, req.Label)
+			}
+		}
+	}
+	return out
 }

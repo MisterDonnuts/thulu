@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/MisterDonnuts/thulu/internal/apperr"
+	"github.com/MisterDonnuts/thulu/internal/gatesprofile"
 	"github.com/MisterDonnuts/thulu/internal/i18n"
 )
 
@@ -101,6 +102,47 @@ type execArgs struct {
 	Env       map[string]string `json:"env"`
 }
 
+// execEnv stamps the session's run and its task on the command, over whatever the agent passed
+// under those names: the run's end kills by the run, a subtask's delete by the task.
+// withGatesProfile gives the command the task's gate profile, written at SandboxGatesProfilePath
+// and named in $THULU_GATES_PROFILE. A profile the caller names in env is dropped, whether the task
+// has one or not: the profile decides what the run's own gates accept, so it comes from Thulu.
+func (h *MCPHandler) withGatesProfile(ctx context.Context, taskID string, exec *ExecOpts) {
+	delete(exec.Env, gatesprofile.Env)
+	if h.gates == nil {
+		return
+	}
+	if body := h.gates(ctx, taskID); body != nil {
+		exec.Files = append(exec.Files, ExecFile{Path: SandboxGatesProfilePath, Content: string(body), Env: gatesprofile.Env})
+	}
+}
+
+func (s *mcpSession) execEnv(env map[string]string) map[string]string {
+	if s.runInstance == "" {
+		_, forgedRun := env[EnvRunInstance]
+		_, forgedTask := env[EnvRunTask]
+		if !forgedRun && !forgedTask {
+			return env
+		}
+	}
+	out := make(map[string]string, len(env)+2)
+	for k, v := range env {
+		out[k] = v
+	}
+	if s.runInstance == "" {
+		delete(out, EnvRunInstance)
+		delete(out, EnvRunTask)
+		return out
+	}
+	out[EnvRunInstance] = s.runInstance
+	if s.taskID != "" {
+		out[EnvRunTask] = s.taskID
+	} else {
+		delete(out, EnvRunTask)
+	}
+	return out
+}
+
 func (h *MCPHandler) toolExec(ctx context.Context, sess *mcpSession, raw json.RawMessage) any {
 	var args execArgs
 	if err := json.Unmarshal(raw, &args); err != nil {
@@ -126,8 +168,9 @@ func (h *MCPHandler) toolExec(ctx context.Context, sess *mcpSession, raw json.Ra
 		Command:   args.Command,
 		Cwd:       args.Cwd,
 		TimeoutMs: args.TimeoutMs,
-		Env:       args.Env,
+		Env:       sess.execEnv(args.Env),
 	}
+	h.withGatesProfile(ctx, sess.taskID, &execOpts)
 	res, ar, err := h.mgr.Exec(ctx, ownerID, sess.stage, dockerOpts, execOpts)
 	if err != nil {
 		return toolErrorResult(i18n.Text("sandbox.tools.exec_failed", "error", apperr.Text(err)))

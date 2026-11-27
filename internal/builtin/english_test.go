@@ -6,14 +6,16 @@ import (
 	"io/fs"
 	"regexp"
 	"strconv"
+	"strings"
 	"testing"
 	"testing/fstest"
 )
 
 // The system skills and the native tools' manuals and descriptors are what the model reads on
-// every run, and tool.yaml descriptions also show in /mcps. They ship in English, and this
-// test enforces it. It walks the embedded copies, which are what the
-// daemon serves (tools/embed_test.go checks they match the files on disk).
+// every run, and tool.yaml descriptions also show in /mcps. The Workshop's prompts and skills are
+// what an installed agent reads. They ship in English, and this test enforces it. It walks the
+// embedded copies, which are what the daemon serves (tools/embed_test.go checks they match the
+// files on disk).
 
 var spanishChars = regexp.MustCompile(`[áéíóúñüÁÉÍÓÚÑÜ¿¡]`)
 
@@ -25,12 +27,15 @@ var spanishWords = regexp.MustCompile(`(?i)\b(que|para|los|las|una|con|por|pero|
 // noun). Keep it short; translate instead of adding to it.
 var allowedSpanish = map[string]bool{}
 
-func spanishHits(fsys fs.FS, prefix string) ([]string, int, error) {
+func spanishHits(fsys fs.FS, prefix string, keep func(path string) bool) ([]string, int, error) {
 	var hits []string
 	files := 0
 	err := fs.WalkDir(fsys, ".", func(p string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() {
 			return err
+		}
+		if keep != nil && !keep(p) {
+			return nil
 		}
 		body, err := fs.ReadFile(fsys, p)
 		if err != nil {
@@ -59,11 +64,14 @@ func TestShippedPromptsAreEnglish(t *testing.T) {
 	for _, src := range []struct {
 		prefix string
 		fsys   fs.FS
+		keep   func(string) bool
 	}{
-		{"internal/builtin/system-skills/", SystemSkills()},
-		{"tools/", NativeTools()},
+		{"internal/builtin/system-skills/", SystemSkills(), nil},
+		{"tools/", NativeTools(), nil},
+		// agent.json and skill.yaml carry descriptions.es on purpose; the prompts are Markdown.
+		{"internal/builtin/workshop/", Workshop(), func(p string) bool { return strings.HasSuffix(p, ".md") }},
 	} {
-		hits, files, err := spanishHits(src.fsys, src.prefix)
+		hits, files, err := spanishHits(src.fsys, src.prefix, src.keep)
 		if err != nil {
 			t.Fatalf("walk %s: %v", src.prefix, err)
 		}
@@ -81,7 +89,7 @@ func TestSpanishHitsCatchesSpanish(t *testing.T) {
 		"s/prompt.md":  {Data: []byte("# Run\n\nNunca cierres la tarea sin evidencia.\nUsa git status.\nAbrí el PR.\n")},
 		"s/skill.yaml": {Data: []byte("description: Runs a task end to end.\n")},
 	}
-	hits, files, err := spanishHits(fsys, "")
+	hits, files, err := spanishHits(fsys, "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

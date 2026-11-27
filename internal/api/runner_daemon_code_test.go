@@ -110,9 +110,7 @@ func (m *machineRig) run(t *testing.T, script string) task.RunnerReport {
 
 	cfg := &hostrun.Config{DaemonURL: daemon.URL, RunnerID: m.reg.RunnerID, Credential: m.reg.Credential,
 		WorkDir: filepath.Join(tmp, "work"), Concurrency: 1, Entrypoint: entry}
-	runCtx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	go func() { _ = hostrun.New(cfg, "test").Run(runCtx) }()
+	runHostRunner(t, cfg)
 	deadline := time.After(60 * time.Second)
 	for {
 		select {

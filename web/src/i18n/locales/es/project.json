@@ -150,7 +150,18 @@
     "template": "Plantilla de etapas",
     "template_hint": "agente por defecto en cada etapa",
     "saved": "Guardado",
-    "save_failed": "No se pudo guardar: {error}"
+    "save_failed": "No se pudo guardar: {error}",
+    "release_mode": "Modo de release",
+    "release_mode_hint": "Cómo llega a producción el trabajo mergeado. Auto: cada merge dispara un deploy y el agente de release lo verifica. Batch: las tareas mergeadas esperan en Release hasta que una tarea de release las despacha juntas.",
+    "release_mode_unset": "Sin definir",
+    "release_mode_auto": "Auto, un deploy por merge",
+    "release_mode_batch": "Batch, por tarea de release",
+    "release_environment": "Entorno de producción",
+    "release_environment_hint": "El entorno de GitHub o de Evidencia que es producción. Una tanda de Evidencia de un agente en ese entorno corre sólo los casos marcados como seguros para producción.",
+    "release_environment_placeholder": "production",
+    "gates_profile": "Perfil de quality gates",
+    "gates_profile_hint": "JSON para thulu-gates, guardado en Thulu y nunca en el repo. Cada corrida del proyecto lo recibe, por encima del .thulu/gates.json del repo. accept_unverified toma un check y el motivo por el que puede quedar sin verificar: ese check sale aceptado y no hace fallar el veredicto. Vacío, no hay perfil.",
+    "gates_profile_invalid": "Escribí un objeto JSON, por ejemplo {\"coverage_min\": 60}, o dejalo vacío."
   },
   "danger": {
     "title": "Zona de peligro",
@@ -396,7 +407,8 @@
     "save_addresses": "Guardar direcciones",
     "unlink_app": "Desvincular la App",
     "approve_mappings": "Activar mapeos",
-    "publish_dashboard": "Publicar dashboard"
+    "publish_dashboard": "Publicar dashboard",
+    "delete_watch": "Borrar vigilancia"
   },
   "runner": {
     "title": "Dónde corren los agentes",
@@ -404,5 +416,46 @@
     "where_hint": "En Thulu, desde un clon, o en una máquina con runner, desde una carpeta suya.",
     "folder": "Carpeta en la máquina",
     "folder_hint": "Tiene que estar dentro de una carpeta que la máquina permita (thulu runner allow)."
+  },
+  "deploy_watches": {
+    "title": "Vigilancias de deploys",
+    "intro": "Cómo se entera Thulu de los deploys de este proyecto. Cada deploy, o cada cambio que vea una vigilancia por intervalo, abre una tarea de release. El agente de release registra una vigilancia cuando el proyecto no tiene; Thulu genera la automatización que hay detrás.",
+    "columns": {
+      "source": "Origen",
+      "target": "Destino",
+      "interval": "Consulta",
+      "last_seen": "Última lectura",
+      "actions": "Acciones"
+    },
+    "sources": {
+      "github_workflow": "Workflow de GitHub",
+      "github_deployment": "Deployment de GitHub",
+      "cloud": "Cloud Run",
+      "http": "URL"
+    },
+    "on_event": "En cada evento",
+    "every_minutes": {
+      "one": "Cada {count} min",
+      "other": "Cada {count} min"
+    },
+    "every_hours": {
+      "one": "Cada hora",
+      "other": "Cada {count} h"
+    },
+    "state": {
+      "success": "Arriba",
+      "failure": "Fallando",
+      "error": "No se puede leer",
+      "waiting": "Sin lecturas todavía",
+      "webhook": "Avisa GitHub"
+    },
+    "created_by": "la registró {who}",
+    "empty": "Todavía no hay vigilancia. El agente de release registra una en la próxima tarea de release.",
+    "load_failed": "No se pudieron cargar las vigilancias de deploys.",
+    "delete": "Borrar vigilancia",
+    "delete_title": "¿Borrar la vigilancia de {target}?",
+    "delete_message": "Thulu borra también la automatización que generó para esta vigilancia. Los deploys dejan de abrir tareas de release hasta que alguien registre otra vigilancia.",
+    "deleted": "Vigilancia borrada.",
+    "delete_failed": "No se pudo borrar la vigilancia."
   }
 }

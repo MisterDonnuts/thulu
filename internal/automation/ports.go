@@ -47,6 +47,32 @@ type TaskQuery struct {
 	Limit       int
 }
 
+type MoveRequest struct {
+	WorkspaceID  string
+	TaskID       string
+	Stage        string
+	BoardID      string
+	Note         string
+	AutomationID string
+	ChainDepth   int
+	// Called before a move that wakes the destination stage's agent, with its name; an error
+	// refuses the move. The engine checks max_agent_runs_per_day here.
+	BeforeAgent func(agent string) error
+}
+
+// A gated move is an answer, not an error: the task stays where it was and Approvals says why.
+type MoveResult struct {
+	TaskID    string   `json:"task_id"`
+	Title     string   `json:"title"`
+	From      string   `json:"from"`
+	To        string   `json:"to"`
+	Moved     bool     `json:"moved"`
+	Gated     bool     `json:"gated"`
+	Approvals []string `json:"approvals,omitempty"`
+	// The agent the move woke in the destination stage, if any.
+	Agent string `json:"agent,omitempty"`
+}
+
 type TaskOps interface {
 	CreateTask(ctx context.Context, req NewTask) (taskID, agent string, err error)
 	PlannedAgent(ctx context.Context, req NewTask) (agent string, err error)
@@ -55,6 +81,8 @@ type TaskOps interface {
 	CommentTask(ctx context.Context, workspaceID, taskID, body string) (title string, err error)
 	StageAgent(ctx context.Context, workspaceID, taskID string) (agent string, answers bool, err error)
 	MentionAgent(ctx context.Context, workspaceID, taskID, agent, body string) (title string, err error)
+	// Same workspace rule as CommentTask.
+	MoveTask(ctx context.Context, req MoveRequest) (MoveResult, error)
 	TaskOpen(ctx context.Context, taskID string) (open bool, err error)
 	QueryTasks(ctx context.Context, q TaskQuery) ([]TaskSummary, error)
 }
@@ -97,6 +125,13 @@ type KeyMinter interface {
 	RevokeAPIKey(ctx context.Context, keyID string) error
 }
 
+// DeployWatchObserver reads a polled deploy source once for the watch, records what it saw and says
+// whether it changed since the previous observation. The first observation is a baseline and never
+// counts as a change. Same workspace rule as TaskOps.CommentTask.
+type DeployWatchObserver interface {
+	Observe(ctx context.Context, workspaceID, watchID string) (map[string]any, error)
+}
+
 // Any port may be nil (e.g. a CE build without a sandbox); steps needing it must fail, not panic.
 type Deps struct {
 	Tasks   TaskOps
@@ -105,4 +140,5 @@ type Deps struct {
 	Metrics MetricReader
 	Creds   CredentialResolver
 	Keys    KeyMinter
+	Watches DeployWatchObserver
 }

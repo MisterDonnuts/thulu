@@ -1,0 +1,34 @@
+{
+  "why": {
+    "initial": "The first column is never skipped.",
+    "terminal": "A finishing column is never skipped.",
+    "virtual": "It is not a column of the board.",
+    "no_skip": "The board marks this column as never skipped.",
+    "refinement": "This column decides the skips, so it always runs.",
+    "approvals": "It asks a person for an approval, so it always runs.",
+    "pull_request": "It handles the pull request or the release, so it always runs."
+  },
+  "editor": {
+    "title": "Columns {title} skips",
+    "message": "A skipped column does not run for this task. Every change needs a reason, which shows in Activity.",
+    "save": "Save skips",
+    "skip": "Skip {stage}",
+    "run_again": "Run {stage} again",
+    "skipped_by": "Skipped by {by}: {reason}",
+    "why_current": "The task is in this column.",
+    "reason_skip": "Why skip {stage}",
+    "reason_run": "Why run {stage}",
+    "reason_again": "Why run {stage} again",
+    "back_warning": "The task goes back to {stage} and continues forward from there.",
+    "need_reason": "Give a reason for each change.",
+    "reason_required": "Say why.",
+    "no_changes": "Nothing changed.",
+    "saved": {
+      "one": "Skips saved: {count} change",
+      "other": "Skips saved: {count} changes"
+    },
+    "saved_back": "The task goes back to {stage}.",
+    "saved_later": "The task goes back to {stage} when its current run ends.",
+    "failed": "Could not save the skip of {stage}: {error}"
+  }
+}

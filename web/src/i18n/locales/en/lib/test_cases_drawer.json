@@ -1,24 +1,11 @@
 {
   "labels": {
-    "title": "Test cases",
     "priority": "Priority",
     "covered": "Tested by someone",
     "covered_aria": "{key} covered",
-    "runs_count": {
-      "one": "{count} run",
-      "other": "{count} runs"
-    },
     "status_of": "Status of {key}",
     "status": "Status",
-    "last_run": "{runs} · {ago}",
-    "not_run": "Not run yet",
-    "latest_run": "Latest run",
-    "older_runs": {
-      "one": "{count} earlier run",
-      "other": "{count} earlier runs"
-    },
-    "observed": "Observed",
-    "by_hand": "by hand"
+    "observed": "Observed"
   },
   "buttons": {
     "import": "Import from body",
@@ -36,13 +23,7 @@
     "covered": "Someone exercised this case",
     "description": "Context, preconditions, data (markdown)",
     "steps": "1. Open…\n2. Click…",
-    "expected": "What should happen (markdown)",
-    "by_hand": "Someone set this status by hand: it is not what the latest run said."
-  },
-  "empty": {
-    "cases": "No test cases yet.",
-    "runs": "Not run yet.",
-    "details": "No description, steps or expected result yet."
+    "expected": "What should happen (markdown)"
   },
   "fields": {
     "title": "Title",

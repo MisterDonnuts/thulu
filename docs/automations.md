@@ -105,6 +105,8 @@ The catalog:
 | `github.pull_request` | a PR is opened, closed, synchronized… |
 | `github.push` | commits are pushed |
 | `github.check_suite` | a check suite completes |
+| `github.deployment_status` | a GitHub deployment changes state (`deploy_state`: success, failure, in_progress…) |
+| `github.workflow_run` | a GitHub Actions workflow run is requested, starts or completes |
 | `task.created` | a task is created: by a person, a subtask, or an automation (not by cloning or forking a task) |
 | `task.stage_changed` | a task enters a new stage: moved by hand, auto-advanced after an agent run, released by an approval, or kicked back (not when deleting a stage moves its tasks out) |
 | `task.failed` | an agent run fails |
@@ -125,6 +127,23 @@ second workspace exists.
 
 `sender_is_bot` exists because of the obvious failure mode: a recipe that wakes
 an agent on every comment answers its own comment, forever. Filter on it.
+
+Every GitHub event also carries the commits a release recipe keys on, empty
+when they do not apply: `head_sha` (a push's new head, a pull request's head,
+a workflow run's commit), `before` (a push's previous head), `default_branch`,
+`is_default_branch` (the push landed on it), and for a pull request `base_ref`,
+`merged` and `merge_sha` (the commit the merge left on the base branch). All
+SHAs are lowercase.
+
+`github.deployment_status` adds `environment`, `deploy_state`, `sha` (the
+deployed commit, lowercase), `ref`, `deployment_id`, `target_url` and
+`evidence_batch_ids`: the Evidence batches the daemon already queued for this
+deploy on the environments set to run on deploy (empty unless the state is
+`success`). Hand those ids to a release agent instead of queuing a second
+smoke. `github.workflow_run` adds `workflow_name`, `workflow_path`, `run_id`,
+`run_url`, `run_status`, `conclusion`, `head_branch`, `sha` and `run_event`.
+Both debounce per deployment and per run (`deployment:<id>`,
+`workflow_run:<id>`).
 
 A subtask's `task.created` carries `parent_id`; one opened by a recipe carries
 `source: automation` and `automation_id`. A stage change carries `from` and `to`.
@@ -148,7 +167,9 @@ fourth: that event leaves a `skipped` run saying so. Both guards cover every
 event about such a task, not only its `task.created`: a stage move, a failed run
 or a drag by hand carries the same `automation_id` and `automation_depth`, so a
 recipe on `task.stage_changed` whose own task later auto-advances into the stage
-it watches does not fire again.
+it watches does not fire again. A `move` step stamps the stage change it causes
+with its own `automation_id` and the next depth, so two recipes that move a task
+back and forth stop at the same depth.
 
 A `filter` that fails to evaluate (a misspelled function, a field of the wrong
 type) leaves a `skipped` run with the evaluation error, so a broken filter shows
@@ -353,6 +374,28 @@ mention:
   body: "New review comment: {{ trigger.payload.comment }}"
 ```
 
+### `move`
+
+Moves an existing task to a stage of its board. The move goes through the
+stage's exit gate like a person's: a pending approval holds it, and a move that
+would jump a stage asking for an approval is held too. A held move does not
+fail the step; its output says `gated: true` with the `approvals` that held it.
+A task in another workspace is not found; a running or archived task, or one
+on a board other than `board` when it is set, fails the step. `note`, when set,
+lands on the task as a comment and in its stage event (`via: automation`).
+
+```yaml
+move:
+  task_id: "{{ trigger.payload.task_id }}"
+  stage: done
+  board: release_flow
+  note: "Deployed {{ trigger.payload.sha }} to {{ trigger.payload.environment }}"
+```
+
+`stage` and `board` are literal and checked when the recipe is saved: with
+`board`, the stage has to be one of its columns; without it, a column of some
+board of the workspace.
+
 ### `fanout`
 
 Repeats its nested steps over a list.
@@ -428,8 +471,8 @@ runs; the catch-up deadline does not apply to a manual run, since the firing is
 happening exactly now by definition.
 
 `max_agent_runs_per_day` counts the steps that can spend money: a task step
-whose task enters a stage with an agent assigned, and a mention that wakes an
-agent. A task filed into the backlog, or a mention on a stage with no agent,
+whose task enters a stage with an agent assigned, a move step whose task enters
+such a stage, and a mention that wakes an agent. A task filed into the backlog, or a mention on a stage with no agent,
 wakes nobody and costs nothing, and still goes through once the budget is
 spent. When the budget is spent the run
 ends `skipped`, not `failed`, with the ceiling named in the reason: a working

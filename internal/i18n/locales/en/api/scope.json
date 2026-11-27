@@ -20,7 +20,10 @@
     "run_transcripts_scope": "an agent run's key may only read the transcripts of runs on the tasks it may change",
     "run_github_confirmation": "these routes carry a delegated chat's merge or deployment review to the person it acts for; an agent run on a task merges and approves with its own GitHub tools",
     "run_merge": "an agent run cannot merge a task branch or upload a project's code; a person does that from the dashboard",
-    "run_evidence_scope": "an agent run's key may read Evidence but not change it: environments, secrets, cases and batches are a person's to edit. A recording chat saves its take with the recording tools"
+    "run_gates_profile": "an agent run cannot change a project's quality-gate profile: it decides what the run's own gates accept, so a person sets it in the project settings",
+    "run_evidence_scope": "an agent run's key may read Evidence but not change it: environments, secrets, cases and batches are a person's to edit. A recording chat saves its take with the recording tools",
+    "run_tool_not_named": "an agent run reaches this route only when its {server} grant names {tool}: no scope grants it",
+    "run_own_board_only": "an agent run may move tasks in batch only on the board of its own task"
   },
   "operator_surfaces": {
     "mcp_registry": "the MCP registry",

@@ -123,6 +123,9 @@ func (d *Dispatcher) mintRunKey(ctx context.Context, env map[string]string, t *T
 		}
 		return ""
 	}
+	if scope.Instance == "" {
+		scope.Instance = env["INSTANCE_ID"]
+	}
 	raw, id, err := d.keys.MintRunKey(ctx, scope, t.WorkspaceID, runKeyTTL)
 	if err != nil {
 		log.Printf("[dispatcher] %s", i18n.Log("task.log.mint_run_key_failed", "task", t.ID, "err", err))

@@ -14,7 +14,8 @@ import (
 // tenant's write never reaches what another reads.
 
 var workspaceKeys = map[string]bool{
-	AgentMaxRunMinutesKey: true,
+	AgentMaxRunMinutesKey:  true,
+	AgentTurnsPerThreadKey: true,
 }
 
 func KnownWorkspaceKey(key string) bool { return workspaceKeys[key] }

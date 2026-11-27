@@ -34,7 +34,39 @@ type BoardInfo struct {
 	StageCount int  `json:"stage_count,omitempty"`
 	TaskCount  int  `json:"task_count,omitempty"`
 	OpenCount  int  `json:"open_count,omitempty"`
+	// How many times a task may be sent back (auditor, stage verdict, changes requested) before it
+	// is blocked for a person. 0 means no cap.
+	MaxKickBacks int `json:"max_kick_backs,omitempty"`
+	// The Workshop flow the board was installed from; nil on boards made by hand. Only the
+	// Workshop writes it; the board PATCH leaves it alone. A pointer keeps BoardInfo cheap to
+	// copy in the many loops over BoardList.
+	Flow *BoardFlow `json:"flow,omitempty"`
 }
+
+// Stored in boards.flow, flow_revision and flow_hash.
+type BoardFlow struct {
+	Name     string `json:"name"`
+	Revision int    `json:"revision"`
+	Hash     string `json:"hash,omitempty"`
+	// Edited says the board no longer matches Hash: someone changed its columns or types since
+	// the Workshop wrote it. GET /boards fills it on read; it is never stored.
+	Edited bool `json:"edited,omitempty"`
+}
+
+func (b BoardInfo) flowColumns() (name string, revision int, hash string) {
+	if b.Flow == nil {
+		return "", 0, ""
+	}
+	return b.Flow.Name, b.Flow.Revision, b.Flow.Hash
+}
+
+// A cap above this is no cap a person would choose; it is a typo.
+const MaxKickBacksLimit = 20
+
+var (
+	flowNameRe = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,63}$`)
+	flowHashRe = regexp.MustCompile(`^[0-9a-f]{0,128}$`)
+)
 
 func ValidateBoardInfo(b BoardInfo) error {
 	if !ValidBoardID(b.ID) {
@@ -54,7 +86,32 @@ func ValidateBoardInfo(b BoardInfo) error {
 	if b.WorkspaceID == "" {
 		return apperr.Invalid("stage.errors.board_workspace_required", "id", b.ID)
 	}
+	if b.MaxKickBacks < 0 || b.MaxKickBacks > MaxKickBacksLimit {
+		return apperr.Invalid("stage.errors.max_kick_backs_invalid", "id", b.ID, "value", b.MaxKickBacks, "max", MaxKickBacksLimit)
+	}
+	name, revision, hash := b.flowColumns()
+	if b.Flow != nil && !flowNameRe.MatchString(name) {
+		return apperr.Invalid("stage.errors.flow_invalid", "id", b.ID, "flow", name)
+	}
+	if revision < 0 || !flowHashRe.MatchString(hash) {
+		return apperr.Invalid("stage.errors.flow_revision_invalid", "id", b.ID)
+	}
 	return nil
+}
+
+// The dispatcher reads per-board settings through the read-only Boards view, which carries them in
+// BoardList.
+func BoardInfoOf(b Boards, id string) (BoardInfo, bool) {
+	if b == nil {
+		return BoardInfo{}, false
+	}
+	list := b.BoardList()
+	for i := range list {
+		if list[i].ID == id {
+			return list[i], true
+		}
+	}
+	return BoardInfo{}, false
 }
 
 type Boards interface {

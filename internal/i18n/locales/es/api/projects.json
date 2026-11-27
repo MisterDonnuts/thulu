@@ -43,6 +43,7 @@
   },
   "audit": {
     "init_script_saved": "Script de arranque de {project} guardado como revisión {revision}",
-    "init_script_restored": "Script de arranque de {project} restaurado desde la revisión {from} como revisión {revision}"
+    "init_script_restored": "Script de arranque de {project} restaurado desde la revisión {from} como revisión {revision}",
+    "gates_profile_changed": "Se cambió el perfil de quality gates de {project}"
   }
 }

@@ -7,12 +7,48 @@
     "needs_approval": "Needs approval",
     "failed": "Failed",
     "out_of_turns": "Out of turns",
-    "blocked_auditor": "Stopped by the auditor",
+    "blocked": "Blocked",
     "not_started": "Did not start",
     "credential_blocked": "Credential expired",
     "no_agent": "No agent",
     "stopped": "Stopped",
     "resume_failed": "Could not resume"
+  },
+  "block": {
+    "verdict": "Blocked by @{agent}",
+    "verdict_reason": "Blocked by @{agent}: {reason}",
+    "auditor": "Blocked by the auditor",
+    "auditor_agent": "Blocked by the auditor (@{agent})",
+    "kick_back_limit": "Blocked: send-back limit reached",
+    "released": "Blocked: the branch is already merged",
+    "no_target": "Blocked: no earlier column to send it back to",
+    "auditor_failed": "Blocked: the auditor did not start",
+    "auditor_no_verdict": "Blocked: the auditor left no verdict",
+    "verdict_missing": "Blocked: the agent did not write its verdict",
+    "verdict_missing_agent": "Blocked: @{agent} did not write its verdict",
+    "verdict_undelivered": "Blocked: the agent's verdict did not reach Thulu",
+    "verdict_undelivered_agent": "Blocked: @{agent}'s verdict did not reach Thulu",
+    "kick_back_repeated": "Blocked: @{agent} sent it back twice for the same reason",
+    "kick_back_repeated_reason": "Blocked: @{agent} sent it back twice for the same reason ({reason})"
+  },
+  "block_reason": {
+    "gates_failed": "gates fail",
+    "review_blocking": "blocking review findings",
+    "qa_failed": "testing failed",
+    "mutants_survived": "mutants survived",
+    "spec_test_conflict": "spec and tests disagree",
+    "nothing_to_change": "nothing to change",
+    "gate_config_changed": "the gate config changed",
+    "branch_behind": "the branch is behind or conflicts",
+    "commit_rules": "the commits break the project's rules",
+    "forbidden_files": "debug, evidence or secret files in the diff",
+    "spec_mismatch": "the change does not match the spec",
+    "evidence_missing": "test cases without a run or evidence",
+    "review_shallow": "the AI review missed things",
+    "reports_inconsistent": "the reports contradict the code",
+    "nits": "minor findings to fix before shipping",
+    "repeated_kick_back": "sent back twice for the same reason",
+    "needs_decision": "needs a person's decision"
   },
   "priority": {
     "urgent": "Urgent",
@@ -87,6 +123,25 @@
     "reports_count": {
       "one": "Reports, {count} report",
       "other": "Reports, {count} reports"
+    },
+    "overview": "Overview",
+    "overview_waiting": {
+      "one": "Overview, {count} waits for you",
+      "other": "Overview, {count} wait for you"
+    },
+    "overview_threads": {
+      "one": "Overview, {count} thread",
+      "other": "Overview, {count} threads"
+    },
+    "activity": "Activity",
+    "activity_rounds": {
+      "one": "Activity, {count} round",
+      "other": "Activity, {count} rounds"
+    },
+    "files": "Files",
+    "files_count": {
+      "one": "Files, {count} file",
+      "other": "Files, {count} files"
     }
   },
   "runs_line": "{runs}, {tokens}",

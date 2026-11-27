@@ -109,8 +109,10 @@ type SkillItem struct {
 }
 
 type Set struct {
-	Agents       []AgentItem
-	Skills       []SkillItem
+	Agents []AgentItem
+	Skills []SkillItem
+	// Only the catalog carries flows; a bundle import never does.
+	Flows        []FlowItem
 	Rejected     []Rejected
 	SkippedTools int
 }

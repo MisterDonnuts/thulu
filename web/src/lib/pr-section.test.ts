@@ -4,6 +4,11 @@ import {
   PR_NO_CREDENTIAL,
   PR_POLL_ACTIVE_MS,
   PR_POLL_IDLE_MS,
+  checksHoldText,
+  checksWaitText,
+  requiredChecksBlock,
+  requiredChecksHold,
+  requiredChecksText,
   prMergeReady,
   prPollDelay,
   prSectionHTML,
@@ -304,6 +309,82 @@ describe("prMergeReady / prTone", () => {
     ).toBe("failed");
     expect(prTone(pr({ state: "merged", review: "changes_requested" }))).toBe("merged");
     expect(prTone({ ...link, error: "x" })).toBe("error");
+  });
+});
+
+describe("required checks", () => {
+  it("holds while pending, failing, unknown or behind", () => {
+    expect(requiredChecksHold(undefined)).toBe(false);
+    expect(requiredChecksHold({ state: "none" })).toBe(false);
+    expect(requiredChecksHold({ state: "passed" })).toBe(false);
+    expect(requiredChecksHold({ state: "passed", behind: true })).toBe(true);
+    for (const state of ["pending", "failing", "unknown"] as const)
+      expect(requiredChecksHold({ state })).toBe(true);
+  });
+
+  it("names the failing, running and missing checks", () => {
+    const text = requiredChecksText({
+      state: "failing",
+      required: ["build", "e2e", "lint"],
+      failing: ["build"],
+      pending: ["e2e", "lint"],
+      missing: ["lint"],
+    });
+    expect(text).toContain("build");
+    expect(text.indexOf("e2e")).toBeGreaterThan(text.indexOf("build"));
+    expect(text.match(/lint/g)).toHaveLength(1);
+  });
+
+  it("explains one line per holding PR and nothing when every PR is green", () => {
+    const red = pr({
+      required_checks: { state: "failing", required: ["build"], failing: ["build"] },
+    });
+    const green = pr({ number: 8, required_checks: { state: "passed", required: ["build"] } });
+    expect(checksHoldText([red, green])).toContain("#7");
+    expect(checksHoldText([red, green])).not.toContain("#8");
+    expect(checksHoldText([green])).toBe("");
+    expect(checksHoldText(undefined)).toBe("");
+  });
+
+  it("lets an approval go ahead of running checks, unless another PR blocks it", () => {
+    const running = pr({
+      number: 9,
+      required_checks: { state: "pending", required: ["build"], pending: ["build"] },
+    });
+    const red = pr({
+      required_checks: { state: "failing", required: ["build"], failing: ["build"] },
+    });
+    const behind = pr({ number: 10, required_checks: { state: "pending", behind: true } });
+    expect(requiredChecksBlock(running.required_checks)).toBe(false);
+    expect(requiredChecksBlock(red.required_checks)).toBe(true);
+    expect(requiredChecksBlock(behind.required_checks)).toBe(true);
+    expect(requiredChecksBlock({ state: "unknown" })).toBe(true);
+    expect(requiredChecksBlock({ state: "passed" })).toBe(false);
+
+    expect(checksHoldText([running])).toBe("");
+    expect(checksWaitText([running])).toContain("#9");
+    // With a red PR the approval waits; the running one is named with it.
+    expect(checksWaitText([running, red])).toBe("");
+    expect(checksHoldText([running, red])).toContain("#9");
+    expect(checksHoldText([running, red])).toContain("#7");
+    expect(checksHoldText([behind])).toContain("#10");
+    expect(checksWaitText(undefined)).toBe("");
+  });
+
+  it("shows the requirement as a fact and keeps a red PR out of Ready", () => {
+    const ready = pr({
+      mergeable: "ready",
+      review: "approved",
+      ci: { source: "checks", total: 1, passed: 1, failed: 0, running: 0, state: "passed" },
+    });
+    expect(prMergeReady(ready)).toBe(true);
+    const held = { ...ready, required_checks: { state: "pending" as const, pending: ["e2e"] } };
+    expect(prMergeReady(held)).toBe(false);
+    const box = render(
+      { rows: [{ ...held, required_checks: { state: "failing", failing: ["e2e"] } }] },
+      [URL7],
+    );
+    expect(box.textContent).toContain("e2e");
   });
 });
 

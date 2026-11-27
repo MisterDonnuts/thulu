@@ -238,6 +238,105 @@ steps:
         "lib.automation_templates.script_decides.spec.fingerprint_comment",
     },
   },
+  {
+    title: t("lib.automation_templates.watch_deploy.title"),
+    blurb: t("lib.automation_templates.watch_deploy.blurb"),
+    // i18n-ignore a YAML recipe the editor parses, not a message
+    spec: `name: watch deploy
+description: a successful production deploy opens a release task for the release agent
+trigger:
+  event: github.deployment_status
+  filter: >
+    trigger.payload.deploy_state == "success"
+    && trigger.payload.environment == "production"
+policy:
+  debounce: 2m
+  max_agent_runs_per_day: 20
+  timeout: 5m
+steps:
+  # The release type puts the task straight into Release, where its agent verifies the deploy
+  # and moves the merged tasks this SHA carries.
+  # Add project_ids with the repo's project so the agent works on its code.
+  - id: release
+    task:
+      title: "Verify the deploy of {{ trigger.payload.repo }} at {{ trigger.payload.sha }}"
+      body: |
+        GitHub reports a successful deploy to {{ trigger.payload.environment }}.
+
+        Deployed URL {{ trigger.payload.target_url }}
+        Smoke batches already queued for it {{ trigger.payload.evidence_batch_ids }}
+      board: thulu
+      type: release
+      stage: release
+      fingerprint: "deploy-{{ trigger.payload.repo }}-{{ trigger.payload.sha }}"
+      on_duplicate: skip
+`,
+    texts: {
+      "watch deploy": "lib.automation_templates.watch_deploy.spec.name",
+      "a successful production deploy opens a release task for the release agent":
+        "lib.automation_templates.watch_deploy.spec.description",
+      "The release type puts the task straight into Release, where its agent verifies the deploy":
+        "lib.automation_templates.watch_deploy.spec.type_comment",
+      "and moves the merged tasks this SHA carries.":
+        "lib.automation_templates.watch_deploy.spec.type_comment_more",
+      "Add project_ids with the repo's project so the agent works on its code.":
+        "lib.automation_templates.watch_deploy.spec.project_comment",
+      "Verify the deploy of {{ trigger.payload.repo }} at {{ trigger.payload.sha }}":
+        "lib.automation_templates.watch_deploy.spec.task_title",
+      "GitHub reports a successful deploy to {{ trigger.payload.environment }}.":
+        "lib.automation_templates.watch_deploy.spec.task_body",
+      "Deployed URL": "lib.automation_templates.watch_deploy.spec.task_url",
+      "Smoke batches already queued for it":
+        "lib.automation_templates.watch_deploy.spec.task_batches",
+    },
+  },
+  {
+    title: t("lib.automation_templates.watch_deploy_workflow.title"),
+    blurb: t("lib.automation_templates.watch_deploy_workflow.blurb"),
+    // i18n-ignore a YAML recipe the editor parses, not a message
+    spec: `name: watch deploy workflow
+description: a green deploy workflow on the default branch opens a release task
+trigger:
+  event: github.workflow_run
+  filter: >
+    trigger.payload.action == "completed"
+    && trigger.payload.conclusion == "success"
+    && trigger.payload.workflow_name == "Deploy"
+    && trigger.payload.head_branch == trigger.payload.default_branch
+policy:
+  debounce: 2m
+  max_agent_runs_per_day: 20
+  timeout: 5m
+steps:
+  # Replace Deploy in the filter with the name of the workflow that deploys to production.
+  # Add project_ids with the repo's project so the agent works on its code.
+  - id: release
+    task:
+      title: "Verify the deploy of {{ trigger.payload.repo }} at {{ trigger.payload.sha }}"
+      body: |
+        The workflow {{ trigger.payload.workflow_name }} finished green on {{ trigger.payload.head_branch }}.
+
+        Run {{ trigger.payload.run_url }}
+      board: thulu
+      type: release
+      stage: release
+      fingerprint: "deploy-{{ trigger.payload.repo }}-{{ trigger.payload.sha }}"
+      on_duplicate: skip
+`,
+    texts: {
+      "watch deploy workflow": "lib.automation_templates.watch_deploy_workflow.spec.name",
+      "a green deploy workflow on the default branch opens a release task":
+        "lib.automation_templates.watch_deploy_workflow.spec.description",
+      "Replace Deploy in the filter with the name of the workflow that deploys to production.":
+        "lib.automation_templates.watch_deploy_workflow.spec.workflow_comment",
+      "Add project_ids with the repo's project so the agent works on its code.":
+        "lib.automation_templates.watch_deploy.spec.project_comment",
+      "Verify the deploy of {{ trigger.payload.repo }} at {{ trigger.payload.sha }}":
+        "lib.automation_templates.watch_deploy.spec.task_title",
+      "The workflow {{ trigger.payload.workflow_name }} finished green on {{ trigger.payload.head_branch }}.":
+        "lib.automation_templates.watch_deploy_workflow.spec.task_body",
+    },
+  },
 ];
 
 // Longest phrases first, so one that contains another is replaced whole.

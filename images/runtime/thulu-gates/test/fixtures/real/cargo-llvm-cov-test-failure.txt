@@ -1,0 +1,32 @@
+
+running 4 tests
+test stats::tests::median_odd ... ok
+test tests::averages ... ok
+test tests::clamps ... ok
+test stats::tests::median_even ... FAILED
+
+failures:
+
+---- stats::tests::median_even stdout ----
+
+thread 'stats::tests::median_even' (45220383) panicked at src/stats.rs:43:9:
+assertion `left == right` failed
+  left: 1
+ right: 3
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    stats::tests::median_even
+
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+info: cargo-llvm-cov currently setting cfg(coverage); you can opt-out it by passing --no-cfg-coverage
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (target/llvm-cov-target/debug/deps/calc-ec911da7337e16f2)
+error: test failed, to rerun pass `--lib`
+error: 1 target failed:
+    `--lib`
+warning: process didn't exit successfully: `/home/dev/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo test --no-fail-fast --tests --manifest-path /work/rs-broken/Cargo.toml --target-dir /work/rs-broken/target/llvm-cov-target` (exit status: 101)
+
+    Finished report saved to /dev/null

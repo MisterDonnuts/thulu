@@ -298,13 +298,7 @@ func chainGate(e Event) Msg {
 
 func (s *Scheduler) filterMatches(ctx context.Context, a *Automation, e Event) bool {
 	filter := a.Parsed.Trigger.Filter
-	if filter == "" {
-		return true
-	}
-	ok, err := evalCondition(filter, map[string]any{
-		"trigger": map[string]any{"kind": e.Kind, "payload": e.Payload},
-		"vars":    varsOf(a.Parsed),
-	})
+	ok, err := FilterMatches(a.Parsed, e.Kind, e.Payload)
 	if err != nil {
 		reason := msgErr(apperr.New("automation.runs.filter_failed", "filter", filter, "err", err))
 		if _, recErr := s.store.RecordSkip(ctx, a, TriggerEvent, reason); recErr != nil {
@@ -313,6 +307,18 @@ func (s *Scheduler) filterMatches(ctx context.Context, a *Automation, e Event) b
 		return false
 	}
 	return ok
+}
+
+// FilterMatches reports whether an event of kind with payload passes the spec's trigger filter, as
+// the scheduler decides it; a spec with no filter takes every event.
+func FilterMatches(spec *Spec, kind string, payload map[string]any) (bool, error) {
+	if spec.Trigger.Filter == "" {
+		return true, nil
+	}
+	return evalCondition(spec.Trigger.Filter, map[string]any{
+		"trigger": map[string]any{"kind": kind, "payload": payload},
+		"vars":    varsOf(spec),
+	})
 }
 
 func (s *Scheduler) FlushDebounced(ctx context.Context) (int, error) {

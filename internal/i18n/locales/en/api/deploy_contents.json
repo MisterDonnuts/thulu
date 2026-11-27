@@ -1,0 +1,6 @@
+{
+  "errors": {
+    "sha_invalid": "sha and prev must be commit SHAs (7 to 40 hex characters)",
+    "runner_needs_github": "project {project} lives on a runner: its history can only be read through GitHub, and no GitHub credential reaches it"
+  }
+}

@@ -1,24 +1,11 @@
 {
   "labels": {
-    "title": "Casos de prueba",
     "priority": "Prioridad",
     "covered": "Probado por alguien",
     "covered_aria": "{key} cubierto",
-    "runs_count": {
-      "one": "{count} corrida",
-      "other": "{count} corridas"
-    },
     "status_of": "Estado de {key}",
     "status": "Estado",
-    "last_run": "{runs} · {ago}",
-    "not_run": "Sin correr",
-    "latest_run": "Última corrida",
-    "older_runs": {
-      "one": "{count} corrida anterior",
-      "other": "{count} corridas anteriores"
-    },
-    "observed": "Observado",
-    "by_hand": "a mano"
+    "observed": "Observado"
   },
   "buttons": {
     "import": "Importar desde el cuerpo",
@@ -36,13 +23,7 @@
     "covered": "Alguien probó este caso",
     "description": "Contexto, precondiciones, datos (markdown)",
     "steps": "1. Abrí…\n2. Hacé clic…",
-    "expected": "Qué tendría que pasar (markdown)",
-    "by_hand": "Alguien puso este estado a mano: no es el que dio la última corrida."
-  },
-  "empty": {
-    "cases": "Todavía no hay casos de prueba.",
-    "runs": "Todavía no se corrió.",
-    "details": "Todavía no tiene descripción, pasos ni resultado esperado."
+    "expected": "Qué tendría que pasar (markdown)"
   },
   "fields": {
     "title": "Título",

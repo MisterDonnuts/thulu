@@ -20,7 +20,10 @@
     "run_transcripts_scope": "la key de una corrida de agente sólo puede leer las transcripciones de corridas en las tareas que puede cambiar",
     "run_github_confirmation": "estas rutas le llevan a la persona el merge o la revisión de deploy que pide un chat delegado; una corrida de agente sobre una tarea mergea y aprueba con sus propias tools de GitHub",
     "run_merge": "una corrida de agente no puede integrar la rama de una tarea ni subir el código de un proyecto; eso lo hace una persona desde el dashboard",
-    "run_evidence_scope": "la key de una corrida de agente puede leer Evidencia pero no cambiarla: entornos, secretos, casos y tandas los edita una persona. Un chat de grabación guarda su toma con las tools de grabación"
+    "run_gates_profile": "una corrida de agente no puede cambiar el perfil de quality gates de un proyecto: decide qué aceptan los gates de esa misma corrida, así que lo define una persona en la configuración del proyecto",
+    "run_evidence_scope": "la key de una corrida de agente puede leer Evidencia pero no cambiarla: entornos, secretos, casos y tandas los edita una persona. Un chat de grabación guarda su toma con las tools de grabación",
+    "run_tool_not_named": "una corrida de agente llega a esta ruta sólo si su concesión de {server} nombra {tool}: ningún scope la concede",
+    "run_own_board_only": "una corrida de agente sólo puede mover tareas en lote en el tablero de su propia tarea"
   },
   "operator_surfaces": {
     "mcp_registry": "el registro de MCP",

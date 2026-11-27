@@ -10,6 +10,10 @@
     "acquired_after_wait": "tomó el lease del daemon después de esperar {waited}",
     "lost": "perdió el lease del daemon: {since} sin confirmación ({err}); se detiene para que otro daemon tome el lugar",
     "drop_conn": "lease del daemon: descartar la conexión del lock",
-    "close_conn": "lease del daemon: cerrar la conexión del lock"
+    "close_conn": "lease del daemon: cerrar la conexión del lock",
+    "unconfirmed": "la base no confirma el lease del daemon hace {since} ({err}); este es el único daemon, así que sigue andando y vuelve a probar cada vez más espaciado",
+    "confirmed_again": "la base vuelve a confirmar el lease del daemon después de {since}",
+    "reclaimed": "la sesión del lease del daemon terminó después de {since} sin confirmación y nadie más tenía el lock; se recuperó en una sesión nueva",
+    "taken": "se perdió el lease del daemon: {since} sin confirmación y ahora otro daemon tiene el lock; se detiene"
   }
 }

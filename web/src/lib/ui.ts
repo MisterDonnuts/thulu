@@ -7,6 +7,7 @@ export * from "./ui/button";
 export * from "./ui/callout";
 export * from "./ui/card";
 export * from "./ui/catalog";
+export * from "./ui/chat";
 export * from "./ui/chart";
 export * from "./ui/check";
 export * from "./ui/code";

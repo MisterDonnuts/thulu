@@ -47,8 +47,10 @@ func (d *Dispatcher) reconcileExit(ctx context.Context, e ExitedTaskAgent) recon
 				"instance", e.InstanceID, "task", taskID, "stage", stage, "code", e.ExitCode))
 			// The launch-kind label is how a replay knows the run's kind; without it an orphaned
 			// continuation is audited and advances the task.
-			d.postStageRun(ctx, taskID, stage, e.AgentType, e.ContainerID, e.InstanceID, e.OutputDir, e.ExitCode,
-				ParseLaunchKind(string(e.LaunchKind)).postRunOpts())
+			kind := ParseLaunchKind(string(e.LaunchKind))
+			post := kind.postRunOpts()
+			post.TaskStage = d.replayTaskStage(ctx, taskID, e.InstanceID, kind)
+			d.postStageRun(ctx, taskID, stage, e.AgentType, e.ContainerID, e.InstanceID, e.OutputDir, e.ExitCode, post)
 		})
 	}
 	if taskID, stage, ok := parseAuditInstanceID(e.InstanceID); ok {
@@ -77,6 +79,8 @@ func (d *Dispatcher) replayOrphan(ctx context.Context, e ExitedTaskAgent, taskID
 	if _, err := d.store.Get(ctx, taskID); err != nil {
 		return reconcileTaskGone
 	}
+	// Before the replay reports the run: what it left in the sandbox dies first.
+	d.reapRunSandbox(ctx, taskID, e.InstanceID)
 	replay()
 	return reconcileProcessed
 }
@@ -109,8 +113,18 @@ func (d *Dispatcher) ReconcileDone(ctx context.Context) {
 	}
 	cleaned := 0
 	for i := range tasks {
-		if info, _ := d.stagesFor(&tasks[i]).Get(tasks[i].Stage); info.Terminal {
+		switch info, _ := d.stagesFor(&tasks[i]).Get(tasks[i].Stage); {
+		case info.Terminal:
 			d.cleanupDoneTask(ctx, &tasks[i])
+			cleaned++
+		case info.ReleaseResources:
+			// A daemon that died between the move and the release left them behind. One that did
+			// release keeps its release agent's sessions and sandbox: freeing again on every restart
+			// would cut a release waiting on its deploy approval off its own session.
+			if d.groupAlreadyReleased(ctx, &tasks[i]) {
+				continue
+			}
+			d.releaseTaskResources(ctx, &tasks[i])
 			cleaned++
 		}
 	}
@@ -152,6 +166,22 @@ func InstanceStage(instanceID string) (Stage, bool) {
 		return types.StageMention, true
 	}
 	return "", false
+}
+
+// replayTaskStage is the task's stage when the replayed run was launched. Runs recorded before the
+// run-started event carried it read as their own stage, except a continuation, which runs another
+// stage's agent: it reads as the task's stage now, and only a newer run on the task outlives it.
+func (d *Dispatcher) replayTaskStage(ctx context.Context, taskID, instanceID string, kind LaunchKind) Stage {
+	if s := d.store.RunTaskStage(ctx, instanceID); s != "" {
+		return s
+	}
+	if kind != LaunchContinuation {
+		return ""
+	}
+	if cur, err := d.store.GetRow(ctx, taskID); err == nil {
+		return cur.Stage
+	}
+	return ""
 }
 
 func parseTaskInstanceID(instanceID string) (taskID string, stage Stage, ok bool) {

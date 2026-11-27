@@ -5,7 +5,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"maps"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/MisterDonnuts/thulu/internal/apperr"
@@ -67,7 +69,12 @@ func (s *Store) DB() *sql.DB { return s.db }
 // its rows.
 const stageColumns = `auto_advance, blocked_by_flags,
 	initial_stage, terminal, ingest_flags, push_branch, open_pr, wip_group,
-	required_approvals, on_changes_requested, changes_kick_back_to`
+	required_approvals, on_changes_requested, changes_kick_back_to,
+	agent_verdict, lock_tests, skip_unless, release_resources, merge_target, pr_draft, pr_ready,
+	no_skip`
+
+// How many values flagArgs returns: one per column in stageColumns.
+const stageColumnCount = 19
 
 func NewStore(db *sql.DB) (*Store, error) {
 	ctx := context.Background()
@@ -182,6 +189,42 @@ func Migrations(in migrate.Inspector) ([]migrate.Migration, error) {
 			ADD COLUMN IF NOT EXISTS required_approvals   TEXT NOT NULL DEFAULT '[]',
 			ADD COLUMN IF NOT EXISTS on_changes_requested TEXT NOT NULL DEFAULT '',
 			ADD COLUMN IF NOT EXISTS changes_kick_back_to TEXT NOT NULL DEFAULT '';`},
+		// One migration for every flag and board setting of the Thulu flow, so the pieces that
+		// act on them never race for an ID. default_agent names a workspace's agent, so only the
+		// per-board table carries it: the stages catalog is shared by every tenant.
+		{ID: 7, SQL: `ALTER TABLE stages
+			ADD COLUMN IF NOT EXISTS agent_verdict     INTEGER NOT NULL DEFAULT 0,
+			ADD COLUMN IF NOT EXISTS lock_tests        INTEGER NOT NULL DEFAULT 0,
+			ADD COLUMN IF NOT EXISTS skip_unless       TEXT    NOT NULL DEFAULT '',
+			ADD COLUMN IF NOT EXISTS release_resources INTEGER NOT NULL DEFAULT 0,
+			ADD COLUMN IF NOT EXISTS merge_target      INTEGER NOT NULL DEFAULT 0,
+			ADD COLUMN IF NOT EXISTS pr_draft          INTEGER NOT NULL DEFAULT 0,
+			ADD COLUMN IF NOT EXISTS pr_ready          INTEGER NOT NULL DEFAULT 0;
+		ALTER TABLE board_stages
+			ADD COLUMN IF NOT EXISTS agent_verdict     INTEGER NOT NULL DEFAULT 0,
+			ADD COLUMN IF NOT EXISTS lock_tests        INTEGER NOT NULL DEFAULT 0,
+			ADD COLUMN IF NOT EXISTS skip_unless       TEXT    NOT NULL DEFAULT '',
+			ADD COLUMN IF NOT EXISTS release_resources INTEGER NOT NULL DEFAULT 0,
+			ADD COLUMN IF NOT EXISTS merge_target      INTEGER NOT NULL DEFAULT 0,
+			ADD COLUMN IF NOT EXISTS pr_draft          INTEGER NOT NULL DEFAULT 0,
+			ADD COLUMN IF NOT EXISTS pr_ready          INTEGER NOT NULL DEFAULT 0,
+			ADD COLUMN IF NOT EXISTS default_agent     TEXT    NOT NULL DEFAULT '';
+		ALTER TABLE boards
+			ADD COLUMN IF NOT EXISTS max_kick_backs INTEGER NOT NULL DEFAULT 0,
+			ADD COLUMN IF NOT EXISTS flow           TEXT    NOT NULL DEFAULT '',
+			ADD COLUMN IF NOT EXISTS flow_revision  INTEGER NOT NULL DEFAULT 0,
+			ADD COLUMN IF NOT EXISTS flow_hash      TEXT    NOT NULL DEFAULT '';
+		CREATE TABLE IF NOT EXISTS board_type_agents (
+			board_id TEXT NOT NULL,
+			type_id  TEXT NOT NULL,
+			stage_id TEXT NOT NULL,
+			agent    TEXT NOT NULL DEFAULT '',
+			PRIMARY KEY (board_id, type_id, stage_id)
+		);`},
+		// Additive only: a binary from before it never reads the column and its inserts take the
+		// default, so the column keeps letting tasks skip it.
+		{ID: 8, SQL: `ALTER TABLE stages ADD COLUMN IF NOT EXISTS no_skip INTEGER NOT NULL DEFAULT 0;
+		ALTER TABLE board_stages ADD COLUMN IF NOT EXISTS no_skip INTEGER NOT NULL DEFAULT 0;`},
 	}, nil
 }
 
@@ -305,8 +348,8 @@ type execer interface {
 // ON CONFLICT DO NOTHING is deliberate: the catalog row is a template shared by every workspace,
 // and one tenant's write must not change what another reads.
 func (s *Store) insertCatalog(ctx context.Context, ex execer, stages []types.StageInfo) error {
-	const insert = `INSERT INTO stages (id, label, color, position, ` + stageColumns + `)
-		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT (id) DO NOTHING`
+	insert := `INSERT INTO stages (id, label, color, position, ` + stageColumns + `)
+		VALUES (` + placeholders(4+stageColumnCount) + `) ON CONFLICT (id) DO NOTHING`
 	for i := range stages {
 		st := &stages[i]
 		args, err := flagArgs(*st)
@@ -333,7 +376,25 @@ func flagArgs(st types.StageInfo) ([]any, error) {
 		boolInt(st.Initial), boolInt(st.Terminal), boolInt(st.IngestFlags),
 		boolInt(st.PushBranch), boolInt(st.OpenPR), st.WipGroup,
 		approvals, st.OnChangesRequested, string(st.ChangesKickBackTo),
+		boolInt(st.AgentVerdict), boolInt(st.LockTests), encodeSkipUnless(st.SkipUnless),
+		boolInt(st.ReleaseResources), boolInt(st.MergeTarget), boolInt(st.PRDraft), boolInt(st.PRReady),
+		boolInt(st.NoSkip),
 	}, nil
+}
+
+// "?,?,…" with n marks, so an insert's placeholder count follows its column list.
+func placeholders(n int) string {
+	return strings.TrimSuffix(strings.Repeat("?,", n), ",")
+}
+
+// Stored comma-separated: values are slugs (validateSkipUnless), so a comma never occurs in one.
+func encodeSkipUnless(values []string) string { return strings.Join(values, ",") }
+
+func decodeSkipUnless(raw string) []string {
+	if raw == "" {
+		return nil
+	}
+	return strings.Split(raw, ",")
 }
 
 func (s *Store) SaveBoard(ctx context.Context, boardID string, board []types.StageInfo) error {
@@ -382,17 +443,16 @@ func (s *Store) writeBoardTx(ctx context.Context, tx *sql.Tx, boardID string, bo
 	if _, err := tx.ExecContext(ctx, s.rb(`DELETE FROM board_stages WHERE board_id = ?`), boardID); err != nil {
 		return err
 	}
-	const insert = `INSERT INTO board_stages (board_id, stage_id, position, label, color, ` + stageColumns + `)
-		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+	insert := `INSERT INTO board_stages (board_id, stage_id, position, label, color, ` + stageColumns + `, default_agent)
+		VALUES (` + placeholders(5+stageColumnCount+1) + `)`
 	for i := range board {
 		st := &board[i]
 		args, err := flagArgs(*st)
 		if err != nil {
 			return err
 		}
-		if _, err := tx.ExecContext(ctx, s.rb(insert), append(
-			[]any{boardID, string(st.ID), st.Position, st.Label, st.Color}, args...)...,
-		); err != nil {
+		args = append([]any{boardID, string(st.ID), st.Position, st.Label, st.Color}, args...)
+		if _, err := tx.ExecContext(ctx, s.rb(insert), append(args, st.DefaultAgent)...); err != nil {
 			return apperr.Wrap(err, "stage.errors.insert_board_stage", "board", boardID, "stage", st.ID)
 		}
 	}
@@ -401,13 +461,16 @@ func (s *Store) writeBoardTx(ctx context.Context, tx *sql.Tx, boardID string, bo
 		`DELETE FROM stages WHERE id NOT IN (SELECT stage_id FROM board_stages)`); err != nil {
 		return err
 	}
-	// A dangling skip would make ValidateBoardTypes reject the next type write.
-	if _, err := tx.ExecContext(ctx, s.rb(
+	// A dangling skip or type agent would make ValidateBoardTypes reject the next type write.
+	for _, q := range []string{
 		`DELETE FROM board_type_skips WHERE board_id = ? AND stage_id NOT IN
-		 (SELECT stage_id FROM board_stages WHERE board_id = ?)`),
-		boardID, boardID,
-	); err != nil {
-		return err
+		 (SELECT stage_id FROM board_stages WHERE board_id = ?)`,
+		`DELETE FROM board_type_agents WHERE board_id = ? AND stage_id NOT IN
+		 (SELECT stage_id FROM board_stages WHERE board_id = ?)`,
+	} {
+		if _, err := tx.ExecContext(ctx, s.rb(q), boardID, boardID); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -462,6 +525,7 @@ func (s *Store) writeBoardTypesTx(
 	for _, q := range []string{
 		`DELETE FROM board_task_types WHERE board_id = ?`,
 		`DELETE FROM board_type_skips WHERE board_id = ?`,
+		`DELETE FROM board_type_agents WHERE board_id = ?`,
 	} {
 		if _, err := tx.ExecContext(ctx, s.rb(q), boardID); err != nil {
 			return err
@@ -493,7 +557,24 @@ func (s *Store) insertBoardType(
 			return apperr.Wrap(err, "stage.errors.insert_skip", "board", boardID, "type", t.ID, "stage", sk)
 		}
 	}
+	for _, st := range sortedAgentStages(t.Agents) {
+		if _, err := tx.ExecContext(ctx, s.rb(
+			`INSERT INTO board_type_agents (board_id, type_id, stage_id, agent) VALUES (?,?,?,?)`),
+			boardID, t.ID, string(st), t.Agents[st],
+		); err != nil {
+			return apperr.Wrap(err, "stage.errors.insert_type_agent", "board", boardID, "type", t.ID, "stage", st)
+		}
+	}
 	return nil
+}
+
+func sortedAgentStages(agents map[types.Stage]string) []types.Stage {
+	out := make([]types.Stage, 0, len(agents))
+	for st := range agents {
+		out = append(out, st)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i] < out[j] })
+	return out
 }
 
 func gcTaskTypes(ctx context.Context, tx *sql.Tx) error {
@@ -535,30 +616,12 @@ func (s *Store) CreateBoard(ctx context.Context, info BoardInfo, board []types.S
 		return apperr.Invalid("stage.errors.too_many_boards", "count", n, "max", MaxBoards)
 	}
 
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = tx.Rollback() }()
-
-	// A workspace's first board must be its default, or its fallbacks land on another tenant's
-	// flow.
-	isDefault := boolInt(s.workspaceBoardCountLocked(info.WorkspaceID) == 0)
-	if _, err := tx.ExecContext(ctx, s.rb(
-		`INSERT INTO boards (id, label, description, workspace_id, position, is_default)
-		 VALUES (?,?,?,?,?,?)`),
-		info.ID, info.Label, info.Description, info.WorkspaceID,
-		(len(s.state.boards)+1)*10, isDefault,
-	); err != nil {
-		return apperr.Wrap(err, "stage.errors.insert_board", "id", info.ID)
-	}
-	if err := s.writeBoardTx(ctx, tx, info.ID, normalized); err != nil {
-		return err
-	}
-	if err := tx.Commit(); err != nil {
-		return err
-	}
-	return s.reloadLocked(ctx)
+	return s.inTxLocked(ctx, func(tx *sql.Tx) error {
+		if err := s.insertBoardRowTx(ctx, tx, info); err != nil {
+			return err
+		}
+		return s.writeBoardTx(ctx, tx, info.ID, normalized)
+	})
 }
 
 func (s *Store) UpdateBoard(ctx context.Context, info BoardInfo) error {
@@ -570,9 +633,12 @@ func (s *Store) UpdateBoard(ctx context.Context, info BoardInfo) error {
 	if !s.boardExistsLocked(info.ID) {
 		return apperr.NotFound("stage.errors.unknown_board", "id", info.ID)
 	}
+	flowName, flowRevision, flowHash := info.flowColumns()
 	if _, err := s.db.ExecContext(ctx, s.rb(
-		`UPDATE boards SET label = ?, description = ? WHERE id = ?`),
-		info.Label, info.Description, info.ID,
+		`UPDATE boards SET label = ?, description = ?, max_kick_backs = ?,
+		    flow = ?, flow_revision = ?, flow_hash = ? WHERE id = ?`),
+		info.Label, info.Description, info.MaxKickBacks,
+		flowName, flowRevision, flowHash, info.ID,
 	); err != nil {
 		return err
 	}
@@ -604,6 +670,9 @@ func (s *Store) DeleteBoard(ctx context.Context, id string) error {
 		return err
 	}
 	if _, err := tx.ExecContext(ctx, s.rb(`DELETE FROM board_type_skips WHERE board_id = ?`), id); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, s.rb(`DELETE FROM board_type_agents WHERE board_id = ?`), id); err != nil {
 		return err
 	}
 	if _, err := tx.ExecContext(ctx, s.rb(`DELETE FROM boards WHERE id = ?`), id); err != nil {
@@ -868,15 +937,7 @@ func (s *Store) reloadLocked(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	typeCatalog, err := s.loadTypeCatalog(ctx)
-	if err != nil {
-		return err
-	}
-	typeMembers, err := s.loadTypeMemberships(ctx)
-	if err != nil {
-		return err
-	}
-	skips, err := s.loadTypeSkips(ctx)
+	typeRows, err := s.loadTypeRows(ctx)
 	if err != nil {
 		return err
 	}
@@ -890,7 +951,7 @@ func (s *Store) reloadLocked(ctx context.Context) error {
 	}
 	firstOfWorkspace := map[string]string{}
 	seen := make(map[types.Stage]bool, len(catalog))
-	seenType := make(map[string]bool, len(typeCatalog))
+	seenType := make(map[string]bool, len(typeRows.catalog))
 	for i, b := range boards {
 		cols := make([]types.StageInfo, 0, len(members[b.ID]))
 		for j := range members[b.ID] {
@@ -913,7 +974,7 @@ func (s *Store) reloadLocked(ctx context.Context) error {
 		state.byID[b.ID] = NewSnapshot(cols)
 		boards[i].StageCount = len(cols)
 		state.noteDefault(b, firstOfWorkspace)
-		state.addTypes(b.ID, b.WorkspaceID, cols, typeMembers[b.ID], typeCatalog, skips, seenType)
+		state.addTypes(b.ID, b.WorkspaceID, cols, typeRows, seenType)
 	}
 	state.settleDefaults(firstOfWorkspace, boards)
 	s.state = state
@@ -966,7 +1027,8 @@ func (s *Store) loadCatalog(ctx context.Context) (map[types.Stage]types.StageInf
 
 func (s *Store) loadBoards(ctx context.Context) ([]BoardInfo, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, label, description, workspace_id, position, is_default
+		`SELECT id, label, description, workspace_id, position, is_default,
+		        max_kick_backs, flow, flow_revision, flow_hash
 		 FROM boards ORDER BY position ASC, id ASC`)
 	if err != nil {
 		return nil, err
@@ -975,19 +1037,24 @@ func (s *Store) loadBoards(ctx context.Context) ([]BoardInfo, error) {
 	var out []BoardInfo
 	for rows.Next() {
 		var b BoardInfo
-		var isDefault int
-		if err := rows.Scan(&b.ID, &b.Label, &b.Description, &b.WorkspaceID, &b.Position, &isDefault); err != nil {
+		var isDefault, flowRevision int
+		var flowName, flowHash string
+		if err := rows.Scan(&b.ID, &b.Label, &b.Description, &b.WorkspaceID, &b.Position, &isDefault,
+			&b.MaxKickBacks, &flowName, &flowRevision, &flowHash); err != nil {
 			return nil, err
 		}
 		b.Default = isDefault != 0
+		if flowName != "" {
+			b.Flow = &BoardFlow{Name: flowName, Revision: flowRevision, Hash: flowHash}
+		}
 		out = append(out, b)
 	}
 	return out, rows.Err()
 }
 
 func (s *Store) loadMemberships(ctx context.Context) (map[string][]types.StageInfo, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT board_id, stage_id, position, label, color, `+stageColumns+`
-		FROM board_stages ORDER BY board_id ASC, position ASC`)
+	rows, err := s.db.QueryContext(ctx, `SELECT board_id, stage_id, position, label, color, default_agent, `+
+		stageColumns+` FROM board_stages ORDER BY board_id ASC, position ASC`)
 	if err != nil {
 		return nil, err
 	}
@@ -997,12 +1064,22 @@ func (s *Store) loadMemberships(ctx context.Context) (map[string][]types.StageIn
 		var boardID, id string
 		var st types.StageInfo
 		var autoAdv, gated, initial, terminal, ingest, push, openPR int
-		var approvals, kickBackTo string
-		if err := rows.Scan(&boardID, &id, &st.Position, &st.Label, &st.Color,
+		var verdict, lockTests, release, mergeTarget, prDraft, prReady, noSkip int
+		var approvals, kickBackTo, skipUnless string
+		if err := rows.Scan(&boardID, &id, &st.Position, &st.Label, &st.Color, &st.DefaultAgent,
 			&autoAdv, &gated, &initial, &terminal, &ingest, &push, &openPR,
-			&st.WipGroup, &approvals, &st.OnChangesRequested, &kickBackTo); err != nil {
+			&st.WipGroup, &approvals, &st.OnChangesRequested, &kickBackTo,
+			&verdict, &lockTests, &skipUnless, &release, &mergeTarget, &prDraft, &prReady, &noSkip); err != nil {
 			return nil, err
 		}
+		st.AgentVerdict = verdict != 0
+		st.LockTests = lockTests != 0
+		st.SkipUnless = decodeSkipUnless(skipUnless)
+		st.ReleaseResources = release != 0
+		st.MergeTarget = mergeTarget != 0
+		st.PRDraft = prDraft != 0
+		st.PRReady = prReady != 0
+		st.NoSkip = noSkip != 0
 		reqs, err := decodeApprovals(approvals)
 		if err != nil {
 			return nil, apperr.Wrap(err, "stage.errors.decode_approvals", "board", boardID, "id", id)
@@ -1022,29 +1099,50 @@ func (s *Store) loadMemberships(ctx context.Context) (map[string][]types.StageIn
 	return out, rows.Err()
 }
 
+// Every task-type table, read once per reload.
+type typeRows struct {
+	catalog map[string]TaskTypeInfo
+	members map[string][]TaskTypeInfo
+	skips   map[string][]types.Stage
+	agents  map[string]map[types.Stage]string
+}
+
+func (s *Store) loadTypeRows(ctx context.Context) (*typeRows, error) {
+	var tr typeRows
+	var err error
+	if tr.catalog, err = s.loadTypeCatalog(ctx); err != nil {
+		return nil, err
+	}
+	if tr.members, err = s.loadTypeMemberships(ctx); err != nil {
+		return nil, err
+	}
+	if tr.skips, err = s.loadTypeSkips(ctx); err != nil {
+		return nil, err
+	}
+	if tr.agents, err = s.loadTypeAgents(ctx); err != nil {
+		return nil, err
+	}
+	return &tr, nil
+}
+
 // Owner is the board's workspace; the catalog row's workspace_id only names whoever used the id
 // first.
-func (st *boardState) addTypes(
-	boardID, workspaceID string,
-	cols []types.StageInfo,
-	members []TaskTypeInfo,
-	catalog map[string]TaskTypeInfo,
-	skips map[string][]types.Stage,
-	seen map[string]bool,
-) {
+func (st *boardState) addTypes(boardID, workspaceID string, cols []types.StageInfo, tr *typeRows, seen map[string]bool) {
+	members := tr.members[boardID]
 	for i := range members {
 		t := members[i]
-		if ident, ok := catalog[t.ID]; ok && t.Label == "" {
+		if ident, ok := tr.catalog[t.ID]; ok && t.Label == "" {
 			t.Label, t.Icon, t.Color = ident.Label, ident.Icon, ident.Color
 		}
 		t.WorkspaceID = workspaceID
 		if t.Label == "" {
 			t.Label = t.ID
 		}
-		t.Skips = skips[boardTypeKey(boardID, t.ID)]
+		t.Skips = tr.skips[boardTypeKey(boardID, t.ID)]
 		if t.Skips == nil {
 			t.Skips = []types.Stage{}
 		}
+		t.Agents = tr.agents[boardTypeKey(boardID, t.ID)]
 		st.types[boardID] = append(st.types[boardID], t)
 		st.byIDType[boardTypeKey(boardID, t.ID)] = NewSnapshot(FilterStages(cols, t.Skips))
 		if !seen[t.ID] {
@@ -1112,6 +1210,28 @@ func (s *Store) loadTypeSkips(ctx context.Context) (map[string][]types.Stage, er
 		}
 		key := boardTypeKey(boardID, typeID)
 		out[key] = append(out[key], types.Stage(stageID))
+	}
+	return out, rows.Err()
+}
+
+func (s *Store) loadTypeAgents(ctx context.Context) (map[string]map[types.Stage]string, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT board_id, type_id, stage_id, agent FROM board_type_agents`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]map[types.Stage]string{}
+	for rows.Next() {
+		var boardID, typeID, stageID, agent string
+		if err := rows.Scan(&boardID, &typeID, &stageID, &agent); err != nil {
+			return nil, err
+		}
+		key := boardTypeKey(boardID, typeID)
+		if out[key] == nil {
+			out[key] = map[types.Stage]string{}
+		}
+		out[key][types.Stage(stageID)] = agent
 	}
 	return out, rows.Err()
 }
@@ -1190,6 +1310,9 @@ func copyTypes(in []TaskTypeInfo) []TaskTypeInfo {
 		skips := make([]types.Stage, len(in[i].Skips))
 		copy(skips, in[i].Skips)
 		out[i].Skips = skips
+		if in[i].Agents != nil {
+			out[i].Agents = maps.Clone(in[i].Agents)
+		}
 	}
 	return out
 }

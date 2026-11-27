@@ -209,7 +209,32 @@
     "runner_upload": "project {name} was uploaded: a runner has no remote to push its work to, so its runs stay here",
     "runner_no_remote": "project {name} has no repository URL: a runner pushes its work to the remote, where the daemon fetches it",
     "runner_path_without_runner": "project {name} has no runner, so it cannot have a folder on one",
-    "runner_path_update_failed": "save the runner folder"
+    "runner_path_update_failed": "save the runner folder",
+    "release_mode_invalid": "release mode {mode:%q} is not valid: use {auto}, {batch} or leave it empty",
+    "release_environment_invalid": "release environment {env:%q} must start with a letter or digit and use only letters, digits, spaces, dots, dashes and underscores (64 at most)",
+    "gates_profile_too_big": "the quality-gate profile is larger than {max} bytes",
+    "gates_profile_not_object": "the quality-gate profile must be a JSON object",
+    "gates_profile_unknown_key": "the quality-gate profile has an unknown key {key:%q}; the keys are: {keys}",
+    "gates_profile_bad_value": "the quality-gate profile has a value of the wrong type in {key:%q}",
+    "gates_profile_unknown_check": "accept_unverified names an unknown check {check:%q}; the checks are: {checks}",
+    "gates_profile_no_reason": "accept_unverified gives check {check:%q} no reason: write why it may stay unverified",
+    "gates_profile_reason_too_long": "the reason accept_unverified gives check {check:%q} is longer than {max} characters",
+    "worktree_head": "read the worktree HEAD of project {project}",
+    "bad_commit": "not a commit id",
+    "no_default_commit": "project {project} has no default branch to compare against",
+    "worktree_diff": "list the files changed in project {project}",
+    "worktree_blobs": "read the test blobs of project {project}",
+    "history_sha_invalid": "ancestry takes commit SHAs (7 to 40 hex characters), not {base} and {head}",
+    "deploy_watch_not_found": "deploy watch not found",
+    "deploy_watch_workflow_invalid": "workflow {target:%q} must be the workflow's name or file (deploy.yml), starting with a letter or digit, 100 characters at most, without quotes or braces",
+    "deploy_watch_workflow_path": "workflow path {target:%q} must be a .yml or .yaml file under {dir}",
+    "deploy_watch_environment_invalid": "GitHub environment {target:%q} must start with a letter or digit and use only letters, digits, spaces, dots, dashes and underscores (64 at most)",
+    "deploy_watch_cloud_target": "a cloud watch takes the id of one of the project's environments; {target:%q} is not one",
+    "deploy_watch_url_invalid": "{target:%q} is not an http or https URL Thulu can poll (2048 characters at most, without spaces, quotes or braces)",
+    "deploy_watch_url_credentials": "the URL to poll cannot carry a user or password: Thulu would store it in the watch and show it on the project page",
+    "deploy_watch_source_invalid": "source {source:%q} is not one Thulu watches; use one of: {known}",
+    "deploy_watch_interval_webhook": "source {source} arrives by GitHub webhook and takes no interval",
+    "deploy_watch_interval_range": "interval {interval} must be whole minutes between {min} and {max}"
   },
   "log": {
     "list_conflict_files": "list conflict files in {dir}",
@@ -236,7 +261,8 @@
     "measure_hosted": "measure the hosted repository {path}",
     "clone_state": "record the clone state of project {id}",
     "remove_base_marker": "remove the base marker {path}",
-    "resolve_host": "resolve git host {host}"
+    "resolve_host": "resolve git host {host}",
+    "history_fetch": "fetch the default branch of project {project} before reading what a deploy contains"
   },
   "hooks": {
     "migrated_header": "# Migrated from the project.{column} column.\n# Edit freely — this file is now the only source for the command.\n"

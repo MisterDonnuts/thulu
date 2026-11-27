@@ -16,7 +16,7 @@ reason tells you what to do. With `suggest` it is your call.
   X is handled.
 - A question that spans 3 or more files.
 - Summarizing a large diff or log: save it to a file first
-  (`git diff main > /tmp/diff.txt`) and delegate that file.
+  (`git diff main > "$TMPDIR/diff.txt"`) and delegate that file.
 
 ## When not to
 

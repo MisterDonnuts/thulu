@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/MisterDonnuts/thulu/internal/apperr"
@@ -11,6 +12,7 @@ import (
 	"github.com/MisterDonnuts/thulu/internal/auth"
 	ghrest "github.com/MisterDonnuts/thulu/internal/github"
 	"github.com/MisterDonnuts/thulu/internal/githubapp"
+	"github.com/MisterDonnuts/thulu/internal/githubcfg"
 	"github.com/MisterDonnuts/thulu/internal/i18n"
 	"github.com/MisterDonnuts/thulu/internal/project"
 )
@@ -91,6 +93,17 @@ func repoRef(raw string) (string, bool) {
 	return strings.ToLower(owner + "/" + name), true
 }
 
+// A project on another git host can share owner/name with a GitHub repository, and the workspace's
+// GitHub credential resolves for it too. The SSH form (git@host:owner/name) may use a host alias,
+// so only an http(s) URL is held to the GitHub host, as evidence.GitHubRepo does.
+func onGithubHost(repoURL string) bool {
+	u, err := url.Parse(strings.TrimSpace(repoURL))
+	if err != nil || u.Host == "" {
+		return true
+	}
+	return githubcfg.IsGitHubHost(u.Host) || githubcfg.IsGitHubHost(u.Hostname())
+}
+
 func (s *Server) projectsForRepo(r *http.Request, ref string) ([]project.Project, error) {
 	var all []project.Project
 	var err error
@@ -105,7 +118,7 @@ func (s *Server) projectsForRepo(r *http.Request, ref string) ([]project.Project
 	var linked, others []project.Project
 	for i := range all {
 		p := &all[i]
-		if got, ok := repoRef(p.RepoURL); !ok || got != ref || !s.internalVisible(r, p.WorkspaceID) {
+		if got, ok := repoRef(p.RepoURL); !ok || got != ref || !onGithubHost(p.RepoURL) || !s.internalVisible(r, p.WorkspaceID) {
 			continue
 		}
 		if p.GithubInstallationID != 0 {
@@ -163,8 +176,6 @@ func (s *Server) handleInternalRepoGithubToken(w http.ResponseWriter, r *http.Re
 	s.writeProjectGithubToken(w, r, proj.ID, perms)
 }
 
-// A delegated chat gets only an App token: a stored PAT carries whatever its owner gave it, merge
-// included, and cannot be narrowed.
 func (s *Server) writeProjectGithubToken(w http.ResponseWriter, r *http.Request, projectID string, perms githubapp.Permissions) {
 	rec, err := s.githubTokenForProjectWith(r.Context(), projectID, perms)
 	if errors.Is(err, githubapp.ErrNoCredential) {
@@ -175,11 +186,10 @@ func (s *Server) writeProjectGithubToken(w http.ResponseWriter, r *http.Request,
 		writeError(w, r, http.StatusInternalServerError, err)
 		return
 	}
+	if refuseStoredGithubToken(w, r, rec) {
+		return
+	}
 	if scope := auth.APIKeyRunScope(r.Context()); scope.Delegated() {
-		if rec.Source != githubapp.SourceApp {
-			writeErrKey(w, r, http.StatusForbidden, "api.github.errors.delegated_needs_app_token")
-			return
-		}
 		s.emit(r, audit.KindChatGithubGrant, "", projectID, "project",
 			i18n.Text("api.github.audit.delegated_token", "agent", scope.Agent, "person", scope.DelegatedBy,
 				"project", s.projectLabel(r.Context(), projectID), "permissions", perms.String()), nil)
@@ -189,6 +199,20 @@ func (s *Server) writeProjectGithubToken(w http.ResponseWriter, r *http.Request,
 		Token:     rec.Token,
 		Login:     rec.Login,
 	})
+}
+
+// A run key gets only App installation tokens, which carry just the permissions its stage grants.
+// A stored credential (a PAT) carries whatever its owner gave it, merge and deploy included, and
+// cannot be narrowed: the run's container could ask for it with curl and skip every stage grant
+// and approval. The run goes through the GitHub proxy instead (github_proxy.go). Other callers
+// and the daemon's own pushes and PR status reads keep using the PAT.
+// thulu-github switches to the proxy on 409 with this code and keeps any other 409 an error.
+func refuseStoredGithubToken(w http.ResponseWriter, r *http.Request, rec *githubapp.Token) bool {
+	if rec.Source == githubapp.SourceApp || !auth.APIKeyRunScope(r.Context()).IsRun() {
+		return false
+	}
+	writeErrKey(w, r, http.StatusConflict, "api.github.errors.use_proxy", "proxy", githubProxyPrefix)
+	return true
 }
 
 func (s *Server) projectName(ctx context.Context, projectID string) string {

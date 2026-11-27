@@ -29,6 +29,19 @@ export interface PRCI {
   state: CIState;
 }
 
+export type RequiredState = "none" | "passed" | "pending" | "failing" | "unknown";
+
+// The checks the PR's base branch requires on GitHub (branch protection and rulesets).
+export interface RequiredChecks {
+  state: RequiredState;
+  required?: string[];
+  failing?: string[];
+  // Running, queued or not reported; missing repeats the ones not reported at all.
+  pending?: string[];
+  missing?: string[];
+  behind?: boolean;
+}
+
 export interface PullRequestStatus {
   project_id: string;
   project_name: string;
@@ -39,6 +52,7 @@ export interface PullRequestStatus {
   head?: string;
   base?: string;
   ci?: PRCI;
+  required_checks?: RequiredChecks;
   review?: ReviewState;
   mergeable?: Mergeable;
   changed_files?: number;
@@ -85,8 +99,70 @@ export function prMergeReady(pr: PullRequestStatus): boolean {
     pr.state === "open" &&
     pr.mergeable === "ready" &&
     pr.review === "approved" &&
-    (pr.ci?.state === "passed" || pr.ci?.state === "none")
+    (pr.ci?.state === "passed" || pr.ci?.state === "none") &&
+    !requiredChecksHold(pr.required_checks)
   );
+}
+
+// Mirrors the daemon's RequiredStatus.Holds: what keeps an approval that waits for checks pending.
+export function requiredChecksHold(r?: RequiredChecks): boolean {
+  if (!r) return false;
+  return r.state === "pending" || r.state === "failing" || r.state === "unknown" || !!r.behind;
+}
+
+// "build failed; e2e still running" — what the daemon's refusal says, read from the PR row.
+export function requiredChecksText(r: RequiredChecks): string {
+  if (r.state === "unknown") return t("lib.pr_section.required.unknown");
+  const missing = new Set(r.missing ?? []);
+  const running = (r.pending ?? []).filter((c) => !missing.has(c));
+  const parts: string[] = [];
+  if (r.failing?.length)
+    parts.push(t("lib.pr_section.required.failing", { checks: r.failing.join(", ") }));
+  if (running.length)
+    parts.push(t("lib.pr_section.required.running", { checks: running.join(", ") }));
+  if (missing.size)
+    parts.push(t("lib.pr_section.required.missing", { checks: [...missing].join(", ") }));
+  if (r.behind) parts.push(t("lib.pr_section.required.behind"));
+  if (!parts.length && r.state === "passed")
+    return t("lib.pr_section.required.passed", { count: r.required?.length ?? 0 });
+  return parts.join("; ");
+}
+
+// Mirrors the daemon's ChecksHold.Blocks: a check failed, the branch is behind, or the state is
+// unknown. Checks that only run leave room to approve ahead of them.
+export function requiredChecksBlock(r?: RequiredChecks): boolean {
+  if (!r || !requiredChecksHold(r)) return false;
+  return r.state !== "pending" || !!r.behind || !!r.failing?.length;
+}
+
+function holdLines(rows: PullRequestStatus[]): string {
+  return rows
+    .map((pr) =>
+      t("lib.pr_section.required.pr", {
+        number: pr.number ?? "",
+        reason: requiredChecksText(pr.required_checks ?? { state: "none" }),
+      }),
+    )
+    .join(" · ");
+}
+
+function holdingRows(rows?: PullRequestStatus[]): PullRequestStatus[] {
+  return (rows ?? []).filter((pr) => !pr.error && requiredChecksHold(pr.required_checks));
+}
+
+// Why an approval that waits for required checks cannot be approved yet; "" when no PR blocks it.
+export function checksHoldText(rows?: PullRequestStatus[]): string {
+  const holding = holdingRows(rows);
+  if (!holding.some((pr) => requiredChecksBlock(pr.required_checks))) return "";
+  return holdLines(holding);
+}
+
+// Which checks an approval goes ahead of when approved now: they still run, nothing failed. "" when
+// nothing runs, or when something blocks the approval (checksHoldText says that).
+export function checksWaitText(rows?: PullRequestStatus[]): string {
+  const holding = holdingRows(rows);
+  if (holding.some((pr) => requiredChecksBlock(pr.required_checks))) return "";
+  return holdLines(holding);
 }
 
 export function prTone(pr: PullRequestStatus): string {
@@ -96,6 +172,7 @@ export function prTone(pr: PullRequestStatus): string {
   if (pr.state === "draft") return "draft";
   if (
     pr.ci?.state === "failed" ||
+    pr.required_checks?.state === "failing" ||
     pr.review === "changes_requested" ||
     pr.mergeable === "conflicts"
   )
@@ -311,6 +388,13 @@ const FACTS: Fact[] = [
               total: pr.ci.total,
             }),
           ),
+  },
+  {
+    label: "lib.pr_section.facts.required",
+    value: (pr) =>
+      !pr.required_checks || pr.required_checks.state === "none"
+        ? ""
+        : esc(requiredChecksText(pr.required_checks)),
   },
   {
     label: "lib.pr_section.facts.review",

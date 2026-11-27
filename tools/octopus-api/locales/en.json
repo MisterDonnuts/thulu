@@ -9,6 +9,32 @@
         "id": "Task id."
       }
     },
+    "task_reports": {
+      "description": "Read the task's Reports tab: each stage's report (kind agent_index), its verdict (stage_verdict), the auditor's feedback (auditor_feedback) and filed evidence. Comments and task_get do not carry them. Newest first; a body past 4000 characters is cut (truncated: true, chars: full length), and report_id returns that report whole. Filter by stage and kind to find, say, the last AI review.",
+      "params": {
+        "id": "Task id.",
+        "stage": "Only this stage's reports (a column id such as ai_review).",
+        "kind": "Only this kind: agent_index, stage_verdict, auditor_feedback or evidence.",
+        "report_id": "Return this one report whole, from a listing's id."
+      }
+    },
+    "task_events": {
+      "description": "Read the task's activity: stage changes, runs started and finished (with exit code), verdicts, auditor runs and verdicts, relaunches with their reason, questions, approvals, skips, flags and runner warnings. Comments and task_get do not carry it. Returns the latest events (100 unless limit says otherwise), oldest first, with a summary each and no payload; tool calls and heartbeats are left out unless kind names one. event_id returns one event with its payload (cut past 20000 characters).",
+      "params": {
+        "id": "Task id.",
+        "kind": "Only this kind, such as stage_entered, agent_run_finished, auditor_verdict or relaunch_requested.",
+        "since": "Only events after this ISO time.",
+        "limit": "How many of the latest events (100 by default).",
+        "event_id": "Return this one event with its payload, from a listing's id."
+      }
+    },
+    "task_attachment_read": {
+      "description": "Open one of the task's attachments (ids from task_attachments, a comment, or a test case run's capture_attachment_ids and take_attachment_id). An image (PNG, JPEG, GIF, WebP up to 3.75 MB) comes back as an image you can look at; text, logs, JSON, SARIF and markdown come back as text, cut past 100000 characters. A video cannot be opened: read its take (the run's take_attachment_id, JSON with what was observed second by second and the annotations) and its captures instead. PDFs and other binary files cannot be opened either.",
+      "params": {
+        "id": "Task id.",
+        "attachment_id": "Attachment id."
+      }
+    },
     "board_current": {
       "description": "Where am I: the board (flow) this run's task lives on, its columns in flow order, and the column the task currently sits in. Tasks you create with task_create land on THIS board. Call it before creating tasks so the `stage` you pass is a column this board actually has."
     },
@@ -71,12 +97,27 @@
       }
     },
     "task_section_set": {
-      "description": "Create or replace ONE structured section of the task body without touching the rest. Canonical slugs (inserted in this order): goal, context, definition-of-done, test-cases, out-of-scope, risks, notes — their headings are set automatically. Any other slug needs an explicit `title` and is appended at the end. Content is markdown; write the DoD as `- [ ]` checklist lines so it can be checked off later. Use it to write the plan for a task into the task itself. Test cases do NOT go here any more: add them with task_test_case_add, which gives each one a key, a status and its runs (not through the test-cases section).",
+      "description": "Create or replace ONE structured section of the task body without touching the rest. Canonical slugs (inserted in this order): goal, context, definition-of-done, test-cases, out-of-scope, risks, notes — their headings are set automatically. Any other slug needs an explicit `title` and is appended at the end. Content is markdown; write the DoD as `- [ ]` checklist lines so it can be checked off later. Use it to write the plan for a task into the task itself. Test cases do NOT go here any more: add them with task_test_case_add, which gives each one a key, a status and its runs (not through the test-cases section). The acceptance criteria are not written here either: task_criteria_set keeps them as a list and writes their section.",
       "params": {
         "id": "Task id.",
         "slug": "Section address, e.g. 'goal', 'definition-of-done', 'test-cases'.",
         "content": "Markdown content of the section (no heading line).",
         "title": "Heading text. Only needed for non-canonical slugs."
+      }
+    },
+    "task_criteria_get": {
+      "description": "List the task's acceptance criteria in order: key (AC-1…), text, position, and who approved each one and when (empty when not approved). Read them here, not from the acceptance-criteria section of the body: the section is generated from this list.",
+      "params": {
+        "id": "Task id."
+      }
+    },
+    "task_criteria_set": {
+      "description": "Replace the task's acceptance criteria with this list, in order. Each one needs a key of the form AC-n, unique on the task, and a text (at most 2000 characters, at most 100 criteria). Thulu rewrites the acceptance-criteria section of the body from the list, so do not write that section with task_section_set. A criterion whose text changes loses its approval, and the cases that cover it are flagged once the tests are locked. Returns the saved list.",
+      "params": {
+        "id": "Task id.",
+        "criteria": "The whole list, in order. Criteria you leave out are deleted.",
+        "criteria_key": "AC-n, e.g. 'AC-1'. Keep a criterion's key when you edit its text: cases point to it.",
+        "criteria_text": "One observable behavior, e.g. Given/When/Then. Line breaks are kept."
       }
     },
     "task_checklist_check": {
@@ -122,7 +163,8 @@
     "task_relaunch": {
       "description": "Re-fire the agent for the task's current stage. Use after a run dies on max_turns. `turns` is optional — defaults to double the agent's current per-stage budget.",
       "params": {
-        "turns": "Optional turn budget."
+        "turns": "Optional turn budget.",
+        "reason": "Optional. Why you relaunch, in one sentence. It is posted on the task as a decision."
       }
     },
     "task_list_dependencies": {
@@ -143,10 +185,11 @@
       "description": "Drop the dependency edge `id → depends_on_task_id`. No-op if it didn't exist. Use to unblock a task whose blocker turned out to be unrelated, or to downgrade a hard dep to soft (remove + add as soft)."
     },
     "task_add_comment": {
-      "description": "Post a comment on a task. The daemon signs it with your agent name, from your credential. A comment from an agent launches the other agents it @mentions, up to 3 agent turns in a row per thread since a person last wrote in it; past that the thread says so and nobody is launched until a person replies. The body renders as markdown, so an attachment embedded as ![<filename>](/task-attachments/<id>) shows inline — an image as an image, an .mp4 or .webm as a player.",
+      "description": "Post a comment on a task. Comments are conversation: a reply to a person or an agent, a question, or something a person must know. Your stage report goes in _index.md and the handoff in verdict.md, never in a comment. Keep it short: what you need or what changed, in one or two sentences. The daemon signs it with your agent name, from your credential. A comment from an agent launches the other agents it @mentions, up to the workspace's cap of agent turns in a row per thread (5 unless a person changed it) since a person last wrote in it; past that the thread says so and nobody is launched until a person replies. The body renders as markdown, so an attachment embedded as ![<filename>](/task-attachments/<id>) shows inline — an image as an image, an .mp4 or .webm as a player.",
       "params": {
         "body": "Comment markdown.",
-        "parent_id": "Reply in a thread: the id of any comment in it (the reply joins that comment's thread). Omit to start a new thread. When you were @mentioned in a thread, pass its id (THREAD_ID) so your answer lands there.",
+        "reply_to": "Reply in a thread: the id of any comment in it (the reply joins that comment's thread). Omit to start a new thread. When you were @mentioned in a thread, pass its id (THREAD_ID) so your answer lands there.",
+        "parent_id": "Same as reply_to, kept for older prompts. reply_to wins when both are given.",
         "attachment_ids": "Attachments (already uploaded with task_attach) that belong to this comment. They show under it, and the ones you also embedded in the body render inline instead of twice."
       }
     },
@@ -181,24 +224,43 @@
       "params": {
         "label": "Who should review, as the team would say it (\"Design\", \"QA\", \"Security\").",
         "reason": "What changed and what to look at, so the reviewer does not have to reconstruct it.",
-        "key": "Optional short stable id (design, qa), the kind of key a stage uses in its required approvals."
+        "key": "Optional short stable id (design, qa), the kind of key a stage uses in its required approvals.",
+        "stage": "Optional id of a later stage on the task's Flow line (e.g. review) where a person should decide it. The approval then holds that stage's exit instead of the current one, so the task keeps moving until it gets there. Omit it to hold the current stage. Earlier and last stages are refused."
+      }
+    },
+    "task_skip_add": {
+      "description": "Skip a column for this task, with a reason. The task passes over that column when it gets there, and the column shows as skipped with your reason. Only the refinement stage's agent (while its run of this task is on) or a person may add a skip; any other agent gets a refusal and nothing changes. Gate columns (required approvals), PR columns, columns marked no_skip, the refinement column, the first and the last column can't be skipped, nor a column the task is in or already passed. Prefer the skip key in flags.yaml when you refine; this tool is for a skip you decide outside that file.",
+      "params": {
+        "id": "Task id.",
+        "stage": "Id of the column to skip, a later column of the task's board (e.g. test_design).",
+        "reason": "Why this task does not need the column, concrete enough for a later agent to judge whether its work changes that (\"copy change in one email template, no logic to test\"). Required."
+      }
+    },
+    "task_skip_remove": {
+      "description": "Make a column the task skips run again, with a reason. Any agent working on the task or a person may remove a skip. A column ahead of the task runs when the task reaches it. A column the task already passed sends the task back there, and the task continues forward from it; if the task is in your own running stage, the move waits until your run ends successfully, so finish your work as usual. Remove a skip when your work makes the column necessary (you touched UI, a migration, auth).",
+      "params": {
+        "id": "Task id.",
+        "stage": "Id of the skipped column (task_get lists them in stage_skips).",
+        "reason": "What in your work makes the column necessary (\"added a migration to orders\"). Required; it shows in the task's Activity."
       }
     },
     "task_test_cases": {
-      "description": "List a task's test cases in order, each with key (TC-1…), title, description, steps, expected, priority, status (pending | pass | fail | blocked | skipped), covered, and its runs newest first (verdict, observed, video/take/capture attachment ids, report id; older runs carry a comment id instead). Read this before testing a task and before recording anything, so you work against the keys that exist.",
+      "description": "List a task's test cases in order, each with key (TC-1…), title, description, preconditions, steps, expected, covers (the AC-n it proves), priority, status (pending | queued | pass | fail | blocked | skipped | waived), covered, and its runs newest first (verdict, observed, note, needs, tried, writes_data, round, video/take/capture attachment ids, report id; older runs carry a comment id instead). queued means a person gave access and the case waits for a new run. Read this before testing a task and before recording anything, so you work against the keys that exist.",
       "params": {
         "id": "Task id."
       }
     },
     "task_test_case_add": {
-      "description": "Add test cases to a task — always as a `cases` array, one or many. Each case needs a `title`; `key` is assigned as TC-<max+1> when omitted. `description`, `steps` and `expected` are markdown (steps usually a numbered list). New cases start pending, not covered, and go last. Use this to write the plan's test cases, instead of a ## Test Cases section in the body. Returns the created cases.",
+      "description": "Add test cases to a task — always as a `cases` array, one or many. Each case needs a `title`; `key` is assigned as TC-<max+1> when omitted. `covers` lists the acceptance criteria it proves (AC-n, see task_criteria_get) and `preconditions` what must be in place before step 1: use these fields, not \"Covers:\" or \"Preconditions:\" lines in the description. `steps` is a short numbered list, one action per step; `expected` is the \"Pass if\" line, checkable at a glance with real values. New cases start pending, not covered, and go last. Use this to write the plan's test cases, instead of a ## Test Cases section in the body. Returns the created cases.",
       "params": {
         "id": "Task id.",
         "cases_title": "Required. At most 200 chars.",
         "cases_key": "Optional explicit key, e.g. 'TC-4'. Must be unique on the task.",
-        "cases_description": "Context, preconditions, data (markdown).",
-        "cases_steps": "How to exercise it (markdown).",
-        "cases_expected": "The expected result (markdown)."
+        "cases_description": "Context a tester needs that is neither a precondition nor a step (markdown). Often empty.",
+        "cases_steps": "Short numbered list, one action per step (markdown).",
+        "cases_expected": "Pass if: one line someone can check by looking, with real values.",
+        "cases_preconditions": "What must be in place before step 1: user, data, configuration, environment, with literal values.",
+        "cases_covers": "Keys of the acceptance criteria this case proves, e.g. ['AC-2']. Once the task has criteria, an unknown key is refused with the valid ones."
       }
     },
     "task_test_case_update": {
@@ -206,7 +268,9 @@
       "params": {
         "id": "Task id.",
         "case": "Case key (e.g. 'TC-3') or id.",
-        "position": "Order within the task."
+        "position": "Order within the task.",
+        "preconditions": "What must be in place before step 1.",
+        "covers": "Keys of the acceptance criteria the case proves (AC-n). Replaces the list."
       }
     },
     "task_test_case_delete": {
@@ -217,17 +281,27 @@
       }
     },
     "task_test_case_run": {
-      "description": "Record one execution of a test case with its evidence. The `verdict` (pass | fail | blocked) becomes the case's status and marks it covered. `case` is the key (TC-3) or the id. Evidence ids must belong to the same task: upload files with task_attach first, then pass their ids here. Do NOT call this for a case thulu-browser's evidence_publish already recorded: every verify step whose `case` equals a key of the task becomes a run by itself, with the video, take, captures and the report it posted to the Reports tab — recording it again here would count the same execution twice.",
+      "description": "Record one execution of a test case with its evidence. The `verdict` (pass | fail | blocked) becomes the case's status and marks it covered. `case` is the key (TC-3) or the id. `observed` is one sentence with what you saw; the detail goes in `note`. On a blocked run, `needs` says what a person has to bring, `tried` and `tried_result` what you managed without it, and `writes_data` whether the case creates real data. Evidence ids must belong to the same task: upload files with task_attach first, then pass their ids here. Do NOT call this for a case thulu-browser's evidence_publish already recorded: every verify step whose `case` equals a key of the task becomes a run by itself, with the video, take, captures and the report it posted to the Reports tab — recording it again here would count the same execution twice.",
       "params": {
         "id": "Task id.",
         "case": "Case key (e.g. 'TC-3') or id.",
-        "observed": "What was seen, one or two lines.",
-        "note": "Longer markdown note.",
+        "observed": "What you saw, in one sentence with the real value (at most 280 characters), e.g. 'Order total $100.00: no discount'. The detail goes in note.",
+        "note": "The detail: how you got there, logs, what else you noticed (markdown). People see it folded.",
         "video_attachment_id": "Attachment id of the recording.",
         "take_attachment_id": "Attachment id of the replayable take (JSON).",
         "report_id": "Id of the report in the task's Reports tab that holds the evidence.",
         "comment_id": "Comment id of a report posted as a comment. Runs pass report_id.",
-        "capture_attachment_ids": "Attachment ids of screenshots taken during the run."
+        "capture_attachment_ids": "Attachment ids of screenshots taken during the run.",
+        "needs": "Only with verdict blocked: what a person has to bring for the case to run, one entry per thing. People see the blocked cases grouped by kind, with the actions that kind offers (give the agent access, test by hand, skip).",
+        "needs_kind": "What kind of thing is missing. One of: {kinds}. The daemon refuses any other kind.",
+        "needs_kind_unlisted": "What kind of thing is missing, from the daemon's catalog (GET /test-cases/need-kinds). An unknown kind is refused with the list of valid ones.",
+        "needs_label": "What exactly, in a few words, e.g. 'A Google test account'.",
+        "needs_secrets": "Secrets a person can save in the project's Evidence environment so you can run the case yourself: the name you will type with secret= and what it is for. Never a value. Only for kinds that take secrets.",
+        "secrets_name": "Secret name, e.g. 'GOOGLE_TEST_EMAIL': letters, digits and underscores.",
+        "secrets_label": "What it is for, e.g. 'Email of the Google test account'.",
+        "tried": "With verdict blocked: what you tried without the missing thing. none: nothing; simulated: you faked the missing part (a stubbed login, a URL opened directly); partial: you ran the steps up to where it stopped.",
+        "tried_result": "What that showed, in one sentence (at most 280 characters), e.g. 'With a faked login, /signup-email shows the email filled and disabled'.",
+        "writes_data": "True when running the case creates or changes real data (users, orders, emails): people are warned before they let it run."
       }
     },
     "agent_list": {
@@ -271,7 +345,10 @@
       "params": {
         "model": "e.g. 'opus', 'sonnet', 'haiku'.",
         "effort": "'low' | 'medium' | 'high'.",
-        "system_skills_off": "Per stage, the system skills (octopus-*) this agent does not receive there, e.g. {\"review\": [\"octopus-browser-evidence\"]}. Leave it out to keep the current list; {} turns every system skill back on."
+        "system_skills_off": "Per stage, the system skills (octopus-*) this agent does not receive there, e.g. {\"review\": [\"octopus-browser-evidence\"]}. Leave it out to keep the current list; {} turns every system skill back on.",
+        "auditor_mode": "always: the auditor runs after every run of its stages. signals: it runs only when the run shows a signal (failed or out of turns, a verdict other than continue, locked tests changed or unchecked, gate config or suppressions changed, diff over budget, flags, no report, a person's relaunch with a reason, high risk); otherwise the stage goes on as if it said continue.",
+        "auditor_max_diff_lines": "Signals mode: production lines the branch may add before the auditor runs (deleted lines and tests left out). 0 is the default, 400.",
+        "auditor_max_diff_files": "Signals mode: production files the branch may add lines to before the auditor runs. 0 is the default, 20."
       }
     },
     "agent_type_write_file": {
@@ -304,7 +381,11 @@
       }
     },
     "project_update": {
-      "description": "Patch a project. Only provided fields change."
+      "description": "Patch a project. Only provided fields change.",
+      "params": {
+        "release_mode": "How merged work reaches production: auto (a deploy follows each merge), batch (a release task ships what piled up) or empty.",
+        "release_environment": "The GitHub or Evidence environment that is production for this project."
+      }
     },
     "project_delete": {
       "description": "Delete a project (does NOT remove its on-disk worktrees or the source repo). Tasks linked to it lose the link."
@@ -370,6 +451,73 @@
         "panels_width": "1 = half row, 2 = full row.",
         "task_id": "ALWAYS send this: the daemon adds a review approval to the task, linked to the proposal, so approving closes it in one action."
       }
+    },
+    "deploy_contents": {
+      "description": "Which tasks a deployed commit carries. Lists the project's tasks waiting in the merge_target stage of their board (or in `stage`), each with its `merge_sha` (the commit its merge left on the default branch) and `included`: true when merge_sha is an ancestor of `sha`, false when not, \"unknown\" when the history could not answer (no merge_sha, a commit the source lacks). `reverted` marks a task whose merge a later commit inside `sha` reverts. With `prev_sha` (the previous deploy), `already_deployed` marks tasks that were in it and `reverts` lists every revert in prev_sha..sha. `source` says whether GitHub or the daemon's clone answered; `truncated` means more than 50 tasks waited.",
+      "params": {
+        "project_id": "The project the deploy is of.",
+        "sha": "The deployed commit (7 to 40 hex characters). Read it from the deploy itself, never assume the head of the default branch.",
+        "stage": "Stage id to check instead of each board's merge_target stage.",
+        "prev_sha": "The previously deployed commit, for already_deployed and the reverts in the range."
+      }
+    },
+    "stage_tasks_list": {
+      "description": "The tasks of this run's board sitting in one stage, optionally only those touching a project. Each comes with its merge_shas (per project: the commit its merge left on the default branch), merge_sha for the project asked, pr_urls, updated_at and days_since_update. Use it to see what waits in Release before preparing a deploy.",
+      "params": {
+        "stage": "Stage id of this run's board, e.g. release.",
+        "project_id": "Only tasks linked to this project; also fills merge_sha with that project's merge commit."
+      }
+    },
+    "tasks_move_batch": {
+      "description": "Moves up to 50 tasks of this run's board from one stage to a later one in a single request, with a note that lands on each task. Never moves backward, never jumps a stage that asks for an approval, and every task still goes through the exit gate of its stage. Answers moved, gated (an approval held the task: name it) and skipped (with the reason). With require_included, only tasks whose merge commit the deployed commit carries move. Never pass your own release task. Granted only by naming it.",
+      "params": {
+        "task_ids": "Ids of the tasks to move, 1 to 50.",
+        "from_stage": "The stage the tasks are in now: the board's merge_target stage or a later one. A task elsewhere is skipped as wrong_stage.",
+        "to_stage": "A later stage of the same board.",
+        "note": "Why they move: the deployed commit, the health verdict, the smoke result. Written on each task.",
+        "deployed_sha": "The commit that was deployed (7 to 40 hex characters).",
+        "project_id": "The project that was deployed. Required with require_included.",
+        "require_included": "Move only tasks whose merge_sha the deployed commit carries and no later commit reverts. Needs deployed_sha and project_id."
+      }
+    },
+    "evidence_batch_run": {
+      "description": "Queues an Evidence batch on an environment and optionally waits for it. Against production (an environment marked production, or the project's release_environment) the platform runs only cases a person marked safe for production, whatever safe_only says; the cases it left out come back as skipped_side_effect and skipped_side_effect_cases. Returns the counts, the failing cases and timed_out when the wait ran out first. Granted only by naming it.",
+      "params": {
+        "environment_id": "Evidence environment id to run on.",
+        "tag": "Only cases with this tag, e.g. smoke.",
+        "case_ids": "Only these cases, by id or key (EV-12).",
+        "project_id": "Only cases of this project.",
+        "safe_only": "Only cases marked safe for production. Forced on against production.",
+        "branch": "Branch to build a Sandbox from. Only on the Sandbox of a project your task works on.",
+        "wait_seconds": "Seconds to wait for the batch to finish, 0 to 600 (default 0: return as soon as it is queued). A client that does not ask for progress notifications waits at most 45 seconds. With timed_out: true, call evidence_batch_get with the batch_id."
+      }
+    },
+    "evidence_batch_get": {
+      "description": "An Evidence batch's status and results: counts, failing cases and whether it finished. Find it by batch_id, or by environment_id and sha to get the batch a deploy of that commit already queued. Optionally waits for it to finish.",
+      "params": {
+        "batch_id": "The batch id, from evidence_batch_run, the brief or a deploy comment.",
+        "environment_id": "With sha: the environment the deploy went to.",
+        "sha": "With environment_id: the deployed commit; finds the newest batch that deploy queued.",
+        "wait_seconds": "Seconds to wait for the batch to finish, 0 to 600 (default 0)."
+      }
+    },
+    "deploy_watch_set": {
+      "description": "Registers how Thulu watches deploys of a project of this run's task, or updates the watch with the same source and target. From then on every deploy, or every change a polled watch sees (success/failure, new version), opens a release task for the project on this board. Sources: github_workflow (target: the workflow file under .github/workflows or its name), github_deployment (target: the GitHub environment), cloud (target: the id of a Cloud Run environment of the project) and http (target: an https URL whose answer says if the deploy is up and, in a version/sha/commit field, which one). Granted only by naming it.",
+      "params": {
+        "source": "github_workflow, github_deployment, cloud or http.",
+        "target": "Workflow file or name, GitHub environment, environment id, or URL, per source.",
+        "interval": "How often to poll, cloud and http only: from 5m to 24h in whole minutes, like 15m or 1h. Default 15m. Leave it out for GitHub sources.",
+        "project_id": "The project, when the task has more than one."
+      }
+    },
+    "deploy_watch_list": {
+      "description": "The deploy watches of the projects of this run's task: source, target, interval, the automation Thulu generated, and the last state, version and error each one saw. Granted only by naming it."
+    },
+    "deploy_watch_delete": {
+      "description": "Deletes a deploy watch of a project of this run's task, and the automation Thulu generated for it. Granted only by naming it.",
+      "params": {
+        "watch_id": "The watch's id, from deploy_watch_list."
+      }
     }
   },
   "errors": {
@@ -388,6 +536,7 @@
     "ask_bool": "{field} must be true or false",
     "ask_string": "{field} must be a string",
     "ask_required": "{field} is required and cannot be empty",
+    "skip_reason_required": "reason is required and cannot be blank: say why, concretely, so the people on the task and later agents can judge it",
     "ask_default_required": "default is required when blocking is false: say what you will do if nobody answers",
     "ask_questions_count": "questions takes {min} to {max} items, got {count}. Put the ones that matter most into one call.",
     "ask_header_long": "{field} '{header}' is longer than {max} characters: it is a chip, keep it to a word or two",
@@ -407,7 +556,18 @@
     "session_not_found": "session not found",
     "handshake_no_key": "an MCP session needs the run's key on the handshake (X-API-Key or Authorization: Bearer)",
     "message_key_mismatch": "this message does not carry the key its session was opened with",
-    "list_only_session": "this session was opened without a credential: it can list tools, not call them"
+    "list_only_session": "this session was opened without a credential: it can list tools, not call them",
+    "tool_release_named": "tool '{name}' moves other tasks or queues a batch against production, and no scope grants that, not even write. It has to be named in the agent's MCP tool list (thulu.mcp.default.<stage>: octopus-api@…+{name}).",
+    "batch_get_args": "evidence_batch_get needs batch_id, or environment_id and sha together",
+    "deploy_batch_not_found": "no batch queued by a deploy of {sha} on environment {env}: start one with evidence_batch_run",
+    "observed_too_long": "observed has {count} characters and the limit is {max}. Write what you saw in one sentence and put the detail in note.",
+    "criteria_not_array": "criteria must be an array of {key, text}: the whole list, in order.",
+    "report_not_found": "No report {id} on this task.",
+    "event_not_found": "No event {id} on this task.",
+    "attachment_not_found": "No attachment {id} on this task.",
+    "attachment_video": "{name} is a video, which cannot be opened here. Read the run's take (take_attachment_id) and its captures (capture_attachment_ids) instead.",
+    "attachment_unreadable": "{name} ({type}) cannot be opened here: only images, text and JSON can.",
+    "attachment_too_big": "{name} is {size} bytes; images open up to {max}."
   },
   "text": {
     "mappings_proposed_note": "Proposals are inert until a human approves them on the project page. With task_id, the task already shows the pending review approval.",
@@ -416,7 +576,13 @@
     "ask_blocking_fallback": "Question posted. End your turn now with a one-line summary; the run resumes with the answer.",
     "ask_nonblocking_fallback": "Question posted. Go on with your default; an answer that arrives while you run will reach you, a later one stays in the thread.",
     "ask_reference": "question id: {question} · thread: {comment}",
-    "approval_requested_note": "The task cannot move forward out of this stage until a person approves or waives this. You cannot approve it yourself; keep working."
+    "approval_requested_note": "The task cannot move forward out of this stage until a person approves or waives this. You cannot approve it yourself; keep working.",
+    "skip_added_note": "The task passes over this column when it gets there. A later agent whose work makes the column necessary removes the skip with task_skip_remove.",
+    "skip_removed_ahead": "The column is ahead of the task: it runs when the task reaches it.",
+    "skip_removed_back": "The task had already passed this column, so it went back there; it runs the column and continues forward from it.",
+    "skip_removed_deferred": "The task had already passed this column. It goes back there when your current run ends successfully; finish your work as usual.",
+    "skip_removed_not_moved": "The skip is gone, but the task did not move back to the column. Check the task's Activity for why.",
+    "attachment_truncated": "[cut: the file has {chars} characters]"
   },
   "labels": {
     "none": "(none)"
@@ -425,9 +591,15 @@
     "unknown_scope": "[octopus-api] unknown scope '{scope}', defaulting to 'read'",
     "listening": "octopus-api MCP server listening on :{port}",
     "octopus_api": "  OCTOPUS_API:  {url}",
-    "tools": "  Tools:        {total} (read: {read}, write: {write}, cross-board: {cross_board} — grantable only by name)",
+    "tools": "  Tools:        {total} (read: {read}, write: {write}, cross-board: {cross_board}, release: {release} — the last two grantable only by name)",
     "sse_endpoint": "  SSE endpoint: GET  /sse?scope=read|write[&tools=a,b][&task=<id>][&catalog=1]",
     "health": "  Health:       GET  /health",
     "shutting_down": "\n{signal} received, shutting down"
+  },
+  "progress": {
+    "batch": "Batch {id}: {status}, {done} of {total} cases finished"
+  },
+  "hints": {
+    "batch_check_again": "The batch keeps running. Call evidence_batch_get with batch_id {id} to read it again."
   }
 }

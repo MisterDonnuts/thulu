@@ -116,6 +116,16 @@ const (
 	schemaOptimizerResolved = "TokenOptimizerResolved"
 	schemaWorkspaceSettings = "WorkspaceSettings"
 	schemaWorkspaceRunLimit = "WorkspaceRunLimit"
+	schemaWorkspaceTurns    = "WorkspaceAgentTurns"
+	schemaRelaunchRequest   = "RelaunchRequest"
+	schemaCommentMeta       = "CommentMeta"
+	schemaCriterion         = "Criterion" //i18n:ignore OpenAPI schema name, an identifier
+	schemaCriteriaRequest   = "CriteriaRequest"
+	schemaCriteriaApprove   = "CriteriaApproveRequest"
+	schemaNeed              = "TestCaseNeed"
+	schemaNeedKind          = "NeedKind"
+	schemaAccessRequest     = "TestCaseAccessRequest"
+	schemaAccessResult      = "TestCaseAccessResult"
 )
 
 type openAPILocale string
@@ -207,8 +217,72 @@ func buildOpenAPISpec(l openAPILocale) openAPISpec { //nolint:funlen,maintidx //
 					"current_instance": {Type: "string"},
 					"is_blocked":       {Type: "boolean"},
 					"blocked_by_count": {Type: "integer"},
-					"created_at":       {Type: "string", Format: "date-time"},
-					"updated_at":       {Type: "string", Format: "date-time"},
+					"attention":        {Type: "object", Description: l.msg("api.openapi.schemas.task.attention", "route", "GET /tasks/{id}")},
+					"upcoming_approvals": {Type: "array", Description: l.msg("api.openapi.schemas.task.upcoming_approvals", "route", "GET /tasks/{id}"),
+						Items: &openAPISchema{Type: "object"}},
+					"comments": {Type: "array", Items: &openAPISchema{Ref: "#/components/schemas/" + schemaComment}},
+					"criteria": {Type: "array", Description: l.msg("api.openapi.schemas.task.criteria", "route", "GET /tasks/{id}"),
+						Items: &openAPISchema{Ref: "#/components/schemas/" + schemaCriterion}},
+					"round":      {Type: "integer", Description: l.msg("api.openapi.schemas.task.round", "route", "GET /tasks/{id}")},
+					"reason":     {Type: "string", Description: l.msg("api.openapi.schemas.task.reason", "route", "PATCH /tasks/{id}")},
+					"created_at": {Type: "string", Format: "date-time"},
+					"updated_at": {Type: "string", Format: "date-time"},
+				}},
+				schemaCriterion: {Type: "object", Properties: map[string]openAPISchema{
+					"task_id":     {Type: "string"},
+					"key":         {Type: "string", Description: l.msg("api.openapi.schemas.criterion.key")},
+					"text":        {Type: "string"},
+					"position":    {Type: "integer"},
+					"approved_by": {Type: "string", Description: l.msg("api.openapi.schemas.criterion.approved_by")},
+					"approved_at": {Type: "string", Format: "date-time"},
+					"created_at":  {Type: "string", Format: "date-time"},
+					"updated_at":  {Type: "string", Format: "date-time"},
+				}},
+				schemaCriteriaRequest: {Type: "object", Properties: map[string]openAPISchema{
+					"criteria": {Type: "array", Description: l.msg("api.openapi.schemas.criteria_request.criteria"),
+						Items: &openAPISchema{Type: "object", Properties: map[string]openAPISchema{
+							"key":  {Type: "string"},
+							"text": {Type: "string"},
+						}}},
+				}},
+				schemaCriteriaApprove: {Type: "object", Properties: map[string]openAPISchema{
+					"keys": {Type: "array", Items: &openAPISchema{Type: "string"}, Description: l.msg("api.openapi.schemas.criteria_approve.keys")},
+				}},
+				schemaNeed: {Type: "object", Properties: map[string]openAPISchema{
+					"kind":  {Type: "string", Description: l.msg("api.openapi.schemas.need.kind", "route", "GET /test-cases/need-kinds")},
+					"label": {Type: "string"},
+					"secrets": {Type: "array", Description: l.msg("api.openapi.schemas.need.secrets"),
+						Items: &openAPISchema{Type: "object", Properties: map[string]openAPISchema{
+							"name":  {Type: "string"},
+							"label": {Type: "string"},
+						}}},
+				}},
+				schemaNeedKind: {Type: "object", Properties: map[string]openAPISchema{
+					"kind":      {Type: "string"},
+					"icon":      {Type: "string"},
+					"order":     {Type: "integer", Description: l.msg("api.openapi.schemas.need_kind.order")},
+					"actions":   {Type: "array", Items: &openAPISchema{Type: "string"}, Description: l.msg("api.openapi.schemas.need_kind.actions")},
+					"secrets":   {Type: "boolean", Description: l.msg("api.openapi.schemas.need_kind.secrets")},
+					"title_key": {Type: "string"},
+					"help_key":  {Type: "string"},
+					"title":     {Type: "string"},
+					"help":      {Type: "string"},
+				}},
+				schemaAccessRequest: {Type: "object", Properties: map[string]openAPISchema{
+					"cases":          {Type: "array", Items: &openAPISchema{Type: "string"}},
+					"environment_id": {Type: "string", Description: l.msg("api.openapi.schemas.access.environment_id")},
+					"secrets":        {Type: "object", Description: l.msg("api.openapi.schemas.access.secrets")},
+					"reason":         {Type: "string", Description: l.msg("api.openapi.schemas.access.reason")},
+				}},
+				schemaAccessResult: {Type: "object", Properties: map[string]openAPISchema{
+					"cases":      {Type: "array", Items: &openAPISchema{Type: "string"}},
+					"secrets":    {Type: "array", Items: &openAPISchema{Type: "string"}, Description: l.msg("api.openapi.schemas.access.secret_names")},
+					"comment_id": {Type: "string"},
+					"turns":      {Type: "integer"},
+				}},
+				schemaRelaunchRequest: {Type: "object", Properties: map[string]openAPISchema{
+					"turns":  {Type: "integer", Description: l.msg("api.openapi.schemas.relaunch.turns")},
+					"reason": {Type: "string", Description: l.msg("api.openapi.schemas.relaunch.reason")},
 				}},
 				schemaProject: {Type: "object", Properties: map[string]openAPISchema{
 					"id":             {Type: "string"},
@@ -227,13 +301,29 @@ func buildOpenAPISpec(l openAPILocale) openAPISpec { //nolint:funlen,maintidx //
 					"started_at": {Type: "string", Format: "date-time"},
 				}},
 				schemaComment: {Type: "object", Properties: map[string]openAPISchema{
-					"id":         {Type: "string"},
-					"task_id":    {Type: "string"},
-					"body":       {Type: "string"},
-					"author":     {Type: "string"},
-					"source":     {Type: "string"},
-					"stage":      {Type: "string"},
-					"created_at": {Type: "string", Format: "date-time"},
+					"id":          {Type: "string"},
+					"task_id":     {Type: "string"},
+					"parent_id":   {Type: "string", Description: l.msg("api.openapi.schemas.comment.parent_id")},
+					"body":        {Type: "string"},
+					"author":      {Type: "string"},
+					"source":      {Type: "string"},
+					"stage":       {Type: "string"},
+					"kind":        {Type: "string", Description: l.msg("api.openapi.schemas.comment.kind")},
+					"meta":        {Ref: "#/components/schemas/" + schemaCommentMeta},
+					"resolved_at": {Type: "string", Format: "date-time"},
+					"resolved_by": {Type: "string"},
+					"created_at":  {Type: "string", Format: "date-time"},
+				}},
+				schemaCommentMeta: {Type: "object", Description: l.msg("api.openapi.schemas.comment_meta.about"), Properties: map[string]openAPISchema{
+					"action":      {Type: "string", Description: l.msg("api.openapi.schemas.comment_meta.action")},
+					"from_stage":  {Type: "string", Format: "stage"},
+					"to_stage":    {Type: "string", Format: "stage"},
+					"cases":       {Type: "array", Items: &openAPISchema{Type: "string"}, Description: l.msg("api.openapi.schemas.comment_meta.cases")},
+					"secrets":     {Type: "array", Items: &openAPISchema{Type: "string"}, Description: l.msg("api.openapi.schemas.comment_meta.secrets")},
+					"report_id":   {Type: "string", Description: l.msg("api.openapi.schemas.comment_meta.report_id")},
+					"run_id":      {Type: "string"},
+					"approval_id": {Type: "string"},
+					"turns":       {Type: "integer", Description: l.msg("api.openapi.schemas.comment_meta.turns")},
 				}},
 				schemaAttachment: {Type: "object", Properties: map[string]openAPISchema{
 					"id":         {Type: "string"},
@@ -285,15 +375,18 @@ func buildOpenAPISpec(l openAPILocale) openAPISpec { //nolint:funlen,maintidx //
 					"description": {Type: "string"},
 					"steps":       {Type: "string"},
 					"expected":    {Type: "string"},
-					"priority":    {Type: "string", Description: l.msg("api.openapi.schemas.test_case.priority")},
-					"status":      {Type: "string", Description: l.msg("api.openapi.schemas.test_case.status")},
-					"covered":     {Type: "boolean"},
-					"position":    {Type: "integer"},
-					"created_by":  {Type: "string"},
-					"updated_by":  {Type: "string"},
-					"created_at":  {Type: "string", Format: "date-time"},
-					"updated_at":  {Type: "string", Format: "date-time"},
-					"runs":        {Type: "array", Description: l.msg("api.openapi.schemas.test_case.runs"), Items: &openAPISchema{Ref: "#/components/schemas/" + schemaTestCaseRun}},
+					"covers": {Type: "array", Items: &openAPISchema{Type: "string"},
+						Description: l.msg("api.openapi.schemas.test_case.covers", "route", "GET /tasks/{id}/criteria")},
+					"preconditions": {Type: "string", Description: l.msg("api.openapi.schemas.test_case.preconditions")},
+					"priority":      {Type: "string", Description: l.msg("api.openapi.schemas.test_case.priority")},
+					"status":        {Type: "string", Description: l.msg("api.openapi.schemas.test_case.status")},
+					"covered":       {Type: "boolean"},
+					"position":      {Type: "integer"},
+					"created_by":    {Type: "string"},
+					"updated_by":    {Type: "string"},
+					"created_at":    {Type: "string", Format: "date-time"},
+					"updated_at":    {Type: "string", Format: "date-time"},
+					"runs":          {Type: "array", Description: l.msg("api.openapi.schemas.test_case.runs"), Items: &openAPISchema{Ref: "#/components/schemas/" + schemaTestCaseRun}},
 				}},
 				schemaReport: {Type: "object", Properties: map[string]openAPISchema{
 					"id":          {Type: "string"},
@@ -308,12 +401,19 @@ func buildOpenAPISpec(l openAPILocale) openAPISpec { //nolint:funlen,maintidx //
 					"created_at":  {Type: "string", Format: "date-time"},
 				}},
 				schemaTestCaseRun: {Type: "object", Properties: map[string]openAPISchema{
-					"id":                     {Type: "string"},
-					"test_case_id":           {Type: "string"},
-					"task_id":                {Type: "string"},
-					"verdict":                {Type: "string", Description: l.msg("api.openapi.schemas.test_case_run.verdict")},
-					"observed":               {Type: "string"},
-					"note":                   {Type: "string"},
+					"id":           {Type: "string"},
+					"test_case_id": {Type: "string"},
+					"task_id":      {Type: "string"},
+					"verdict":      {Type: "string", Description: l.msg("api.openapi.schemas.test_case_run.verdict")},
+					"observed":     {Type: "string", Description: l.msg("api.openapi.schemas.test_case_run.observed", "max", 280)},
+					"note":         {Type: "string"},
+					"needs": {Type: "array", Description: l.msg("api.openapi.schemas.test_case_run.needs", "route", "GET /test-cases/need-kinds"),
+						Items: &openAPISchema{Ref: "#/components/schemas/" + schemaNeed}},
+					"tried":                  {Type: "string", Description: l.msg("api.openapi.schemas.test_case_run.tried")},
+					"tried_result":           {Type: "string", Description: l.msg("api.openapi.schemas.test_case_run.tried_result")},
+					"writes_data":            {Type: "boolean", Description: l.msg("api.openapi.schemas.test_case_run.writes_data")},
+					"round":                  {Type: "integer", Description: l.msg("api.openapi.schemas.test_case_run.round")},
+					"vtt_attachment_id":      {Type: "string", Description: l.msg("api.openapi.schemas.test_case_run.vtt_attachment_id")},
 					"video_attachment_id":    {Type: "string"},
 					"take_attachment_id":     {Type: "string"},
 					"report_id":              {Type: "string", Description: l.msg("api.openapi.schemas.test_case_run.report_id")},
@@ -430,7 +530,14 @@ func buildOpenAPISpec(l openAPILocale) openAPISpec { //nolint:funlen,maintidx //
 					}}},
 				}},
 				schemaWorkspaceSettings: {Type: "object", Properties: map[string]openAPISchema{
-					settings.AgentMaxRunMinutesKey: {Ref: "#/components/schemas/" + schemaWorkspaceRunLimit},
+					settings.AgentMaxRunMinutesKey:  {Ref: "#/components/schemas/" + schemaWorkspaceRunLimit},
+					settings.AgentTurnsPerThreadKey: {Ref: "#/components/schemas/" + schemaWorkspaceTurns},
+				}},
+				schemaWorkspaceTurns: {Type: "object", Description: l.msg("api.openapi.schemas.workspace_agent_turns.about"), Properties: map[string]openAPISchema{
+					"value":     {Type: "integer", Description: l.msg("api.openapi.schemas.workspace_agent_turns.value")},
+					"default":   {Type: "integer", Description: l.msg("api.openapi.schemas.workspace_agent_turns.default")},
+					"ceiling":   {Type: "integer", Description: l.msg("api.openapi.schemas.workspace_agent_turns.ceiling")},
+					"effective": {Type: "integer", Description: l.msg("api.openapi.schemas.workspace_agent_turns.effective")},
 				}},
 				schemaWorkspaceRunLimit: {Type: "object", Description: l.msg("api.openapi.schemas.workspace_run_limit.about"), Properties: map[string]openAPISchema{
 					"value":     {Type: "integer", Description: l.msg("api.openapi.schemas.workspace_run_limit.value")},
@@ -532,6 +639,22 @@ func buildOpenAPISpec(l openAPILocale) openAPISpec { //nolint:funlen,maintidx //
 				"patch":  {Tags: []string{tagTasks}, Summary: l.msg("api.openapi.ops.update_test_case.summary"), OperationID: "updateTestCase", Security: security, Parameters: []openAPIParameter{idParam, caseParam}, RequestBody: jsonBody(schemaTestCase), Responses: ok200(schemaTestCase)},
 				"delete": {Tags: []string{tagTasks}, Summary: l.msg("api.openapi.ops.delete_test_case.summary"), OperationID: "deleteTestCase", Security: security, Parameters: []openAPIParameter{idParam, caseParam}, Responses: map[string]openAPIResponse{"200": {Description: l.msg("api.openapi.responses.deleted")}}},
 			},
+			"/tasks/{id}/test-cases/waive": {
+				"post": {Tags: []string{tagTasks}, Summary: l.msg("api.openapi.ops.waive_test_cases.summary"), Description: l.msg("api.openapi.ops.waive_test_cases.description"), OperationID: "waiveTestCases", Security: security, Parameters: []openAPIParameter{idParam}, Responses: ok200(schemaTestCase)},
+			},
+			"/tasks/{id}/test-cases/access": {
+				"post": {Tags: []string{tagTasks}, Summary: l.msg("api.openapi.ops.give_test_case_access.summary"), Description: l.msg("api.openapi.ops.give_test_case_access.description"), OperationID: "giveTestCaseAccess", Security: security, Parameters: []openAPIParameter{idParam}, RequestBody: jsonBody(schemaAccessRequest), Responses: ok200(schemaAccessResult)},
+			},
+			"/tasks/{id}/criteria": {
+				"get": {Tags: []string{tagTasks}, Summary: l.msg("api.openapi.ops.list_criteria.summary"), OperationID: "listCriteria", Security: security, Parameters: []openAPIParameter{idParam}, Responses: ok200List(schemaCriterion)},
+				"put": {Tags: []string{tagTasks}, Summary: l.msg("api.openapi.ops.set_criteria.summary"), Description: l.msg("api.openapi.ops.set_criteria.description"), OperationID: "setCriteria", Security: security, Parameters: []openAPIParameter{idParam}, RequestBody: jsonBody(schemaCriteriaRequest), Responses: ok200List(schemaCriterion)},
+			},
+			"/tasks/{id}/criteria/approve": {
+				"post": {Tags: []string{tagTasks}, Summary: l.msg("api.openapi.ops.approve_criteria.summary"), Description: l.msg("api.openapi.ops.approve_criteria.description"), OperationID: "approveCriteria", Security: security, Parameters: []openAPIParameter{idParam}, RequestBody: jsonBody(schemaCriteriaApprove), Responses: ok200List(schemaCriterion)},
+			},
+			"/test-cases/need-kinds": {
+				"get": {Tags: []string{tagTasks}, Summary: l.msg("api.openapi.ops.list_need_kinds.summary"), Description: l.msg("api.openapi.ops.list_need_kinds.description"), OperationID: "listNeedKinds", Security: security, Responses: ok200List(schemaNeedKind)},
+			},
 			"/tasks/{id}/test-cases/{case}/runs": {
 				"post": {Tags: []string{tagTasks}, Summary: l.msg("api.openapi.ops.record_test_case_run.summary"), Description: l.msg("api.openapi.ops.record_test_case_run.description"), OperationID: "recordTestCaseRun", Security: security, Parameters: []openAPIParameter{idParam, caseParam}, RequestBody: jsonBody(schemaTestCaseRun), Responses: map[string]openAPIResponse{"201": {Description: created}}},
 			},
@@ -579,7 +702,7 @@ func buildOpenAPISpec(l openAPILocale) openAPISpec { //nolint:funlen,maintidx //
 					Responses: map[string]openAPIResponse{"200": {Description: http.StatusText(http.StatusOK)}}},
 			},
 			"/tasks/{id}/relaunch": {
-				"post": {Tags: []string{tagTasks}, Summary: l.msg("api.openapi.ops.relaunch_task.summary"), OperationID: "relaunchTask", Security: security, Parameters: []openAPIParameter{idParam}, Responses: ok200(schemaTask)},
+				"post": {Tags: []string{tagTasks}, Summary: l.msg("api.openapi.ops.relaunch_task.summary"), OperationID: "relaunchTask", Security: security, Parameters: []openAPIParameter{idParam}, RequestBody: jsonBody(schemaRelaunchRequest), Responses: ok200(schemaTask)},
 			},
 			"/tasks/{id}/merge": {
 				"post": {Tags: []string{tagTasks}, Summary: l.msg("api.openapi.ops.merge_task.summary"), Description: l.msg("api.openapi.ops.merge_task.description"), OperationID: "mergeTask", Security: security, Parameters: []openAPIParameter{idParam},

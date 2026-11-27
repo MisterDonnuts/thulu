@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
@@ -54,6 +54,8 @@ type Item struct {
 	UsedBy       []string          `json:"used_by,omitempty"`
 	AsCopy       bool              `json:"as_copy,omitempty"`
 	SkillRenames map[string]string `json:"skill_renames,omitempty"`
+	// Flows that write: each column the board ends up with, plus the ones an update drops.
+	Stages []FlowStageChange `json:"stages,omitempty"`
 }
 
 func (it Item) Key() string { return it.Kind + "/" + it.Name }
@@ -94,6 +96,8 @@ type Plan struct {
 
 	locale  string
 	dropped map[string][]string
+	// Per flow: catalog agent → the copy its board already uses (keptCopies).
+	kept map[string]map[string]string
 }
 
 type State interface {
@@ -109,6 +113,9 @@ type Env struct {
 	StageKnown func(id string) bool
 	SaaS       bool
 	Locale     string
+	// The workspace's boards, for flows. Nil plans list flows as not installed and refuse to
+	// write one.
+	Boards BoardState
 }
 
 const baseSkill = "_base"
@@ -135,6 +142,50 @@ func MakePlan(ctx context.Context, st State, set *Set, source string, choices Ch
 		}
 		agents = append(agents, it)
 	}
+	skills, err := classifySkills(ctx, st, set, source, agents)
+	if err != nil {
+		return nil, err
+	}
+	p.Items = append(p.Items, skills...)
+	p.Items = append(p.Items, agents...)
+	if err := p.classifyFlows(ctx, set, env); err != nil {
+		return nil, err
+	}
+	for _, r := range set.Rejected {
+		p.Items = append(p.Items, Item{Kind: r.Kind, Name: r.Name, Target: r.Name, Action: ActionRejected})
+	}
+	for i := range p.Items {
+		choose(&p.Items[i], choices.Resolutions[p.Items[i].Key()])
+	}
+	if err := assignTargets(ctx, st, set, p, choices.Names); err != nil {
+		return nil, err
+	}
+	if err := p.flowTargets(ctx, set, env, choices.Names); err != nil {
+		return nil, err
+	}
+	if err := p.keptCopies(ctx, st, set, env); err != nil {
+		return nil, err
+	}
+	env.StageKnown = flowStagesKnown(env.StageKnown, set, p)
+	if err := p.check(ctx, st, set, env); err != nil {
+		return nil, err
+	}
+	if err := p.checkFlows(ctx, set, env); err != nil {
+		return nil, err
+	}
+	if err := p.describeFlows(ctx, set, env); err != nil {
+		return nil, err
+	}
+	for i := range p.Items {
+		if writes(p.Items[i].Resolution) {
+			p.Writes++
+		}
+	}
+	return p, nil
+}
+
+func classifySkills(ctx context.Context, st State, set *Set, source string, agents []Item) ([]Item, error) {
+	out := make([]Item, 0, len(set.Skills))
 	for i := range set.Skills {
 		sk := &set.Skills[i]
 		var users []string
@@ -148,27 +199,9 @@ func MakePlan(ctx context.Context, st State, set *Set, source string, choices Ch
 			return nil, err
 		}
 		it.UsedBy = users
-		p.Items = append(p.Items, it)
+		out = append(out, it)
 	}
-	p.Items = append(p.Items, agents...)
-	for _, r := range set.Rejected {
-		p.Items = append(p.Items, Item{Kind: r.Kind, Name: r.Name, Target: r.Name, Action: ActionRejected})
-	}
-	for i := range p.Items {
-		choose(&p.Items[i], choices.Resolutions[p.Items[i].Key()])
-	}
-	if err := assignTargets(ctx, st, set, p, choices.Names); err != nil {
-		return nil, err
-	}
-	if err := p.check(ctx, st, set, env); err != nil {
-		return nil, err
-	}
-	for i := range p.Items {
-		if writes(p.Items[i].Resolution) {
-			p.Writes++
-		}
-	}
-	return p, nil
+	return out, nil
 }
 
 func classifySkill(ctx context.Context, st State, sk *SkillItem, source string, kept keptSkill) (Item, error) {
@@ -452,7 +485,7 @@ func assignTargets(ctx context.Context, st State, set *Set, p *Plan, names map[s
 	}
 	for i := range p.Items {
 		it := &p.Items[i]
-		if it.Resolution != ResolveCopy {
+		if it.Resolution != ResolveCopy || it.Kind == KindFlow {
 			continue
 		}
 		if typed := strings.TrimSpace(names[it.Key()]); typed != "" && typed != it.Name {
@@ -876,6 +909,16 @@ func usedRenames(def types.AgentType, renames map[string]string) map[string]stri
 	return out
 }
 
+// Wrote reports whether the apply wrote the item installed, updated, replaced or copied as target.
+func (r *Result) Wrote(kind, target string) bool {
+	for _, list := range [][]Ref{r.Installed, r.Updated, r.Replaced} {
+		if slices.Contains(list, Ref{Kind: kind, Name: target}) {
+			return true
+		}
+	}
+	return slices.ContainsFunc(r.Copied, func(c Copied) bool { return c.Kind == kind && c.To == target })
+}
+
 func (r *Result) note(it Item) {
 	ref := Ref{Kind: it.Kind, Name: it.Target}
 	switch it.Resolution {
@@ -988,13 +1031,4 @@ func renameRefs(byStage map[string][]string, renames map[string]string) map[stri
 		out[stage] = list
 	}
 	return out
-}
-
-func SortItems(items []Item) {
-	sort.SliceStable(items, func(i, j int) bool {
-		if items[i].Kind != items[j].Kind {
-			return items[i].Kind == KindAgent
-		}
-		return items[i].Name < items[j].Name
-	})
 }

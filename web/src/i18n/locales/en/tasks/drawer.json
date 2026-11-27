@@ -42,14 +42,23 @@
       "one": "Also deletes its subtask. This cannot be undone.",
       "other": "Also deletes its {count} subtasks. This cannot be undone."
     },
-    "delete_admin_only": "Only an admin can delete tasks. Archive it to take it off the board."
+    "delete_admin_only": "Only an admin can delete tasks. Archive it to take it off the board.",
+    "rerun": "Re-run the stage…",
+    "rerun_stage": "Re-run {stage}…",
+    "rerun_sub": "The agent starts the stage again; you say why.",
+    "send_back": "Send back…",
+    "send_back_sub": "To an earlier stage, with a note for its agent.",
+    "move": "Move to…",
+    "move_sub": "Any stage of the board, with the reason."
   },
   "tabs": {
     "approvals": "Approvals",
     "reports": "Reports",
     "chat": "Chat",
-    "timeline": "Timeline",
-    "task": "Task"
+    "timeline": "Activity",
+    "tests": "Tests",
+    "task": "Overview",
+    "files": "Files"
   },
   "body": {
     "unsaved": "unsaved",
@@ -112,7 +121,11 @@
     "summary_orphans": {
       "one": "{count} orphan container",
       "other": "{count} orphan containers"
-    }
+    },
+    "details": "Details",
+    "skips": "Skips",
+    "no_skips": "None",
+    "edit_skips": "Edit the columns this task skips"
   },
   "priority": {
     "none": "None",
@@ -130,7 +143,6 @@
     "origin_upload": "upload",
     "delete_title": "Delete this attachment",
     "delete_label": "Delete attachment",
-    "added_from": "Added from: {origin}",
     "delete_confirm_title": "Delete attachment?",
     "delete_confirm_message": "\"{file}\" is removed from the task and the file is deleted. Anywhere it is embedded — the body, a comment — will show a broken link.",
     "delete_failed": "Could not delete the attachment"
@@ -253,7 +265,6 @@
     "archived": "Archived",
     "archived_title": "It is off the board and does not change stage. Restore it from the ⋯ menu to work on it again.",
     "open_parent_key": "Open the parent (U)",
-    "copy_link": "Copy a link to this task",
     "sibling_pos": "{index} of {total}",
     "stage_label": "Stage {stage}, change it",
     "stage_key": "Change stage (S)",
@@ -265,7 +276,12 @@
     "review_retry": "Review and retry",
     "relaunch_stage": "Relaunch stage",
     "credentials": "Open Credentials",
-    "pick_agent": "Pick an agent"
+    "pick_agent": "Pick an agent",
+    "path_label": "Columns this task goes through",
+    "path_step": "{stage}, {agent}",
+    "path_lock": "Needs your approval: {label}",
+    "path_skipped": "{stage} is skipped (by {by}): {reason}",
+    "path_skipped_label": "(skipped)"
   },
   "move_failed": "Could not move the task",
   "move_network_error": "Network error, the task did not move",
@@ -279,8 +295,6 @@
     "empty": "No brief yet.",
     "write": "Write the brief",
     "written_by": "By {agent}, {ago}",
-    "show_all": "Show all",
-    "show_less": "Show less",
     "open_subtask": "Open the subtask {title}, in {stage}",
     "make_subtask": "Make a subtask",
     "saved": "Saved",
@@ -297,7 +311,16 @@
     "discard_message": "The brief goes back to how it was when you started editing.",
     "hint_html": "{paste} pastes an image, {save} saves, {esc} saves and closes",
     "add_sections": "Add sections",
-    "add_sections_title": "Adds the sections agents read that are missing, at the end: Goal, Context, Definition of Done and Out of Scope."
+    "add_sections_title": "Adds the sections agents read that are missing, at the end: Goal, Context, Definition of Done and Out of Scope.",
+    "sections": {
+      "one": "{count} section",
+      "other": "{count} sections"
+    },
+    "sections_by": "{sections} · written by {names}",
+    "lines": {
+      "one": "{count} line",
+      "other": "{count} lines"
+    }
   },
   "files": {
     "title": "Files",
@@ -306,24 +329,6 @@
     "uploaded": {
       "one": "{count} file uploaded",
       "other": "{count} files uploaded"
-    },
-    "kinds": {
-      "video": {
-        "one": "{count} video",
-        "other": "{count} videos"
-      },
-      "image": {
-        "one": "{count} image",
-        "other": "{count} images"
-      },
-      "other": {
-        "one": "{count} other file",
-        "other": "{count} other files"
-      }
-    },
-    "group_count": {
-      "one": "{count} file",
-      "other": "{count} files"
     }
   },
   "attention_more": {

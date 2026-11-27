@@ -31,6 +31,7 @@ func (s *Server) SetRunners(store *runner.Store) {
 		logsDir = filepath.Join(s.usageStore.DataDir(), "logs")
 	}
 	l := newRunnerLauncher(store, s.projectStore, s.agents, s.runsDir, logsDir)
+	l.runDeadline = s.runDeadline
 	if s.usageStore != nil {
 		l.logSink = usage.NewCollector(nil, s.usageStore, s.usageStore.DataDir()).RecordRun
 	}
@@ -38,6 +39,7 @@ func (s *Server) SetRunners(store *runner.Store) {
 		d.WithRunners(store)
 		l.report = d.RecordRunnerReport
 		l.reconcile = d.Reconcile
+		l.testLock = d.RunnerTestLock
 	}
 	if s.taskStore != nil {
 		l.task = s.taskStore.GetRow
@@ -68,6 +70,7 @@ func (s *Server) registerRunnerRoutes(mux *http.ServeMux, rr roleGate) {
 	mux.HandleFunc("PUT "+runnerAPIPrefix+"jobs/{id}/outputs", s.runnerAuth(s.handleRunnerOutputs))
 	mux.HandleFunc("POST "+runnerAPIPrefix+"jobs/{id}/steer", s.runnerAuth(s.handleRunnerSteer))
 	mux.HandleFunc("PUT "+runnerAPIPrefix+"inventory", s.runnerAuth(s.handleRunnerInventory))
+	mux.HandleFunc("GET "+runnerAPIPrefix+"worktrees", s.runnerAuth(s.handleRunnerWorktrees))
 	mux.HandleFunc("POST "+runnerAPIPrefix+"projects", s.runnerAuth(s.handleRunnerAddProject))
 	mux.HandleFunc("POST "+runnerAPIPrefix+"jobs/{id}/finish", s.runnerAuth(s.handleRunnerFinish))
 }
@@ -468,8 +471,13 @@ func (s *Server) handleRunnerOutputs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	body := http.MaxBytesReader(w, r.Body, runner.MaxOutputBytes)
-	if err := runner.ExtractOutputs(body, dst); err != nil {
+	skipped, err := runner.ExtractOutputs(body, dst)
+	if err != nil {
 		writeError(w, r, apperr.Status(err), err)
+		return
+	}
+	if len(skipped) > 0 {
+		writeJSON(w, http.StatusOK, runner.OutputsResponse{Skipped: skipped})
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

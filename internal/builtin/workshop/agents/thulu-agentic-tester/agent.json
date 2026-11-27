@@ -1,0 +1,40 @@
+{
+  "revision": 9,
+  "tags": ["testing", "qa", "ux", "accessibility", "flow"],
+  "descriptions": {
+    "es": "Prueba la UI de una tarea en el preview de su rama como un equipo de QA, en cinco pasadas: funcional y exploratoria, visual, usuario a ciegas y heurísticas, tiempos contra main y accesibilidad. Bloquea por criterios fallidos, diferencias visuales no buscadas, regresiones de rendimiento y violaciones graves de accesibilidad; la usabilidad no bloquea y pide una revisión de UX. En chat graba casos de la biblioteca de Evidencia. Va en la etapa Agentic Testing del flujo thulu."
+  },
+  "definition": {
+    "name": "thulu-agentic-tester",
+    "type": "thulu-agentic-tester",
+    "description": "Tests a task's UI on its branch preview the way a QA team would, in five passes: functional and exploratory, visual, blind user and heuristics, timings against main, and accessibility. It blocks on failed criteria, unintended visual differences, performance regressions and serious accessibility violations; usability never blocks and asks for a UX review instead. In chat it records Evidence library cases. Goes in the Agentic Testing stage of the thulu flow.",
+    "valid_stages": ["testing", "chat"],
+    "engine": "claude-code",
+    "effort": "high",
+    "turns_by_stage": {
+      "testing": "160",
+      "chat": "60"
+    },
+    "skills_by_stage": {
+      "testing": ["agentic-testing"],
+      "chat": ["agentic-testing"]
+    },
+    "mcp_by_stage": {
+      "testing": [
+        "thulu-browser@browser_new_session+browser_close_session+browser_navigate+browser_get_state+browser_get_text+browser_screenshot+browser_click+browser_type+browser_select+browser_scroll+browser_hover+browser_press_key+browser_wait+browser_go_back+browser_run_script+browser_get_session_log+browser_metrics+browser_findings+a11y_scan+evidence_start+evidence_shot+evidence_verify+evidence_note+evidence_finish+evidence_get_take+evidence_render+evidence_publish",
+        "thulu-sandbox@preview_url+init_status+init_run+exec+attach_file",
+        "octopus-api@read+task_test_case_run+task_test_case_update+task_add_report+task_attach+task_add_comment+task_request_approval+task_create+task_ask+task_skip_remove"
+      ],
+      "chat": [
+        "thulu-browser@browser_new_session+browser_close_session+browser_navigate+browser_get_state+browser_get_text+browser_screenshot+browser_click+browser_type+browser_select+browser_scroll+browser_hover+browser_press_key+browser_wait+browser_go_back+browser_get_session_log+browser_metrics+browser_findings+a11y_scan+evidence_start+evidence_shot+evidence_verify+evidence_note+evidence_finish+evidence_get_take+evidence_render+evidence_recording+evidence_save_case",
+        "octopus-api@read+task_add_comment+task_attach"
+      ]
+    },
+    "auditor": {
+      "mode": "always",
+      "stages": ["testing"],
+      "turns_by_stage": {"testing": "15"},
+      "skills_by_stage": {"testing": ["agentic-testing"]}
+    }
+  }
+}

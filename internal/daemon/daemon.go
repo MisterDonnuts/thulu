@@ -324,6 +324,9 @@ func startCleanup(
 	if st.agentStore != nil {
 		janitor.agentImages = st.agentStore.Images
 	}
+	if kubeRT == nil && docker != nil {
+		janitor.runs = srv.Dispatcher()
+	}
 	janitor.Start(ctx)
 	hk := api.Housekeeping{Cleanup: janitor.Status}
 	if dataDir != "" {
@@ -389,6 +392,15 @@ func exitOnLostLease(ctx context.Context, lease *singleton.Lease) {
 
 var dbWait = db.DefaultWait
 
+// leaseOptions keeps the Kubernetes safety (a lease that cannot confirm stops the daemon so the next
+// pod takes over) and spares the Docker install, whose only daemon has nobody to hand over to: there
+// a slow database is waited out and only another daemon holding the lock stops it.
+func leaseOptions(getenv func(string) string) singleton.Options {
+	opts := singleton.Defaults
+	opts.SingleReplica = getenv("KUBERNETES_SERVICE_HOST") == ""
+	return opts
+}
+
 func openStores(ctx context.Context, dataDir string) (st *stores, err error) {
 	if mkErr := os.MkdirAll(dataDir, 0o750); mkErr != nil {
 		return nil, apperr.Wrap(mkErr, "daemon.errors.create_data_dir", "dir", dataDir)
@@ -418,7 +430,7 @@ func openStores(ctx context.Context, dataDir string) (st *stores, err error) {
 		err = apperr.Wrap(err, "daemon.errors.open_database")
 		return nil, err
 	}
-	if st.lease, err = singleton.Acquire(ctx, st.db, singleton.Defaults); err != nil {
+	if st.lease, err = singleton.Acquire(ctx, st.db, leaseOptions(os.Getenv)); err != nil {
 		return nil, err
 	}
 	go exitOnLostLease(ctx, st.lease)
@@ -991,6 +1003,7 @@ func startSchedulers(ctx context.Context, srv *api.Server) {
 	srv.StartAutomations(ctx)
 	srv.StartEvidence(ctx)
 	srv.StartRunners(ctx)
+	srv.StartPRReconciler(ctx)
 }
 
 func setInstallID(dataDir string) {

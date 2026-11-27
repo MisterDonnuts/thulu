@@ -40,7 +40,9 @@
     "turn_cancel_failed": "cancelar el job {job} del turno de chat",
     "turn_cleanup_failed": "borrar los archivos del turno de chat {path}",
     "turn_output_missing": "la máquina terminó el turno de chat, pero su respuesta nunca llegó al daemon",
-    "orphan_turns_failed": "buscar los turnos de chat que un daemon anterior dejó en las máquinas: {err}"
+    "orphan_turns_failed": "buscar los turnos de chat que un daemon anterior dejó en las máquinas: {err}",
+    "adopted": "{count} corridas de runner seguían andando cuando arrancó el daemon; sus runners tienen {grace} para volver a reportarse antes de que se den por fallidas",
+    "adopt_failed": "darles un lease nuevo a las corridas de runner que dejó andando un daemon anterior: {err}"
   },
   "audit": {
     "token_created": "Token de registro creado para el runner {name}",

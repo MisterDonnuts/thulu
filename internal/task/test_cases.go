@@ -22,6 +22,12 @@ const (
 	TestCaseFail    = "fail"
 	TestCaseBlocked = "blocked"
 	TestCaseSkipped = "skipped"
+	// A person decided the case will not be tested this time and gave the reason (the run's note).
+	// Only a waiver run sets it, never a status edit.
+	TestCaseWaived = "waived"
+	// A person gave the agent access (POST /tasks/{id}/test-cases/access) and Testing runs the case
+	// again; the next run of the case takes it out. Only that action sets it, never a status edit.
+	TestCaseQueued = "queued"
 )
 
 const (
@@ -38,7 +44,7 @@ const (
 
 const maxTestCaseTitle = 200
 
-var TestCaseStatuses = []string{TestCasePending, TestCasePass, TestCaseFail, TestCaseBlocked, TestCaseSkipped}
+var TestCaseStatuses = []string{TestCasePending, TestCasePass, TestCaseFail, TestCaseBlocked, TestCaseSkipped, TestCaseWaived, TestCaseQueued}
 
 var (
 	testCaseKeyRe  = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9]*-\d+[a-z]?$`)
@@ -49,15 +55,18 @@ var (
 
 func ValidTestCaseStatus(s string) bool {
 	switch s {
-	case TestCasePending, TestCasePass, TestCaseFail, TestCaseBlocked, TestCaseSkipped:
+	case TestCasePending, TestCasePass, TestCaseFail, TestCaseBlocked, TestCaseSkipped, TestCaseWaived, TestCaseQueued:
 		return true
 	}
 	return false
 }
 
 func ValidTestCaseVerdict(v string) bool {
-	return v == TestCasePass || v == TestCaseFail || v == TestCaseBlocked
+	return v == TestCasePass || v == TestCaseFail || v == TestCaseBlocked || v == TestCaseWaived
 }
+
+// The longest reason a waiver keeps.
+const maxWaiveReasonRunes = 4000
 
 func ValidTestCasePriority(p string) bool {
 	switch p {
@@ -70,22 +79,26 @@ func ValidTestCasePriority(p string) bool {
 func ValidTestCaseKey(k string) bool { return testCaseKeyRe.MatchString(k) }
 
 type TestCase struct {
-	ID          string        `json:"id"`
-	TaskID      string        `json:"task_id"`
-	Key         string        `json:"key"`
-	Title       string        `json:"title"`
-	Description string        `json:"description"`
-	Steps       string        `json:"steps"`
-	Expected    string        `json:"expected"`
-	Priority    string        `json:"priority"`
-	Status      string        `json:"status"`
-	Covered     bool          `json:"covered"`
-	Position    int           `json:"position"`
-	CreatedBy   string        `json:"created_by"`
-	UpdatedBy   string        `json:"updated_by"`
-	CreatedAt   time.Time     `json:"created_at"`
-	UpdatedAt   time.Time     `json:"updated_at"`
-	Runs        []TestCaseRun `json:"runs"`
+	ID          string `json:"id"`
+	TaskID      string `json:"task_id"`
+	Key         string `json:"key"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Steps       string `json:"steps"`
+	Expected    string `json:"expected"`
+	// The AC-n keys the case proves and what must be true before step 1. Empty columns (cases
+	// written before them) are read from the description's "Covers:" and "Preconditions:".
+	Covers        []string      `json:"covers"`
+	Preconditions string        `json:"preconditions"`
+	Priority      string        `json:"priority"`
+	Status        string        `json:"status"`
+	Covered       bool          `json:"covered"`
+	Position      int           `json:"position"`
+	CreatedBy     string        `json:"created_by"`
+	UpdatedBy     string        `json:"updated_by"`
+	CreatedAt     time.Time     `json:"created_at"`
+	UpdatedAt     time.Time     `json:"updated_at"`
+	Runs          []TestCaseRun `json:"runs"`
 }
 
 type TestCaseRun struct {
@@ -98,22 +111,36 @@ type TestCaseRun struct {
 	VideoAttachmentID string `json:"video_attachment_id"`
 	TakeAttachmentID  string `json:"take_attachment_id"`
 	// CommentID holds the evidence of runs recorded before reports existed; old rows still use it.
-	ReportID             string    `json:"report_id"`
-	CommentID            string    `json:"comment_id"`
-	CaptureAttachmentIDs []string  `json:"capture_attachment_ids"`
-	Author               string    `json:"author"`
-	RanAt                time.Time `json:"ran_at"`
+	ReportID             string   `json:"report_id"`
+	CommentID            string   `json:"comment_id"`
+	CaptureAttachmentIDs []string `json:"capture_attachment_ids"`
+	Author               string   `json:"author"`
+	// The task's HEAD when the run was recorded ("project@sha,..."), when known.
+	HeadRef string `json:"head_ref,omitempty"`
+	// What a blocked case waits for (verdict blocked only), what the agent tried instead and how it
+	// went, and whether running the case writes real data.
+	Needs       []Need `json:"needs"`
+	Tried       string `json:"tried"`
+	TriedResult string `json:"tried_result"`
+	WritesData  bool   `json:"writes_data"`
+	// The task's round when the run was recorded; 0 on runs from before rounds were stamped.
+	Round int `json:"round"`
+	// Subtitles of the video: the daemon links the task's .vtt named after the video.
+	VTTAttachmentID string    `json:"vtt_attachment_id"`
+	RanAt           time.Time `json:"ran_at"`
 }
 
 type TestCasePatch struct {
-	Title       *string `json:"title,omitempty"`
-	Description *string `json:"description,omitempty"`
-	Steps       *string `json:"steps,omitempty"`
-	Expected    *string `json:"expected,omitempty"`
-	Priority    *string `json:"priority,omitempty"`
-	Status      *string `json:"status,omitempty"`
-	Covered     *bool   `json:"covered,omitempty"`
-	Position    *int    `json:"position,omitempty"`
+	Title         *string   `json:"title,omitempty"`
+	Description   *string   `json:"description,omitempty"`
+	Steps         *string   `json:"steps,omitempty"`
+	Expected      *string   `json:"expected,omitempty"`
+	Covers        *[]string `json:"covers,omitempty"`
+	Preconditions *string   `json:"preconditions,omitempty"`
+	Priority      *string   `json:"priority,omitempty"`
+	Status        *string   `json:"status,omitempty"`
+	Covered       *bool     `json:"covered,omitempty"`
+	Position      *int      `json:"position,omitempty"`
 }
 
 type TestCaseFilter struct {
@@ -139,40 +166,57 @@ type TestCaseRow struct {
 }
 
 const (
-	testCaseCols = `c.id, c.task_id, c.key, c.title, c.description, c.steps, c.expected,
+	testCaseCols = `c.id, c.task_id, c.key, c.title, c.description, c.steps, c.expected, c.covers, c.preconditions,
 		c.priority, c.status, c.covered, c.position, c.created_by, c.updated_by, c.created_at, c.updated_at`
 	//i18n:ignore SQL column list
 	testCaseRunCols = `r.id, r.test_case_id, r.task_id, r.verdict, r.observed, r.note,
 		r.video_attachment_id, r.take_attachment_id, r.report_id, r.comment_id, r.capture_attachment_ids::text,
-		r.author, r.ran_at`
+		r.author, r.head_ref, r.needs, r.tried, r.tried_result, r.writes_data, r.round, r.vtt_attachment_id, r.ran_at`
 	testCaseOrder  = ` ORDER BY c.position ASC, c.created_at ASC, c.id ASC`
-	insertTestCase = `INSERT INTO test_cases (id, task_id, key, title, description, steps, expected,
+	insertTestCase = `INSERT INTO test_cases (id, task_id, key, title, description, steps, expected, covers, preconditions,
 		priority, status, covered, position, created_by, updated_by, created_at, updated_at)
-		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
 	insertTestCaseRun = `INSERT INTO test_case_runs (id, test_case_id, task_id, verdict, observed, note,
-		video_attachment_id, take_attachment_id, report_id, comment_id, capture_attachment_ids, author, ran_at)
-		VALUES (?,?,?,?,?,?,?,?,?,?,CAST(? AS jsonb),?,?)`
+		video_attachment_id, take_attachment_id, report_id, comment_id, capture_attachment_ids, author, head_ref,
+		needs, tried, tried_result, writes_data, round, vtt_attachment_id, ran_at)
+		VALUES (?,?,?,?,?,?,?,?,?,?,CAST(? AS jsonb),?,?,?,?,?,?,?,?,?)`
 )
 
 func scanTestCase(r rowScanner, extra ...any) (TestCase, error) {
 	var c TestCase
-	dest := append([]any{&c.ID, &c.TaskID, &c.Key, &c.Title, &c.Description, &c.Steps, &c.Expected,
+	var covers string
+	dest := append([]any{&c.ID, &c.TaskID, &c.Key, &c.Title, &c.Description, &c.Steps, &c.Expected, &covers, &c.Preconditions,
 		&c.Priority, &c.Status, &c.Covered, &c.Position, &c.CreatedBy, &c.UpdatedBy, &c.CreatedAt, &c.UpdatedAt},
 		extra...)
 	if err := r.Scan(dest...); err != nil {
 		return c, err
 	}
 	c.CreatedAt, c.UpdatedAt = c.CreatedAt.UTC(), c.UpdatedAt.UTC()
+	if covers != "" {
+		if err := json.Unmarshal([]byte(covers), &c.Covers); err != nil {
+			return c, apperr.Wrap(err, "task.errors.decode_covers", "case", c.ID)
+		}
+	}
+	deriveCaseFields(&c)
 	return c, nil
 }
 
 func scanTestCaseRun(r rowScanner) (TestCaseRun, error) {
 	var run TestCaseRun
-	var captures string
+	var captures, needs string
 	if err := r.Scan(&run.ID, &run.TestCaseID, &run.TaskID, &run.Verdict, &run.Observed, &run.Note,
 		&run.VideoAttachmentID, &run.TakeAttachmentID, &run.ReportID, &run.CommentID, &captures,
-		&run.Author, &run.RanAt); err != nil {
+		&run.Author, &run.HeadRef, &needs, &run.Tried, &run.TriedResult, &run.WritesData, &run.Round,
+		&run.VTTAttachmentID, &run.RanAt); err != nil {
 		return run, err
+	}
+	if needs != "" {
+		if err := json.Unmarshal([]byte(needs), &run.Needs); err != nil {
+			return run, apperr.Wrap(err, "task.errors.decode_needs", "run", run.ID)
+		}
+	}
+	if run.Needs == nil {
+		run.Needs = []Need{}
 	}
 	run.RanAt = run.RanAt.UTC()
 	if err := json.Unmarshal([]byte(captures), &run.CaptureAttachmentIDs); err != nil {
@@ -319,19 +363,19 @@ func (s *Store) AddTestCases(ctx context.Context, taskID, author string, in []Te
 }
 
 func (s *Store) insertNewCases(ctx context.Context, tx *sql.Tx, taskID, author string, existing, in []TestCase, now time.Time) ([]TestCase, error) {
-	cases := make([]TestCase, len(in))
-	for i := range in {
-		c, err := newTestCase(in[i])
-		if err != nil {
-			return nil, err
-		}
-		cases[i] = c
+	criteria, err := s.criteriaKeys(ctx, tx, taskID)
+	if err != nil {
+		return nil, err
+	}
+	cases, err := prepareCases(in, criteria)
+	if err != nil {
+		return nil, err
 	}
 	var seq int
-	if err := tx.QueryRowContext(ctx, s.rb(`SELECT test_case_seq FROM tasks WHERE id = ?`), taskID).Scan(&seq); err != nil {
+	if err = tx.QueryRowContext(ctx, s.rb(`SELECT test_case_seq FROM tasks WHERE id = ?`), taskID).Scan(&seq); err != nil {
 		return nil, apperr.Wrap(err, "task.errors.test_cases_seq", "task", taskID)
 	}
-	seq, err := allocateKeys(existing, cases, seq)
+	seq, err = allocateKeys(existing, cases, seq)
 	if err != nil {
 		return nil, err
 	}
@@ -359,6 +403,7 @@ func newTestCase(in TestCase) (TestCase, error) {
 	c := TestCase{
 		Key: strings.TrimSpace(in.Key), Title: strings.TrimSpace(in.Title),
 		Description: in.Description, Steps: in.Steps, Expected: in.Expected,
+		Covers: normalizeCovers(in.Covers), Preconditions: strings.TrimSpace(in.Preconditions),
 		Priority: in.Priority, Status: in.Status, Covered: in.Covered,
 	}
 	if c.Priority == "" {
@@ -369,6 +414,12 @@ func newTestCase(in TestCase) (TestCase, error) {
 	}
 	if c.Key != "" && !ValidTestCaseKey(c.Key) {
 		return c, apperr.Wrap(ErrInvalid, "task.errors.test_case_key_shape", "key", c.Key)
+	}
+	if c.Status == TestCaseWaived {
+		return c, apperr.Wrap(ErrInvalid, "task.errors.test_case_waive_by_status")
+	}
+	if c.Status == TestCaseQueued {
+		return c, apperr.Wrap(ErrInvalid, "task.errors.test_case_queue_by_status")
 	}
 	if err := validateTestCase(&c); err != nil {
 		return c, err
@@ -429,7 +480,7 @@ func allocateKeys(existing, cases []TestCase, seq int) (int, error) {
 
 func (s *Store) insertCase(ctx context.Context, ex execer, c *TestCase, suffix string) error {
 	_, err := ex.ExecContext(ctx, s.rb(insertTestCase+suffix),
-		c.ID, c.TaskID, c.Key, c.Title, c.Description, c.Steps, c.Expected,
+		c.ID, c.TaskID, c.Key, c.Title, c.Description, c.Steps, c.Expected, coversJSON(c.Covers), c.Preconditions,
 		c.Priority, c.Status, c.Covered, c.Position, c.CreatedBy, c.UpdatedBy, c.CreatedAt, c.UpdatedAt)
 	if err != nil {
 		return apperr.Wrap(err, "task.errors.insert_test_case", "key", c.Key)
@@ -439,20 +490,29 @@ func (s *Store) insertCase(ctx context.Context, ex execer, c *TestCase, suffix s
 
 func (s *Store) UpdateTestCase(ctx context.Context, taskID, ref, author string, p TestCasePatch) (*TestCase, error) {
 	var id string
+	unblocked := false
 	err := s.testCaseTx(ctx, taskID, func(tx *sql.Tx, now time.Time) error {
 		c, err := s.findCase(ctx, tx, taskID, ref)
 		if err != nil {
 			return err
 		}
 		id = c.ID
+		wasBlocked := c.Status == TestCaseBlocked
 		if p.Title != nil {
 			c.Title = strings.TrimSpace(*p.Title)
 		}
 		patch.Set(&c.Description, p.Description)
 		patch.Set(&c.Steps, p.Steps)
 		patch.Set(&c.Expected, p.Expected)
+		if pErr := s.patchCaseFields(ctx, tx, taskID, c, p); pErr != nil {
+			return pErr
+		}
 		patch.Set(&c.Priority, p.Priority)
+		if sErr := checkStatusPatch(c.Status, p.Status); sErr != nil {
+			return sErr
+		}
 		patch.Set(&c.Status, p.Status)
+		unblocked = wasBlocked && c.Status != TestCaseBlocked
 		patch.Set(&c.Covered, p.Covered)
 		if vErr := validateTestCase(c); vErr != nil {
 			return vErr
@@ -463,9 +523,9 @@ func (s *Store) UpdateTestCase(ctx context.Context, taskID, ref, author string, 
 			}
 		}
 		_, err = tx.ExecContext(ctx, s.rb(
-			`UPDATE test_cases SET title=?, description=?, steps=?, expected=?, priority=?, status=?,
+			`UPDATE test_cases SET title=?, description=?, steps=?, expected=?, covers=?, preconditions=?, priority=?, status=?,
 			        covered=?, position=?, updated_by=?, updated_at=? WHERE id=?`),
-			c.Title, c.Description, c.Steps, c.Expected, c.Priority, c.Status,
+			c.Title, c.Description, c.Steps, c.Expected, coversJSON(c.Covers), c.Preconditions, c.Priority, c.Status,
 			c.Covered, c.Position, author, now, c.ID)
 		if err != nil {
 			return apperr.Wrap(err, "task.errors.update_test_case", "key", c.Key)
@@ -474,6 +534,9 @@ func (s *Store) UpdateTestCase(ctx context.Context, taskID, ref, author string, 
 	})
 	if err != nil {
 		return nil, err
+	}
+	if unblocked {
+		s.resolveStopsWhenCasesClear(ctx, taskID, author)
 	}
 	return s.GetTestCase(ctx, taskID, id)
 }
@@ -517,21 +580,37 @@ func (s *Store) RecordTestCaseRun(ctx context.Context, taskID, ref string, run T
 	if !ValidTestCaseVerdict(run.Verdict) {
 		return nil, nil, apperr.Wrap(ErrInvalid, "task.errors.test_case_bad_verdict", "verdict", run.Verdict)
 	}
+	if run.Verdict == TestCaseWaived {
+		if err := checkWaiveReason(&run.Note); err != nil {
+			return nil, nil, err
+		}
+	}
+	if err := checkRunFields(&run); err != nil {
+		return nil, nil, err
+	}
 	run.CaptureAttachmentIDs = dedupeStrings(run.CaptureAttachmentIDs)
 	if err := s.checkRunEvidence(ctx, taskID, &run); err != nil {
 		return nil, nil, err
 	}
+	run.VTTAttachmentID = s.subtitlesFor(ctx, taskID, run.VideoAttachmentID)
+	run.Round = s.TaskRound(ctx, taskID)
 	captures, err := json.Marshal(run.CaptureAttachmentIDs)
 	if err != nil {
 		return nil, nil, apperr.Wrap(err, "task.errors.encode_captures")
 	}
+	needs, err := json.Marshal(run.Needs)
+	if err != nil {
+		return nil, nil, apperr.Wrap(err, "task.errors.encode_needs")
+	}
 	var caseID string
+	unblocked := false
 	err = s.testCaseTx(ctx, taskID, func(tx *sql.Tx, now time.Time) error {
 		c, findErr := s.findCase(ctx, tx, taskID, ref)
 		if findErr != nil {
 			return findErr
 		}
 		caseID = c.ID
+		unblocked = c.Status == TestCaseBlocked && run.Verdict != TestCaseBlocked
 		run.ID, run.TestCaseID, run.TaskID = mustGenerateID(), c.ID, taskID
 		if run.RanAt.IsZero() {
 			run.RanAt = now
@@ -539,18 +618,23 @@ func (s *Store) RecordTestCaseRun(ctx context.Context, taskID, ref string, run T
 		if _, insErr := tx.ExecContext(ctx, s.rb(insertTestCaseRun),
 			run.ID, run.TestCaseID, run.TaskID, run.Verdict, run.Observed, run.Note,
 			run.VideoAttachmentID, run.TakeAttachmentID, run.ReportID, run.CommentID, string(captures),
-			run.Author, run.RanAt); insErr != nil {
+			run.Author, run.HeadRef, string(needs), run.Tried, run.TriedResult, run.WritesData, run.Round,
+			run.VTTAttachmentID, run.RanAt); insErr != nil {
 			return apperr.Wrap(insErr, "task.errors.insert_test_case_run", "key", c.Key)
 		}
 		if _, updErr := tx.ExecContext(ctx, s.rb(
-			`UPDATE test_cases SET status = ?, covered = TRUE, updated_by = ?, updated_at = ? WHERE id = ?`),
-			run.Verdict, run.Author, now, c.ID); updErr != nil {
+			`UPDATE test_cases SET status = ?, covered = (covered OR ?), updated_by = ?, updated_at = ? WHERE id = ?`),
+			// A waiver is not an execution: it leaves covered as it was.
+			run.Verdict, run.Verdict != TestCaseWaived, run.Author, now, c.ID); updErr != nil {
 			return apperr.Wrap(updErr, "task.errors.mark_test_case", "key", c.Key)
 		}
 		return nil
 	})
 	if err != nil {
 		return nil, nil, err
+	}
+	if unblocked {
+		s.resolveStopsWhenCasesClear(ctx, taskID, run.Author)
 	}
 	c, err := s.GetTestCase(ctx, taskID, caseID)
 	if err != nil {
@@ -715,14 +799,22 @@ func (s *Store) ImportTestCaseRun(ctx context.Context, r TestCaseRun) error {
 	if r.CaptureAttachmentIDs == nil {
 		r.CaptureAttachmentIDs = []string{}
 	}
+	if r.Needs == nil {
+		r.Needs = []Need{}
+	}
 	captures, err := json.Marshal(r.CaptureAttachmentIDs)
+	if err != nil {
+		return apperr.Wrap(err, "task.errors.import_test_case_run", "id", r.ID)
+	}
+	needs, err := json.Marshal(r.Needs)
 	if err != nil {
 		return apperr.Wrap(err, "task.errors.import_test_case_run", "id", r.ID)
 	}
 	if _, err = s.db.ExecContext(ctx, s.rb(insertTestCaseRun+` ON CONFLICT (id) DO NOTHING`),
 		r.ID, r.TestCaseID, r.TaskID, r.Verdict, r.Observed, r.Note,
 		r.VideoAttachmentID, r.TakeAttachmentID, r.ReportID, r.CommentID, string(captures),
-		r.Author, r.RanAt); err != nil {
+		r.Author, r.HeadRef, string(needs), r.Tried, r.TriedResult, r.WritesData, r.Round,
+		r.VTTAttachmentID, r.RanAt); err != nil {
 		return apperr.Wrap(err, "task.errors.import_test_case_run", "id", r.ID)
 	}
 	return nil

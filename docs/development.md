@@ -207,9 +207,16 @@ between flows. Everything is editable at runtime from *Settings → Boards* (or
 
 Behavior is expressed through capability flags on each column (`initial`,
 `terminal`, `auto_advance`, `blocked_by_flags`, `ingest_flags`,
-`push_branch`, `open_pr`, `wip_group`) and its approval
+`push_branch`, `open_pr`, `pr_draft`, `pr_ready`, `merge_target`,
+`release_resources`, `agent_verdict`, `lock_tests`, `skip_unless`,
+`wip_group`), its agent (`default_agent`, per board only) and its approval
 settings (`required_approvals`, `on_changes_requested`,
-`changes_kick_back_to`). `blocked_by_flags` and `ingest_flags` only matter for
+`changes_kick_back_to`). The board itself carries `max_kick_backs` and, when
+the Workshop installed it, `flow`, `flow_revision` and `flow_hash`; the rules
+that need the whole board (one `merge_target` after a stage that opens the PR,
+nothing that needs the worktree after `release_resources`, no send-back to a
+`skip_unless` stage) live in `validateFlow`. What each flag does is in
+[tasks-and-board.md](tasks-and-board.md#stage-capability-flags). `blocked_by_flags` and `ingest_flags` only matter for
 the `flags.yaml` path; the factory board (Backlog → In progress → Done)
 sets neither. No flag says whether a column runs an agent: every column but the
 initial one and the terminal ones runs the agent the task has assigned there.

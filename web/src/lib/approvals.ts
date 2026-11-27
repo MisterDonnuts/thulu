@@ -29,6 +29,7 @@ export interface Approval {
   source?: string;
   status: string;
   reason?: string;
+  payload?: unknown;
   created_by?: string;
   decided_by?: string;
   decided_note?: string;
@@ -130,6 +131,13 @@ export interface PaneView {
   menuFor?: string | null;
   stageLabel?: (id: string) => string;
   effectOf?: (a: Approval) => string;
+  // Why approving waits for required checks on GitHub; "" lets it be approved.
+  checksHoldOf?: (a: Approval) => string;
+  // The required checks that still run: approving goes ahead of them and the task waits in its
+  // column until they pass; "" when none run.
+  checksWaitOf?: (a: Approval) => string;
+  // The label of the stage the approval waits for when the task has not reached it yet; "" otherwise.
+  aheadOf?: (a: Approval) => string;
   readOnly?: boolean;
 }
 
@@ -156,6 +164,37 @@ export function kickBackTarget(stages: ChangesStage[], from: ChangesStage): Chan
   return behind(from.changes_kick_back_to) ?? behind(fallback?.id) ?? null;
 }
 
+// Mirrors the daemon's Dispatcher.stageAhead: an approval held in a later stage of the board, which
+// refuses changes requested until the task gets there.
+export function stageAhead(
+  a: Pick<Approval, "stage">,
+  taskStage: string,
+  stages: ChangesStage[],
+): ChangesStage | null {
+  if (!a.stage || a.stage === taskStage) return null;
+  const to = stages.find((s) => s.id === a.stage);
+  const from = stages.find((s) => s.id === taskStage);
+  return to && from && to.position > from.position ? to : null;
+}
+
+// The daemon names its own test_change approval in its locale when it opens it; the reader gets it in
+// theirs.
+export function approvalLabel(a: Pick<Approval, "key" | "source" | "label">): string {
+  return a.key === "test_change" && a.source === "system"
+    ? t("lib.approvals.labels.test_change")
+    : a.label;
+}
+
+// The files a system test_change approval names: what a person is asked to accept.
+export function testChangeFiles(a: Pick<Approval, "key" | "source" | "payload">): string[] {
+  if (a.key !== "test_change" || a.source !== "system") return [];
+  const files = (a.payload as { files?: unknown } | null | undefined)?.files;
+  if (!Array.isArray(files)) return [];
+  return files
+    .map((f) => (f as { path?: unknown } | null)?.path)
+    .filter((p): p is string => typeof p === "string" && p !== "");
+}
+
 // Mirrors the daemon's task.changesRequested, including deferring resume/kick_back while a run is
 // active.
 export function changesEffect(
@@ -166,6 +205,8 @@ export function changesEffect(
   running = false,
 ): string {
   const st = stages.find((s) => s.id === taskStage);
+  const ahead = stageAhead(a, taskStage, stages);
+  if (ahead) return t("lib.approvals.effect.ahead", { stage: ahead.label });
   if (!a.stage || a.stage !== taskStage || !st) return t("lib.approvals.effect.record");
   const mode = st.on_changes_requested ?? "resume";
   if (mode === "kick_back") {
@@ -195,11 +236,28 @@ export function approvalsSig(
     list
       .map(
         (a) =>
-          `${a.id}:${a.status}:${a.label}:${a.decided_at ?? ""}:${a.decided_note ?? ""}:${view.effectOf?.(a) ?? ""}`,
+          `${a.id}:${a.status}:${a.label}:${a.decided_at ?? ""}:${a.decided_note ?? ""}:${view.effectOf?.(a) ?? ""}:${view.checksHoldOf?.(a) ?? ""}:${view.checksWaitOf?.(a) ?? ""}:${view.aheadOf?.(a) ?? ""}`,
       )
       .join("|") +
     `#${noting ? `${noting.id}:${noting.decision}` : ""}#${view.askOpen ? 1 : 0}#${view.menuFor ?? ""}#${view.readOnly ? 1 : 0}`
   );
+}
+
+interface ChecksRequirement {
+  key: string;
+  required_checks?: boolean;
+}
+
+export interface ChecksStage {
+  id: string;
+  required_approvals?: ChecksRequirement[] | null;
+}
+
+// A stage's approval whose definition waits for the PR's required checks.
+export function waitsForChecks(a: Approval, stages: readonly ChecksStage[]): boolean {
+  if (a.source !== "stage" || !a.stage || !a.key) return false;
+  const st = stages.find((s) => s.id === a.stage);
+  return !!st?.required_approvals?.some((r) => r.key === a.key && r.required_checks);
 }
 
 export function sortApprovals(list: Approval[]): Approval[] {
@@ -227,6 +285,7 @@ function apButton(o: {
   icon?: string;
   id?: string;
   attrs?: Attrs;
+  disabled?: boolean;
 }): string {
   return buttonHTML({ ...o, size: "sm" });
 }
@@ -288,6 +347,13 @@ export function approvalAuthor(a: Approval, stageLabel?: (id: string) => string)
   return { name: historyActor(a.created_by), kind: historyActorKind(a.created_by), stage };
 }
 
+function testChangeFilesHTML(a: Approval): string {
+  const files = testChangeFiles(a);
+  if (!files.length) return "";
+  const items = files.map((f) => `<li><code>${esc(f)}</code></li>`).join("");
+  return `<div class="approval-files"><p>${esc(t("lib.approvals.test_change_files", { count: files.length }))}</p><ul>${items}</ul></div>`;
+}
+
 function approvalHTML(a: Approval, noting: NoteForm | null, view: PaneView): string {
   const id = esc(a.id);
   const pending = a.status === "pending";
@@ -307,8 +373,10 @@ function approvalHTML(a: Approval, noting: NoteForm | null, view: PaneView): str
     danger,
     attrs: { "data-ap": action, "data-id": a.id },
   });
+  // The daemon refuses changes requested on a stage the task has not reached.
+  const ahead = view.aheadOf?.(a) ?? "";
   const others = (["approved", "changes_requested", "waived"] as Decision[]).filter(
-    (d) => d !== a.status,
+    (d) => d !== a.status && !(ahead && d === "changes_requested"),
   );
   const entries: MenuEntry[] = pending
     ? []
@@ -321,7 +389,7 @@ function approvalHTML(a: Approval, noting: NoteForm | null, view: PaneView): str
   }
   const menu = menuOpen
     ? menuHTML(entries, {
-        label: t("lib.approvals.more_actions", { label: a.label }),
+        label: t("lib.approvals.more_actions", { label: approvalLabel(a) }),
         open: true,
         cls: "ap-pop",
       })
@@ -332,7 +400,7 @@ function approvalHTML(a: Approval, noting: NoteForm | null, view: PaneView): str
       : buttonHTML({
           iconOnly: true,
           icon: "more",
-          label: t("lib.approvals.more_actions", { label: a.label }),
+          label: t("lib.approvals.more_actions", { label: approvalLabel(a) }),
           size: "sm",
           variant: "ghost",
           cls: "ap-menu-btn",
@@ -343,7 +411,10 @@ function approvalHTML(a: Approval, noting: NoteForm | null, view: PaneView): str
           },
         });
   const effect = view.effectOf?.(a) ?? "";
-  const effectLine = effect ? `<p class="ap-effect">${esc(effect)}</p>` : "";
+  const effectID = `ap-effect-${id}`;
+  const effectLine = effect ? `<p class="ap-effect" id="${effectID}">${esc(effect)}</p>` : "";
+  const changesAttrs: Attrs = { "data-ap": "changes_requested", "data-id": a.id };
+  if (ahead && effect) changesAttrs["aria-describedby"] = effectID;
   const decided = decidedLine(a);
   let body = "";
   if (view.readOnly) {
@@ -357,10 +428,21 @@ function approvalHTML(a: Approval, noting: NoteForm | null, view: PaneView): str
       cls: "ap-note",
       control: `<textarea id="ap-note-${id}" data-ap-note-for="${id}" rows="2" aria-describedby="ap-note-${id}-help" placeholder="${esc(t("lib.approvals.note_placeholder"))}"></textarea>`,
     });
+    const hold = view.checksHoldOf?.(a) ?? "";
+    const wait = hold ? "" : (view.checksWaitOf?.(a) ?? "");
+    let holdLine = "";
+    if (hold) {
+      holdLine = `<p class="ap-checks" role="status" id="ap-checks-${id}">${esc(t("lib.approvals.checks_hold", { reason: hold }))}</p>`;
+    } else if (wait) {
+      holdLine = `<p class="ap-checks" role="status" id="ap-checks-${id}">${esc(t("lib.approvals.checks_wait", { reason: wait }))}</p>`;
+    }
+    const approveAttrs: Attrs = { "data-ap": "approved", "data-id": a.id };
+    if (hold || wait) approveAttrs["aria-describedby"] = `ap-checks-${id}`;
     body = `${note}
+      ${holdLine}
       <div class="approval-actions">
-        ${apButton({ label: t("lib.approvals.approve"), variant: "primary", attrs: { "data-ap": "approved", "data-id": a.id } })}
-        ${apButton({ label: t("lib.approvals.request_changes"), attrs: { "data-ap": "changes_requested", "data-id": a.id } })}
+        ${apButton({ label: t("lib.approvals.approve"), variant: "primary", attrs: approveAttrs, disabled: !!hold })}
+        ${apButton({ label: t("lib.approvals.request_changes"), disabled: !!ahead, attrs: changesAttrs })}
         ${apButton({ label: t("lib.approvals.waive"), variant: "ghost", attrs: { "data-ap": "waived", "data-id": a.id } })}
       </div>
       ${effectLine}`;
@@ -387,12 +469,13 @@ function approvalHTML(a: Approval, noting: NoteForm | null, view: PaneView): str
   const keyTitle = a.key ? ` title="${esc(t("lib.approvals.key_title", { key: a.key }))}"` : "";
   return `<div class="approval${pending ? " approval-pending" : ""}" data-approval="${id}">
       <div class="approval-head">
-        <strong class="approval-label"${keyTitle}>${esc(a.label)}</strong>
+        <strong class="approval-label"${keyTitle}>${esc(approvalLabel(a))}</strong>
         ${approvalStatusBadgeHTML(a.status)}
         ${authorLineHTML(approvalAuthor(a, view.stageLabel))}
         ${menuBtn ? `<span class="ap-menu-wrap">${menuBtn}${menu}</span>` : ""}
       </div>
       ${a.reason ? `<div class="approval-reason">${esc(a.reason)}</div>` : ""}
+      ${testChangeFilesHTML(a)}
       ${decided ? `<div class="approval-decided">${esc(decided)}</div>` : ""}
       ${a.decided_note ? `<div class="approval-note">${esc(a.decided_note)}</div>` : ""}
       ${body}

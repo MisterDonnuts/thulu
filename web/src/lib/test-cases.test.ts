@@ -1,9 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { t } from "../i18n";
 import {
+  SETTABLE_STATUS,
   STATUS_ORDER,
   caseAnchor,
   casePriorityTagHTML,
   parseTaskHash,
+  tabForHashKey,
   caseProgressHTML,
   priorityLabel,
   runAgoLabel,
@@ -61,12 +64,24 @@ describe("summarize", () => {
       { status: "pass", covered: true },
       { status: "fail", covered: true },
       { status: "pending", covered: false },
+      { status: "waived", covered: false },
+      { status: "queued", covered: false },
     ]);
     expect(s).toEqual({
-      total: 4,
+      total: 6,
       covered: 3,
-      byStatus: { pending: 1, pass: 2, fail: 1, blocked: 0, skipped: 0 },
+      byStatus: { pending: 1, pass: 2, waived: 1, fail: 1, blocked: 0, queued: 1, skipped: 0 },
     });
+  });
+
+  it("counts a waived case apart from the passes", () => {
+    const s = summarize([{ status: "waived", covered: false }]);
+    expect(s.byStatus.pass).toBe(0);
+    expect(s.byStatus.waived).toBe(1);
+    expect(statusLabel("waived")).toBe(t("lib.test_cases.status.waived"));
+    expect(statusLabel("waived")).not.toBe(statusLabel("pass"));
+    expect(SETTABLE_STATUS).not.toContain("waived");
+    expect(SETTABLE_STATUS).not.toContain("queued");
   });
 
   it("is all zeros for no cases", () => {
@@ -178,5 +193,17 @@ describe("casePriorityTagHTML", () => {
     const html = casePriorityTagHTML("high", { label: 'Priority: <b>"High"</b>', size: "sm" });
     expect(html).toMatch(/^<span class="tag tag-sm tag-warn tag-inline">/);
     expect(html).toContain("Priority: &lt;b&gt;&quot;High&quot;&lt;/b&gt;");
+  });
+});
+
+describe("tabForHashKey", () => {
+  it("opens Approvals, Tests, Activity or Files, and sends the old History links to Activity", () => {
+    expect(tabForHashKey("approvals")).toBe("approvals");
+    expect(tabForHashKey("tests")).toBe("tests");
+    expect(tabForHashKey("activity")).toBe("timeline");
+    expect(tabForHashKey("history")).toBe("timeline");
+    expect(tabForHashKey("files")).toBe("files");
+    expect(tabForHashKey("TC-1")).toBeNull();
+    expect(tabForHashKey("constructor")).toBeNull();
   });
 });

@@ -47,6 +47,9 @@ func (u *updateRun) to(ctx context.Context) error {
 		return u.restoreRequired(state, current, m.Version)
 	}
 	if done, derr := u.delegate(ctx, m, u.toArgs(m.Version)); done || derr != nil {
+		if done && derr == nil {
+			u.syncAfterDelegate(ctx, m)
+		}
 		return derr
 	}
 
@@ -67,6 +70,9 @@ func (u *updateRun) to(ctx context.Context) error {
 		return err
 	}
 	u.finish(ctx, st, res, err)
+	if err == nil && res == ResultOK {
+		u.syncCLI(ctx, m, "")
+	}
 	return err
 }
 

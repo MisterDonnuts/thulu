@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/signal"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/MisterDonnuts/thulu/internal/agentstore"
@@ -83,6 +82,7 @@ func main() {
 
 	case "version", "-v", "--version":
 		fmt.Println(buildinfo.Version)
+		cli.VersionDrift(os.Stderr)
 		return
 
 	case "help", "-h", "--help":
@@ -463,6 +463,8 @@ func runRunner(args []string) error {
 			return apperr.Wrap(err, "main.errors.parse_flags", "command", "runner run") //i18n:ignore the subcommand as typed
 		}
 		return runHostRunner(*config, *logPath)
+	case "mcp", "config", "doctor":
+		return runnerLocal(fs, config, args)
 	}
 	return apperr.Invalid("main.errors.usage_runner")
 }
@@ -561,7 +563,7 @@ func runHostRunner(config, logPath string) (err error) {
 	if err := hostrun.Preflight(cfg); err != nil {
 		return err
 	}
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(context.Background(), hostrun.StopSignals...)
 	defer stop()
 	return hostrun.New(cfg, buildinfo.Version).Run(ctx)
 }

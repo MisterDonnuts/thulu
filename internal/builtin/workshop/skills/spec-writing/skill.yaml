@@ -1,0 +1,9 @@
+name: spec-writing
+description: How to turn a task into a spec that locked tests can be written from. Exploring the repo with a budget, reproducing bugs, an ambiguity sweep over nine fixed categories, at most five questions with a recommended option, acceptance criteria in Given/When/Then with IDs, the interface the tests will call, surface, size and risk with flags.yaml, which later columns the task skips and why, splitting into vertical slices, a test persona for UI work, a template scaled to the task size and a Ready self-check. Use it when it is your turn to refine a task before test design and development.
+descriptions:
+  es: Cómo convertir una tarea en una spec de la que se puedan escribir tests bloqueados. Explorar el repo con presupuesto, reproducir bugs, un barrido de ambigüedad sobre nueve categorías fijas, cinco preguntas como máximo con una opción recomendada, criterios de aceptación Given/When/Then con ID, la interfaz que van a usar los tests, superficie, tamaño y riesgo con flags.yaml, qué columnas posteriores saltea la tarea y por qué, partir en rebanadas verticales, persona de prueba si hay UI, plantilla según el tamaño y autochequeo de Ready. Usala cuando te toca refinar una tarea antes del diseño de pruebas y el desarrollo.
+type: knowledge
+enforcement: on_demand
+version: 6
+tags: [flow, spec, refinement]
+requires: []

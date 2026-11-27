@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   costHTML,
+  listOf,
   estimatedCost,
   fmtCount,
   fmtDecimal,
@@ -165,5 +166,13 @@ describe("fmtDecimal", () => {
     expect(fmtDecimal(10.344, 2)).toBe("10.34");
     expect(fmtDecimal(0.05, 2)).toBe("0.05");
     expect(fmtDecimal(NaN, 1)).toBe("0.0");
+  });
+});
+
+describe("listOf", () => {
+  it("joins names the way the language does", () => {
+    expect(listOf(["a"], "en")).toBe("a");
+    expect(listOf(["a", "b"], "en")).toBe("a and b");
+    expect(listOf(["a", "b"], "es")).toBe("a y b");
   });
 });

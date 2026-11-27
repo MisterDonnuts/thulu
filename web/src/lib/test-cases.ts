@@ -14,14 +14,19 @@ import {
   type ProgressTone,
 } from "./ui";
 
-export type TestCaseStatus = "pending" | "pass" | "fail" | "blocked" | "skipped";
+// "waived": a person decided not to test the case and recorded why (POST /test-cases/waive). It is
+// never a pass: the tally and the rows count and draw it on its own.
+// "queued": a person gave the agent access (POST /test-cases/access) and the case waits for its
+// next run ("Running again"); only the daemon sets it.
+export type TestCaseStatus =
+  "pending" | "pass" | "waived" | "fail" | "blocked" | "queued" | "skipped";
 export type TestCasePriority = "low" | "medium" | "high" | "critical";
 
 export interface TestCaseRun {
   id: string;
   test_case_id: string;
   task_id: string;
-  verdict: "pass" | "fail" | "blocked";
+  verdict: "pass" | "fail" | "blocked" | "waived";
   observed: string;
   note: string;
   video_attachment_id: string;
@@ -29,8 +34,21 @@ export interface TestCaseRun {
   report_id: string;
   comment_id: string;
   capture_attachment_ids: string[];
+  // Only on a blocked run: what a person must bring (kinds from GET /test-cases/need-kinds).
+  needs?: TestCaseNeed[];
+  tried?: "" | "none" | "simulated" | "partial";
+  tried_result?: string;
+  writes_data?: boolean;
+  round?: number;
+  vtt_attachment_id?: string;
   author: string;
   ran_at: string;
+}
+
+export interface TestCaseNeed {
+  kind: string;
+  label: string;
+  secrets?: Array<{ name: string; label: string }>;
 }
 
 export interface TestCase {
@@ -41,6 +59,8 @@ export interface TestCase {
   description: string;
   steps: string;
   expected: string;
+  covers?: string[];
+  preconditions?: string;
   priority: TestCasePriority;
   status: TestCaseStatus;
   covered: boolean;
@@ -52,13 +72,29 @@ export interface TestCase {
   runs?: TestCaseRun[];
 }
 
-export const STATUS_ORDER: TestCaseStatus[] = ["pass", "fail", "blocked", "skipped", "pending"];
+export const STATUS_ORDER: TestCaseStatus[] = [
+  "pass",
+  "waived",
+  "fail",
+  "blocked",
+  "queued",
+  "skipped",
+  "pending",
+];
+
+// What a person may pick in a case's status select. Waiving takes a reason, so it goes through
+// "Skip with a reason" and never through the select; queued comes only from giving access.
+export const SETTABLE_STATUS: TestCaseStatus[] = STATUS_ORDER.filter(
+  (s) => s !== "waived" && s !== "queued",
+);
 
 const STATUS_LABELS: Record<TestCaseStatus, string> = {
   pending: t("lib.test_cases.status.pending"),
   pass: t("lib.test_cases.status.pass"),
+  waived: t("lib.test_cases.status.waived"),
   fail: t("lib.test_cases.status.fail"),
   blocked: t("lib.test_cases.status.blocked"),
+  queued: t("lib.test_cases.status.queued"),
   skipped: t("lib.test_cases.status.skipped"),
 };
 
@@ -72,8 +108,10 @@ const PRIORITY_LABELS: Record<TestCasePriority, string> = {
 const STATUS_COUNT = {
   pending: "lib.test_cases.progress.pending",
   pass: "lib.test_cases.progress.pass",
+  waived: "lib.test_cases.progress.waived",
   fail: "lib.test_cases.progress.fail",
   blocked: "lib.test_cases.progress.blocked",
+  queued: "lib.test_cases.progress.queued",
   skipped: "lib.test_cases.progress.skipped",
 } as const satisfies Record<TestCaseStatus, string>;
 
@@ -86,8 +124,10 @@ const STATUS_LOOK: Record<
   { tone: BadgeTone; edge?: BadgeEdge; bar: ProgressTone; dot: DotTone }
 > = {
   pass: { tone: "ok", bar: "ok", dot: "ok" },
+  waived: { tone: "info", edge: "dashed", bar: "info", dot: "info" },
   fail: { tone: "danger", bar: "danger", dot: "danger" },
   blocked: { tone: "warn", bar: "warn", dot: "warn" },
+  queued: { tone: "info", bar: "info", dot: "info" },
   skipped: { tone: "neutral", edge: "hollow", bar: "muted", dot: "neutral" },
   pending: { tone: "muted", bar: "faint", dot: "empty" },
 };
@@ -137,7 +177,7 @@ export interface TestCaseSummary {
 }
 
 export function summarize(cases: Array<Pick<TestCase, "status" | "covered">>): TestCaseSummary {
-  const byStatus = { pending: 0, pass: 0, fail: 0, blocked: 0, skipped: 0 };
+  const byStatus = { pending: 0, pass: 0, waived: 0, fail: 0, blocked: 0, queued: 0, skipped: 0 };
   let covered = 0;
   for (const c of cases) {
     if (c.status in byStatus) byStatus[c.status]++;
@@ -172,6 +212,20 @@ export function caseAnchor(taskId: string, key: string, boardId: string): string
 
 // Cannot collide with a case key: those always carry "-<n>" (task.ValidTestCaseKey).
 export const APPROVALS_KEY = "approvals";
+
+// The drawer tab a hash key opens. History was the Activity tab's old name; its links still land
+// there. None of these can collide with a case key either.
+const TAB_KEYS: Readonly<Record<string, string>> = {
+  [APPROVALS_KEY]: "approvals",
+  tests: "tests",
+  activity: "timeline",
+  history: "timeline",
+  files: "files",
+};
+
+export function tabForHashKey(key: string): string | null {
+  return Object.hasOwn(TAB_KEYS, key) ? TAB_KEYS[key] : null;
+}
 
 export function approvalsAnchor(taskId: string, boardId: string): string {
   return taskAnchor(taskId, boardId, APPROVALS_KEY);

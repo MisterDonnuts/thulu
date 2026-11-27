@@ -8,13 +8,22 @@ import { icoSvg } from "./icon";
 
 export type AvatarKind = "person" | "agent" | "system";
 
-export type AvatarSize = "sm" | "md";
+export type AvatarSize = "xs" | "sm" | "md";
 
 export type AvatarShape = "round" | "square";
 
 export type AvatarStatus = "ok" | "warn" | "danger" | "muted";
 
-const SIZES = new Set<string>(["sm", "md"]);
+const SIZES = new Set<string>(["xs", "sm", "md"]);
+
+// Agent avatars take one of five colours from their name, so two agents side by side tell apart.
+export const AVATAR_HUES = 5;
+
+export function avatarHue(name: string | null | undefined): number {
+  let h = 0;
+  for (const ch of name ?? "") h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return h % AVATAR_HUES;
+}
 const SHAPES = new Set<string>(["round", "square"]);
 
 export function initialsOf(name: string | null | undefined): string {
@@ -34,11 +43,12 @@ export interface AvatarLook {
   size?: AvatarSize;
   shape?: AvatarShape;
   pending?: boolean;
+  hue?: number;
   cls?: string;
 }
 
 export function avatarClasses(look: AvatarLook = {}): string {
-  const { kind = "person", size = "sm", shape = "round", pending = false, cls } = look;
+  const { kind = "person", size = "sm", shape = "round", pending = false, hue, cls } = look;
   if (!SIZES.has(size)) throw new Error(`avatar: no size "${size}"`); // i18n-ignore a programming error
   if (!SHAPES.has(shape)) throw new Error(`avatar: no shape "${shape}"`); // i18n-ignore a programming error
   return [
@@ -47,6 +57,7 @@ export function avatarClasses(look: AvatarLook = {}): string {
     shape === "square" && "avatar-square",
     kind !== "person" && `avatar-${kind}`,
     pending && "avatar-pending",
+    hue !== undefined && hue > 0 && hue < AVATAR_HUES && `avatar-hue-${hue}`,
     cls,
   ]
     .filter(Boolean)

@@ -2,10 +2,15 @@ import { t } from "../i18n.js";
 import { listTestCases, recordTestCaseRun } from "../lib/octopus.js";
 import { judgedRun } from "./report.js";
 
-const OBSERVED_MAX = 500;
+// The daemon refuses an observed longer than this (task.MaxObservedRunes): it is
+// one line, and the detail goes in note.
+export const OBSERVED_MAX = 280;
 
-function short(text) {
-  return text.length > OBSERVED_MAX ? `${text.slice(0, OBSERVED_MAX - 1)}…` : text;
+/** observed cut to OBSERVED_MAX characters; note keeps the whole text when it had to be cut. */
+function observedAndNote(text) {
+  const chars = [...text];
+  if (chars.length <= OBSERVED_MAX) return { observed: text };
+  return { observed: `${chars.slice(0, OBSERVED_MAX - 1).join("")}…`, note: text };
 }
 
 function verdictOf({ failed, unreached }) {
@@ -37,7 +42,8 @@ export function runVerdict(runs) {
  * failed step kept one of its planned checks from running (a replay records
  * what it meant to check in `planned`; a live take checks as it goes); it
  * passes only when every check ran and passed.
- * @returns {{ key: string, verdict: "pass"|"fail"|"blocked", observed: string }[]}
+ * An observed too long for one line is cut, and the whole text goes in note.
+ * @returns {{ key: string, verdict: "pass"|"fail"|"blocked", observed: string, note?: string }[]}
  */
 export function caseVerdicts(runs) {
   const run = judgedRun(runs);
@@ -61,7 +67,7 @@ export function caseVerdicts(runs) {
   return [...byCase.values()].map((c) => {
     const verdict = verdictOf(c);
     const observed = verdict === "blocked" ? [...c.observed, why] : c.observed;
-    return { key: c.key, verdict, observed: short(observed.join("; ")) };
+    return { key: c.key, verdict, ...observedAndNote(observed.join("; ")) };
   });
 }
 
@@ -83,6 +89,7 @@ export async function recordCaseRuns(taskId, runs, ids) {
       await recordTestCaseRun(taskId, c.key, {
         verdict: c.verdict,
         observed: c.observed,
+        ...(c.note ? { note: c.note } : {}),
         video_attachment_id: ids.video || "",
         take_attachment_id: ids.take || "",
         report_id: ids.report || "",

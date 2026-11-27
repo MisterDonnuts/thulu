@@ -1,0 +1,26 @@
+{
+  "account": {
+    "title": "Account in the app",
+    "help": "The case needs a login to the app under test, such as a test user or an admin role."
+  },
+  "third_party_account": {
+    "title": "Third-party account",
+    "help": "The case goes through another service (payments, email, a social login) and needs an account there."
+  },
+  "device": {
+    "title": "Physical device",
+    "help": "The case needs a real phone, a card reader or other hardware the agent cannot reach."
+  },
+  "environment": {
+    "title": "Environment",
+    "help": "The case needs a running environment, such as staging or a seeded database, or its address."
+  },
+  "judgment": {
+    "title": "A person's judgment",
+    "help": "Only a person can say whether the result is right (copy, design, a judgment call). The video shows what happened."
+  },
+  "other": {
+    "title": "Something else",
+    "help": "Anything else the agent could not get by itself."
+  }
+}

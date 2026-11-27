@@ -197,6 +197,19 @@ const migration2 = `
 			WHERE p.workspace_id <> ''
 			ON CONFLICT DO NOTHING;`
 
+// Expand only. metrics and findings hold what the runner measured; safe_for_prod is set by a person;
+// safe_only and task_id record how a batch was queued from a task.
+//
+//i18n:ignore SQL migration
+const migration5 = `
+			ALTER TABLE evidence_runs
+				ADD COLUMN IF NOT EXISTS metrics JSONB NOT NULL DEFAULT '{}',
+				ADD COLUMN IF NOT EXISTS findings JSONB NOT NULL DEFAULT '[]';
+			ALTER TABLE evidence_cases ADD COLUMN IF NOT EXISTS safe_for_prod BOOLEAN NOT NULL DEFAULT FALSE;
+			ALTER TABLE evidence_batches
+				ADD COLUMN IF NOT EXISTS safe_only BOOLEAN NOT NULL DEFAULT FALSE,
+				ADD COLUMN IF NOT EXISTS task_id TEXT NOT NULL DEFAULT '';`
+
 // A published migration never changes.
 func Migrations(_ migrate.Inspector) ([]migrate.Migration, error) {
 	return []migrate.Migration{
@@ -209,6 +222,7 @@ func Migrations(_ migrate.Inspector) ([]migrate.Migration, error) {
 			ADD COLUMN IF NOT EXISTS schedule_project_id TEXT NOT NULL DEFAULT '',
 			ADD COLUMN IF NOT EXISTS schedule_tag TEXT NOT NULL DEFAULT ''`},
 		{ID: 4, SQL: `ALTER TABLE evidence_batches ADD COLUMN IF NOT EXISTS locale TEXT NOT NULL DEFAULT ''`},
+		{ID: 5, SQL: migration5},
 	}, nil
 }
 
@@ -265,7 +279,8 @@ const caseStatus = `CASE WHEN c.take IS NOT NULL AND c.status = 'draft' THEN 're
 //i18n:ignore SQL column list
 const caseCols = `c.id, c.workspace_id, c.project_id, c.key, c.title, c.description, c.steps, c.expected,
 	c.priority, c.tags::text, c.take IS NOT NULL, c.take_source, c.take_updated_at, c.source_task_id,
-	c.source_case_key, ` + caseStatus + `, c.last_run_at, c.created_by, c.updated_by, c.created_at, c.updated_at`
+	c.source_case_key, ` + caseStatus + `, c.last_run_at, c.created_by, c.updated_by, c.created_at, c.updated_at,
+	c.safe_for_prod`
 
 func scanCase(r rowScanner, extra ...any) (Case, error) {
 	var c Case
@@ -273,7 +288,8 @@ func scanCase(r rowScanner, extra ...any) (Case, error) {
 	var takeAt, lastRun sql.NullTime
 	dest := append([]any{&c.ID, &c.WorkspaceID, &c.ProjectID, &c.Key, &c.Title, &c.Description, &c.Steps,
 		&c.Expected, &c.Priority, &tags, &c.HasTake, &c.TakeSource, &takeAt, &c.SourceTaskID,
-		&c.SourceCaseKey, &c.Status, &lastRun, &c.CreatedBy, &c.UpdatedBy, &c.CreatedAt, &c.UpdatedAt}, extra...)
+		&c.SourceCaseKey, &c.Status, &lastRun, &c.CreatedBy, &c.UpdatedBy, &c.CreatedAt, &c.UpdatedAt,
+		&c.SafeForProd}, extra...)
 	if err := r.Scan(dest...); err != nil {
 		return c, err
 	}
@@ -305,7 +321,8 @@ func (s *Store) nextKey(ctx context.Context, tx *sql.Tx, ws string) (string, err
 	return "EV-" + strconv.FormatInt(n.Int64+1, 10), nil
 }
 
-// Take, when present, must have passed ValidateTake.
+// Take, when present, must have passed ValidateTake. SafeForProd is the caller's to check: only a person
+// may set it.
 func (s *Store) CreateCase(ctx context.Context, ws, author string, in Case) (*Case, error) {
 	title, err := normalizeTitle(in.Title)
 	if err != nil {
@@ -327,7 +344,7 @@ func (s *Store) CreateCase(ctx context.Context, ws, author string, in Case) (*Ca
 		ID: newID(), WorkspaceID: ws, ProjectID: strings.TrimSpace(in.ProjectID), Title: title,
 		Description: in.Description, Steps: in.Steps, Expected: in.Expected, Priority: prio, Tags: tags,
 		SourceTaskID: in.SourceTaskID, SourceCaseKey: in.SourceCaseKey, Status: CaseDraft,
-		CreatedBy: author, UpdatedBy: author, CreatedAt: now, UpdatedAt: now,
+		CreatedBy: author, UpdatedBy: author, CreatedAt: now, UpdatedAt: now, SafeForProd: in.SafeForProd,
 	}
 	var take any
 	if len(in.Take) > 0 {
@@ -346,10 +363,11 @@ func (s *Store) CreateCase(ctx context.Context, ws, author string, in Case) (*Ca
 	}
 	_, err = tx.ExecContext(ctx, s.rb(`INSERT INTO evidence_cases (id, workspace_id, project_id, key, title,
 		description, steps, expected, priority, tags, take, take_source, take_updated_at, source_task_id,
-		source_case_key, status, created_by, updated_by, created_at, updated_at)
-		VALUES (?,?,?,?,?,?,?,?,?,CAST(? AS jsonb),CAST(? AS jsonb),?,?,?,?,?,?,?,?,?)`),
+		source_case_key, status, created_by, updated_by, created_at, updated_at, safe_for_prod)
+		VALUES (?,?,?,?,?,?,?,?,?,CAST(? AS jsonb),CAST(? AS jsonb),?,?,?,?,?,?,?,?,?,?)`),
 		c.ID, ws, c.ProjectID, c.Key, c.Title, c.Description, c.Steps, c.Expected, c.Priority, jsonText(c.Tags),
-		take, c.TakeSource, c.TakeUpdatedAt, c.SourceTaskID, c.SourceCaseKey, c.Status, author, author, now, now)
+		take, c.TakeSource, c.TakeUpdatedAt, c.SourceTaskID, c.SourceCaseKey, c.Status, author, author, now, now,
+		c.SafeForProd)
 	if err != nil {
 		return nil, apperr.Wrap(err, "evidence.errors.insert_case")
 	}
@@ -617,18 +635,25 @@ func (s *Store) UpdateCase(ctx context.Context, ws, ref, author string, p CasePa
 	if p.ProjectID != nil {
 		c.ProjectID = strings.TrimSpace(*p.ProjectID)
 	}
+	if p.SafeForProd != nil {
+		c.SafeForProd = *p.SafeForProd
+	}
 	c.UpdatedBy, c.UpdatedAt = author, time.Now().UTC()
 	_, err = s.db.ExecContext(ctx, s.rb(`UPDATE evidence_cases SET title = ?, description = ?, steps = ?,
-		expected = ?, priority = ?, tags = CAST(? AS jsonb), project_id = ?, updated_by = ?, updated_at = ?
-		WHERE id = ?`), c.Title, c.Description, c.Steps, c.Expected, c.Priority, jsonText(c.Tags), c.ProjectID,
-		author, c.UpdatedAt, c.ID)
+		expected = ?, priority = ?, tags = CAST(? AS jsonb), project_id = ?, safe_for_prod = ?, updated_by = ?,
+		updated_at = ? WHERE id = ?`), c.Title, c.Description, c.Steps, c.Expected, c.Priority, jsonText(c.Tags),
+		c.ProjectID, c.SafeForProd, author, c.UpdatedAt, c.ID)
 	if err != nil {
 		return nil, apperr.Wrap(err, "evidence.errors.update_case")
 	}
 	return c, nil
 }
 
-func (s *Store) SetTake(ctx context.Context, ws, ref, author string, take json.RawMessage, source string) (*Case, error) {
+// keepSafe says a person wrote the take. safe_for_prod judged the take it was set on, so a take written
+// by anyone else (an agent's key, a recording) clears it in the same statement: a safe_only batch
+// never replays steps a person did not see.
+func (s *Store) SetTake(ctx context.Context, ws, ref, author string, take json.RawMessage, source string,
+	keepSafe bool) (*Case, error) {
 	c, err := s.GetCase(ctx, ws, ref, false)
 	if err != nil {
 		return nil, err
@@ -636,11 +661,13 @@ func (s *Store) SetTake(ctx context.Context, ws, ref, author string, take json.R
 	now := time.Now().UTC()
 	if take == nil {
 		_, err = s.db.ExecContext(ctx, s.rb(`UPDATE evidence_cases SET take = NULL, take_source = '',
-			take_updated_at = NULL, status = 'draft', updated_by = ?, updated_at = ? WHERE id = ?`), author, now, c.ID)
+			take_updated_at = NULL, status = 'draft', safe_for_prod = safe_for_prod AND ?, updated_by = ?, updated_at = ?
+			WHERE id = ?`), keepSafe, author, now, c.ID)
 	} else {
 		_, err = s.db.ExecContext(ctx, s.rb(`UPDATE evidence_cases SET take = CAST(? AS jsonb), take_source = ?,
 			take_updated_at = ?, status = CASE WHEN last_run_at IS NULL OR status = 'draft' THEN 'ready' ELSE status END,
-			updated_by = ?, updated_at = ? WHERE id = ?`), string(take), source, now, author, now, c.ID)
+			safe_for_prod = safe_for_prod AND ?, updated_by = ?, updated_at = ? WHERE id = ?`), string(take), source, now,
+			keepSafe, author, now, c.ID)
 	}
 	if err != nil {
 		return nil, apperr.Wrap(err, "evidence.errors.update_case")

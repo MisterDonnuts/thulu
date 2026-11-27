@@ -43,6 +43,9 @@ type Config struct {
 	Admission     func() Admission
 	SandboxesHeld func(context.Context) (int, error)
 	Plan          func(workspaceID string) (plan string, concurrency int)
+	// Problems the daemon finds on its own schedule (a configured image missing from the Docker
+	// host), added to every snapshot.
+	ExtraProblems func() []Problem
 
 	Interval, DBInterval, SlowInterval, Retention time.Duration
 	Now                                           func() time.Time
@@ -224,6 +227,9 @@ func (c *Collector) sample(ctx context.Context, now time.Time) {
 		snap.Octopus.Workspaces[i].StorageBytes = c.wsStorage[snap.Octopus.Workspaces[i].ID]
 	}
 	snap.Problems = append(snap.Problems, c.slowProbs...)
+	if c.cfg.ExtraProblems != nil {
+		snap.Problems = append(snap.Problems, c.cfg.ExtraProblems()...)
+	}
 	c.snap = snap
 	c.containers = containers
 	c.history.push(Point{

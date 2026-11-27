@@ -7,4 +7,4 @@ enforcement: always
 requires: []
 # Bump on every change: the daemon syncs this skill at boot only when version exceeds the stored
 # one.
-version: 7
+version: 17

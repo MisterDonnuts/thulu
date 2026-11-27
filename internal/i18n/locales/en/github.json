@@ -13,13 +13,19 @@
     "review_fields_required": "owner, repo, a run id, at least one environment id and a state (approved or rejected) are required",
     "read_response": "read GitHub response body",
     "decode_response": "decode GitHub response",
-    "api": "GitHub answered {status}: {message}"
+    "api": "GitHub answered {status}: {message}",
+    "draft_unsupported": "this repository does not take draft pull requests",
+    "pr_node_id_missing": "GitHub returned pull request #{number} without its node id",
+    "graphql": "GitHub GraphQL refused the request: {message}",
+    "pr_still_draft": "pull request #{number} is still a draft after marking it ready",
+    "compare_sha_invalid": "compare takes commit SHAs (7 to 40 hex characters), not {base} and {head}"
   },
   "log": {
     "parse_pulls_error_failed": "github pulls API: cannot parse error response (HTTP {status})",
     "parse_error_failed": "GitHub API: cannot parse error response (HTTP {status})",
     "reviews_read_failed": "read the reviews of {repo}#{number}",
     "check_runs_read_failed": "read the check runs of {repo}",
-    "actions_read_failed": "read the GitHub Actions runs of {repo}"
+    "actions_read_failed": "read the GitHub Actions runs of {repo}",
+    "required_checks_read_failed": "read the checks the base branch of {repo} requires"
   }
 }

@@ -172,8 +172,12 @@ func TestAgentRepliesReachTheMentionHook(t *testing.T) {
 		t.Fatalf("hook saw %+v, want devops's reply in the thread", seen)
 	}
 
-	d.postRunArtifacts(ctx, tk.ID, "developer", "developer-task-"+tk.ID+"-in_progress-1", dir)
+	d.postRunArtifacts(ctx, tk.ID, "developer", "developer-task-"+tk.ID+"-in_progress-1", dir, false)
+	if len(seen) != 1 {
+		t.Errorf("hook saw %+v, want no comment from a stage run's comment.md", seen)
+	}
+	d.postRunArtifacts(ctx, tk.ID, "developer", "developer-task-"+tk.ID+"-in_progress-2", dir, true)
 	if len(seen) != 2 || seen[1].Author != "developer" || seen[1].ParentID != "" {
-		t.Errorf("hook saw %+v, want the stage run's comment too", seen)
+		t.Errorf("hook saw %+v, want the continuation's reply too", seen)
 	}
 }

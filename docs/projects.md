@@ -21,6 +21,7 @@ interface Project {
   description: string;               // shown in agent prompts at every run
   stage_template: Record<string, string>;  // stage → agent_type, copied to new tasks
   default_board_id: string;          // workflow new tasks start on ("" = instance default)
+  gates_profile?: object;            // thulu-gates profile, absent when none
   created_at: string;
 }
 ```
@@ -44,6 +45,23 @@ creation on. A task linking several projects whose defaults disagree is
 rejected with a 400 asking for an explicit `board_id`, because picking one
 would depend on the order the caller happened to list the projects in. Setting
 it to a board that doesn't exist is refused up front.
+
+### `gates_profile`
+
+The project's quality-gate profile for `thulu-gates`, kept in Thulu and never in
+the client repo (Settings → Quality gate profile, or `gates_profile` in `PATCH
+/projects/{id}`). It takes the keys of `.thulu/gates.json` plus
+`accept_unverified`, a map from check id to the reason a person wrote for
+accepting that check when it cannot finish (a suite that disconnects even on
+base). Unknown keys, unknown check ids and empty reasons get a 400; `{}` clears
+it. An agent run's key gets 403, and every change goes to the audit log.
+
+Every run of the project receives it as a file named in `$THULU_GATES_PROFILE`:
+in the sandbox at `/tmp/.thulu/gates-profile.json`, on a runner's machine in the
+job folder. On a runner, `THULU_GATES_CACHE` points at
+`<work dir>/cache/thulu-gates`, so base results, the quarantine and stored
+reports carry over between runs. What the profile does is in
+`images/runtime/thulu-gates/README.md` ("Project profile").
 
 ---
 
@@ -151,7 +169,7 @@ GET /internal/github-token?repo=owner/name
 
 These internal endpoints require the run's API key and are called by the `thulu-github` MCP container.
 
-An App token carries the MCP's default tools (`metadata:read`, `contents:write`, `pull_requests:write`, `actions:read`). `?permissions=` adds one or more of `actions:write` (`run_rerun`, `run_cancel`, `run_dispatch`), `deployments:write` (`deployment_approve`) and `checks:read` (`pr_checks`), each only when the run's stage grants thulu-github a tool that needs it (403 otherwise). An installation that was never granted a permission refuses the mint: the endpoint then answers with the project's stored credential, or `404` when there is none. For `checks:read` the MCP asks again without it and reads CI from GitHub Actions.
+An App token carries the MCP's default tools (`metadata:read`, `contents:read`, `pull_requests:write`, `actions:read`): it opens and reviews PRs but cannot merge one, since GitHub files merging under `contents:write` and the daemon pushes task branches with its own token. `?permissions=` adds one or more of `actions:write` (`run_rerun`, `run_cancel`, `run_dispatch`), `contents:write` (`pr_merge`), `deployments:write` (`deployment_approve`) and `checks:read` (`pr_checks`), each only when the run's stage grants thulu-github a tool that needs it (403 otherwise). When the stage grants `run_dispatch`, a task run gets `actions:write` only while its task has a `deploy_prod` approval in `approved` (403 naming the approval otherwise); `run_rerun` and `run_cancel` on that stage wait with it, since one token covers all three. An installation that was never granted a permission refuses the mint: the endpoint then answers with the project's stored credential, or `404` when there is none. For `checks:read` the MCP asks again without it and reads CI from GitHub Actions.
 
 ---
 

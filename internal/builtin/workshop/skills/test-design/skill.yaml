@@ -1,0 +1,9 @@
+name: test-design
+description: How to turn a spec into tests that development must make pass and cannot edit. Classifying the change as feature, bug or refactor, failing for the right reason (an assertion, never a compile error), stubs marked thulu:stub, expected values taken from the spec, assertions that discriminate, mocks only at boundaries, test level by risk, property-based tests, characterization and mutation for refactors, ten shuffled runs against flakiness, readable TC-n cases, user tasks for a blind pass, locked-tests.txt and the test plan section. Use it when it is your turn to design the tests of a task before anyone implements it.
+descriptions:
+  es: Cómo convertir una spec en tests que el desarrollo tiene que hacer pasar y no puede editar. Clasificar el cambio en feature, bug o refactor, fallar por la razón correcta (una assertion, nunca un error de compilación), stubs marcados thulu:stub, valores esperados sacados de la spec, assertions que discriminan, mocks sólo en fronteras, nivel de test según el riesgo, tests basados en propiedades, caracterización y mutación en refactors, diez corridas en orden aleatorio contra los flaky, casos TC-n legibles, tareas de usuario para la pasada a ciegas, locked-tests.txt y la sección del plan de pruebas. Usala cuando te toca diseñar las pruebas de una tarea antes de que alguien la implemente.
+type: knowledge
+enforcement: on_demand
+version: 6
+tags: [flow, testing]
+requires: [spec-writing]

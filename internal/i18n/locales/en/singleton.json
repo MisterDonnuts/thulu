@@ -10,6 +10,10 @@
     "acquired_after_wait": "took the daemon lease after waiting {waited}",
     "lost": "lost the daemon lease: no confirmation for {since} ({err}); stopping so another daemon can take over",
     "drop_conn": "daemon lease: drop the lock connection",
-    "close_conn": "daemon lease: close the lock connection"
+    "close_conn": "daemon lease: close the lock connection",
+    "unconfirmed": "the database has not confirmed the daemon lease for {since} ({err}); this is the only daemon, so it keeps running and checks again with backoff",
+    "confirmed_again": "the database confirms the daemon lease again after {since}",
+    "reclaimed": "the daemon lease's session ended after {since} without confirmation and nobody else held the lock; took it back on a new session",
+    "taken": "lost the daemon lease: no confirmation for {since} and another daemon now holds the lock; stopping"
   }
 }

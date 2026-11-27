@@ -103,6 +103,8 @@ type caseBody struct {
 	Tags        []string        `json:"tags"`
 	ProjectID   string          `json:"project_id"`
 	Take        json.RawMessage `json:"take,omitempty"`
+	// Only a signed-in person may set it, as on PATCH.
+	SafeForProd bool `json:"safe_for_prod,omitempty"`
 }
 
 func (s *Server) checkProject(w http.ResponseWriter, r *http.Request, ws, projectID string) bool {
@@ -130,8 +132,13 @@ func (s *Server) handleCreateEvidenceCase(w http.ResponseWriter, r *http.Request
 	if !decodeBody(w, r, &body) || !s.checkProject(w, r, ws, body.ProjectID) {
 		return
 	}
+	if body.SafeForProd {
+		if _, ok := requirePerson(w, r, "api.evidence.labels.person_safe_for_prod"); !ok {
+			return
+		}
+	}
 	in := evidence.Case{Title: body.Title, Description: body.Description, Steps: body.Steps, Expected: body.Expected,
-		Priority: body.Priority, Tags: body.Tags, ProjectID: body.ProjectID}
+		Priority: body.Priority, Tags: body.Tags, ProjectID: body.ProjectID, SafeForProd: body.SafeForProd}
 	if len(body.Take) > 0 && string(body.Take) != "null" {
 		take, err := evidence.ValidateTake(body.Take)
 		if err != nil {
@@ -187,12 +194,24 @@ func (s *Server) handleUpdateEvidenceCase(w http.ResponseWriter, r *http.Request
 	if p.ProjectID != nil && !s.checkProject(w, r, ws, *p.ProjectID) {
 		return
 	}
+	// Safe for production is a person's judgment: an agent's key cannot grant it to the case it wrote.
+	if p.SafeForProd != nil {
+		if _, ok := requirePerson(w, r, "api.evidence.labels.person_safe_for_prod"); !ok {
+			return
+		}
+	}
 	c, err := s.evidenceStore.UpdateCase(r.Context(), ws, r.PathValue("case"), author, p)
 	if err != nil {
 		writeEvidenceErr(w, r, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, c)
+}
+
+// A signed-in person, not an API key: only a person's judgment keeps a case safe for production.
+func byPerson(r *http.Request) bool {
+	_, ok := auth.PersonRole(r.Context())
+	return ok
 }
 
 func (s *Server) handleDeleteEvidenceCase(w http.ResponseWriter, r *http.Request) {
@@ -236,7 +255,7 @@ func (s *Server) handlePutEvidenceTake(w http.ResponseWriter, r *http.Request) {
 		writeEvidenceErr(w, r, err)
 		return
 	}
-	c, err := s.evidenceStore.SetTake(r.Context(), ws, r.PathValue("case"), author, take, evidence.SourceUpload)
+	c, err := s.evidenceStore.SetTake(r.Context(), ws, r.PathValue("case"), author, take, evidence.SourceUpload, byPerson(r))
 	if err != nil {
 		writeEvidenceErr(w, r, err)
 		return
@@ -253,7 +272,7 @@ func (s *Server) handleDeleteEvidenceTake(w http.ResponseWriter, r *http.Request
 	if !ok {
 		return
 	}
-	c, err := s.evidenceStore.SetTake(r.Context(), ws, r.PathValue("case"), author, nil, "")
+	c, err := s.evidenceStore.SetTake(r.Context(), ws, r.PathValue("case"), author, nil, "", byPerson(r))
 	if err != nil {
 		writeEvidenceErr(w, r, err)
 		return
@@ -706,7 +725,7 @@ func (s *Server) queueEvidence(w http.ResponseWriter, r *http.Request, ws string
 		return
 	}
 	env, ok := s.evidenceEnv(w, r, ws, spec.EnvironmentID)
-	if !ok {
+	if !ok || !s.narrowRunBatch(w, r, env, &spec) {
 		return
 	}
 	// ReasonNoURL is let through: the store refuses it with 412.
@@ -724,7 +743,7 @@ func (s *Server) queueEvidence(w http.ResponseWriter, r *http.Request, ws string
 	case s.evidenceSvc != nil && env.Kind == evidence.KindSandbox:
 		b, err = s.evidenceSvc.QueueSandbox(r.Context(), ws, author, evidence.SandboxBatchSpec{ProjectID: env.ProjectID,
 			Branch: spec.Branch, CaseIDs: spec.CaseIDs, Tag: spec.Tag, Trigger: spec.Trigger, TriggerRef: spec.TriggerRef,
-			Locale: spec.Locale})
+			Locale: spec.Locale, SafeOnly: spec.SafeOnly, TaskID: spec.TaskID})
 	case s.evidenceSvc != nil:
 		b, err = s.evidenceSvc.Queue(r.Context(), ws, author, spec)
 	default:
@@ -799,7 +818,10 @@ func (s *Server) handleListEvidenceBatches(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	q := r.URL.Query()
-	bs, err := s.evidenceStore.ListBatches(r.Context(), ws, q.Get("environment_id"), q.Get("project_id"), queryLimit(r))
+	bs, err := s.evidenceStore.FindBatches(r.Context(), ws, evidence.BatchFilter{
+		EnvironmentID: q.Get("environment_id"), ProjectID: q.Get("project_id"), Trigger: q.Get("trigger"),
+		Ref: q.Get("ref"), TaskID: q.Get("task_id"), Limit: queryLimit(r),
+	})
 	if err != nil {
 		writeEvidenceErr(w, r, err)
 		return

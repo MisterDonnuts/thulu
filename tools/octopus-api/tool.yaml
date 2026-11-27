@@ -10,7 +10,7 @@ description: |
   `octopus-api@write` in MCP_TOOLS.
 type: mcp
 # A bare `octopus-api` grants default_scope; the dashboard picker reads it and each tool's `scope`.
-# `board` tools sit outside the read/write ladder and are granted only by name.
+# `board` and `release` tools sit outside the read/write ladder and are granted only by name.
 default_scope: read
 tools:
   - name: task_list
@@ -18,6 +18,15 @@ tools:
     scope: read
   - name: task_get
     description: Fetch a single task with its full payload (body, comments, questions, approvals, flags, worktree_paths, pr_urls, current_run_id).
+    scope: read
+  - name: task_reports
+    description: Read the task's Reports tab (stage reports, verdicts, auditor feedback, evidence), newest first, filtered by stage or kind; long bodies are cut, report_id returns one whole.
+    scope: read
+  - name: task_events
+    description: Read the task's activity (stage changes, runs and exit codes, verdicts, auditor runs, relaunches, questions, approvals, skips), latest first-100 without payloads; event_id returns one with its payload.
+    scope: read
+  - name: task_attachment_read
+    description: Open one of the task's attachments. Images come back as images, text and JSON (takes, logs, SARIF) as text; videos and PDFs cannot be opened.
     scope: read
   - name: task_sections_get
     description: Parsed view of the body's structured sections (Goal, Definition of Done, …) with checklist items and their checked state. Cases live in task_test_cases, not in a Test Cases section.
@@ -35,7 +44,13 @@ tools:
     description: Patch a task (only provided fields change). Changing stage triggers the dispatcher; pending approvals of the stage being left hold forward moves.
     scope: write
   - name: task_section_set
-    description: Create or replace one structured section of the task body (goal, context, definition-of-done, test-cases, out-of-scope, risks, notes, or custom). Server-side rewrite — never clobbers sibling sections. New test cases go through task_test_case_add, not the test-cases section.
+    description: Create or replace one structured section of the task body (goal, context, definition-of-done, test-cases, out-of-scope, risks, notes, or custom). Server-side rewrite — never clobbers sibling sections. New test cases go through task_test_case_add, not the test-cases section; acceptance criteria through task_criteria_set.
+    scope: write
+  - name: task_criteria_get
+    description: List the task's acceptance criteria (AC-n, text, position, approval). The acceptance-criteria section of the body is generated from this list.
+    scope: read
+  - name: task_criteria_set
+    description: Replace the task's acceptance criteria with a list of AC-n keys and texts, and rewrite the acceptance-criteria section from it. A criterion whose text changes loses its approval.
     scope: write
   - name: task_checklist_check
     description: Check/uncheck one checklist item inside a section (1-based index) with an optional evidence note appended to the line. Test cases are recorded with task_test_case_run, not ticked here.
@@ -47,10 +62,10 @@ tools:
     description: Clone a task into its board's initial stage (same title/body/projects/assignments/tags; no comments, flags, branches or runtime state).
     scope: write
   - name: task_relaunch
-    description: Re-fire the agent for the task's current stage. Optional turn budget override.
+    description: Re-fire the agent for the task's current stage. Optional turn budget override and a reason, posted as a decision.
     scope: write
   - name: task_add_comment
-    description: Post a comment on a task. @<agent-name> triggers that agent's mention stage; an agent's comment does too, up to 3 agent turns in a row per thread since a person last wrote.
+    description: Post a comment on a task, for conversation only (the stage report goes to Reports). reply_to puts it in a thread. @<agent-name> triggers that agent's mention stage; an agent's comment does too, up to the workspace's cap of agent turns in a row per thread (5 by default) since a person last wrote.
     scope: write
   - name: task_add_report
     description: File a markdown report (test evidence, logs) in the task's Reports tab instead of the comment thread. Its id goes into task_test_case_run as report_id.
@@ -60,6 +75,12 @@ tools:
     scope: write
   - name: task_request_approval
     description: Add an approval (label + reason) the task needs before it moves forward out of its current stage. Agents can only add one; approving, waiving or deleting is for people.
+    scope: write
+  - name: task_skip_add
+    description: Skip a column for this task with a reason (stage id + reason). Only the refinement stage's agent or a person may add; other agents get a refusal. Gate, PR, no_skip, first and last columns can't be skipped.
+    scope: write
+  - name: task_skip_remove
+    description: Run a skipped column again, with a reason. A column ahead runs when reached; one the task already passed sends the task back there, at the end of your run if it is yours.
     scope: write
   - name: task_attach
     description: Upload a file (screenshot/PDF/log) as a task attachment via base64 content. The durable way to deliver visual evidence under K8s; images and videos render inline in the dashboard. Optionally binds the file to a comment.
@@ -71,19 +92,19 @@ tools:
     description: Delete one attachment, row and file. Anything that embedded it shows a broken link afterwards.
     scope: write
   - name: task_test_cases
-    description: List a task's test cases in order (key TC-n, title, steps, expected, priority, status, covered) with their runs newest first.
+    description: List a task's test cases in order (key TC-n, title, preconditions, steps, expected, covers, priority, status, covered) with their runs newest first.
     scope: read
   - name: task_test_case_add
-    description: Add one or several test cases to a task as a cases array. The key is assigned as TC-<max+1> when omitted.
+    description: Add one or several test cases to a task as a cases array, with the criteria each covers and its preconditions as fields. The key is assigned as TC-<max+1> when omitted.
     scope: write
   - name: task_test_case_update
-    description: Patch one test case (by key TC-3 or id) — title, description, steps, expected, priority, status, covered or position.
+    description: Patch one test case (by key TC-3 or id) — title, description, preconditions, steps, expected, covers, priority, status, covered or position.
     scope: write
   - name: task_test_case_delete
     description: Delete one test case (by key or id) and its runs.
     scope: write
   - name: task_test_case_run
-    description: Record a run of a test case with its evidence ids (video, take JSON, captures, report_id of the report in the Reports tab; comment_id names a report posted as a comment). The verdict sets the case's status and marks it covered. thulu-browser's evidence_publish already records runs for verify steps whose case is a task key.
+    description: Record a run of a test case with its evidence ids (video, take JSON, captures, report_id of the report in the Reports tab; comment_id names a report posted as a comment). observed is one sentence; a blocked run says what a person must bring (needs, from the daemon's catalog), what was tried and whether the case writes real data. The verdict sets the case's status and marks it covered. thulu-browser's evidence_publish already records runs for verify steps whose case is a task key.
     scope: write
   - name: task_list_dependencies
     description: List the dependency edges of a task (blocked_by, blocking) and whether it is currently hard-blocked.
@@ -135,6 +156,15 @@ tools:
     scope: read
   - name: project_get
     description: Fetch one project's full record.
+    scope: read
+  - name: stage_tasks_list
+    description: Tasks of this run's board in one stage, optionally only one project's, with merge_shas, pr_urls, updated_at and days_since_update.
+    scope: read
+  - name: evidence_batch_get
+    description: An Evidence batch's status, counts and failing cases, by batch_id or by environment and deployed sha; optionally waits for it.
+    scope: read
+  - name: deploy_contents
+    description: Which tasks waiting in the merge_target stage (or a given stage) a deployed commit carries, by merge-base --is-ancestor against each task's merge_sha. With prev_sha, also what was already deployed and every revert in the range.
     scope: read
   - name: project_create
     description: Register a new project. Required name + repo_url; optional description/default_branch/ai_review_cmd/testing_cmd/stage_template.
@@ -198,3 +228,21 @@ tools:
   - name: task_move_to_board
     description: Moves an existing task to another board; the target stage has to be a column of that board.
     scope: board
+  # Granted only by name too: the daemon refuses these routes to a run whose grant does not name the
+  # tool (internal/api/run_scope.go), so no scope may list them
+  # (octopus-api@read+tasks_move_batch+evidence_batch_run+deploy_watch_set).
+  - name: tasks_move_batch
+    description: Moves up to 50 tasks of this run's board forward in one request with a note, through each stage's gate and never jumping an approval; optionally only the tasks a deployed commit carries.
+    scope: release
+  - name: evidence_batch_run
+    description: Queues an Evidence batch on an environment and optionally waits for it. Against production only the cases a person marked safe run.
+    scope: release
+  - name: deploy_watch_set
+    description: Registers or updates how Thulu watches the project's deploys (github_workflow, github_deployment, cloud or http, with a target and, for cloud/http, an interval from 5m to 24h). Each change opens a release task.
+    scope: release
+  - name: deploy_watch_list
+    description: The deploy watches of this run's task's projects, with the last state and version each one saw.
+    scope: release
+  - name: deploy_watch_delete
+    description: Deletes a deploy watch of this run's task's projects and the automation Thulu generated for it.
+    scope: release

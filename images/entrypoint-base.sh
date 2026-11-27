@@ -3,7 +3,9 @@
 # per-run dir: never hardcode /workspace or /tmp.
 : "${OCTOPUS_ROOT:=/workspace}"
 : "${OCTOPUS_TMP:=/tmp}"
-export OCTOPUS_ROOT OCTOPUS_TMP
+# Prompts and skills send scratch files to "$TMPDIR": the run's own dir on a runner, /tmp here.
+: "${TMPDIR:=$OCTOPUS_TMP}"
+export OCTOPUS_ROOT OCTOPUS_TMP TMPDIR
 
 set -euo pipefail
 
@@ -293,17 +295,20 @@ if [ "${STEER_ENABLED:-0}" = "1" ]; then
   msg_en agent.log.steering_on queue "$STEER_QUEUE"
 fi
 
+# The engine runs in a process group of its own, and what it leaves there dies with it: a server it
+# started in the background no longer keeps the pipe to session.log, and so the run, alive.
+# shellcheck source=/dev/null
+source "${OCTOPUS_ROOT}/snippets/engine-pipe.sh"
 # i18n-ignore a shell script, not a message
-bash -c "
+_thulu_engine_pipe "$OUTPUT_DIR/session.log" bash -c "
   export HOME=\${HOME:-/home/node}
   $AGENT_EXPORTS
   export ENGINE='$ENGINE' MODEL='$MODEL' MAX_TURNS='$MAX_TURNS' EFFORT='${EFFORT:-}' MCP_CONFIG_ARGS='${MCP_CONFIG_ARGS:-}' SESSION_ID='${SESSION_ID:-}'
   export SESSION_STATE_DIR='$SESSION_STATE_DIR' CONVERSATION_FILE='$CONVERSATION_FILE' RESUME_BASE_PROMPT='$RESUME_BASE_PROMPT'
   export STEER_ENABLED='${STEER_ENABLED:-0}' STEER_QUEUE='$STEER_QUEUE' STEER_GRACE_MS='${STEER_GRACE_MS:-1500}'
   cat '$PROMPT_FILE' | '${OCTOPUS_ROOT}/snippets/engine-run.sh'
-" 2>&1 | tee -a "$OUTPUT_DIR/session.log"
-
-EXIT_CODE=${PIPESTATUS[0]}
+"
+EXIT_CODE=$?
 
 # Seal the queue so a message arriving during upload fails in the daemon (which resumes the stage)
 # instead of being lost.
@@ -324,7 +329,13 @@ msg_en agent.log.run_finished instance "$INSTANCE_ID" code "$EXIT_CODE"
 echo "============================================"
 
 _thulu_post_flags
-_thulu_post_comment "$OUTPUT_DIR/comment.md"
+_thulu_post_stage_verdict
+_thulu_post_locked_tests
+# comment.md is a reply to a person: a mention's answer or a continuation's. A stage run hands off
+# through verdict.md and _index.md, and comments with task_add_comment only to address a person.
+if [ "${STAGE:-}" = "mention" ] || [ "${OCTOPUS_LAUNCH_KIND:-}" = "continuation" ]; then
+  _thulu_post_comment "$OUTPUT_DIR/comment.md"
+fi
 _thulu_post_index
 
 exit $EXIT_CODE

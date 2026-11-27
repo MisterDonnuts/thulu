@@ -61,7 +61,9 @@
     "aborted": "setup cancelled",
     "input_ended": "the input ended before the confirmation, so nothing was written. Answer every question, or run `thulu init -non-interactive` to install with the defaults",
     "unknown_stack": "-stack {file} is not a stack this install runs: use one of {known}",
-    "stack_needs_checkout": "{file} compiles Thulu from a checkout, and there is none here"
+    "stack_needs_checkout": "{file} compiles Thulu from a checkout, and there is none here",
+    "flow_missing": "this daemon's Workshop has no {flow} flow",
+    "flow_blocked": "the Workshop refused the {flow} flow; open it in the Workshop to see why"
   },
   "sections": {
     "mode": {
@@ -115,6 +117,10 @@
     "install": {
       "title": "Installing",
       "blurb": ""
+    },
+    "flow": {
+      "title": "Board",
+      "blurb": "Each column of a board can have an agent that works a task when it arrives. Pick the board the workspace starts with. Both can also be installed later from the Workshop, and an agent you do not want can be deleted."
     }
   },
   "prompts": {
@@ -170,7 +176,8 @@
     "runner_folder": "Project folder",
     "runner_service": "Keep it running as a service? It starts on its own whenever you log in.",
     "yes_no_invalid": "Answer y or n.",
-    "runner_machine_profile": "Should Claude Code runs use this machine's claude session? (creates a \"Login on a machine\" profile as Claude Code's default: runs go to this machine and pay with its login)"
+    "runner_machine_profile": "Should Claude Code runs use this machine's claude session? (creates a \"Login on a machine\" profile as Claude Code's default: runs go to this machine and pay with its login)",
+    "board": "Which board should the workspace start with?"
   },
   "options": {
     "mode_docker": {
@@ -241,6 +248,18 @@
     "stack_keep": {
       "label": "Keep the current one: {file}",
       "detail": "The stack an earlier run set up, which compiles Thulu from this checkout. To work on Thulu itself, `make dev` runs the development stack."
+    },
+    "board_thulu": {
+      "label": "Thulu flow (recommended)",
+      "detail": "A board from backlog to release: refinement, test design, development, verification, AI review, agentic testing, production readiness, human review and release, with the agent and skills of each column."
+    },
+    "board_minimal": {
+      "label": "Minimal start",
+      "detail": "Four columns: Backlog, In progress, Review and Done. One general-purpose agent takes each task that reaches In progress, makes the change, runs the project's tests and commits. Review is for a person, who decides about the pull request."
+    },
+    "board_keep": {
+      "label": "Leave the boards as they are",
+      "detail": "The setup installs nothing and changes no board."
     }
   },
   "mcp": {
@@ -332,7 +351,10 @@
     "full_log": "Full log: {path}",
     "session_key_left": "The key this run used ({id}) was not revoked: {err}. Revoke it in Settings → API keys.",
     "banner_tui": "thulu init: first-time setup\nNothing is written until you confirm the summary.\nCtrl+C leaves without touching anything.\n",
-    "stack_from_flag": "Stack (from -stack)"
+    "stack_from_flag": "Stack (from -stack)",
+    "flow_installed": "Installed {name}: board {board}, now the default",
+    "flow_present": "The board {board} is already there; it stays as it is.",
+    "flow_failed": "could not install {name}: {err}"
   },
   "summary": {
     "up": "Thulu is up.",
@@ -457,6 +479,11 @@
       "step": "Machine profile for Claude Code",
       "effect": "runs use a key or the personal login, not this machine",
       "finish": "Settings → AI engines → Claude Code → New profile → Login on a machine"
+    },
+    "flow": {
+      "step": "Default board",
+      "effect": "tasks start on the board the workspace already has",
+      "finish": "install “{flow}” from the Workshop (Agents → Workshop → Flows) and tick “Make it the default board”"
     }
   },
   "labels": {
@@ -465,7 +492,11 @@
     "git_credential_name": "GitHub (thulu init)",
     "default_workspace": "Default",
     "session_key": "thulu init (this run only)",
-    "machine_profile_name": "Claude Code on {runner}"
+    "machine_profile_name": "Claude Code on {runner}",
+    "board_thulu": "the Thulu flow",
+    "board_minimal": "the minimal start",
+    "board_thulu_workshop": "Thulu flow",
+    "board_minimal_workshop": "Minimal start"
   },
   "diff": {
     "commented_out": "{key} (commented out)",
@@ -541,7 +572,11 @@
     "github": "GitHub",
     "github_token": "token given",
     "github_skipped": "no token (add it later in /credentials)",
-    "runner_machine_profile": "Claude Code runs here by default"
+    "runner_machine_profile": "Claude Code runs here by default",
+    "board": "Board",
+    "board_flow": "Thulu flow, as the default board",
+    "board_minimal": "minimal start, as the default board: one agent in In progress, Review for a person",
+    "board_keep": "left as it is"
   },
   "tasks": {
     "postgres": "Starting Postgres",
@@ -582,6 +617,8 @@
     "runner_local": "runner ▸ claude\nyour repo and git",
     "runner_run": "run",
     "runner_result": "result",
-    "runner_code_stays": "the code never leaves this machine"
+    "runner_code_stays": "the code never leaves this machine",
+    "board_agent": "{column} · agent",
+    "board_person": "{column} · a person"
   }
 }

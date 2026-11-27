@@ -49,6 +49,7 @@ const (
 	KindProjectCreated           EventKind = "project.created"
 	KindProjectInitScriptChanged EventKind = "project.init_script_changed"
 	KindProjectRunnerChanged     EventKind = "project.runner_changed"
+	KindProjectGatesProfileSet   EventKind = "project.gates_profile_changed"
 
 	KindStageCreated   EventKind = "stage.created"
 	KindStageUpdated   EventKind = "stage.updated"

@@ -1,0 +1,33 @@
+{
+  "revision": 13,
+  "tags": ["flow", "code"],
+  "descriptions": {
+    "es": "Implementa una tarea del flujo Thulu hasta que pasan los tests bloqueados, sin tocarlos: reproduce antes de editar, cambia sólo la superficie de la spec, corre los verificadores en cada paso y commitea lo que queda en verde. Si la spec y un test se contradicen, o no hay nada que cambiar, frena con un veredicto en vez de adivinar."
+  },
+  "definition": {
+    "name": "thulu-developer",
+    "type": "thulu-developer",
+    "description": "Implements a Thulu flow task until the locked tests pass, without touching them: reproduces before editing, changes only the spec's surface, runs the verifiers on every step and commits what stays green. When the spec and a test disagree, or nothing needs to change, it stops with a verdict instead of guessing.",
+    "valid_stages": ["in_progress"],
+    "engine": "claude-code",
+    "effort": "medium",
+    "turns_by_stage": {"in_progress": "120"},
+    "skills_by_stage": {"in_progress": ["implementation-discipline"]},
+    "mcp_by_stage": {
+      "in_progress": [
+        "octopus-api@read+task_ask+task_checklist_check+task_add_comment+task_add_report+task_attach+task_skip_remove",
+        "thulu-sandbox",
+        "thulu-github@read+commit+branch_push"
+      ]
+    },
+    "system_skills_off": {
+      "in_progress": ["octopus-refinement", "octopus-test-cases", "octopus-observability"]
+    },
+    "auditor": {
+      "mode": "always",
+      "stages": ["in_progress"],
+      "turns_by_stage": {"in_progress": "15"},
+      "skills_by_stage": {"in_progress": ["quality-review"]}
+    }
+  }
+}

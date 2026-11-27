@@ -20,16 +20,22 @@
     "sandbox_queue_full": "sandbox queue is full (position {position})",
     "env_metrics_disabled": "environment metrics are not enabled on this install",
     "metric_not_found": "no metric {metric:%q} in environment {environment}",
-    "environment_not_found": "no environment {environment:%q} in this workspace",
+    "environment_not_found": "no environment {environment:%q} in this workspace (environment takes the environment's ID, not its name)",
     "no_credential_store": "no credential store on this install",
     "credential_disabled": "credential {name:%q} is disabled",
     "credential_no_token": "credential {name:%q} has no single token field ({fields})",
     "credential_not_found": "no credential named {name:%q} in this workspace",
     "no_auth_store": "no auth store",
     "stage_gated": "task created but held before stage {stage:%q}: waiting for approval ({approvals})",
-    "environment_not_found": "no environment {environment:%q} in this workspace (environment takes the environment's ID, not its name)",
     "unknown_stage": "board {board:%q} has no stage {stage:%q}",
-    "ref_templated": "{field} does not take {{ }} templates: the run would look up {value:%q} as written; put an ID that exists"
+    "unknown_stage_any": "no board of this workspace has a stage {stage:%q}",
+    "ref_templated": "{field} does not take {{ }} templates: the run would look up {value:%q} as written; put an ID that exists",
+    "move_other_board": "task {task} is on board {actual:%q}, not {board:%q}: the move step only moves tasks of the board it names",
+    "move_archived": "task {task} is archived: an automation does not move it",
+    "move_running": "task {task} has an agent running: moving it would orphan the run",
+    "move_raced": "task {task} changed stage while the automation was moving it",
+    "deploy_watch_step_reserved": "a deploy_watch step only goes in the automation Thulu generates for a deploy watch; register the watch instead",
+    "managed_by_deploy_watch": "Thulu generated this automation from the deploy watch of {project}; change or delete the watch on the project page"
   },
   "audit": {
     "task_created": "Task created by an automation: {title}",
@@ -42,6 +48,11 @@
   },
   "log": {
     "publish_failed": "publish {kind}: {err}",
-    "discover_agents_failed": "discover agents: {err}"
+    "discover_agents_failed": "discover agents: {err}",
+    "task_for_pr": "find the task of a PR in workspace {workspace}",
+    "move_note": "comment the automation's move on task {task}"
+  },
+  "comments": {
+    "moved": "An automation moved the task to {stage}: {note}"
   }
 }

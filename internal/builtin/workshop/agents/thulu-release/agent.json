@@ -1,0 +1,31 @@
+{
+  "revision": 7,
+  "tags": ["release", "deploy", "observability", "flow"],
+  "descriptions": {
+    "es": "Corre en las tareas de tipo release: vigila el deploy que hizo el CI del proyecto o, en modo lote, lo dispara después de que una persona aprueba \"Deploy a prod\". Si el proyecto no tiene vigilancia de deploys, descubre cómo deploya y la registra. Verifica qué salió por el merge_sha de cada tarea, corre el smoke seguro para producción, mira la salud contra la misma franja del día y la semana anteriores y el SLO, revierte si falla y mueve a Done sólo las tareas incluidas y sanas. Nunca mergea ni aprueba deployments. Va en la etapa Release del flujo thulu."
+  },
+  "definition": {
+    "name": "thulu-release",
+    "type": "thulu-release",
+    "description": "Runs on release tasks: watches the deploy the project's CI made or, in batch mode, dispatches it after a person approves \"Deploy to production\". If the project has no deploy watch, it finds out how the project deploys and registers one. It checks what went out by each task's merge_sha, runs the production-safe smoke, compares health against the same slot of the previous day and week and the SLO, rolls back on a fail, and moves to Done only the tasks that were included and healthy. It never merges and never approves deployments. Goes in the Release stage of the thulu flow.",
+    "valid_stages": ["release"],
+    "engine": "claude-code",
+    "effort": "medium",
+    "turns_by_stage": {
+      "release": "80"
+    },
+    "skills_by_stage": {
+      "release": ["release-verification"]
+    },
+    "mcp_by_stage": {
+      "release": [
+        "thulu-github@read+run_dispatch",
+        "thulu-cloud@read",
+        "octopus-api@read+task_add_report+task_add_comment+task_request_approval+task_ask+task_create+stage_tasks_list+tasks_move_batch+deploy_contents+evidence_batch_run+evidence_batch_get+deploy_watch_set+deploy_watch_list+deploy_watch_delete"
+      ]
+    },
+    "system_skills_off": {
+      "release": ["octopus-refinement"]
+    }
+  }
+}

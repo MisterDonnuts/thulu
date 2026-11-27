@@ -21,7 +21,8 @@ type preferenceSpec struct {
 }
 
 var preferenceSpecs = map[string]preferenceSpec{
-	"tasks.view": {normalize: normalizeTasksView},
+	"tasks.view":    {normalize: normalizeTasksView},
+	"task.comments": {normalize: normalizeTaskComments},
 }
 
 // A value larger than this is not a view setting.
@@ -73,6 +74,30 @@ func normalizeTasksView(raw []byte) (any, error) {
 			return nil, apperr.Invalid("api.preferences.errors.invalid_value",
 				"field", f.name, "allowed", strings.Join(nonEmpty(f.allowed), ", "))
 		}
+	}
+	return v, nil
+}
+
+// Must match CommentsPref in web/src/lib/comments.ts: the order of a task's Comments.
+type taskCommentsPref struct {
+	Sort string `json:"sort"`
+}
+
+var taskCommentSorts = []string{"new", "old"}
+
+func normalizeTaskComments(raw []byte) (any, error) {
+	var v taskCommentsPref
+	dec := json.NewDecoder(bytes.NewReader(raw))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&v); err != nil {
+		return nil, apperr.WrapKind(apperr.KindInvalid, err, "api.server.errors.invalid_body")
+	}
+	if dec.More() {
+		return nil, apperr.Invalid("api.server.errors.invalid_body")
+	}
+	if !slices.Contains(taskCommentSorts, v.Sort) {
+		return nil, apperr.Invalid("api.preferences.errors.invalid_value",
+			"field", "sort", "allowed", strings.Join(taskCommentSorts, ", "))
 	}
 	return v, nil
 }

@@ -72,9 +72,11 @@ metadata:
   labels:
     {{- include "octopus.labels" . | nindent 4 }}
 rules:
+  # list: the janitor finds the per-pod <pod>-env Secrets whose pod is gone (ee/kuberuntime/orphans.go).
+  # get already reads any Secret of the namespace by name, so list exposes nothing new.
   - apiGroups: [""]
     resources: ["secrets"]
-    verbs: ["get", "create", "update", "delete"]
+    verbs: ["get", "list", "create", "update", "delete"]
   - apiGroups: [""]
     resources: ["configmaps"]
     verbs: ["get", "create", "update"]

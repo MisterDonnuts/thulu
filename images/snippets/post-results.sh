@@ -62,6 +62,34 @@ _thulu_post_flags() {
   fi
 }
 
+# A stage with agent_verdict reads verdict.md after the run; in a pod it reaches the daemon only
+# through this upload. The route takes the stage agent's own run key, never the auditor's.
+_thulu_post_stage_verdict() {
+  local file="$OUTPUT_DIR/verdict.md"
+  local marker="$OUTPUT_DIR/verdict.posted"
+  [ -f "$file" ] || return 0
+  [ -f "$marker" ] && return 0
+  [ -z "${TASK_ID:-}" ] || [ -z "${OCTOPUS_API:-}" ] && return 0
+  [ -z "${INSTANCE_ID:-}" ] && return 0
+  if ! _thulu_post "/tasks/$TASK_ID/stage-verdict?instance=${INSTANCE_ID}" text/markdown "$file" "$marker"; then
+    echo "WARN: $(msg_en agent.log.verdict_upload_failed)" >&2
+  fi
+}
+
+# A lock_tests stage may list, one repo-relative path per line, tests it did not touch that must
+# not change either. Same route rules as verdict.md.
+_thulu_post_locked_tests() {
+  local file="$OUTPUT_DIR/locked-tests.txt"
+  local marker="$OUTPUT_DIR/locked-tests.posted"
+  [ -f "$file" ] || return 0
+  [ -f "$marker" ] && return 0
+  [ -z "${TASK_ID:-}" ] || [ -z "${OCTOPUS_API:-}" ] && return 0
+  [ -z "${INSTANCE_ID:-}" ] && return 0
+  if ! _thulu_post "/tasks/$TASK_ID/locked-tests?instance=${INSTANCE_ID}" text/plain "$file" "$marker"; then
+    echo "WARN: $(msg_en agent.log.locked_tests_upload_failed)" >&2
+  fi
+}
+
 _thulu_post_auditor_feedback() {
   local file="$OUTPUT_DIR/feedback.md"
   local marker="$OUTPUT_DIR/feedback.posted"

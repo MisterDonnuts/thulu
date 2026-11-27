@@ -239,17 +239,28 @@ func (s *Server) handleEvidenceRecording(w http.ResponseWriter, r *http.Request)
 	})
 }
 
+// A recording chat reads the secrets of its recording's environment. A task run reads only the
+// secrets a person gave its task with "Give the agent access" (taskRunSecretEnv).
 func (s *Server) handleEvidenceRecordingSecret(w http.ResponseWriter, r *http.Request) {
-	rec, ok := s.callerRecording(w, r)
-	if !ok {
-		return
+	name := r.PathValue("name")
+	var ws, envID string
+	if scope := auth.APIKeyRunScope(r.Context()); scope.ChatID == "" && scope.TaskID != "" {
+		var ok bool
+		if ws, envID, ok = s.taskRunSecretEnv(w, r, scope, name); !ok {
+			return
+		}
+	} else {
+		rec, ok := s.callerRecording(w, r)
+		if !ok {
+			return
+		}
+		ws, envID = rec.WorkspaceID, rec.EnvironmentID
 	}
-	secrets, err := s.evidenceStore.Secrets(r.Context(), rec.WorkspaceID, rec.EnvironmentID)
+	secrets, err := s.evidenceStore.Secrets(r.Context(), ws, envID)
 	if err != nil {
 		writeEvidenceErr(w, r, err)
 		return
 	}
-	name := r.PathValue("name")
 	v, found := secrets[name]
 	if !found {
 		writeErrKey(w, r, http.StatusNotFound, "api.evidence.errors.secret_not_found", "name", name)
@@ -280,7 +291,8 @@ func (s *Server) handleEvidenceRecordingTake(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	ctx := r.Context()
-	c, err := s.evidenceStore.SetTake(ctx, rec.WorkspaceID, rec.CaseID, author, take, evidence.SourceAgent)
+	// The agent wrote this take: a case marked safe for production goes back to unmarked.
+	c, err := s.evidenceStore.SetTake(ctx, rec.WorkspaceID, rec.CaseID, author, take, evidence.SourceAgent, false)
 	if err != nil {
 		writeEvidenceErr(w, r, err)
 		return

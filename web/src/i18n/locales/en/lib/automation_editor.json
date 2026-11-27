@@ -14,7 +14,10 @@
       "other": "Found {count} tasks"
     },
     "script": "The script exited with code {code}",
-    "http": "The server answered HTTP {code}"
+    "http": "The server answered HTTP {code}",
+    "moved": "Moved \"{title}\" to {stage}",
+    "move_gated": "\"{title}\" stays put: {approvals} holds the move to {stage}",
+    "move_noop": "\"{title}\" was already in {stage}"
   },
   "sample": {
     "pr_title": "Fix the login redirect",

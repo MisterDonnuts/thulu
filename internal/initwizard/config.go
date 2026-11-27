@@ -113,6 +113,15 @@ type Config struct {
 
 	Runner RunnerPlan `json:"runner"`
 
+	// The Workshop flow installed once the daemon answers, as the default board: ThuluFlow or
+	// MinimalFlow. Empty when the install never took one.
+	Board string `json:"board,omitempty"`
+	// This run leaves the boards alone; Board still names what the install has.
+	KeepBoard bool `json:"-"`
+	// Answers files written before Board existed: true meant the Thulu flow. LoadAnswers moves it
+	// into Board, so the setup never writes it.
+	InstallFlow bool `json:"install_flow,omitempty"`
+
 	GitToken         string             `json:"-"`
 	GitProvider      string             `json:"-"`
 	Credentials      []EngineCredential `json:"-"`

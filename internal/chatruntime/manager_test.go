@@ -10,6 +10,8 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -49,6 +51,17 @@ type fakeDocker struct {
 	stdout   string
 	execErr  error
 	exitCode int
+	execs    []container.ExecOptions
+	// gate, when set, holds every turn's output until it is closed.
+	gate chan struct{}
+}
+
+// gateReader blocks until its gate closes, then reads as empty.
+type gateReader struct{ gate chan struct{} }
+
+func (g gateReader) Read([]byte) (int, error) {
+	<-g.gate
+	return 0, io.EOF
 }
 
 func newFakeDocker() *fakeDocker {
@@ -59,6 +72,12 @@ func (d *fakeDocker) setRunning(id string, v bool) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.running[id] = v
+}
+
+func (d *fakeDocker) setExecErr(err error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.execErr = err
 }
 
 func (d *fakeDocker) ContainerInspect(_ context.Context, id string) (dockertypes.ContainerJSON, error) {
@@ -93,10 +112,13 @@ func (d *fakeDocker) ContainerList(_ context.Context, _ container.ListOptions) (
 	return out, nil
 }
 
-func (d *fakeDocker) ContainerExecCreate(_ context.Context, id string, _ container.ExecOptions) (dockertypes.IDResponse, error) {
+func (d *fakeDocker) ContainerExecCreate(_ context.Context, id string, o container.ExecOptions) (dockertypes.IDResponse, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	if d.execErr != nil {
+	d.execs = append(d.execs, o)
+	// Only a turn's exec takes the error: the reap a previous turn left running in the background
+	// must not use it up.
+	if d.execErr != nil && slices.Contains(o.Cmd, "setsid") {
 		err := d.execErr
 		d.execErr = nil
 		return dockertypes.IDResponse{}, err
@@ -104,17 +126,25 @@ func (d *fakeDocker) ContainerExecCreate(_ context.Context, id string, _ contain
 	if !d.running[id] {
 		return dockertypes.IDResponse{}, fmt.Errorf("Error response from daemon: container %s is not running", id)
 	}
+	if slices.Contains(o.Cmd, "setsid") {
+		return dockertypes.IDResponse{ID: "exec-turn-" + id}, nil
+	}
 	return dockertypes.IDResponse{ID: "exec-" + id}, nil
 }
 
-func (d *fakeDocker) ContainerExecAttach(_ context.Context, _ string, _ container.ExecStartOptions) (dockertypes.HijackedResponse, error) {
+func (d *fakeDocker) ContainerExecAttach(_ context.Context, execID string, _ container.ExecStartOptions) (dockertypes.HijackedResponse, error) {
 	var framed bytes.Buffer
 	w := stdcopy.NewStdWriter(&framed, stdcopy.Stdout)
 	d.mu.Lock()
 	_, _ = w.Write([]byte(d.stdout))
+	gate := d.gate
 	d.mu.Unlock()
-	conn := &fakeConn{Reader: &framed}
-	return dockertypes.HijackedResponse{Conn: conn, Reader: bufio.NewReader(&framed)}, nil
+	var out io.Reader = &framed
+	if gate != nil && strings.HasPrefix(execID, "exec-turn-") {
+		out = io.MultiReader(gateReader{gate}, &framed)
+	}
+	conn := &fakeConn{Reader: out}
+	return dockertypes.HijackedResponse{Conn: conn, Reader: bufio.NewReader(out)}, nil
 }
 
 func (d *fakeDocker) ContainerExecInspect(_ context.Context, _ string) (container.ExecInspect, error) {
@@ -278,7 +308,7 @@ func TestExecTurn_SelfHealsExecRace(t *testing.T) {
 	if _, err := r.mgr.ExecTurn(context.Background(), c, testAgent(), AcquireOpts{}, "hola"); err != nil {
 		t.Fatal(err)
 	}
-	r.docker.execErr = errors.New("Error response from daemon: container ctr-1 is not running")
+	r.docker.setExecErr(errors.New("Error response from daemon: container ctr-1 is not running"))
 
 	if _, err := r.mgr.ExecTurn(context.Background(), c, testAgent(), AcquireOpts{}, "retry"); err != nil {
 		t.Fatalf("ExecTurn should self-heal the exec race: %v", err)

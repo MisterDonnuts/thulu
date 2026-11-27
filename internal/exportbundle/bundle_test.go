@@ -152,6 +152,10 @@ func TestRoundTrip(t *testing.T) {
 		CaptureAttachmentIDs: []string{att.ID}, Author: "qa",
 	})
 	must(t, err, "record run")
+	_, err = src.task.SetCriteria(ctx, "task_a", "pm", []task.CriterionInput{{Key: "AC-1", Text: "evidence plays"}, {Key: "AC-2", Text: "it has sound"}})
+	must(t, err, "set criteria")
+	_, err = src.task.ApproveCriteria(ctx, "task_a", "p@x", []string{"AC-1"})
+	must(t, err, "approve criteria")
 
 	bundle, attachments, err := exportbundle.Export(ctx, src.s, ws)
 	must(t, err, "export")
@@ -174,6 +178,12 @@ func TestRoundTrip(t *testing.T) {
 	dst := buildStores(t, testpg.New(t), dstData)
 	stats, err := exportbundle.Import(ctx, dst.s, got, gotAtt, dst.attachmentsDir)
 	must(t, err, "import")
+
+	criteria, err := dst.s.Tasks.ListCriteria(ctx, "task_a")
+	must(t, err, "criteria after import")
+	if len(criteria) != 2 || criteria[0].ApprovedBy != "p@x" || criteria[1].Key != "AC-2" || criteria[1].ApprovedBy != "" {
+		t.Errorf("imported criteria = %+v", criteria)
+	}
 
 	if stats.InitScripts != 1 {
 		t.Errorf("stats.InitScripts = %d, want 1", stats.InitScripts)
@@ -204,10 +214,30 @@ func TestRoundTrip(t *testing.T) {
 		t.Errorf("task created_at = %s, want preserved %s", gotTask.CreatedAt, past)
 	}
 
-	comments, err := dst.task.ListComments(ctx, "task_a")
+	all, err := dst.task.ListComments(ctx, "task_a")
 	must(t, err, "list comments")
+	var comments, approvalThreads []task.Comment
+	for _, c := range all {
+		if c.Kind == task.CommentApproval {
+			approvalThreads = append(approvalThreads, c)
+		} else {
+			comments = append(comments, c)
+		}
+	}
 	if len(comments) != 2 || comments[0].Body != "hello" || comments[1].ParentID != comments[0].ID {
 		t.Errorf("comment thread not restored: %+v", comments)
+	}
+	// Each approval keeps the thread it opened in the source, and only that one: the stage
+	// approval the import opened is replaced with its thread.
+	imported, err := dst.task.ListApprovals(ctx, "task_a")
+	must(t, err, "list approvals")
+	if len(approvalThreads) != len(imported) {
+		t.Errorf("approval threads = %d for %d approvals: %+v", len(approvalThreads), len(imported), approvalThreads)
+	}
+	for _, a := range imported {
+		if task.ApprovalThreadOf(all, a.ID) == "" {
+			t.Errorf("approval %q has no thread after import", a.Label)
+		}
 	}
 	deps, err := dst.task.GetDependencies(ctx, "task_a")
 	must(t, err, "list deps")

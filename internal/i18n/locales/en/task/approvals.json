@@ -1,13 +1,22 @@
 {
   "comments": {
+    "requested": "Approval requested: **{approval}**.",
+    "requested_reason": "\n\n{reason}",
+    "decided_approved": "Approved **{approval}**.",
+    "decided_changes": "Requested changes on **{approval}**.",
+    "decided_waived": "Waived **{approval}**.",
+    "decided_note": "\n\n{note}",
     "awaiting": "Waiting for approval to leave **{stage}**: {approvals}. The task moves on by itself once they are approved or waived.",
+    "awaiting_checks": "Approved ({approvals}), but **{stage}** waits for the checks GitHub requires before a merge: {checks}. The task moves on by itself once they pass.",
     "changes_deferred": "**{by}** requested changes on **{approval}** while the agent is working. They reach it when this run ends.",
     "kicked_back": "**{by}** requested changes on **{approval}**: back to **{stage}**.\n\n{note}",
     "resume_failed": "Changes were requested on **{approval}**, but the stage's agent could not be resumed: {err}\n\n{note}",
     "settled_advancing": "Every approval is in: moving on to **{stage}**."
   },
   "errors": {
+    "thread": "find the thread of approval {approval}",
     "bad_decision": "{decision:%q} is not a decision: use approved, changes_requested or waived",
+    "changes_ahead": "the task is not in {stage} yet, so nothing would act on changes requested on {approval:%q}: approve or waive it now, or request changes once the task gets there",
     "delete": "delete approval {id}",
     "fork_insert": "fork insert approval",
     "import": "import approval {id}",
@@ -23,7 +32,8 @@
     "reset": "send approvals back to pending",
     "scan": "read an approval",
     "task_required": "an approval needs a task",
-    "update": "update approval {id}"
+    "update": "update approval {id}",
+    "stage_agent_working": "{approval:%q} vouches for what the agent of {stage} produces, and that agent still works: approve it once the run ends"
   },
   "events": {
     "approved": "{label} approved",
@@ -33,19 +43,27 @@
     "reset_answered": "{label} back to pending after the requested changes",
     "reset_changed": "{label} back to pending: the code changed after it was approved",
     "reset_reentered": "{label} back to pending: the task is back in its stage",
-    "waived": "{label} waived"
+    "reset_pushed": "{label} back to pending: new commits on the pull request",
+    "waived": "{label} waived",
+    "tests_restored": "{label} waived: the locked tests are back as they were",
+    "tests_relocked": "{label} waived: the tests were locked again"
   },
   "log": {
+    "open_thread": "open the thread of approval {approval} on task {task}",
+    "resolve_thread": "resolve the thread of approval {approval} on task {task}",
+    "reopen_thread": "reopen the thread of approval {approval}",
     "claim": "move task {task} out of awaiting_approval",
     "decorate_counts": "count pending approvals",
     "ensure": "open the stage's approvals for task {task}",
     "gate": "read the approvals that gate task {task}",
-    "kick_back_failed": "send task {task} back after changes were requested: {err}",
     "mirror_flag": "mirror approval {approval} into task_flags",
     "record_event": "record an approval event for task {task}",
     "reopen": "reopen the approvals that asked task {task} for changes",
     "reset": "reset the approvals of task {task} after its run",
     "sync_flags": "take in the flags the previous release wrote ({step})"
   },
-  "resume_message": "{by} asked for changes before approving \"{approval}\":\n\n{note}\n\nMake the changes in this stage. The approval goes back to pending when you finish, for them to review again."
+  "resume_message": "{by} asked for changes before approving \"{approval}\":\n\n{note}\n\nMake the changes in this stage. The approval goes back to pending when you finish, for them to review again.",
+  "labels": {
+    "test_change": "Change to locked tests"
+  }
 }

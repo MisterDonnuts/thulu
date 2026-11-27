@@ -1,6 +1,10 @@
 package chat
 
-import "github.com/MisterDonnuts/thulu/internal/syncx"
+import (
+	"time"
+
+	"github.com/MisterDonnuts/thulu/internal/syncx"
+)
 
 // Forwarded verbatim as the SSE `event:` field; names are part of the public wire contract.
 type EventType string
@@ -15,19 +19,30 @@ const (
 	EventTurnFailed    EventType = "turn_failed"
 	EventActionPending EventType = "action_pending"
 	EventActionDecided EventType = "action_decided"
+	// EventQueueChanged carries the messages waiting for the chat's turn (Queue).
+	EventQueueChanged EventType = "queue_changed"
 )
+
+// QueuedMessage waits for the chat's running turn to end; it is not stored until it goes out.
+type QueuedMessage struct {
+	ID        string    `json:"id"`
+	Author    string    `json:"author"`
+	Text      string    `json:"text"`
+	CreatedAt time.Time `json:"created_at"`
+}
 
 // WorkspaceID must always be set: the SSE hub filters per-subscriber visibility on it.
 type Event struct {
-	Type        EventType `json:"type"`
-	ChatID      string    `json:"chat_id"`
-	WorkspaceID string    `json:"workspace_id"`
-	TaskID      string    `json:"task_id,omitempty"`
-	TurnID      string    `json:"turn_id,omitempty"`
-	Chat        *Chat     `json:"chat,omitempty"`
-	Message     *Message  `json:"message,omitempty"`
-	Err         string    `json:"error,omitempty"`
-	Action      *Action   `json:"action,omitempty"`
+	Type        EventType       `json:"type"`
+	ChatID      string          `json:"chat_id"`
+	WorkspaceID string          `json:"workspace_id"`
+	TaskID      string          `json:"task_id,omitempty"`
+	TurnID      string          `json:"turn_id,omitempty"`
+	Chat        *Chat           `json:"chat,omitempty"`
+	Message     *Message        `json:"message,omitempty"`
+	Err         string          `json:"error,omitempty"`
+	Action      *Action         `json:"action,omitempty"`
+	Queue       []QueuedMessage `json:"queue,omitempty"`
 
 	// Set only by For; nil reaches no subscriber, so an event published without its chat is dropped
 	// rather than leaked.

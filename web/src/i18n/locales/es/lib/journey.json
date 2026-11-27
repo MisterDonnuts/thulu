@@ -1,0 +1,58 @@
+{
+  "title": "Recorrido",
+  "label": "Recorrido de la tarea por las columnas",
+  "hint": "Pasá el mouse por una columna o una flecha",
+  "now": "Ahora",
+  "skipped": {
+    "one": "salteó ×{count}",
+    "other": "salteó ×{count}"
+  },
+  "minutes": "{m} min",
+  "hours": "{h} h {mm}",
+  "tip": {
+    "visited": {
+      "one": "Pasó {count} vez · {time} acá",
+      "other": "Pasó {count} veces · {time} acá"
+    },
+    "unseen": "Todavía no llegó",
+    "questions": {
+      "one": "{count} pregunta ({waited} esperó a una persona)",
+      "other": "{count} preguntas ({waited} esperaron a una persona)"
+    },
+    "stops": {
+      "one": "Se detuvo por una persona {count} vez",
+      "other": "Se detuvo por una persona {count} veces"
+    },
+    "fails": {
+      "one": "{count} corrida falló",
+      "other": "{count} corridas fallaron"
+    },
+    "moved": {
+      "one": "Una persona la movió {count} vez",
+      "other": "Una persona la movió {count} veces"
+    },
+    "hop": {
+      "one": "{from} → {to} · {count} vez ({rounds})",
+      "other": "{from} → {to} · {count} veces ({rounds})"
+    },
+    "by_person": "la movió una persona",
+    "skipped": "salteó {stages}",
+    "back_agent": {
+      "one": "{from} la devolvió a {to} · {count} vez",
+      "other": "{from} la devolvió a {to} · {count} veces"
+    },
+    "back_person": {
+      "one": "Una persona la devolvió a {to} · {count} vez",
+      "other": "Una persona la devolvió a {to} · {count} veces"
+    }
+  },
+  "legend": {
+    "times": "veces en esa columna",
+    "agent_back": "un agente la devolvió",
+    "person_back": "una persona la devolvió",
+    "questions": "preguntas",
+    "stops": "se detuvo por una persona",
+    "fails": "corrida fallida",
+    "round": "R8 = ronda 8"
+  }
+}

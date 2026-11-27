@@ -32,8 +32,11 @@ func (u *updateRun) check(ctx context.Context, latest bool) error {
 
 	switch ext := strings.ToLower(filepath.Ext(u.opts.Output)); {
 	case u.opts.Output == "":
-		_, err = u.out.Write(pkg.Markdown())
-		return err
+		if _, err = u.out.Write(pkg.Markdown()); err != nil {
+			return err
+		}
+		u.sayDrift(ctx)
+		return nil
 	case ext == ".json":
 		body, err := pkg.JSON()
 		if err != nil {

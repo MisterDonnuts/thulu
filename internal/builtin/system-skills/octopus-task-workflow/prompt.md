@@ -5,6 +5,18 @@ the questions, the approvals, the body with its sections, the test cases and
 the reports. This skill teaches what to use from `octopus-api` in each case.
 Test cases have their own skill (`octopus-test-cases`).
 
+Three reads cover what `task_get` and the comments do not carry:
+
+- `task_reports`: what each stage left (its report, its verdict, an
+  auditor's feedback, a filed test report). Filter by `stage` and `kind`; a
+  long body comes cut, and `report_id` returns it whole.
+- `task_events`: the activity, as in the task's Activity tab: stage changes,
+  runs with their exit code, verdicts, auditor runs, relaunches with their
+  reason. Use it to answer why a task is where it is.
+- `task_attachment_read`: opens a capture as an image, and a take, log or
+  SARIF as text. A video cannot be opened; read its take
+  (`take_attachment_id` on the test case run) and its captures instead.
+
 ## You need something from someone
 
 | Situation | Use |
@@ -13,14 +25,17 @@ Test cases have their own skill (`octopus-test-cases`).
 | A decision without which the work that follows gets thrown away | `task_ask` (blocking, the default) |
 | You cannot go on in any way: a credential or an access is missing, the request contradicts itself | `task_ask` with `kind: "blocker"` |
 | A person should review what you changed before the task moves on ("I touched the checkout, design should look at it") | `task_request_approval` |
+| Your change needs a column the task skips (you touched a screen and `testing` is skipped) | `task_skip_remove` with the reason (skill `octopus-run`) |
 | Another agent should weigh in or do a part | a comment that names it with `@name` |
 | Telling people something that expects no answer | `task_add_comment` |
 | Long evidence: checks, logs, screenshots | `task_add_report` |
 | A test case that could not be executed because of something outside it | a `blocked` run of the case (skill `octopus-test-cases`) |
 
-Before asking, check whether the description, the comments, the repo or the
-"Open questions" section of the brief already answer it. What has already been
-asked is not asked again.
+Before asking, check whether the brief already answers it: the description,
+the Discussion (a person's answers to earlier questions, in this stage or
+another, live there), the `clarifications` section of the body, the "Open
+questions" section and the repo. An answer a person already gave is applied,
+not asked again; write it in your report with where you found it.
 
 ## Asking with `task_ask`
 
@@ -75,9 +90,13 @@ Answer: By email
 Go on from there. If they answer while you are still running, the answer may
 reach you in the middle of the run.
 
-**Non-blocking:** go on with the `default` you declared. If the answer arrives
-while you are running, it reaches you; if it arrives later, it stays in the
-thread for the next run.
+**Non-blocking:** the `default` is a decision you take now, not a
+placeholder. Write it where it applies (the spec's Assumptions, your code,
+your report) and go on with it in this run; never wait for the answer or
+end your turn for it. If the answer arrives while you are running, it
+reaches you and you adjust; if it arrives later, it stays in the thread for
+the next run. When the task leaves the stage, Thulu closes the question with
+its default. A question you would wait for is blocking: ask it that way.
 
 If the task changes stage before they answer, the blocking questions of the
 stage it left are canceled and nobody resumes you.
@@ -93,6 +112,10 @@ tries to leave the stage.
   "Security").
 - `reason`: what changed and what to look at ("I changed the tax calculation in
   `checkout/tax.ts`; check rounding with coupons").
+- `stage` (optional): the id of a later stage on the Flow line where a person
+  should decide it, when the decision belongs there and must not stop the
+  stages in between. The approval then holds that stage instead of yours.
+  Without it, it holds the current stage.
 - You can request them, not approve, waive or delete them.
 - The stage may bring its own: the brief lists them under "Approvals" with
   their status. Do not request again one that is already there.
@@ -116,14 +139,24 @@ again.
 ## Comments, threads and reports
 
 - Thulu signs each comment with your agent name.
+- A comment is conversation. In a stage run, comment only to address a
+  person: a reply to a question they asked, or something they must know that
+  the verdict and the report cannot carry. The handoff to the next stage goes
+  in `verdict.md` (`next`, `delta`) and the report, which the next brief
+  carries. Your report, a test summary or a stop never go in a comment: the
+  report is `_index.md`, and a stop is `ask` in `verdict.md` (skill
+  `octopus-run`).
+- Use few words: what you need or what changed, in one or two sentences.
+  Detail goes in the report.
 - `task_add_comment` posts right away. `comment.md` in the output dir is
-  posted when the run ends. Use one of the two for the same message, not both.
-- `parent_id` with the id of any comment in the thread puts your reply in that
+  posted when a mention or a continuation ends, as your reply; a stage run's
+  `comment.md` is not posted.
+- `reply_to` with the id of any comment in the thread puts your reply in that
   thread. In a mention, it is the `THREAD_ID` you were given.
-- `@name` launches that agent in the thread. A thread allows three agent
-  messages in a row: the third no longer launches anyone, and nobody is
-  launched until a person writes. Name another agent when you need its work,
-  not to let it know something.
+- `@name` launches that agent in the thread. A thread allows a few agent
+  messages in a row (5 unless the workspace changed it): the last one no
+  longer launches anyone, and nobody is launched until a person writes. Name
+  another agent when you need its work, not to let it know something.
 - To show an image or a video, upload it with `task_attach` and embed it:
   `![screenshot](/task-attachments/<id>)`.
 - `task_add_report` goes to the Reports tab: it does not notify or launch

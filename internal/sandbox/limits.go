@@ -63,8 +63,12 @@ func (m *Manager) ReapIdle(ctx context.Context) {
 		return
 	}
 	idleSecs, err := m.settings.SandboxIdleEvictSeconds(ctx)
-	if err != nil || idleSecs <= 0 {
+	if err != nil {
 		return
+	}
+	if idleSecs <= 0 {
+		// Stored by a version that let 0 turn eviction off; the setting refuses it now.
+		idleSecs = settings.DefaultSandboxIdleEvictSeconds
 	}
 	cutoff := time.Now().Add(-time.Duration(idleSecs) * time.Second)
 	// Bounded so a store that refuses to update can't spin the loop forever.

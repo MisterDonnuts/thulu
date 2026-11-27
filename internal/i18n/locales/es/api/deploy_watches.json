@@ -1,0 +1,39 @@
+{
+  "errors": {
+    "arm_conflict": "la vigilancia de deploys cambió mientras se guardaba; registrala de nuevo",
+    "admin_only": "registrar o borrar una vigilancia de deploys pide rol admin",
+    "interval_unreadable": "el intervalo {value} no es una duración; escribilo como 15m o 1h",
+    "project_required": "esta tarea tiene {count} proyectos; indicá en project_id para cuál es la vigilancia",
+    "project_not_of_task": "el proyecto {project} no es de esta tarea",
+    "not_on_github": "{project} no tiene repo en GitHub, así que una vigilancia de GitHub nunca se dispararía",
+    "cloud_provider": "el entorno {environment} corre en {provider}, y por ahora Thulu sólo lee deploys de Cloud Run (gcp)",
+    "cloud_off": "esta instalación no lee deploys de la nube (falta la URL de thulu-cloud)",
+    "spec_invalid": "la automatización generada para la vigilancia no se pudo leer",
+    "not_polled": "una vigilancia {source} no se consulta por intervalo",
+    "read_failed": "no se pudo leer {target}: {reason}"
+  },
+  "log": {
+    "rollback_failed": "deshacer la vigilancia de deploys {watch} a medio crear",
+    "list_failed": "listar las vigilancias de deploys del proyecto {project}",
+    "disarm_failed": "borrar la automatización de la vigilancia de deploys {watch}"
+  },
+  "audit": {
+    "set": "Vigilancia de deploys en {project}: {source} {target}",
+    "deleted": "Vigilancia de deploys borrada: {source} {target}"
+  },
+  "spec": {
+    "name": "Vigilancia de deploys: {project} ({source} {target})",
+    "description": "La generó Thulu a partir de la vigilancia de deploys de {project}. Para cambiarla, cambiá o borrá la vigilancia, no esta automatización.",
+    "task_title_github": "Verificar el deploy de {project} en {sha} ({state})",
+    "task_body_workflow": "El workflow {workflow} terminó con {state} en {branch}.\n\nCorrida: {url}\nCommit: {sha}\n\nVerificá el deploy contra las tareas que salieron en él.",
+    "task_body_deployment": "El deployment a {environment} reportó {state}.\n\nCommit: {sha}\nURL: {url}\nTandas de evidencia: {batches}\n\nVerificá el deploy contra las tareas que salieron en él.",
+    "task_title_polled": "Verificar el deploy de {project}: {state} {version}",
+    "task_body_polled": "La vigilancia de {target} vio un cambio.\n\nAhora: {state} {version}\nAntes: {previous_state} {previous_version}\n{detail}\n\nVerificá el deploy contra las tareas que salieron en él."
+  },
+  "detail": {
+    "unreachable": "El endpoint no respondió: {reason}",
+    "http_status": "El endpoint respondió HTTP {status}.",
+    "no_deploys": "Ningún deploy en las últimas 24 horas.",
+    "cloud_deploy": "Último deploy: servicio {service} a las {at}."
+  }
+}

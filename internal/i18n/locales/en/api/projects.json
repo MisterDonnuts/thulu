@@ -43,6 +43,7 @@
   },
   "audit": {
     "init_script_saved": "Init script of {project} saved as revision {revision}",
-    "init_script_restored": "Init script of {project} restored from revision {from} as revision {revision}"
+    "init_script_restored": "Init script of {project} restored from revision {from} as revision {revision}",
+    "gates_profile_changed": "Quality-gate profile of {project} changed"
   }
 }

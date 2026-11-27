@@ -8,9 +8,11 @@ import (
 
 	"github.com/MisterDonnuts/thulu/internal/apperr"
 	"github.com/MisterDonnuts/thulu/internal/github"
+	"github.com/MisterDonnuts/thulu/internal/githubapp"
 	"github.com/MisterDonnuts/thulu/internal/i18n"
 	"github.com/MisterDonnuts/thulu/internal/logx"
 	"github.com/MisterDonnuts/thulu/internal/project"
+	"github.com/MisterDonnuts/thulu/internal/types"
 )
 
 type ForcePRStatus string
@@ -32,7 +34,12 @@ type ForcePRResult struct {
 	Status      ForcePRStatus `json:"status"`
 	Message     string        `json:"message,omitempty"`
 	PRURL       string        `json:"pr_url,omitempty"`
+	// Opened as a draft (pr_draft); false when the repository refused drafts and it went regular.
+	Draft bool `json:"draft,omitempty"`
 }
+
+// recordPROutcome's trigger for a pr_draft stage.
+const prTriggerDraft = "draft"
 
 func (d *Dispatcher) EnsurePRs(ctx context.Context, t *Task) (*Task, []ForcePRResult) {
 	if t == nil {
@@ -64,7 +71,7 @@ func (d *Dispatcher) EnsurePRs(ctx context.Context, t *Task) (*Task, []ForcePRRe
 
 func (d *Dispatcher) forcePRForProject(ctx context.Context, t *Task, projectID string) (ForcePRResult, bool) {
 	pushed := d.forcePushIfNeeded(ctx, t, projectID)
-	res := d.openFallbackPRForProject(ctx, t, projectID, i18n.Text("task.prompts.pr_footer_force"))
+	res := d.openFallbackPRForProject(ctx, t, projectID, i18n.Text("task.prompts.pr_footer_force"), false)
 	res.Pushed = pushed
 	wrote := d.recordPROutcome(ctx, t, projectID, res, "force_pr")
 	return res, wrote
@@ -76,9 +83,15 @@ func (d *Dispatcher) recordPROutcome(ctx context.Context, t *Task, projectID str
 		t.PRURLs[projectID] = res.PRURL
 		meta := map[string]string{"project": projectID, "url": res.PRURL, "fallback": "true"}
 		label, comment := "fallback-pr", NoteOf("task.comments.fallback_pr_opened", "url", res.PRURL)
-		if trigger == "force_pr" {
+		switch {
+		case trigger == "force_pr":
 			meta["trigger"] = trigger
 			label, comment = "force-pr", NoteOf("task.comments.force_pr_opened", "url", res.PRURL)
+		case res.Draft:
+			meta["draft"] = "true"
+			label, comment = "draft-pr", NoteOf("task.comments.draft_pr_opened", "url", res.PRURL)
+		case trigger == prTriggerDraft:
+			comment = NoteOf("task.comments.draft_pr_unsupported", "url", res.PRURL)
 		}
 		logx.Warn(d.store.RecordEvent(ctx, t.ID, EventPROpened, res.PRURL, "octopus", res.PRURL, meta),
 			"task.log.record_pr_opened", "label", label, "task", t.ID)
@@ -203,7 +216,7 @@ func (d *Dispatcher) forcePushIfNeeded(ctx context.Context, t *Task, projectID s
 	return true
 }
 
-func (d *Dispatcher) openFallbackPRForProject(ctx context.Context, t *Task, projectID, footer string) ForcePRResult {
+func (d *Dispatcher) openFallbackPRForProject(ctx context.Context, t *Task, projectID, footer string, draft bool) ForcePRResult {
 	res := ForcePRResult{ProjectID: projectID}
 	if existing, ok := t.PRURLs[projectID]; ok && existing != "" {
 		res.Status = ForcePRStatusAlreadyOpen
@@ -237,14 +250,20 @@ func (d *Dispatcher) openFallbackPRForProject(ctx context.Context, t *Task, proj
 	branch := project.TaskBranchName(t.ID)
 	title := t.Title
 	body := buildPRBody(ctx, d.store, t) + footer
-	out, err := github.OpenPR(ctx, tok.Token, github.OpenPRReq{
+	req := github.OpenPRReq{
 		Owner: owner,
 		Repo:  repo,
 		Head:  branch,
 		Base:  proj.DefaultBranch,
 		Title: title,
 		Body:  body,
-	})
+		Draft: draft,
+	}
+	out, err := github.OpenPR(ctx, tok.Token, req)
+	if draft && errors.Is(err, github.ErrDraftUnsupported) {
+		req.Draft = false
+		out, err = github.OpenPR(ctx, tok.Token, req)
+	}
 	if errors.Is(err, github.ErrAlreadyExists) {
 		// GitHub's 422 for an existing PR does not say which one, so look it up by head.
 		res.Status = ForcePRStatusAlreadyOpen
@@ -263,6 +282,7 @@ func (d *Dispatcher) openFallbackPRForProject(ctx context.Context, t *Task, proj
 	}
 	res.Status = ForcePRStatusOpened
 	res.PRURL = out.HTMLURL
+	res.Draft = req.Draft
 	return res
 }
 
@@ -287,9 +307,33 @@ func forcePRComment(res ForcePRResult) Note {
 	return Note{}
 }
 
-func (d *Dispatcher) ensurePullRequests(ctx context.Context, t *Task, stageLabel string) *Task {
+// What a stage's PR flags do on entry: open_pr opens the PR, pr_draft opens it as a draft so the
+// project's CI runs before review, pr_ready takes it out of draft. A subtask shares the root's
+// branch and PR, so only the root acts.
+func (d *Dispatcher) stagePullRequests(ctx context.Context, t *Task, info types.StageInfo) *Task {
+	if t.IsSubtask() || len(t.ProjectIDs) == 0 {
+		return t
+	}
+	if info.OpenPR || info.PRDraft {
+		label := info.Label
+		if label == "" {
+			label = string(t.Stage)
+		}
+		t = d.ensurePullRequests(ctx, t, label, info.PRDraft)
+	}
+	if info.PRReady {
+		d.markPullRequestsReady(ctx, t)
+	}
+	return t
+}
+
+func (d *Dispatcher) ensurePullRequests(ctx context.Context, t *Task, stageLabel string, draft bool) *Task {
 	if t.PRURLs == nil {
 		t.PRURLs = map[string]string{}
+	}
+	trigger := ""
+	if draft {
+		trigger = prTriggerDraft
 	}
 	changed := false
 	for _, projectID := range t.ProjectIDs {
@@ -297,8 +341,8 @@ func (d *Dispatcher) ensurePullRequests(ctx context.Context, t *Task, stageLabel
 			continue
 		}
 		res := d.openFallbackPRForProject(ctx, t, projectID,
-			i18n.Text("task.prompts.pr_footer_fallback", "stage", stageLabel))
-		if d.recordPROutcome(ctx, t, projectID, res, "") {
+			i18n.Text("task.prompts.pr_footer_fallback", "stage", stageLabel), draft)
+		if d.recordPROutcome(ctx, t, projectID, res, trigger) {
 			changed = true
 		}
 	}
@@ -308,6 +352,45 @@ func (d *Dispatcher) ensurePullRequests(ctx context.Context, t *Task, stageLabel
 		}
 	}
 	return t
+}
+
+// A PR that is no longer a draft (a person did it, or it never was) is left alone and says nothing.
+func (d *Dispatcher) markPullRequestsReady(ctx context.Context, t *Task) {
+	for _, projectID := range t.ProjectIDs {
+		url := t.PRURLs[projectID]
+		if url == "" {
+			continue
+		}
+		owner, repo, number, ok := github.ParsePRURL(url)
+		if !ok {
+			continue
+		}
+		if d.secrets == nil {
+			d.systemComment(ctx, t.ID, NoteOf("task.comments.pr_ready_failed", "url", url,
+				"err", apperr.New("task.hints.pr_no_secrets_store")))
+			continue
+		}
+		tok, err := d.secrets.GetGithubToken(ctx, projectID)
+		if err == nil && tok == nil {
+			err = githubapp.ErrNoCredential
+		}
+		if err != nil {
+			d.systemComment(ctx, t.ID, NoteOf("task.comments.pr_ready_failed", "url", url, "err", err))
+			continue
+		}
+		changed, err := github.MarkPRReady(ctx, tok.Token, owner, repo, number)
+		if err != nil {
+			d.systemComment(ctx, t.ID, NoteOf("task.comments.pr_ready_failed", "url", url, "err", err))
+			continue
+		}
+		if !changed {
+			continue
+		}
+		d.systemComment(ctx, t.ID, NoteOf("task.comments.pr_marked_ready", "url", url))
+		logx.Warn(d.store.RecordEvent(ctx, t.ID, EventPRReady, url, "octopus", url,
+			map[string]string{"project": projectID, "url": url}),
+			"task.log.record_pr_ready", "task", t.ID)
+	}
 }
 
 func (d *Dispatcher) uploadProject(ctx context.Context, projectID string) bool {

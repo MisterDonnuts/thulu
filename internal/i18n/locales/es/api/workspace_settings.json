@@ -1,8 +1,12 @@
 {
   "errors": {
+    "agent_turns_range": "agent_turns_per_thread tiene que ser un número entero de respuestas entre {min} y {max}",
     "run_minutes_range": "agent.max_run_minutes tiene que ser un número entero de minutos entre {min} y {max}"
   },
   "audit": {
+    "agent_turns_set": "Ajuste del workspace {setting} en {value}; los agentes ahora se pausan después de {effective} seguidas",
+    "agent_turns_cleared": "Ajuste del workspace {setting} borrado; los agentes ahora se pausan después del valor por defecto, {effective} seguidas",
+    "replies": "{n} respuestas",
     "set": "Ajuste del workspace {setting} en {value} minutos; las corridas ahora tienen {effective}",
     "cleared": "Ajuste del workspace {setting} borrado; las corridas ahora tienen el valor de la instalación, {effective}",
     "minutes": "{n} minutos",

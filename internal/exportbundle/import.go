@@ -287,6 +287,10 @@ func importTasks(ctx context.Context, s Stores, b *Bundle, attachments map[strin
 		}
 		if wrote {
 			st.Tasks++
+			// Only a task this import created: the rows of one already here stay as they are.
+			if err := s.Tasks.ImportCriteria(ctx, t.ID, ts.Criteria); err != nil {
+				return err
+			}
 		}
 		if err := importTaskChildren(ctx, s, ts, attachments, attachmentsDir, st); err != nil {
 			return err
@@ -320,6 +324,13 @@ func importTaskChildren(ctx context.Context, s Stores, ts *TaskSection, attachme
 	}
 	for j := range ts.Approvals {
 		if err := s.Tasks.ImportApproval(ctx, ts.Approvals[j]); err != nil {
+			return err
+		}
+	}
+	for j := range ts.LockedFiles {
+		f := ts.LockedFiles[j]
+		f.TaskID = ts.Task.ID
+		if err := s.Tasks.ImportLockedFile(ctx, f); err != nil {
 			return err
 		}
 	}

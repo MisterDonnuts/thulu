@@ -44,9 +44,22 @@
     "ci": "CI",
     "review": "Review",
     "mergeable": "Merge",
-    "updated": "Updated"
+    "updated": "Updated",
+    "required": "Required checks"
   },
   "pr_number": "PR #{number}",
   "no_credential": "No GitHub credential for this project.",
-  "add_credential": "Add one"
+  "add_credential": "Add one",
+  "required": {
+    "failing": "{checks} failed",
+    "running": "{checks} still running",
+    "missing": "{checks} not reported yet",
+    "behind": "the branch is behind its base, which must be up to date",
+    "unknown": "could not read them from GitHub",
+    "passed": {
+      "one": "{count} required check passed",
+      "other": "All {count} required checks passed"
+    },
+    "pr": "PR #{number}: {reason}"
+  }
 }

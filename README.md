@@ -40,7 +40,7 @@ The command is `thulu`. Environment variables, images and the Helm chart use the
 
 ### 1. Lay out your stages
 
-A new board starts as Backlog, In progress, Done. Make it Backlog, Development, QA, Human review, Done, or whatever your team uses, with up to 32 stages per board and 64 boards per workspace. You decide which stages get an agent, which advance on their own, and which wait for a person's approval. Task types can skip stages, so a hotfix doesn't go through refinement.
+A new board starts as Backlog, In progress, Review, Done. Make it Backlog, Development, QA, Human review, Done, or whatever your team uses, with up to 32 stages per board and 64 boards per workspace. You decide which stages get an agent, which advance on their own, and which wait for a person's approval. Task types can skip stages, so a hotfix doesn't go through refinement.
 
 <img src=".github/assets/readme/board.webp" alt="A Thulu board for a web store with Backlog, Refinement, In progress, Review, QA and Done columns. Cards show their project, tags, blocked state and pending approvals." width="100%">
 

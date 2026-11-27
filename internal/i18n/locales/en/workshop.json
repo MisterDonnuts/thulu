@@ -30,6 +30,12 @@
     "skill_no_such_item": "the Workshop has no skill called {name}",
     "skill_write_file": "write skill {name}: {path}",
     "too_many_items": "the bundle has too many items ({agents} agents and {skills} skills at most)",
-    "version_unsupported": "file version {version} is not supported (this Thulu reads version {want})"
+    "version_unsupported": "file version {version} is not supported (this Thulu reads version {want})",
+    "catalog_flow": "the Workshop catalog has a broken flow: {name}",
+    "flow_unknown_agent": "flow {flow} assigns the agent {agent}, which the Workshop does not have",
+    "flow_agent_stage": "flow {flow} puts the agent {agent} in {stage}, a stage the agent does not run in",
+    "flow_no_such_item": "the Workshop has no flow called {name}",
+    "flow_no_boards": "the flow {name} needs the board store to install",
+    "flow_board_id_invalid": "{target} cannot be the id of the board of flow {name}: use lowercase letters, digits and underscores, 32 at most"
   }
 }

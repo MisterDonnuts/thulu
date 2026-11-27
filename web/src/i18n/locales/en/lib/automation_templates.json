@@ -55,5 +55,30 @@
       "task_body": "The check printed:",
       "fingerprint_comment": "One card per day. The date comes from the firing, so a run that starts at 23:59 does not land on tomorrow's card."
     }
+  },
+  "watch_deploy": {
+    "title": "Watch deploy",
+    "blurb": "When GitHub reports a successful deploy to production, open one release task for that SHA. Its agent verifies the deploy and moves the tasks it shipped. Needs the Thulu board.",
+    "spec": {
+      "name": "watch deploy",
+      "description": "a successful production deploy opens a release task for the release agent",
+      "type_comment": "The release type puts the task straight into Release, where its agent verifies the deploy",
+      "type_comment_more": "and moves the merged tasks this SHA carries.",
+      "project_comment": "Add project_ids with the repo's project so the agent works on its code.",
+      "task_title": "Verify the deploy of {{ trigger.payload.repo }} at {{ trigger.payload.sha }}",
+      "task_body": "GitHub reports a successful deploy to {{ trigger.payload.environment }}.",
+      "task_url": "Deployed URL",
+      "task_batches": "Smoke batches already queued for it"
+    }
+  },
+  "watch_deploy_workflow": {
+    "title": "Watch deploy (workflow)",
+    "blurb": "For repos that deploy from a GitHub Actions workflow without Environments. When the workflow finishes green on the default branch, open one release task for that SHA.",
+    "spec": {
+      "name": "watch deploy workflow",
+      "description": "a green deploy workflow on the default branch opens a release task",
+      "workflow_comment": "Replace Deploy in the filter with the name of the workflow that deploys to production.",
+      "task_body": "The workflow {{ trigger.payload.workflow_name }} finished green on {{ trigger.payload.head_branch }}."
+    }
   }
 }

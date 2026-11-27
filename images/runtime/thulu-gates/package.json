@@ -1,0 +1,17 @@
+{
+  "name": "thulu-gates",
+  "version": "0.1.0",
+  "description": "Quality gates over the code a task changed: tests, new-line coverage, duplication, lint, types, SAST, secrets, dependencies, suppressions, mutation and benchmarks, with SARIF and JSON artifacts.",
+  "license": "AGPL-3.0-only",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "thulu-gates": "bin/thulu-gates.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test --test-timeout=60000 test/*.test.js"
+  }
+}

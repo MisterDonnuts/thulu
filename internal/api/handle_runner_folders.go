@@ -94,8 +94,47 @@ func cleanInventory(in runner.Inventory, now time.Time) runner.Inventory {
 	}
 	slices.SortFunc(out.Repos, func(a, b runner.InventoryRepo) int { return strings.Compare(a.Path, b.Path) })
 	out.Engines = cleanEngines(in.Engines)
+	out.LocalTools = cleanLocalTools(in.LocalTools)
+	out.Admission = cleanAdmission(in.Admission)
 	return out
 }
+
+// cleanAdmission keeps whether the machine takes runs, to show it; a state the daemon does not know
+// is dropped.
+func cleanAdmission(in *runner.AdmissionState) *runner.AdmissionState {
+	if in == nil {
+		return nil
+	}
+	switch in.State {
+	case runner.AdmissionAccepting, runner.AdmissionPausedLowMemory:
+	default:
+		return nil
+	}
+	return &runner.AdmissionState{State: in.State, AvailableMB: max(in.AvailableMB, 0), MinFreeMB: max(in.MinFreeMB, 0),
+		Since: in.Since.UTC()}
+}
+
+// The daemon keeps what the machine says about its local_tools only to show it; a value it does not
+// know is dropped.
+func cleanLocalTools(in *runner.LocalToolsState) *runner.LocalToolsState {
+	if in == nil {
+		return nil
+	}
+	switch in.Mode {
+	case runner.LocalToolsThulu, runner.LocalToolsSelected, runner.LocalToolsAll:
+	default:
+		return nil
+	}
+	out := &runner.LocalToolsState{Mode: in.Mode, BypassDisabled: in.BypassDisabled, AllowedTools: max(in.AllowedTools, 0)}
+	for _, n := range in.MCP {
+		if n = clip(strings.TrimSpace(n), 200); n != "" && !slices.Contains(out.MCP, n) && len(out.MCP) < maxLocalMCP {
+			out.MCP = append(out.MCP, n)
+		}
+	}
+	return out
+}
+
+const maxLocalMCP = 100
 
 // Only engines this daemon could send to a machine are kept, once each.
 func cleanEngines(in []runner.EngineState) []runner.EngineState {
@@ -138,6 +177,10 @@ type runnerReposView struct {
 	// or it predates folders in the dashboard.
 	Reported  bool       `json:"reported"`
 	ScannedAt *time.Time `json:"scanned_at,omitempty"`
+	// Set on the machine (runner.json); shown here, never changed from the daemon.
+	LocalTools *runner.LocalToolsState `json:"local_tools,omitempty"`
+	// Whether the machine takes runs now, as of its last report.
+	Admission *runner.AdmissionState `json:"admission,omitempty"`
 }
 
 func (s *Server) handleRunnerRepos(w http.ResponseWriter, r *http.Request) {
@@ -163,7 +206,7 @@ func (s *Server) handleRunnerRepos(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	out := runnerReposView{Roots: inv.Roots, Repos: []runnerRepoView{}, Truncated: inv.Truncated,
-		Reported: !inv.ScannedAt.IsZero()}
+		Reported: !inv.ScannedAt.IsZero(), LocalTools: inv.LocalTools, Admission: inv.Admission}
 	if out.Reported {
 		t := inv.ScannedAt
 		out.ScannedAt = &t
@@ -266,4 +309,69 @@ func (s *Server) handleRunnerAddProject(w http.ResponseWriter, r *http.Request) 
 			map[string]string{"runner_id": rn.ID, "runner_path": clean})
 	}
 	writeJSON(w, http.StatusCreated, runner.AddProjectResponse{ProjectID: proj.ID, ProjectName: proj.Name, Created: true})
+}
+
+// handleRunnerWorktrees tells a runner which task branches are still open, so it can remove the
+// worktrees of the closed ones: a runner never hears that a task ended or was deleted. Every project
+// of the workspace is listed, so the runner also knows which of its clones still have a project. A
+// branch is open while one task of its group (the root task and its subtasks, which share the
+// branch) sits outside a terminal stage; a deleted task has no row and no branch. Any failure
+// answers an error, never a partial list: the runner reads a missing branch as closed.
+func (s *Server) handleRunnerWorktrees(w http.ResponseWriter, r *http.Request) {
+	rn := callingRunner(r)
+	if s.projectStore == nil || s.taskStore == nil {
+		writeErrKey(w, r, http.StatusServiceUnavailable, "api.runners.errors.unavailable")
+		return
+	}
+	ctx := r.Context()
+	projects, err := s.projectStore.ListByWorkspace(ctx, rn.WorkspaceID)
+	if err != nil {
+		writeError(w, r, apperr.Status(err), err)
+		return
+	}
+	out := runner.WorktreesResponse{Projects: make(map[string][]string, len(projects))}
+	openRoot := map[string]bool{}
+	for i := range projects {
+		branches := []string{}
+		if projects[i].RunnerID == rn.ID {
+			if branches, err = s.openTaskBranches(ctx, projects[i].ID, openRoot); err != nil {
+				writeError(w, r, apperr.Status(err), err)
+				return
+			}
+		}
+		out.Projects[projects[i].ID] = branches
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+// openTaskBranches lists the task branches of a project whose group still has a task outside a
+// terminal stage. openRoot caches the answer by root task across projects.
+func (s *Server) openTaskBranches(ctx context.Context, projectID string, openRoot map[string]bool) ([]string, error) {
+	tasks, err := s.taskStore.ListByProject(ctx, projectID)
+	if err != nil {
+		return nil, err
+	}
+	branches := []string{}
+	seen := map[string]bool{}
+	for i := range tasks {
+		root := tasks[i].SandboxRootID()
+		if seen[root] {
+			continue
+		}
+		seen[root] = true
+		open, known := openRoot[root]
+		if !known {
+			done, derr := s.taskStore.AllInGroupDone(ctx, root)
+			if derr != nil {
+				return nil, derr
+			}
+			open = !done
+			openRoot[root] = open
+		}
+		if open {
+			branches = append(branches, project.TaskBranchName(root))
+		}
+	}
+	slices.Sort(branches)
+	return branches, nil
 }

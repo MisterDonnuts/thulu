@@ -1,0 +1,21 @@
+{
+  "errors": {
+    "board_required": "board_id es obligatorio: un lote mueve tareas de un tablero",
+    "task_ids_count": "task_ids tiene que listar entre 1 y {max} tareas; lista {count}",
+    "note_required": "note es obligatorio: decí por qué se mueven estas tareas, queda escrito en cada una",
+    "note_too_long": "note tiene más de {max} caracteres",
+    "sha_invalid": "deployed_sha tiene que ser el SHA de un commit (de 7 a 40 caracteres hexadecimales)",
+    "included_needs_deploy": "require_included necesita deployed_sha y project_id: la inclusión se verifica contra el commit deployado de un proyecto",
+    "unknown_stage": "{stage} no es una columna de este tablero",
+    "not_forward": "{to} no viene después de {from} en este tablero: un lote sólo mueve tareas hacia adelante",
+    "run_before_merge_target": "una corrida mueve tareas en lote sólo desde {target}, la etapa donde espera el trabajo integrado, o una posterior; {stage} viene antes (un tablero sin esa etapa no acepta lotes de una corrida)"
+  },
+  "comments": {
+    "moved": "{by} movió la tarea a {stage} en un lote: {note}",
+    "moved_deploy": "{by} movió la tarea a {stage} en un lote, con el deploy {sha}: {note}"
+  },
+  "log": {
+    "move": "mover la tarea {task} en un lote",
+    "comment": "comentar el movimiento en lote en la tarea {task}"
+  }
+}

@@ -46,17 +46,40 @@ func chatLockKey(root string) string { return "chat:" + filepath.Base(root) }
 // turn.
 func (j *job) prepareChat(ctx context.Context) error {
 	j.unlock = j.r.lockRepo(chatLockKey(j.root))
-	killLeftover(ctx, j.root)
+	j.r.killChatLeftovers(ctx, j.root)
 	if err := os.MkdirAll(j.root, 0o700); err != nil {
 		return apperr.Wrap(err, "hostrun.errors.run_dir", "path", j.root)
 	}
 	touch(j.root)
+	_, statErr := os.Stat(filepath.Join(j.root, "ro"))
 	for _, dir := range []string{"projects", "ro"} {
 		if err := os.RemoveAll(filepath.Join(j.root, dir)); err != nil {
 			return apperr.Wrap(err, "hostrun.errors.run_dir", "path", j.root)
 		}
 	}
+	// A turn that died left its read-only worktrees registered in the mirrors.
+	if statErr == nil {
+		j.pruneProjectMirrors(ctx)
+	}
 	return nil
+}
+
+func (j *job) pruneProjectMirrors(ctx context.Context) {
+	for i := range j.spec.Projects {
+		p := &j.spec.Projects[i]
+		if p.FromDaemon() {
+			continue
+		}
+		repo := j.r.cfg.mirrorDir(p.ID)
+		if _, err := os.Stat(repo); err != nil {
+			continue
+		}
+		unlock := j.r.lockRepo(p.ID)
+		if _, err := git(ctx, repo, "worktree", "prune"); err != nil {
+			logx.Warn(err, "hostrun.log.prune_failed", "repo", repo)
+		}
+		unlock()
+	}
 }
 
 func (j *job) chatInputPath() string { return filepath.Join(j.root, "tmp", j.spec.ID+".message") }
@@ -84,19 +107,39 @@ func (j *job) runTurn(ctx context.Context, ship io.Writer) (int, error) {
 }
 
 // cleanupChat keeps the folder and the session, and drops what belongs to this turn alone: its code,
-// its message, and runs/ and output, where the turn's outputs and the scripts' own log land.
+// its message, runs/ and output, where the turn's outputs and the scripts' own log land, the turn's
+// TMPDIR and Claude Code's folder in /tmp. The session lives in ~/.claude/projects, not in either.
 func (j *job) cleanupChat() {
 	// prepare stopped before it took the chat: this turn left nothing in the folder.
 	if j.unlock == nil {
+		return
+	}
+	defer j.unlock()
+	touch(j.root)
+	// What still runs of the turn may be using these; the next turn's prepareChat clears them.
+	if len(j.survivors) > 0 {
 		return
 	}
 	for _, name := range []string{"projects", "ro", "runs", "output"} {
 		p := filepath.Join(j.root, name)
 		logx.Warn(os.RemoveAll(p), "hostrun.log.remove_failed", "path", p)
 	}
-	logx.Warn(os.RemoveAll(j.chatInputPath()), "hostrun.log.remove_failed", "path", j.chatInputPath())
-	touch(j.root)
-	j.unlock()
+	emptyDir(filepath.Join(j.root, "tmp"))
+	if resolved, err := filepath.EvalSymlinks(j.root); err == nil {
+		removeClaudeTmp(resolved)
+	}
+}
+
+// emptyDir removes what dir holds and keeps dir itself.
+func emptyDir(dir string) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return
+	}
+	for _, e := range entries {
+		p := filepath.Join(dir, e.Name())
+		logx.Warn(os.RemoveAll(p), "hostrun.log.remove_failed", "path", p)
+	}
 }
 
 func touch(path string) {

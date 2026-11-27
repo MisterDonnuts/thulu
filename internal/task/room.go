@@ -168,6 +168,8 @@ func signal(ch chan struct{}) {
 
 type launched struct {
 	containerID, instanceID, outputDir string
+	// The worktree HEADs of a lock_tests run, read just before its container started.
+	heads string
 }
 
 type roomRun struct {

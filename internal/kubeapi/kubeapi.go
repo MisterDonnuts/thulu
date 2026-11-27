@@ -99,6 +99,7 @@ type RunningPod struct {
 	Stage       string
 	InstanceID  string
 	AgentType   string
+	LaunchKind  string
 	Running     bool
 	ExitCode    *int
 	StartedAt   time.Time

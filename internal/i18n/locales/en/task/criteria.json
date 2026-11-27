@@ -1,0 +1,5 @@
+{
+  "events": {
+    "changed": "acceptance criteria changed after the tests were locked: {keys}"
+  }
+}

@@ -15,7 +15,7 @@ import (
 var (
 	toolsTableRe = regexp.MustCompile(`(?m)^(export )?const ([A-Z]+_)?TOOLS = \[`)
 	toolNameRe   = regexp.MustCompile(`(?m)^    name: "([a-z0-9_]+)",`)
-	validScopes  = map[string]bool{"read": true, "write": true, "deploy": true, "board": true}
+	validScopes  = map[string]bool{"read": true, "write": true, "deploy": true, "board": true, "release": true}
 )
 
 func TestToolYAMLDescribesEveryToolTheServerServes(t *testing.T) {

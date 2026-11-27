@@ -35,7 +35,9 @@
     "store_upsert": "no se pudo guardar el estado",
     "turn_failed": "falló el turno del chat: {detail}",
     "turn_in_flight": "chatruntime: ya hay un turno en curso en este chat",
-    "turn_script_exited": "chat-turn.sh terminó con {code}: {stderr}"
+    "turn_script_exited": "chat-turn.sh terminó con {code}: {stderr}",
+    "turn_stopped": "se frenó el turno del chat: pasó su tiempo límite o ya nadie lo espera",
+    "turn_canceled": "frenaste el turno"
   },
   "log": {
     "async_turn": "[chat] turno asíncrono de {chat}",
@@ -74,11 +76,23 @@
     "write_exec_stdin": "[chat] no se pudo escribir el texto del turno en la entrada del exec",
     "touch": "[chat] touch {chat}",
     "placement_changed": "{chat}: el chat ahora corre en otro lado que {container}; se recrea ahí",
-    "machine_no_browser": "{chat} (agente {agent}) corre en una máquina y este daemon usa un thulu-browser por corrida, que una máquina no puede alojar: el chat no tiene navegador"
+    "machine_no_browser": "{chat} (agente {agent}) corre en una máquina y este daemon usa un thulu-browser por corrida, que una máquina no puede alojar: el chat no tiene navegador",
+    "turn_kill_failed": "matar el grupo de procesos del turno de chat frenado en el contenedor {container}: {err}",
+    "turn_group_killed": "se mató el grupo de procesos del turno de chat frenado en el contenedor {container}",
+    "stale_pod_removed": "se borró el pod de chat {pod} en {ns}: el daemon que lo manejaba ya no está, y con él su token de exec, así que no se podía matar lo que dejaron corriendo sus turnos",
+    "turn_reap_failed": "matar lo que el turno de chat dejó corriendo en el contenedor {container}: {err}",
+    "turn_process_reaped": "se mató en el contenedor de chat {container}, dejado por el turno {turn}: {process}",
+    "turn_process_survived": "sigue vivo en el contenedor de chat {container} después de matar lo que dejó el turno {turn}: {process}",
+    "queued_turn_refused": "chat {chat}: un mensaje en cola no pudo salir",
+    "auto_title": "chat {chat}: no se pudo poner el título automático",
+    "transcript_write": "no se pudo escribir la transcripción del turno",
+    "turn_parse_drain": "[chat] no se pudo vaciar el parser del turno",
+    "turn_parse_feed": "[chat] no se pudo pasarle una línea al parser del turno"
   },
   "messages": {
     "agent_error": "**Error del agente:** {error}",
-    "empty_reply": "_(respuesta vacía — revisar logs del agente)_"
+    "empty_reply": "_(respuesta vacía — revisar logs del agente)_",
+    "turn_canceled": "_Frenaste el turno. Lo que el agente ya hizo queda en los pasos._"
   },
   "labels": {
     "thread_chat_title": "{title} · hilo"

@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -22,6 +23,28 @@ type Runner struct {
 	cfg       *Config
 	client    *Client
 	repoLocks sync.Map
+	mcpList   mcpListCache
+	// How the runner reads and signals processes; the zero value is this machine's (hostProcs).
+	procs procOS
+
+	mu sync.Mutex
+	// The jobs this process is running, by id (janitor.go).
+	jobs map[string]*job
+
+	marksMu sync.Mutex
+	// The run each process's environment names, read once per process (sweepMarked).
+	marks map[procKey]runMark
+
+	// Memory (memory.go). mem reads the machine's available memory and newSampler makes what reads a
+	// run's processes; nil for this machine's own. scope says whether runs get a systemd scope.
+	mem        memoryProbe
+	newSampler func() memSampler
+	scope      scopeSupport
+	adm        admission
+	// Asks reportFolders for a report now: the admission state changed.
+	pushInv chan struct{}
+	// The daemon answered 404 to the worktrees listing once; said in the log once (reclaim.go).
+	worktreesUnsupported bool
 }
 
 func New(cfg *Config, version string) *Runner {
@@ -67,6 +90,10 @@ func AddProject(path, projectID, dir string) error {
 }
 
 func Preflight(cfg *Config) error {
+	// Without both, a run's processes outlive it.
+	if !processControl || !procTableSupported {
+		return apperr.Precondition("hostrun.errors.unsupported_os", "os", runtime.GOOS)
+	}
 	bash := cfg.Bash
 	if bash == "" {
 		bash = "bash"
@@ -90,13 +117,19 @@ func Preflight(cfg *Config) error {
 	return nil
 }
 
-const claimBackoff = 5 * time.Second
+// How long the runner waits after a failed claim, or before it checks the machine's memory again.
+var claimBackoff = 5 * time.Second
 
 func (r *Runner) Run(ctx context.Context) error {
 	if err := os.MkdirAll(r.cfg.WorkDir, 0o700); err != nil {
 		return apperr.Wrap(err, "hostrun.errors.run_dir", "path", r.cfg.WorkDir)
 	}
-	sweepLeftovers(ctx, filepath.Join(r.cfg.WorkDir, "runs"))
+	r.sweepAll(ctx)
+	r.pushInv = make(chan struct{}, 1)
+	if orDefault(r.cfg.RunMemoryLimitMB, DefaultRunMemoryLimitMB) > 0 {
+		r.scope = probeScopes()
+	}
+	r.logMemory()
 	roots, projects := r.cfg.folders()
 	if len(projects) == 0 && len(roots) == 0 {
 		log.Printf("[runner] %s", i18n.Log("hostrun.log.no_projects"))
@@ -108,10 +141,19 @@ func (r *Runner) Run(ctx context.Context) error {
 	defer stopClaims()
 	var wg sync.WaitGroup
 	defer wg.Wait()
-	wg.Add(1)
+	wg.Add(3)
 	go func() {
 		defer wg.Done()
 		r.reportFolders(claimCtx)
+	}()
+	go func() {
+		defer wg.Done()
+		r.janitor(claimCtx, janitorEvery)
+	}()
+	// On the runner's own context: the jobs already taken still run after a refusal stops claiming.
+	go func() {
+		defer wg.Done()
+		r.memoryFloor(ctx, memEvery)
 	}()
 	pools := []claimPool{{kind: runner.ClaimRun, size: r.cfg.Concurrency}, {kind: runner.ClaimChat, size: r.cfg.ChatConcurrency}}
 	errs := make(chan error, len(pools))
@@ -151,6 +193,15 @@ func (r *Runner) claimLoop(ctx, jobCtx context.Context, wg *sync.WaitGroup, p cl
 		// Read again before each claim, so a folder allowed or a project mapped meanwhile counts
 		// from the next run on.
 		logx.Warn(r.cfg.Reload(), "hostrun.log.reload_failed")
+		if !r.admit() {
+			<-slots
+			select {
+			case <-ctx.Done():
+				return nil
+			case <-time.After(claimBackoff):
+			}
+			continue
+		}
 		resp, err := r.client.Claim(ctx, r.cfg.ProjectIDs(), p.kind)
 		if err != nil {
 			<-slots
@@ -164,10 +215,13 @@ func (r *Runner) claimLoop(ctx, jobCtx context.Context, wg *sync.WaitGroup, p cl
 			continue
 		}
 		j := r.newJob(resp)
+		// Before any process of the job exists: the janitor kills those of jobs not running.
+		r.addJob(j)
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			defer func() { <-slots }()
+			defer r.dropJob(j.spec.ID)
 			j.execute(jobCtx)
 		}()
 	}
@@ -198,5 +252,10 @@ func (r *Runner) newJob(resp *runner.ClaimResponse) *job {
 	if resp.Job.ChatTurn() {
 		root = r.cfg.chatRoot(resp.Job.ChatID)
 	}
-	return &job{r: r, spec: resp.Job, every: every, root: root}
+	lease := time.Duration(resp.LeaseSeconds) * time.Second
+	if lease <= 0 {
+		lease = runner.DefaultLease
+	}
+	return &job{r: r, spec: resp.Job, every: every, root: root, lease: lease,
+		memLimit: r.cfg.current().runMemoryLimitMB(resp.Job)}
 }

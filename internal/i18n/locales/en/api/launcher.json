@@ -25,6 +25,7 @@
     "read_logs_failed": "read logs for {namespace}/{pod}: {err}",
     "drain_logs_failed": "drain logs for {namespace}/{pod}: {err}",
     "browser_list_failed": "list per-run browser containers: {err}",
-    "browser_remove_failed": "remove per-run browser container {id}: {err}"
+    "browser_remove_failed": "remove per-run browser container {id}: {err}",
+    "outputs_of_deleted_task": "container {id} (instance {instance}) belongs to a deleted task: its outputs are not copied out"
   }
 }

@@ -1,8 +1,12 @@
 {
   "errors": {
+    "agent_turns_range": "agent_turns_per_thread must be a whole number of replies from {min} to {max}",
     "run_minutes_range": "agent.max_run_minutes must be a whole number of minutes from {min} to {max}"
   },
   "audit": {
+    "agent_turns_set": "Workspace setting {setting} set to {value}; agents now pause after {effective} in a row",
+    "agent_turns_cleared": "Workspace setting {setting} cleared; agents now pause after the default, {effective} in a row",
+    "replies": "{n} replies",
     "set": "Workspace setting {setting} set to {value} minutes; runs now get {effective}",
     "cleared": "Workspace setting {setting} cleared; runs now get the install default, {effective}",
     "minutes": "{n} minutes",

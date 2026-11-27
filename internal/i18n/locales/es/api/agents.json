@@ -28,7 +28,9 @@
     "write_file": "escribir {path}",
     "relative_path": "ruta relativa de {path}",
     "read_file": "leer {path}",
-    "walk_dir": "recorrer {path}"
+    "walk_dir": "recorrer {path}",
+    "invalid_auditor_mode": "auditor_mode {mode:%q} no existe: usá {always} o {signals}",
+    "invalid_auditor_budget": "el presupuesto de diff del auditor {value} tiene que estar entre 0 (el de fábrica) y {max}"
   },
   "labels": {
     "agent_prompts": "Prompts del agente",

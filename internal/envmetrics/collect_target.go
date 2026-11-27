@@ -36,6 +36,8 @@ type CollectCredential struct {
 
 type TargetResolver interface {
 	ResolveCollectTarget(ctx context.Context, envID string) (*CollectTarget, error)
+	// The credential the environment is granted for thulu-cloud's deploys tool.
+	ResolveDeployTarget(ctx context.Context, envID string) (*CollectTarget, error)
 }
 
 type Targets struct {
@@ -48,9 +50,17 @@ func NewTargets(projects *project.Store, creds *credentials.Store) *Targets {
 	return &Targets{Projects: projects, Creds: creds, Auth: credentials.NewAuthorizer(creds, credentials.NewCatalog())}
 }
 
-// The environment is the named subject, so only a credential granted to it serves; a workspace-wide
-// grant does not, same as for an agent's metrics_query.
 func (t *Targets) ResolveCollectTarget(ctx context.Context, envID string) (*CollectTarget, error) {
+	return t.resolve(ctx, envID, "metrics_query")
+}
+
+func (t *Targets) ResolveDeployTarget(ctx context.Context, envID string) (*CollectTarget, error) {
+	return t.resolve(ctx, envID, "deploys")
+}
+
+// The environment is the named subject, so only a credential granted to it serves; a workspace-wide
+// grant does not, same as for an agent's call to the same tool.
+func (t *Targets) resolve(ctx context.Context, envID, tool string) (*CollectTarget, error) {
 	env, err := t.Projects.FindEnvironment(ctx, envID)
 	if err != nil {
 		return nil, apperr.Wrap(err, "envmetrics.errors.collect_environment_lookup", "env", envID)
@@ -67,7 +77,7 @@ func (t *Targets) ResolveCollectTarget(ctx context.Context, envID string) (*Coll
 			EnvironmentIDs: []string{env.ID},
 		},
 		Server:  "thulu-cloud",
-		Tool:    "metrics_query",
+		Tool:    tool,
 		Subject: &subject,
 	})
 	if err != nil {

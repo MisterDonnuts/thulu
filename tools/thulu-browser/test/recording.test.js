@@ -12,6 +12,7 @@ import { chromiumMissing } from "./chromium.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REC_KEY = "oct_recording_chat";
+const RUN_KEY = "oct_task_run_given";
 const PASSWORD = "s3cret-pass-1";
 
 async function browserMissing() {
@@ -44,6 +45,9 @@ function daemonHandler(req, res) {
     const key = req.headers["x-api-key"];
     daemon.requests.push({ method: req.method, url: req.url, key, type: req.headers["content-type"], body });
     res.setHeader("content-type", "application/json");
+    if (key === RUN_KEY && req.method === "GET" && req.url === "/evidence/recording/secrets/QA_PASSWORD") {
+      return res.end(JSON.stringify({ name: "QA_PASSWORD", value: PASSWORD }));
+    }
     if (key !== REC_KEY) { res.statusCode = 404; return res.end(JSON.stringify({ error: "no open recording for this chat" })); }
     if (req.method === "GET" && req.url === "/evidence/recording") return res.end(JSON.stringify(recording));
     if (req.method === "GET" && req.url === "/evidence/recording/secrets/QA_PASSWORD") {
@@ -176,6 +180,14 @@ describe("browser_type with secret and no text", () => {
     assert.equal(args.text, PASSWORD);
     assert.deepEqual(daemon.requests.map((r) => [r.method, r.url, r.key]),
       [["GET", "/evidence/recording/secrets/QA_PASSWORD", REC_KEY]]);
+  });
+
+  test("a task run a person gave access reads the same route with its own key", async () => {
+    daemon.requests.length = 0;
+    const args = await as(RUN_KEY, () => mod.typedText({ session_id: "s", selector: "#pw", secret: "QA_PASSWORD" }));
+    assert.equal(args.text, PASSWORD);
+    assert.deepEqual(daemon.requests.map((r) => [r.method, r.url, r.key]),
+      [["GET", "/evidence/recording/secrets/QA_PASSWORD", RUN_KEY]]);
   });
 
   test("with text it types the text and asks nobody; with neither it refuses", async () => {

@@ -1,0 +1,31 @@
+{
+  "revision": 9,
+  "tags": ["quality", "verification", "flow"],
+  "descriptions": {
+    "es": "Verifica la rama de una tarea con thulu-gates en el sandbox: tests, cobertura del código nuevo, duplicación, lint, tipos, SAST, secretos, dependencias, supresiones nuevas y mutantes. Lee los artefactos, hace el triage de falsos positivos y decide si la tarea sigue, vuelve a Desarrollo o a Diseño de pruebas, o espera a una persona. No escribe código. Va en la etapa Verificación del flujo thulu."
+  },
+  "definition": {
+    "name": "thulu-verifier",
+    "type": "thulu-verifier",
+    "description": "Verifies a task's branch with thulu-gates in the sandbox (tests, new-code coverage, duplication, lint, types, SAST, secrets, dependencies, new suppressions, mutants), triages the findings from the artifacts and decides whether the task continues, goes back to Development or Test design, or waits for a person. It writes no code. Goes in the Verification stage of the thulu flow.",
+    "valid_stages": ["verification"],
+    "engine": "claude-code",
+    "effort": "medium",
+    "turns_by_stage": {
+      "verification": "60"
+    },
+    "skills_by_stage": {
+      "verification": ["quality-gates"]
+    },
+    "mcp_by_stage": {
+      "verification": [
+        "thulu-sandbox@exec+attach_file+init_status+init_run",
+        "octopus-api@read+task_add_report+task_attach+task_checklist_check+task_add_comment+task_ask+task_skip_remove",
+        "thulu-github@read"
+      ]
+    },
+    "system_skills_off": {
+      "verification": ["octopus-refinement"]
+    }
+  }
+}

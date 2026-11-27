@@ -581,3 +581,90 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* The task drawer takes the palette of the Task View Lab prototype, the spec for the task view.
+   The aliases above resolve on :root, so the drawer names them again: a var() there would keep
+   the page's values. Light repeats the same body twice, like the page theme. */
+.task-drawer {
+  --color-bg: #1a1a1a;
+  --color-surface: #1f1f1f;
+  --color-surface-hover: #262626;
+  --color-surface-raised: #2e2e2e;
+  --color-text: #e8e8e7;
+  --color-text-muted: #8f8f8b;
+  --color-text-faint: #6a6a67;
+  --color-border: rgba(255, 255, 255, 0.07);
+  --color-border-strong: rgba(255, 255, 255, 0.13);
+  --color-accent: #88b4ff;
+  --color-accent-soft: rgba(136, 180, 255, 0.13);
+  --color-success: #6ab97e;
+  --color-success-bg: rgba(106, 185, 126, 0.14);
+  --color-warning: #d99c5a;
+  --color-warning-bg: rgba(217, 156, 90, 0.14);
+  --color-danger: #d76b6b;
+  --color-danger-bg: rgba(215, 107, 107, 0.14);
+  --color-special: #b292e8;
+  --color-special-bg: rgba(178, 146, 232, 0.14);
+
+  --surface-0: var(--color-bg);
+  --surface-1: var(--color-surface);
+  --surface-2: var(--color-surface-hover);
+  --surface-3: var(--color-surface-raised);
+  --line: var(--color-border);
+  --line-strong: var(--color-border-strong);
+  --fg: var(--color-text);
+  --fg-3: var(--color-text-muted);
+  --fg-4: var(--color-text-faint);
+  --accent: var(--color-accent);
+  --accent-soft: var(--color-accent-soft);
+  --ok: var(--color-success);
+  --ok-soft: var(--color-success-bg);
+  --warn: var(--color-warning);
+  --warn-soft: var(--color-warning-bg);
+  --danger: var(--color-danger);
+  --danger-soft: var(--color-danger-bg);
+}
+:root[data-theme="light"] .task-drawer {
+  --color-bg: #f7f7f5;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f2f2ef;
+  --color-surface-raised: #e9e9e5;
+  --color-text: #1d1d1c;
+  --color-text-muted: #62625f;
+  --color-text-faint: #8c8c88;
+  --color-border: rgba(0, 0, 0, 0.08);
+  --color-border-strong: rgba(0, 0, 0, 0.15);
+  --color-accent: #2563c9;
+  --color-accent-soft: rgba(37, 99, 201, 0.09);
+  --color-success: #23743c;
+  --color-success-bg: rgba(35, 116, 60, 0.1);
+  --color-warning: #9a5410;
+  --color-warning-bg: rgba(154, 84, 16, 0.1);
+  --color-danger: #be3434;
+  --color-danger-bg: rgba(190, 52, 52, 0.09);
+  --color-special: #6d45b8;
+  --color-special-bg: rgba(109, 69, 184, 0.09);
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .task-drawer {
+    --color-bg: #f7f7f5;
+    --color-surface: #ffffff;
+    --color-surface-hover: #f2f2ef;
+    --color-surface-raised: #e9e9e5;
+    --color-text: #1d1d1c;
+    --color-text-muted: #62625f;
+    --color-text-faint: #8c8c88;
+    --color-border: rgba(0, 0, 0, 0.08);
+    --color-border-strong: rgba(0, 0, 0, 0.15);
+    --color-accent: #2563c9;
+    --color-accent-soft: rgba(37, 99, 201, 0.09);
+    --color-success: #23743c;
+    --color-success-bg: rgba(35, 116, 60, 0.1);
+    --color-warning: #9a5410;
+    --color-warning-bg: rgba(154, 84, 16, 0.1);
+    --color-danger: #be3434;
+    --color-danger-bg: rgba(190, 52, 52, 0.09);
+    --color-special: #6d45b8;
+    --color-special-bg: rgba(109, 69, 184, 0.09);
+  }
+}

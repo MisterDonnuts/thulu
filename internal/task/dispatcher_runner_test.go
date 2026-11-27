@@ -270,3 +270,20 @@ func TestADivergedResultBlocksOnlyTheRunThatBroughtIt(t *testing.T) {
 		t.Errorf("worktree HEAD = %q, want the daemon's commit kept", head)
 	}
 }
+
+// A run the machine stopped on its own says why on the task, in the person's discussion.
+func TestRunnerStopReasonReachesTheTask(t *testing.T) {
+	for reason, want := range map[string]string{
+		runner.StopDeadline:   "run time limit",
+		runner.StopDaemonLost: "did not answer it",
+	} {
+		t.Run(reason, func(t *testing.T) {
+			d, store := newKickDispatcher(t, 0)
+			tk := createIn(t, store, "verify", "")
+			d.RecordRunnerReport(t.Context(), tk.ID, RunnerReport{Runner: "mac", RunID: "runner-j1", StopReason: reason})
+			if c := lastComment(t, store, tk.ID); !strings.Contains(c, "Runner mac stopped the run") || !strings.Contains(c, want) {
+				t.Errorf("comment = %q, want the runner's stop reason (%q)", c, want)
+			}
+		})
+	}
+}

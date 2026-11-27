@@ -432,6 +432,13 @@ func (s *Server) handleInternalResolveCredential(w http.ResponseWriter, r *http.
 		}})
 		return
 	}
+	if credentials.IsGitHub(cred.Provider) && auth.APIKeyRunScope(r.Context()).IsRun() {
+		writeJSON(w, http.StatusForbidden, map[string]any{"decision": credentials.Decision{
+			Reason: credentials.ReasonProviderUnsupported, CredentialID: cred.ID, Provider: cred.Provider,
+			Detail: i18n.TCtx(r.Context(), "api.credentials.errors.github_not_resolvable"),
+		}})
+		return
+	}
 	payload, err := s.credStore.Payload(r.Context(), sess.reach.WorkspaceID, decision.CredentialID)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, err)

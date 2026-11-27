@@ -30,6 +30,12 @@
     "skill_no_such_item": "el Workshop no tiene una skill llamada {name}",
     "skill_write_file": "escribir la skill {name}: {path}",
     "too_many_items": "el archivo trae demasiados ítems (hasta {agents} agentes y {skills} skills)",
-    "version_unsupported": "la versión {version} del archivo no está soportada (este Thulu lee la versión {want})"
+    "version_unsupported": "la versión {version} del archivo no está soportada (este Thulu lee la versión {want})",
+    "catalog_flow": "el catálogo del Workshop tiene un flujo roto: {name}",
+    "flow_unknown_agent": "el flujo {flow} asigna el agente {agent}, que el Workshop no tiene",
+    "flow_agent_stage": "el flujo {flow} pone al agente {agent} en {stage}, una etapa donde ese agente no corre",
+    "flow_no_such_item": "el Workshop no tiene un flujo llamado {name}",
+    "flow_no_boards": "el flujo {name} necesita el almacén de tableros para instalarse",
+    "flow_board_id_invalid": "{target} no puede ser el id del tablero del flujo {name}: usá minúsculas, dígitos y guiones bajos, 32 como máximo"
   }
 }

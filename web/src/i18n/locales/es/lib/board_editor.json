@@ -72,7 +72,8 @@
     "saved": "{setting}: guardado",
     "elsewhere": "También se configura por columna:",
     "agents_link": "Qué agente corre acá",
-    "sandboxes_link": "Prioridad del sandbox"
+    "sandboxes_link": "Prioridad del sandbox",
+    "pr": "Pull request y liberación"
   },
   "flags": {
     "initial": "Las tareas empiezan acá",
@@ -88,14 +89,44 @@
     "legacy": "Toda aprobación frena la tarea",
     "legacy_desc": "Cualquier aprobación de la tarea la retiene acá, no sólo las requeridas. Apagala para usar las aprobaciones requeridas.",
     "no_agents": "Todavía ningún agente cubre esta columna.",
-    "agents_link": "Configurá uno en Agentes"
+    "agents_link": "Configurá uno en Agentes",
+    "agent_verdict": "El agente decide a dónde va la tarea",
+    "agent_verdict_desc": "El veredicto del agente hace avanzar la tarea o la devuelve a la columna que nombra.",
+    "lock_tests": "Bloquear los tests",
+    "lock_tests_desc": "Los tests que escribe una corrida limpia acá quedan bloqueados. Si una columna posterior cambia alguno, la tarea espera ahí hasta que una persona apruebe el cambio.",
+    "pr_draft": "Abrir el pull request como borrador",
+    "pr_draft_desc": "Una tarea que entra a esta columna abre su pull request como borrador, para que el CI del proyecto corra antes de que alguien lo revise.",
+    "pr_ready": "Marcar el pull request como listo",
+    "pr_ready_desc": "Una tarea que entra a esta columna saca su pull request de borrador para que lo revisen.",
+    "merge_target": "Acá llegan las tareas mergeadas",
+    "merge_target_desc": "Cuando se mergea el pull request de la tarea, la tarea pasa a esta columna. Hace falta una columna anterior que lo abra.",
+    "release_resources": "Liberar los recursos de la tarea",
+    "release_resources_desc": "Una tarea que entra a esta columna apaga su sandbox y borra su worktree. Ninguna columna posterior puede pushear.",
+    "no_skip": "Las tareas no pueden saltear esta columna",
+    "no_skip_desc": "Ni el agente de refinamiento ni las personas pueden marcar esta columna como salteada para una tarea. Usalo para revisiones que siempre tienen que pasar."
   },
   "locks": {
     "initial_move": "Para cambiarlo, marcá otra columna como inicio.",
     "initial_terminal": "Una columna de fin no puede ser el inicio.",
     "last_terminal": "El tablero necesita al menos una columna de fin.",
     "terminal_initial": "La columna de inicio no puede ser también de fin.",
-    "terminal_no_advance": "Una columna de fin no pasa la tarea a otra."
+    "terminal_no_advance": "Una columna de fin no pasa la tarea a otra.",
+    "edge_no_agent": "En la columna de inicio y en la de cierre no corre ningún agente.",
+    "start_no_pr": "Una tarea en la columna de inicio todavía no tiene pull request.",
+    "skip_unless": "Una columna que se puede saltear no pide aprobaciones, no pushea, no abre pull requests ni libera recursos.",
+    "merge_target_taken": "Las tareas mergeadas ya llegan a {stage}; un tablero tiene una sola columna así.",
+    "merge_target_without_pr": "Ninguna columna antes de esta abre un pull request, así que acá no puede llegar ninguna tarea mergeada.",
+    "pr_needed_by_merge": "Las tareas mergeadas llegan a {stage}, que necesita una columna antes que abra el pull request.",
+    "required_checks_without_pr": "Una aprobación de esta columna espera checks requeridos y ninguna columna hasta esta abre un pull request.",
+    "pr_needed_by_checks": "Una aprobación de {stage} espera checks requeridos y necesita una columna hasta ella que abra el pull request.",
+    "worktree_after_release": "{stage} ya liberó el worktree, así que una columna posterior no puede pushear, abrir pull requests ni bloquear tests.",
+    "release_before_worktree": "{stage} viene después y todavía necesita el worktree.",
+    "release_kick_back": "Una columna que libera recursos no puede devolver cambios.",
+    "kick_back_to_skippable": "{stage} se puede saltear, así que no puede recibir cambios devueltos.",
+    "skippable_is_kick_back_target": "{stage} devuelve cambios a esta columna, así que no se puede saltear.",
+    "kick_back_earlier": "Los cambios vuelven a una columna anterior que no termina el trabajo.",
+    "no_skip_skip_unless": "Esta columna ya corre sólo para tareas marcadas. Vaciá esa lista primero.",
+    "skip_unless_no_skip": "Las tareas no pueden saltear esta columna. Desactivá eso primero."
   },
   "wip": {
     "none": "Nada",
@@ -136,5 +167,12 @@
     "patch": "No se pudo guardar la columna: {error}",
     "create": "No se pudo agregar la columna: {error}",
     "remove": "No se pudo borrar la columna: {error}"
+  },
+  "skip_unless": {
+    "label": "Correr sólo para tareas marcadas",
+    "help": "Valores de los flags de flujo de la tarea separados por coma, por ejemplo ui, api. Vacío corre la columna para todas las tareas.",
+    "placeholder": "ui, api",
+    "invalid": "\"{value}\" no es válido: usá minúsculas, dígitos y _ (hasta 32).",
+    "too_many": "Como mucho {max} valores."
   }
 }

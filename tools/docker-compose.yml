@@ -64,6 +64,7 @@ services:
     volumes:
       - ./thulu-github/server.js:/app/server.js:ro
       - ./thulu-github/i18n.js:/app/i18n.js:ro
+      - ./thulu-github/github-proxy.json:/app/github-proxy.json:ro
       - ./thulu-github/locales:/app/locales:ro
 
   octopus-api:

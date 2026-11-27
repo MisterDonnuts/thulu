@@ -1,4 +1,7 @@
 import { t } from "../i18n.js";
+import { a11yExpected, a11yObserved, scanA11y } from "../lib/a11y.js";
+import { findingsFor } from "../lib/page-findings.js";
+import { formatMetric, perfFor } from "../lib/perf.js";
 import { judge } from "./checks.js";
 import { cinemaCall, drawAnnotation, installCinema, removeAnnotation } from "./overlays.js";
 
@@ -11,11 +14,29 @@ const TIMING = {
   verdictHold: 1_800,
   noteHold: 1_400,
   scroll: 650,
+  stamp: 900,
 };
 const ACTION_TIMEOUT_MS = 15_000;
 const NAV_TIMEOUT_MS = 45_000;
 const SETTLE_TIMEOUT_MS = 8_000;
 const SPOT_WAIT_MS = 3_000;
+// Playwright's networkidle waits for 500 ms without connections: that window is the tool's, not
+// the app's.
+const NETWORK_IDLE_QUIET_MS = 500;
+const STAMP_MS = 1_500;
+
+// The app's part of a timed wait: until its last request or DOM change. Past the settle cap (an app
+// that never goes quiet, polling) only its last visible change counts.
+function appWait(perf, t0, startedAt) {
+  const until = perf?.capped ? perf.response_ms : perf?.settled_ms;
+  return typeof until === "number" ? t0 + until - startedAt : 0;
+}
+
+const afterIdle = (_out, startedAt) => Math.max(0, Date.now() - startedAt - NETWORK_IDLE_QUIET_MS);
+
+// A check that polled until it passed made the viewer wait for the app; one that failed waited for
+// its own timeout, and a perf check waits for the network on purpose.
+const checkWait = (v, startedAt) => (v?.pass && v.measured && !v.metric ? Date.now() - startedAt : 0);
 
 export class GuardError extends Error {}
 
@@ -42,6 +63,7 @@ export function autoLabel(step) {
     case "shot": return step.shot.title || step.shot.name;
     case "verify": return t("text.auto_verify", { case: step.case });
     case "note": return step.text;
+    case "a11y": return step.case ? t("text.auto_a11y_case", { case: step.case }) : t("text.auto_a11y");
     default: return "";
   }
 }
@@ -66,16 +88,24 @@ export class Director {
   #responses = [];
   #prevStepStart = 0;
   #stepStart = 0;
+  #perf;
+  #findings;
+  #lastAction;
+  #windows = [];
 
   shots = [];
   verdicts = [];
   notes = [];
+  // One entry per timed action: {step, label, kind, response_ms, ..., vitals}.
+  metrics = [];
 
   /**
    * @param {import('playwright').Page} page
    * @param {{ capture: import('./capture.js').FrameCapture | import('./capture.js').NoCapture,
    *           pace?: number, baseUrl?: string, secrets?: Record<string,string>,
-   *           allowedHosts?: string[] | null }} opts
+   *           allowedHosts?: string[] | null, lastAction?: () => object | null }} opts
+   *   lastAction: the timing of the last action done outside this Director (a session's), for a
+   *   perf check on "response" before this Director has timed anything itself.
    */
   constructor(page, opts) {
     this.#page = page;
@@ -84,6 +114,9 @@ export class Director {
     this.#baseUrl = opts.baseUrl;
     this.#secrets = opts.secrets ?? {};
     this.#allowedHosts = opts.allowedHosts ? new Set(opts.allowedHosts.map((h) => h.toLowerCase())) : null;
+    this.#perf = perfFor(page);
+    this.#findings = findingsFor(page);
+    this.#lastAction = opts.lastAction ?? (() => null);
 
     page.on("response", (r) => {
       this.#responses.push({ url: r.url(), t: Date.now() });
@@ -144,7 +177,31 @@ export class Director {
 
   async #settle() {
     await this.#capture.idle(() =>
-      this.#page.waitForLoadState("networkidle", { timeout: SETTLE_TIMEOUT_MS }).catch(() => {}));
+      this.#page.waitForLoadState("networkidle", { timeout: SETTLE_TIMEOUT_MS }).catch(() => {}),
+    { reason: "settle", waited: afterIdle });
+  }
+
+  // Film something, saying first how much waiting was cut since the last thing filmed: the pill stays
+  // on screen long enough to read, so the cut never hides how slow the app was.
+  async #film(index, label, fn) {
+    return this.#capture.film(index, label, async () => {
+      await this.#stampCut();
+      return fn();
+    });
+  }
+
+  // Call it while filming.
+  async #stampCut() {
+    const cut = this.#capture.takeCut();
+    if (!cut) return;
+    await this.#cinema("stamp", t("text.wait_cut", { wait: formatMetric("response", cut) }), this.#ms(STAMP_MS));
+    await this.#hold(TIMING.stamp);
+  }
+
+  // A timed action's answer: off camera (or filmed, when waits are), counted as the app's wait.
+  async #timedIdle(index, label, step, timer) {
+    await this.#capture.idle(() => this.#timed(index, label, step, timer),
+      { reason: "settle", waited: (perf, startedAt) => appWait(perf, timer.t0, startedAt) });
   }
 
   async #approach(target) {
@@ -152,7 +209,9 @@ export class Director {
     await this.#capture.idle(async () => {
       await loc.waitFor({ state: "visible", timeout: ACTION_TIMEOUT_MS });
       await loc.scrollIntoViewIfNeeded({ timeout: ACTION_TIMEOUT_MS }).catch(() => {});
-    });
+    }, { reason: "wait" });
+    // Always called while filming: the element took its time to show up.
+    await this.#stampCut();
     const box = await loc.boundingBox();
     if (!box) return null;
     const point = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
@@ -171,8 +230,11 @@ export class Director {
     let label = step.label || autoLabel(step);
     if (PAUSES.has(step.kind) && !step.label && this.#chapter) ({ index, label } = this.#chapter);
     else this.#chapter = { index, label };
+    this.#windows.push({ step: index, start: this.#stepStart });
+    await this.#perf.ready;
     if (label) await this.#cinema("caption", label);
-    const film = (fn) => this.#capture.film(index, label, fn);
+    this.#capture.begin?.(index, label);
+    const film = (fn) => this.#film(index, label, fn);
 
     let produced;
     switch (step.kind) {
@@ -180,10 +242,12 @@ export class Director {
         const url = new URL(step.url, this.#baseUrl || this.#page.url()).toString();
         if (this.#allowedHosts && !this.#hostAllowed(url)) throw new GuardError(t("errors.goto_outside_hosts", { url }));
         await this.#capture.idle(async () => {
+          const timer = this.#perf.begin();
           await this.#page.goto(url, { waitUntil: "domcontentloaded", timeout: NAV_TIMEOUT_MS });
           await this.#page.waitForLoadState("networkidle", { timeout: SETTLE_TIMEOUT_MS }).catch(() => {});
           if (step.wait_for) await this.#loc(step.wait_for).waitFor({ state: "visible", timeout: NAV_TIMEOUT_MS });
-        });
+          return { perf: await this.#timed(index, label, step, timer), t0: timer.t0 };
+        }, { reason: "nav", waited: (r, startedAt) => appWait(r.perf, r.t0, startedAt) });
         this.#cursor = null;
         if (label) await this.#cinema("caption", label);
         await film(() => this.#hold(TIMING.afterNav));
@@ -193,38 +257,49 @@ export class Director {
       case "check":
       case "select":
       case "hover": {
+        let timer;
         await film(async () => {
           const point = await this.#approach(step.target);
           await this.#hold(TIMING.beforeAct);
           if (point && step.kind !== "hover") await this.#cinema("pulse", point.x, point.y);
+          timer = this.#perf.begin();
           await this.#act(step);
           await this.#hold(TIMING.afterAct / 2);
           await this.#cinema("clear");
         });
+        await this.#timedIdle(index, label, step, timer);
         await this.#settle();
         await film(() => this.#hold(TIMING.afterAct));
         break;
       }
       case "fill":
       case "type": {
+        // The clock starts after the last keystroke: what is timed is the page's answer to the input.
+        let timer;
         await film(async () => {
           await this.#approach(step.target);
           await this.#typeInto(step);
+          timer = this.#perf.begin();
           await this.#cinema("clear");
           await this.#hold(TIMING.afterAct);
         });
+        await this.#timedIdle(index, label, step, timer);
         break;
       }
       case "press": {
+        let timer;
         await film(async () => {
           if (step.target) {
             await this.#approach(step.target);
+            timer = this.#perf.begin();
             await this.#loc(step.target).press(step.key, { timeout: ACTION_TIMEOUT_MS });
             await this.#cinema("clear");
           } else {
+            timer = this.#perf.begin();
             await this.#page.keyboard.press(step.key);
           }
         });
+        await this.#timedIdle(index, label, step, timer);
         if (step.key === "Enter") await this.#settle();
         await film(() => this.#hold(TIMING.afterAct));
         break;
@@ -246,10 +321,10 @@ export class Director {
       }
       case "wait_for":
         await this.#capture.idle(() => this.#loc(step.target).waitFor({ state: step.state ?? "visible",
-          timeout: step.timeout_ms ?? ACTION_TIMEOUT_MS }));
+          timeout: step.timeout_ms ?? ACTION_TIMEOUT_MS }), { reason: "wait" });
         break;
       case "wait_for_response":
-        await this.#capture.idle(() => this.#waitForResponse(step));
+        await this.#capture.idle(() => this.#waitForResponse(step), { reason: "wait" });
         break;
       case "hold":
         await this.#capture.idle(() => sleep(step.ms));
@@ -270,6 +345,9 @@ export class Director {
       case "verify":
         produced = await this.#verify(step, index, label);
         break;
+      case "a11y":
+        produced = await this.#a11y(step, index, label);
+        break;
       case "note":
         this.notes.push({ step: index, level: step.level ?? "step", text: step.text });
         await film(async () => {
@@ -287,6 +365,17 @@ export class Director {
     return produced;
   }
 
+  async #timed(index, label, step, timer) {
+    const perf = await timer.end();
+    this.metrics.push({ step: index, label, kind: step.kind, ...perf });
+    return perf;
+  }
+
+  /** What the page complained about, by step (the chapter index the verdicts use). */
+  findings() {
+    return this.#findings.group(this.#windows).findings;
+  }
+
   async #act(step) {
     const loc = this.#loc(step.target);
     const opts = { timeout: ACTION_TIMEOUT_MS };
@@ -299,6 +388,7 @@ export class Director {
   async #typeInto(step) {
     const loc = this.#loc(step.target);
     const value = step.kind === "fill" && step.secret ? this.#secret(step.secret) : step.value;
+    if (step.kind === "fill" && step.secret) this.#findings.protect(value);
     // Date, time and color inputs are set whole: typed keys land segment by segment and leave
     // invalid values.
     const inputType = await loc.evaluate((el) => (el instanceof HTMLInputElement ? el.type : "")).catch(() => "");
@@ -391,20 +481,40 @@ export class Director {
   }
 
   async #verify(step, index, label) {
-    const { observed, pass, measured } = await this.#capture.idle(() => judge(this.#page, step));
+    const lastAction = () => this.metrics.at(-1) ?? this.#lastAction();
+    const { observed, pass, measured, metric, value } = await this.#capture.idle(() =>
+      judge(this.#page, step, { perf: this.#perf, lastAction }), { reason: "check", waited: checkWait });
     const verdict = { step: index, case: step.case, label, named: Boolean(step.label), expected: step.expected,
-      observed, pass, measured, detail: step.detail };
+      observed, pass, measured, detail: step.detail, ...(metric ? { metric, value } : {}) };
+    return this.#showVerdict(verdict);
+  }
+
+  async #showVerdict(verdict) {
     this.verdicts.push(verdict);
-    await this.#capture.film(index, label, async () => {
+    const { step: index, label, pass } = verdict;
+    await this.#film(index, label, async () => {
       await this.#cinema("verdict", {
         pass,
-        title: `${step.case} · ${pass ? t("labels.pass") : t("labels.fail")}`,
-        rows: [[t("labels.what"), label], [t("labels.expected"), step.expected], [t("labels.observed"), observed]],
+        title: `${verdict.case || label} · ${pass ? t("labels.pass") : t("labels.fail")}`,
+        rows: [[t("labels.what"), label], [t("labels.expected"), verdict.expected], [t("labels.observed"), verdict.observed]],
       });
       await this.#hold(TIMING.verdictHold);
       await this.#cinema("unverdict");
     });
     return verdict;
+  }
+
+  // An accessibility scan judged like a check: it passes with no violation at fail_on or worse.
+  // The verdict keeps the whole summary, so the tool can answer with it and the report can count.
+  async #a11y(step, index, label) {
+    const { summary } = await this.#capture.idle(() => scanA11y(this.#page, {
+      include: step.include, exclude: step.exclude, tags: step.tags, disableRules: step.disable_rules,
+      failOn: step.fail_on,
+    }));
+    return this.#showVerdict({
+      step: index, case: step.case ?? "", label, named: Boolean(step.label), expected: a11yExpected(summary.fail_on),
+      observed: a11yObserved(summary), pass: summary.failing === 0, measured: true, a11y: summary,
+    });
   }
 }
 

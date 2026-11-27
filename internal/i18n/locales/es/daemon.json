@@ -150,10 +150,25 @@
     "reattributed": "se reatribuyó el costo de {count} sesiones",
     "reconcile_namespaces_failed": "listar los workspaces para llevar sus namespaces a las etiquetas actuales: {err}",
     "reconcile_namespaces_done": "{count} namespaces de tenant revisados contra las etiquetas actuales",
-    "hour_meter_started": "medidor de horas de agente en marcha (cada {interval}; horas extra a facturación: {billing})"
+    "hour_meter_started": "medidor de horas de agente en marcha (cada {interval}; horas extra a facturación: {billing})",
+    "image_missing": "la imagen {image} ({env}) no está en el host de Docker y el daemon no la construye: la primera corrida que la necesite va a frenar. Arreglalo en el host de Docker con: {fix}",
+    "image_found": "la imagen {image} ya está en el host de Docker",
+    "kept_unsettled_exit": "se conserva el contenedor {kind} {id} terminado: nadie cerró todavía su corrida y sus salidas están sólo adentro",
+    "list_running_failed": "listar los contenedores {kind} en marcha: {err}",
+    "reaped_deleted_task_agent": "se borró el contenedor de agente {id} (instancia {instance}, imagen {image}): su tarea {task} ya no existe",
+    "reaped_stale_login": "se borró el contenedor de login personal {id} ({engine}, de hace {age}): ningún flujo de login es su dueño",
+    "kube_janitor_orphan_pods_failed": "kube janitor: barrido de pods de agente sobrantes: {err}",
+    "kube_janitor_secrets_forbidden": "kube janitor: no puede listar Secrets, así que los secrets de entorno de pods borrados quedan hasta que alguien los borre a mano; actualizá el chart de Helm, que da list sobre Secrets en los namespaces de tenant: {err}",
+    "kube_janitor_orphan_secrets_failed": "kube janitor: barrido de secrets de entorno sin pod: {err}",
+    "kube_janitor_leftovers_done": "kube janitor: sobrantes borrados: agent_pods={agents} unscheduled_pods={unscheduled} env_secrets={secrets}",
+    "kube_janitor_note_failed": "kube janitor: nota en la tarea {task}: {err}"
   },
   "comments": {
     "worktree_parked": "El worktree de esta tarea estuvo sin uso mucho tiempo, así que Thulu liberó su disco. Los cambios pendientes quedaron commiteados en la rama de la tarea; la próxima corrida la vuelve a sacar.",
-    "sandbox_relaunch_failed": "La tarea consiguió lugar de sandbox pero no se pudo relanzar su etapa: {err}. Salió de la cola de sandboxes; relanzala cuando eso esté resuelto."
+    "sandbox_relaunch_failed": "La tarea consiguió lugar de sandbox pero no se pudo relanzar su etapa: {err}. Salió de la cola de sandboxes; relanzala cuando eso esté resuelto.",
+    "unscheduled_pod_deleted": "La corrida {instance} de {agent} nunca arrancó: ningún nodo del cluster tomó su pod {pod} antes del límite de la corrida, así que Thulu lo borró. Revisá el lugar libre del cluster y el nodo al que está atado su volumen de worktree, y relanzá la etapa."
+  },
+  "problems": {
+    "image_missing": "La imagen {image} ({env}) no está en el host de Docker y el daemon no la construye, así que la primera corrida que la necesite va a frenar. Desde un checkout de Thulu en el host de Docker corré: {fix}"
   }
 }

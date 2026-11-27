@@ -16,9 +16,70 @@ import (
 
 	"github.com/MisterDonnuts/thulu/ee/kuberuntime"
 	dbpkg "github.com/MisterDonnuts/thulu/internal/db"
+	stagepkg "github.com/MisterDonnuts/thulu/internal/stage"
 	"github.com/MisterDonnuts/thulu/internal/task"
 	"github.com/MisterDonnuts/thulu/internal/testpg"
+	"github.com/MisterDonnuts/thulu/internal/types"
 )
+
+// A group whose tasks all reached a stage with release_resources has no more use for its claim,
+// even though the task is not done.
+func TestKubeJanitorReleasesAGroupInAReleaseStage(t *testing.T) {
+	ctx := context.Background()
+	db := testpg.New(t)
+	tasks, err := task.NewStore(db, filepath.Join(t.TempDir(), "att"))
+	if err != nil {
+		t.Fatalf("task.NewStore: %v", err)
+	}
+	tasks.WithStages(stagepkg.NewSnapshot([]types.StageInfo{
+		{ID: "backlog", Label: "Backlog", Position: 10, Initial: true},
+		{ID: "in_progress", Label: "In progress", Position: 20},
+		{ID: "release", Label: "Release", Position: 30, ReleaseResources: true},
+		{ID: "done", Label: "Done", Position: 40, Terminal: true},
+	}))
+	client := fake.NewClientset()
+	rt, err := kuberuntime.NewWithClient(client, kuberuntime.Config{AllowNoRuntimeClass: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := rt.EnsureTenantNamespace(ctx, "ws1"); err != nil {
+		t.Fatal(err)
+	}
+	ns := rt.NamespaceFor("ws1")
+	create := func(tk *task.Task) *task.Task {
+		t.Helper()
+		tk.WorkspaceID = "ws1"
+		if err := tasks.Create(ctx, tk); err != nil {
+			t.Fatalf("create task: %v", err)
+		}
+		return tk
+	}
+	released := create(&task.Task{Title: "released", Stage: "release"})
+	waiting := create(&task.Task{Title: "parent", Stage: "release"})
+	create(&task.Task{Title: "child still coding", Stage: "in_progress", ParentID: waiting.ID})
+	// Its release agent is at work: the sweep leaves the group alone until the run ends.
+	releasing := create(&task.Task{Title: "release agent running", Stage: "release", Status: task.StatusRunning})
+
+	claim := func(owner string) string { return kuberuntime.WorktreeClaimPrefix + owner }
+	for _, owner := range []string{released.ID, waiting.ID, releasing.ID} {
+		if err := kuberuntime.EnsureWorktreeClaim(ctx, client, kuberuntime.WorktreeClaim{
+			Namespace: ns, Name: claim(owner), OwnerID: owner, WorkspaceID: "ws1",
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	newKubeJanitor(rt, nil, tasks, &stubRuns{}).Sweep(ctx)
+
+	for owner, want := range map[string]bool{released.ID: false, waiting.ID: true, releasing.ID: true} {
+		_, err := client.CoreV1().PersistentVolumeClaims(ns).Get(ctx, claim(owner), metav1.GetOptions{})
+		if err != nil && !apierrors.IsNotFound(err) {
+			t.Fatal(err)
+		}
+		if got := err == nil; got != want {
+			t.Errorf("claim of %s exists = %v, want %v", owner, got, want)
+		}
+	}
+}
 
 type stubRuns struct {
 	reconciles int

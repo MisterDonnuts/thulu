@@ -44,6 +44,16 @@
     "resume_unnamed_deferred": "Hay una corrida trabajando en la tarea: pedir cambios retoma la etapa con tu nota cuando termine.",
     "kick_back_deferred": "Hay una corrida trabajando en la tarea: pedir cambios la devuelve a {stage} cuando termine la corrida.",
     "stay": "Pedir cambios deja la tarea en {stage}: lo que sigue lo decide una persona.",
-    "record": "Pedir cambios sólo queda registrado: esta aprobación es de otra etapa."
-  }
+    "record": "Pedir cambios sólo queda registrado: esta aprobación es de otra etapa.",
+    "ahead": "Los cambios se piden cuando la tarea llegue a {stage}. Aprobarla o saltearla se puede ya."
+  },
+  "test_change_files": {
+    "one": "El test bloqueado que cambió:",
+    "other": "Los {count} tests bloqueados que cambiaron:"
+  },
+  "labels": {
+    "test_change": "Cambio en tests bloqueados"
+  },
+  "checks_hold": "Espera los checks que GitHub exige antes del merge. {reason}",
+  "checks_wait": "Los checks que exige GitHub siguen corriendo. Si aprobás ahora, la tarea queda en esta columna hasta que pasen. {reason}"
 }

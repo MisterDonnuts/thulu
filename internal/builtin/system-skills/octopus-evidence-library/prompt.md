@@ -59,7 +59,8 @@ evidence_save_case(take_id=...)
 - Every verification carries `check` + `target` (or `check="url"` /
   `"title"`, which need no target). With `observed` alone, each replay copies
   what you saw today and never fails. `evidence_save_case` warns if any was
-  left that way.
+  left that way. If one really has only `observed`, keep it to one sentence:
+  it is a row of the results table.
 - Pick targets that survive a redesign: test id, role and accessible name.
   Avoid ones that depend on data that changes (a total, a date, a customer),
   unless that data is what the case tests.
@@ -109,8 +110,8 @@ evidence_save_case(take_id=...)
 
 ## Closing
 
-Tell the person in two lines what you recorded and that the first run is
-already queued:
+Tell the person in two short lines what you recorded and that the first run
+is already queued:
 
 > I recorded EV-3: signing in with the test account and reaching the dashboard, with 3 verifications.
 > A first run is queued on Staging; the result will show up in the case.

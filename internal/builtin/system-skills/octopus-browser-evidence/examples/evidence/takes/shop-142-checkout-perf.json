@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "title": "SHOP-142 · applying the coupon stays fast on a slow phone",
+  "base_url": "https://staging.shop.example",
+  "viewport": { "width": 390, "height": 844 },
+  "network": "slow-4g",
+  "cpu_throttle": 4,
+  "ignore_errors": ["analytics\\.shop\\.example"],
+  "timezone": "UTC",
+  "locale": "en-US",
+  "steps": [
+    { "kind": "use", "flow": "login", "params": { "email": "qa@shop.example" } },
+    { "kind": "use", "flow": "add-to-cart", "params": { "product": "blue-mug" } },
+    { "kind": "verify", "case": "TC-4", "check": "perf", "metric": "lcp", "expected": "4000",
+      "label": "The cart paints its largest element within 4 s" },
+    { "kind": "fill", "target": "@coupon", "value": "SAVE10", "label": "Type the SAVE10 coupon" },
+    { "kind": "click", "target": "@apply_coupon", "label": "Apply it" },
+    { "kind": "verify", "case": "TC-4", "check": "perf", "metric": "response", "expected": "1500",
+      "label": "The total answers within 1.5 s" },
+    { "kind": "verify", "case": "TC-4", "check": "perf", "metric": "cls", "expected": "0.1",
+      "label": "Nothing jumps when the discount appears" },
+    { "kind": "verify", "case": "TC-2", "expected": "$90.00", "check": "text", "target": "@order_total",
+      "label": "The total drops to $90" },
+    { "kind": "a11y", "case": "TC-5", "include": ["@order_total"], "label": "The total can be read by everyone" }
+  ]
+}

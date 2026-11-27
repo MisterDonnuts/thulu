@@ -202,6 +202,10 @@
     "changed": "Tipo cambiado"
   },
   "confirm": {
+    "move_back_title": "¿Devolver \"{title}\" a {stage}?",
+    "move_back_message": "Contale al agente de {stage} por qué le vuelve la tarea. El motivo queda en Comments junto con el movimiento.",
+    "move_back_button": "Devolver",
+    "move_back_need_reason": "Escribí por qué vuelve la tarea.",
     "fork_running_title": "¿Bifurcar una tarea que está corriendo?",
     "fork_running_message": "Guarda una foto del estado actual. Lo que el agente produzca después queda en la original.",
     "fork_button": "Bifurcar",

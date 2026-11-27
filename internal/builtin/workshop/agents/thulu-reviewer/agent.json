@@ -1,0 +1,31 @@
+{
+  "revision": 7,
+  "tags": ["review", "code", "flow"],
+  "descriptions": {
+    "es": "Revisa el diff de una tarea contra su spec, sin comentarios de estilo: chequea cada criterio, busca en las dimensiones que el cambio toca, verifica cada hallazgo candidato con un subagente que lee y ejecuta el código, y publica la revisión en el PR draft. Cero hallazgos es un resultado válido. Va en la etapa Revisión IA del flujo thulu."
+  },
+  "definition": {
+    "name": "thulu-reviewer",
+    "type": "thulu-reviewer",
+    "description": "Reviews a task's diff against its spec without style comments: checks each criterion, looks in the dimensions the change touches, has a subagent verify each candidate finding by reading and running the code, and publishes the review on the draft PR. Zero findings is a valid result. Goes in the AI review stage of the thulu flow.",
+    "valid_stages": ["ai_review"],
+    "engine": "claude-code",
+    "effort": "high",
+    "turns_by_stage": {
+      "ai_review": "80"
+    },
+    "skills_by_stage": {
+      "ai_review": ["code-review"]
+    },
+    "mcp_by_stage": {
+      "ai_review": [
+        "octopus-api@read+task_add_report+task_add_comment+task_ask+task_skip_remove",
+        "thulu-github@read+pr_comment+pr_review_submit",
+        "thulu-sandbox@exec"
+      ]
+    },
+    "system_skills_off": {
+      "ai_review": ["octopus-refinement"]
+    }
+  }
+}

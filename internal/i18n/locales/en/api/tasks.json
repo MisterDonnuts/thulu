@@ -8,10 +8,14 @@
   "comments": {
     "agent_turn_limit": "Agents have already spoken {turns} times in a row in this thread: {agents} won't be launched until a person writes.",
     "mention_no_prompt": "@{agent} can't answer: it has no prompt loaded (neither `prompts/mention.md` nor `prompts/main.md`). Load one in **Agents → {agent}** and mention it again.",
-    "relaunch_requested": "Requested relaunch of **{stage}** with {turns} turns."
+    "access_given": "Gave access to {cases} and ran them again.",
+    "access_given_secrets": "Gave access to {cases} with {secrets} and ran them again."
   },
   "errors": {
+    "reason_too_long": "the reason can be at most {max} characters",
+    "reason_required_send_back": "Moving a task back needs a reason: it goes to Comments and to the agent of the stage it lands in.",
     "agent_index_agents_only": "only an agent run files its run index",
+    "waive_person_only": "only a person skips test cases: an agent run cannot record a waiver",
     "agent_needs_repo": "Agent {agent:%q} needs a linked repo. Link a project, pick another agent, or mark this agent as works_without_repo.",
     "archive_subtask": "A subtask is archived with its parent task: archive the parent.",
     "auditor_feedback_auditor_only": "only the auditor's run files auditor feedback",
@@ -64,8 +68,23 @@
     "merge_conflict_files": "{count} files conflict with {target}; nothing was merged",
     "merge_no_upload_project": "the task has no uploaded project to merge into; a project cloned from a repository gets a pull request instead",
     "merge_pick_project": "the task has several uploaded projects; say which one in project_id",
+    "merge_required_checks": "the merge waits for the checks GitHub requires on the task's pull requests: {checks}",
     "merge_nothing": "branch {branch} has no commits to merge yet",
-    "section_not_found": "the task body has no section {section:%q}"
+    "section_not_found": "the task body has no section {section:%q}",
+    "stage_verdict_agent_only": "only the stage's own agent files a stage verdict; the auditor uses auditor-feedback",
+    "stage_verdict_instance_mismatch": "the instance is not the run this key was minted for",
+    "flags_import_stage": "stage {stage} does not take flags.yaml (ingest_flags is off)",
+    "run_moves_own_task": "a run does not move the task it works on (stage, type or board): Thulu moves it when the run ends, or a person moves it by hand",
+    "flow_flags_person_only": "only a person sets flow_flags; an agent sets them through the refinement's flags.yaml",
+    "flow_flags_invalid": "flow_flags {values} are not valid: short ids like ui or api, at most {max}",
+    "access_environment_other_project": "environment {environment} does not belong to any of the task's projects",
+    "access_environment_required": "secrets need an evidence environment: send environment_id",
+    "access_no_cases": "name at least one test case to give access to",
+    "access_person_only": "only a signed-in person gives an agent access: neither an agent run nor an API key can",
+    "access_secret_empty": "secret {name} has no value",
+    "access_unknown_case": "the task has no test case {case}",
+    "criteria_approve_person_only": "only a signed-in person approves acceptance criteria: neither an agent run nor an API key can",
+    "stage_skips_patch": "stage_skips is not patched: add a skip with POST /tasks/<id>/stage-skips and remove one with POST /tasks/<id>/stage-skips/<stage>/remove"
   },
   "hints": {
     "answers_in_chat": "**{agent}** answers in its chat about this task.",
@@ -77,10 +96,14 @@
     "fork_prefix": "Fork of "
   },
   "log": {
+    "post_decision": "post the decision on task {task}",
+    "open_stop": "find the open stop of task {task}",
     "activate_mappings_failed": "activate mappings for flag {flag} (env {env}): {err}",
-    "add_relaunch_comment": "add relaunch-requested comment to task {task}",
+    "brief_reports": "read the reports of task {task} for its brief",
     "bind_attachments": "bind attachments to comment {comment}",
     "close_runs_dir": "api: close runs dir",
+    "reap_subtask_sandbox": "api: kill what the runs of deleted subtask {task} left in the sandbox of {owner}",
+    "reap_subtask_run": "api: kill what run {instance} of deleted subtask {task} left in the sandbox of {owner}",
     "destroy_sandbox": "api: destroy sandbox of task {task}",
     "discover_agents_failed": "mentions: discover agents: {err}",
     "environment_for_flag_failed": "look up environment for flag {flag}: {err}",
@@ -120,7 +143,12 @@
     "stamp_chat_delivery": "stamp chat delivery on message {message}",
     "stamp_comment_delivery": "stamp comment delivery on message {message}",
     "stamp_mention_delivery": "stamp mention delivery on message {message}",
-    "task_breakdown": "read the cost breakdown of task {task}"
+    "task_breakdown": "read the cost breakdown of task {task}",
+    "brief_access": "brief of task {task}: read the access given",
+    "restore_queued_cases": "put back the cases of task {task} after a relaunch that did not start",
+    "list_task_containers_failed": "list the containers of task {task} to stop them: {err}",
+    "remove_task_container_failed": "remove container {id} of task {task}: {err}",
+    "removed_task_container": "removed container {id} of deleted task {task} (instance {instance}, image {image}, state {state})"
   },
   "prompts": {
     "brief_audit_heading": "## Run under audit: `{run}`\n\n",
@@ -132,6 +160,7 @@
     "brief_flow": "**Flow:** {flow}\n\n",
     "brief_replies_hidden": "_({hidden} earlier replies not shown)_\n\n",
     "brief_repo_branch": "- **Default branch:** {branch}\n",
+    "brief_repo_base": "- **Base commit:** `{sha}`, where the task branch forks from {branch}. Compare against this commit, not against a branch name: a clone in a pod may not have {branch} (`thulu-gates run --base {sha}`).\n",
     "brief_repo_mount": "- **Mount:** `/workspace/projects/{mount}/`\n",
     "brief_repo_url": "- **Repo:** {repo}\n",
     "brief_repos_heading": "## Repos available\n\n",
@@ -144,9 +173,37 @@
     "brief_thread_resolved_by": ", resolved by {who}",
     "brief_thread_summary": "_Thread `{thread}`, {replies} replies{status}._\n\n",
     "brief_title": "# Task: {title}\n\n",
-    "brief_repo_hosted": "- **Repo:** uploaded to Thulu, no GitHub remote. Commit on the task branch and push to origin as usual; there is no pull request: a person lands the branch with Merge into.\n"
+    "brief_repo_hosted": "- **Repo:** uploaded to Thulu, no GitHub remote. Commit on the task branch and push to origin as usual; there is no pull request: a person lands the branch with Merge into.\n",
+    "brief_reports_heading": "## Reports of the earlier checks\n\nThe latest report of each earlier column whose agent gives a verdict. Each says at its top which commit it looked at; the full history is in the task's Reports tab.\n\n",
+    "brief_report_item": "### {stage} (`{id}`), by {author}, {when}\n\n",
+    "brief_report_cut": "\n\n_(cut at {max} characters; the full report is in the task's Reports tab)_\n\n",
+    "brief_stage_verdict": "**This stage takes a verdict from its agent:** before you exit, write `verdict.md` in the output dir, with the front matter of the `octopus-run` skill (`verdict: continue`, `kick_back` or `block`). A verdict that lives only in your report does not count: a clean exit with no `verdict.md` that reads blocks the task here.\n\n",
+    "brief_stage_surface": "**This stage writes the spec's surface:** list what the change touches under `surface:` in `flags.yaml` (format in the `octopus-run` skill). Later stages that run only for a surface are skipped when yours leaves it out.\n\n",
+    "brief_stage_lock_tests": "**This stage locks the tests it writes:** when you exit with code 0, every test file you added or changed must stay as it is in later stages. List other files that must not change either (fixtures, snapshots) in `locked-tests.txt` in the output dir, one repo-relative path per line.\n\n",
+    "brief_locked_tests": "**Locked tests:** {files}. An earlier stage wrote them as the contract the code must pass. If your run changes one, the task stops here until a person approves the change.\n\n",
+    "brief_handoff_heading": "## Handoff\n\nWhat the other stages passed on to this one, from their `verdict.md` and the auditor's notes. The full reports are in the task's Reports tab.\n\n",
+    "brief_handoff_kick_back": "### Sent back from {stage} (`{id}`) by {author}, {when}\n\nThis is why the task is in this stage again. Fix what it names first.\n\n",
+    "brief_handoff_changes": "### Changes requested on {approval} at {stage} (`{id}`) by {who}, {when}\n\n",
+    "brief_handoff_previous": "### This stage's last verdict: `{verdict}`, {when}\n\n",
+    "brief_handoff_earlier_heading": "### What the earlier stages passed on\n\n",
+    "brief_handoff_earlier_item": "#### {stage} (`{id}`), by {author}, {when}\n\n",
+    "brief_handoff_next": "Next",
+    "brief_handoff_delta": "Delta (new, fixed, still open)",
+    "brief_access_heading": "## Access given\n\n",
+    "brief_access_cases": "A person gave you what these cases were blocked on. Run only these: {cases}.\n\n",
+    "brief_access_secrets": "New secrets in the evidence environment {environment}: {secrets}. Refer to them by name; this brief never carries their values.\n\n",
+    "brief_access_env_unknown": "(environment not found)",
+    "brief_test_case_covers": " · covers: {covers}",
+    "brief_skips_heading": "## Columns this task skips\n\n",
+    "brief_skip_line": "- `{stage}` ({place}): {reason} (set by {by})",
+    "brief_skip_ahead": "ahead",
+    "brief_skip_passed": "already passed",
+    "brief_skips_remove_hint": "If your work makes one of these columns necessary (you touched UI, a migration, auth…), remove its skip with `task_skip_remove` and a reason. A column ahead then runs when the task reaches it; one the task already passed sends the task back there.\n\n",
+    "brief_skips_audit": "You audit the refinement: check that each skip has a reason that holds for this change. The spec gave risk **{risk}**; a skip on a high-risk change is a finding unless its reason shows the column adds nothing.\n\n",
+    "brief_stage_skips": "**This stage may skip later columns:** when the change does not need one, list it under `skip:` in `flags.yaml`, each entry with `stage` and `reason` (an entry without a reason is refused and its column runs). Columns you may skip: {skippable}. Never skippable: {never}.\n\n"
   },
   "timeline": {
+    "relaunch_requested": "relaunch of {stage} requested with {turns} turns",
     "cloned_from": "cloned from {task}",
     "dependency_removed": "no longer depends on {task}",
     "dependent_added": "{task} depends on this task",
@@ -161,6 +218,15 @@
     "subtask_of": "subtask of {parent}: {title}",
     "subtasks_reordered": "subtasks reordered",
     "merged": "{who} merged {branch} into {target} of {project} ({commit})",
-    "section_removed": "section {section:%q} removed"
+    "section_removed": "section {section:%q} removed",
+    "kick_back_reset": "relaunched out of blocked: send-backs count from zero again",
+    "access_given": {
+      "one": "access given to {cases} with {count} secret",
+      "other": "access given to {cases} with {count} secrets"
+    },
+    "criteria_set": {
+      "one": "{count} acceptance criterion set",
+      "other": "{count} acceptance criteria set"
+    }
   }
 }

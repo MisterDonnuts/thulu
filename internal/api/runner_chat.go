@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/MisterDonnuts/thulu/internal/apperr"
 	"github.com/MisterDonnuts/thulu/internal/chatruntime"
@@ -45,7 +46,7 @@ func (l *runnerLauncher) RunTurn(ctx context.Context, turn chatruntime.MachineTu
 		Spec: runner.JobSpec{
 			InstanceID: id, TaskID: turn.TaskID, Stage: stage, AgentName: turn.AgentName,
 			LaunchKind: runner.LaunchKindChatTurn, ReadOnly: true, Env: copyEnv(turn.Env), Projects: projects,
-			ChatID: turn.ChatID, Stdin: turn.Stdin,
+			ChatID: turn.ChatID, Stdin: turn.Stdin, DeadlineSeconds: turnDeadlineSeconds(ctx),
 		},
 	}
 	// Registered before the job exists, so settle can never reap it unseen. Buffered: a turn whose
@@ -126,4 +127,14 @@ func (l *runnerLauncher) dropTurn(j *runner.Job) {
 			logx.Warn(err, "api.runners.log.turn_cleanup_failed", "path", p)
 		}
 	}
+}
+
+// turnDeadlineSeconds is what is left of the turn's timeout, rounded up, for the machine to stop the
+// turn on its own when this daemon's cancel never reaches it; 0 when ctx has no deadline.
+func turnDeadlineSeconds(ctx context.Context) int {
+	dl, ok := ctx.Deadline()
+	if !ok {
+		return 0
+	}
+	return max(int((time.Until(dl)+time.Second-1)/time.Second), 1)
 }

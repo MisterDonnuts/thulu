@@ -130,6 +130,6 @@ Never encode a file in base64 to paste it into a tool: that corrupts binaries. F
 
 ## Operating rules
 
-1. **Background processes** with `exec` (when there is no script): `setsid nohup <cmd> > /tmp/<name>.log 2>&1 < /dev/null &`. Without `setsid nohup`, the process dies when `exec` returns.
+1. **Long-running processes** (a dev server, a watcher, a database) go in the startup script and start with `init_run`, which stops the previous run's whole process group first. A command run with `exec` ends when `exec` returns: never detach one with setsid, nohup or disown, because on a runner machine nothing stops it once the run is over.
 2. **Before relaunching, look at what's there**: `init_status` shows whether there is already a `ready` run in this sandbox. If there is, don't repeat it unless you changed something that requires it.
 3. **Startup logs**: `/tmp/octopus-init/<dir>.log` has the full output of the last `init_run`.

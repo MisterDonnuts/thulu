@@ -185,6 +185,25 @@ func TestCollectorWithoutSources(t *testing.T) {
 	}
 }
 
+// What the daemon finds on its own schedule (a missing configured image) reaches every snapshot.
+func TestCollectorAddsTheDaemonsProblems(t *testing.T) {
+	missing := errors.New("image octopus-runtime:latest is missing")
+	c := New(Config{ProcRoot: filepath.Join(t.TempDir(), "absent"),
+		ExtraProblems: func() []Problem { return []Problem{{Source: "images", Err: missing}} }})
+	c.tick(context.Background())
+	waitSlow(t, c)
+	c.tick(context.Background())
+	var got []Problem
+	for _, p := range c.Overview().Problems {
+		if p.Source == "images" {
+			got = append(got, p)
+		}
+	}
+	if len(got) != 1 || !errors.Is(got[0].Err, missing) {
+		t.Errorf("image problems = %+v; want the daemon's one", got)
+	}
+}
+
 func TestWorkspaceNamesResolveSanitizedIDs(t *testing.T) {
 	n := workspaceNames{"A1B2c3d4_e5": "Acme"}
 	if id, name := n.resolve("A1B2c3d4_e5"); id != "A1B2c3d4_e5" || name != "Acme" {

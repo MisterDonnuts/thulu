@@ -1,6 +1,8 @@
 {
   "reports": {
-    "empty": "No reports yet. Agents file their stage reports and test evidence here."
+    "empty": "No reports yet. Agents file their stage reports and test evidence here.",
+    "title": "Reports",
+    "hint": "Stage reports and test evidence the agents filed"
   },
   "exit": "exit {code}",
   "instance": "instance {id}",
@@ -44,6 +46,7 @@
     "auditor_verdict": "Auditor verdict",
     "auditor_run_started": "Audit started",
     "auditor_run_finished": "Audit finished",
+    "auditor_skipped": "Audit skipped",
     "flag_raised": "Flag raised",
     "flag_resolved": "Flag resolved",
     "question_asked": "Agent asked",
@@ -75,6 +78,11 @@
     "subtasks_reordered": "Subtasks reordered",
     "preview_url": "App preview",
     "run_not_started": "Run did not start",
-    "run_queue_canceled": "Wait canceled"
+    "run_queue_canceled": "Wait canceled",
+    "run_outlived": "Result not applied",
+    "stage_launch_deferred": "Start waits",
+    "stage_skip_added": "Column skipped",
+    "stage_skip_removed": "Skip removed",
+    "stage_skipped": "Passed over a column"
   }
 }

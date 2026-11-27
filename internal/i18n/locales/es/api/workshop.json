@@ -6,6 +6,9 @@
   },
   "audit": {
     "imported": "agentes y skills importados: {count} escritos",
-    "installed": "instalado desde el Workshop: {count} escritos"
+    "installed": "instalado desde el Workshop: {count} escritos",
+    "flow_board": "tablero {board} del flujo {flow}: {resolution}",
+    "installed_partial": "instalado desde el Workshop: {count} escritos, falló un tablero de flujo",
+    "imported_partial": "agentes y skills importados: {count} escritos, falló un tablero de flujo"
   }
 }

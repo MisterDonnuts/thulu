@@ -45,7 +45,8 @@
     "answered": "{kind} answered",
     "asked": "{kind} asked ({count} question(s))",
     "awaiting_input": "run waits for {count} blocking question(s)",
-    "canceled": "{kind} canceled"
+    "canceled": "{kind} canceled",
+    "defaulted": "{kind} closed with its default"
   },
   "log": {
     "cancel": "cancel question {question}",
@@ -60,7 +61,8 @@
     "set_session": "stamp the session on the questions of task {task}",
     "steer": "steer the answers into run {run} of task {task}",
     "unpark": "move task {task} out of awaiting_input",
-    "decorate_counts": "count open questions"
+    "decorate_counts": "count open questions",
+    "apply_default": "close question {question} with its default"
   },
   "prompts": {
     "answer": "Answer: {answer}",
@@ -72,6 +74,7 @@
     "canceled": "Canceled by {author}, unanswered.",
     "canceled_moved": "Canceled unanswered: the task moved to another stage.",
     "canceled_relaunch": "Canceled unanswered: the stage was relaunched.",
+    "default_applied": "Nobody answered before the task left the stage, so the default stands: {default}",
     "heading": "Answer:",
     "line": "\n- **{label}:** {answer}",
     "note": "\n\n{note}",

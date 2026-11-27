@@ -1,0 +1,5 @@
+{
+  "events": {
+    "changed": "cambiaron criterios de aceptación con los tests ya fijados: {keys}"
+  }
+}

@@ -17,6 +17,7 @@
     "no_auth_store": "keys are not available on this instance",
     "project_not_found": "project {id} not found",
     "recording_chat_only": "only the agent of a recording chat can use this",
+    "run_branch_scope": "an agent run builds a sandbox from a branch only on the Sandbox of a project its task works on",
     "runner_create": "create the evidence runner of batch {batch}",
     "runner_only": "only the runner of this batch can use this",
     "runner_start": "start the evidence runner of batch {batch}",
@@ -47,5 +48,8 @@
   "reasons": {
     "runner_exit": "the runner exited with code {code}",
     "deadline": "the batch ran past its time limit"
+  },
+  "labels": {
+    "person_safe_for_prod": "marking a case safe for production"
   }
 }

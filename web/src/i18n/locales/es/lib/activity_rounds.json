@@ -1,0 +1,95 @@
+{
+  "title": "Rondas",
+  "hint": "Una ronda empieza cada vez que la tarea vuelve atrás. Abrí una columna para leer qué pasó ahí.",
+  "a_person": "Una persona",
+  "round": "Ronda {n}",
+  "reason": "Motivo en comentarios",
+  "open_thread": "Abrir en comentarios",
+  "no_items": "Ningún agente corrió acá: la tarea siguió de largo.",
+  "empty": "La tarea todavía no pasó por ninguna columna.",
+  "no_match": "Nada coincide con estos filtros.",
+  "more": {
+    "one": "Mostrar rondas anteriores · {count} más",
+    "other": "Mostrar rondas anteriores · {count} más"
+  },
+  "less": "Mostrar menos",
+  "every_round": "Ésas son todas las rondas.",
+  "end": {
+    "passed": "Pasó a {stage}",
+    "agent_back": "{agent} la devolvió a {stage}",
+    "person_back": "{who} la devolvió a {stage}",
+    "person_moved": "{who} la movió a {stage}",
+    "stopped_back": "{who} la devolvió a {stage} después de la parada",
+    "stopped_moved": "{who} la movió a {stage} después de la parada",
+    "running": "Corriendo ahora",
+    "waiting": "Parada, esperando a una persona",
+    "idle": "Sigue acá"
+  },
+  "why": {
+    "started": "Empezó en {stage}.",
+    "moved": "{who} la movió a {stage}.",
+    "person_back": "{who} la devolvió a {stage}.",
+    "agent_back": "{agent} la devolvió a {stage}.",
+    "moved_reason": "{who} la movió a {stage}: {reason}",
+    "person_back_reason": "{who} la devolvió a {stage}: {reason}",
+    "agent_back_reason": "{agent} la devolvió a {stage}: {reason}",
+    "agent_who": "{stage} ({agent})"
+  },
+  "item": {
+    "moved_here": "Una persona la movió acá",
+    "question": "{agent} hizo una pregunta",
+    "question_answered": "{agent} hizo una pregunta; {who} respondió",
+    "stop": "{agent} se detuvo esperando a una persona",
+    "stop_answered": "{agent} se detuvo esperando a una persona; {who} respondió",
+    "stop_decided": "{agent} se detuvo esperando a una persona; {who}: {decision}",
+    "decision": "{who}: {decision}",
+    "comment": "{who}: {text}",
+    "relaunch": "{who} volvió a correr {stage}",
+    "relaunch_turns": "{who} volvió a correr {stage} con {turns} turnos",
+    "access": "{who} le dio acceso al agente para {cases}"
+  },
+  "badge": {
+    "questions": {
+      "one": "{count} pregunta",
+      "other": "{count} preguntas"
+    },
+    "stopped": "Se detuvo esperando a una persona",
+    "failed": {
+      "one": "{count} corrida falló",
+      "other": "{count} corridas fallaron"
+    },
+    "runs": {
+      "one": "{count} corrida",
+      "other": "{count} corridas"
+    }
+  },
+  "filter": {
+    "stage": "Columna",
+    "all_stages": "Todas las columnas",
+    "agent": "Agente",
+    "all_agents": "Todos los agentes",
+    "order": "Orden",
+    "newest": "Ronda más nueva primero",
+    "oldest": "Ronda más vieja primero",
+    "system": "Eventos del sistema",
+    "clear": "Limpiar filtros"
+  },
+  "reason_short": "Motivo",
+  "run": {
+    "verdict": "Veredicto",
+    "stopped": "Se detuvo por una persona",
+    "sent_back": "La devolvió a {stage}"
+  },
+  "legend": {
+    "passed": "pasó a la columna siguiente",
+    "agent_back": "un agente la devolvió",
+    "person": "una persona la movió o la devolvió"
+  },
+  "cost": {
+    "title": "Costo y tamaño",
+    "spent": "gastado, todos los agentes",
+    "runs": "corridas de agentes",
+    "tokens": "tokens",
+    "span": "desde la primera corrida hasta ahora"
+  }
+}

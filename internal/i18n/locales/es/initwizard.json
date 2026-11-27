@@ -61,7 +61,9 @@
     "aborted": "se canceló el setup",
     "input_ended": "la entrada terminó antes de la confirmación, así que no se escribió nada. Contestá todas las preguntas, o corré `thulu init -non-interactive` para instalar con los valores por defecto",
     "unknown_stack": "-stack {file} no es un stack que esta instalación corra: usá uno de {known}",
-    "stack_needs_checkout": "{file} compila Thulu desde un checkout, y acá no hay ninguno"
+    "stack_needs_checkout": "{file} compila Thulu desde un checkout, y acá no hay ninguno",
+    "flow_missing": "el Workshop de este daemon no tiene el flujo {flow}",
+    "flow_blocked": "el Workshop rechazó el flujo {flow}; abrilo en el Workshop para ver por qué"
   },
   "sections": {
     "mode": {
@@ -115,6 +117,10 @@
     "install": {
       "title": "Instalando",
       "blurb": ""
+    },
+    "flow": {
+      "title": "Tablero",
+      "blurb": "Cada columna de un tablero puede tener un agente que trabaja la tarea cuando llega. Elegí con qué tablero arranca el workspace. Los dos se pueden instalar después desde el Workshop, y un agente que no quieras se puede borrar."
     }
   },
   "prompts": {
@@ -170,7 +176,8 @@
     "runner_folder": "Carpeta de un proyecto",
     "runner_service": "¿Dejarlo corriendo como servicio? Arranca solo cada vez que iniciás sesión.",
     "yes_no_invalid": "Respondé s o n.",
-    "runner_machine_profile": "¿Las corridas de Claude Code usan la sesión de claude de esta máquina? (crea un perfil \"Login en una máquina\" predeterminado para Claude Code: las corridas van a esta máquina y pagan con su login)"
+    "runner_machine_profile": "¿Las corridas de Claude Code usan la sesión de claude de esta máquina? (crea un perfil \"Login en una máquina\" predeterminado para Claude Code: las corridas van a esta máquina y pagan con su login)",
+    "board": "¿Con qué tablero arranca el workspace?"
   },
   "options": {
     "mode_docker": {
@@ -241,6 +248,18 @@
     "stack_keep": {
       "label": "Mantener el actual: {file}",
       "detail": "El stack que armó una corrida anterior, que compila Thulu desde este checkout. Para desarrollar Thulu está `make dev`, que levanta el stack de desarrollo."
+    },
+    "board_thulu": {
+      "label": "Flujo Thulu (recomendado)",
+      "detail": "Un tablero de backlog a release: refinamiento, diseño de tests, desarrollo, verificación, revisión de IA, testing agéntico, production readiness, revisión humana y release, con el agente y las skills de cada columna."
+    },
+    "board_minimal": {
+      "label": "Arranque mínimo",
+      "detail": "Cuatro columnas: Backlog, En curso, Revisión y Hecho. Un agente general toma cada tarea que llega a En curso, hace el cambio, corre los tests del proyecto y commitea. Revisión queda para una persona, que decide el pull request."
+    },
+    "board_keep": {
+      "label": "Dejar los tableros como están",
+      "detail": "El setup no instala nada ni cambia ningún tablero."
     }
   },
   "mcp": {
@@ -332,7 +351,10 @@
     "full_log": "Log completo: {path}",
     "session_key_left": "La key que usó esta corrida ({id}) no se revocó: {err}. Revocala en Ajustes → API keys.",
     "banner_tui": "thulu init: configuración inicial\nNo se escribe nada hasta que confirmes el resumen.\nCtrl+C sale sin tocar nada.\n",
-    "stack_from_flag": "Stack (de -stack)"
+    "stack_from_flag": "Stack (de -stack)",
+    "flow_installed": "Quedó instalado {name}: tablero {board}, ahora el por defecto",
+    "flow_present": "El tablero {board} ya existe; queda como está.",
+    "flow_failed": "no se pudo instalar {name}: {err}"
   },
   "summary": {
     "up": "Thulu está andando.",
@@ -457,6 +479,11 @@
       "step": "Perfil de máquina para Claude Code",
       "effect": "las corridas usan una key o el login personal, no esta máquina",
       "finish": "Configuración → Motores de IA → Claude Code → Nuevo perfil → Login en una máquina"
+    },
+    "flow": {
+      "step": "Tablero por defecto",
+      "effect": "las tareas arrancan en el tablero que ya tiene el workspace",
+      "finish": "instalá “{flow}” desde el Workshop (Agentes → Workshop → Flujos) y marcá “Usarlo como tablero por defecto”"
     }
   },
   "labels": {
@@ -465,7 +492,11 @@
     "git_credential_name": "GitHub (thulu init)",
     "default_workspace": "Default",
     "session_key": "thulu init (sólo esta corrida)",
-    "machine_profile_name": "Claude Code en {runner}"
+    "machine_profile_name": "Claude Code en {runner}",
+    "board_thulu": "el flujo Thulu",
+    "board_minimal": "el arranque mínimo",
+    "board_thulu_workshop": "Flujo Thulu",
+    "board_minimal_workshop": "Arranque mínimo"
   },
   "diff": {
     "commented_out": "{key} (comentada)",
@@ -541,7 +572,11 @@
     "github": "GitHub",
     "github_token": "token cargado",
     "github_skipped": "sin token (se carga después en /credentials)",
-    "runner_machine_profile": "Claude Code corre acá por defecto"
+    "runner_machine_profile": "Claude Code corre acá por defecto",
+    "board": "Tablero",
+    "board_flow": "flujo Thulu, como tablero por defecto",
+    "board_minimal": "arranque mínimo, como tablero por defecto: un agente en En curso, Revisión para una persona",
+    "board_keep": "queda como está"
   },
   "tasks": {
     "postgres": "Levantando Postgres",
@@ -582,6 +617,8 @@
     "runner_local": "runner ▸ claude\ntu repo y tu git",
     "runner_run": "corrida",
     "runner_result": "resultado",
-    "runner_code_stays": "el código no sale de esta máquina"
+    "runner_code_stays": "el código no sale de esta máquina",
+    "board_agent": "{column} · agente",
+    "board_person": "{column} · una persona"
   }
 }

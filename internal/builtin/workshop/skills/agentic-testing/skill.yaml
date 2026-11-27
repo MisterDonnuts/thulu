@@ -1,0 +1,9 @@
+name: agentic-testing
+description: How to test a task's UI in the browser the way a QA team would, in five passes. Functional and exploratory testing with charters from SFDIPOT, FEW HICCUPPS oracles and tours; visual checks in three viewports, light and dark, before and after, and every state; a blind user subagent that only gets a persona and a goal; Nielsen heuristics in three passes with averaged severity; timings in five interleaved main/branch pairs on slow-4g with CPU 4x; accessibility with a11y_scan and a keyboard walk. Covers what blocks and what does not, k/3 reproduction with a named oracle, the ux_review approval and the report. Use it when it is your turn to test a task's UI.
+descriptions:
+  es: Cómo probar la UI de una tarea en el navegador como lo haría un equipo de QA, en cinco pasadas. Funcional y exploratoria con charters de SFDIPOT, oráculos FEW HICCUPPS y tours; visual en tres viewports, claro y oscuro, antes y después, y todos los estados; un subagente usuario a ciegas que sólo recibe una persona y un objetivo; heurísticas de Nielsen en tres pasadas con severidad promediada; tiempos en cinco pares intercalados main/rama con slow-4g y CPU 4x; accesibilidad con a11y_scan y un recorrido con teclado. Cubre qué bloquea y qué no, reproducción k/3 con oráculo nombrado, la aprobación ux_review y el reporte. Usala cuando te toca probar la UI de una tarea.
+type: knowledge
+enforcement: on_demand
+version: 7
+tags: [testing, qa, ux, accessibility, flow]
+requires: []

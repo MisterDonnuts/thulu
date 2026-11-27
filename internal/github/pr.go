@@ -104,6 +104,10 @@ func parsePRError(status int, body []byte) error {
 			strings.Contains(combined, "No commits between")) {
 		return ErrAlreadyExists
 	}
+	//i18n:ignore GitHub's own error wording, matched
+	if status == http.StatusUnprocessableEntity && strings.Contains(combined, "Draft pull requests are not supported") {
+		return ErrDraftUnsupported
+	}
 	if combined == "" {
 		combined = fmt.Sprintf("HTTP %d", status)
 	}
@@ -111,6 +115,9 @@ func parsePRError(status int, body []byte) error {
 }
 
 var ErrAlreadyExists error = apperr.Conflict("github.errors.pr_already_exists")
+
+// Private repositories on some plans take no drafts; the caller opens a regular pull request.
+var ErrDraftUnsupported error = apperr.Unprocessable("github.errors.draft_unsupported")
 
 // GitHub's 422 never says which PR exists. The head filter wants owner:branch; only same-repo
 // heads, since

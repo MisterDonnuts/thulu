@@ -60,6 +60,12 @@ type SessionAuthorizer interface {
 	Principal(r *http.Request) string
 }
 
+// RunInstancer names the run a request comes from, read from its run key. An authorizer that has
+// one lets every exec of the session carry the run's instance.
+type RunInstancer interface {
+	RunInstance(r *http.Request) string
+}
+
 type MCPHandler struct {
 	mgr         *Manager
 	resolver    WorkspaceResolver
@@ -67,9 +73,21 @@ type MCPHandler struct {
 	authz       SessionAuthorizer
 	initScripts InitScripts
 	previews    PreviewRecorder
+	gates       GatesProfileFunc
 
 	mu       sync.Mutex
 	sessions map[string]*mcpSession
+}
+
+// GatesProfileFunc returns the gate profile file of a task's projects (gatesprofile.File), or nil
+// when none has one.
+type GatesProfileFunc func(ctx context.Context, taskID string) []byte
+
+// WithGatesProfiles makes every exec find the task's gate profile at SandboxGatesProfilePath, named
+// in $THULU_GATES_PROFILE, so thulu-gates applies what a person set for the project in Thulu.
+func (h *MCPHandler) WithGatesProfiles(fn GatesProfileFunc) *MCPHandler {
+	h.gates = fn
+	return h
 }
 
 func (h *MCPHandler) WithAttacher(fn AttachFunc) *MCPHandler {
@@ -96,8 +114,10 @@ type mcpSession struct {
 	stage     string
 	previewed map[string]bool
 	principal string
-	writer    http.ResponseWriter
-	flusher   http.Flusher
+	// The run behind the session; empty for a person's session or a chat.
+	runInstance string
+	writer      http.ResponseWriter
+	flusher     http.Flusher
 	// dispatch uses this, not the POST's request context, which is canceled right after the 202 ack
 	// and would abort exec work.
 	ctx    context.Context
@@ -151,17 +171,23 @@ func (h *MCPHandler) HandleSSE(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("X-Accel-Buffering", "no")
 
+	runInstance := ""
+	if ri, ok := h.authz.(RunInstancer); ok {
+		runInstance = ri.RunInstance(r)
+	}
+
 	sessionID := newSessionID()
 	ctx, cancel := context.WithCancel(r.Context())
 	sess := &mcpSession{
-		id:        sessionID,
-		taskID:    taskID,
-		stage:     stage,
-		principal: principal,
-		writer:    w,
-		flusher:   flusher,
-		ctx:       ctx,
-		cancel:    cancel,
+		id:          sessionID,
+		taskID:      taskID,
+		stage:       stage,
+		principal:   principal,
+		runInstance: runInstance,
+		writer:      w,
+		flusher:     flusher,
+		ctx:         ctx,
+		cancel:      cancel,
 	}
 	h.mu.Lock()
 	h.sessions[sessionID] = sess

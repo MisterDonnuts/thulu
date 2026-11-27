@@ -36,7 +36,7 @@ is recreated:
 - **Kept:** `/workspace/projects` (the code and whatever the install left
   in the repo, like `node_modules`) and `/cache` (the npm, Go and pip caches and the
   mise toolchains, shared by the whole workspace).
-- **Lost:** everything else (the processes, `/tmp`, `$HOME` and anything
+- **Lost:** everything else (the processes, the temp folder, `$HOME` and anything
   installed outside those two paths).
 
 That is why whatever starts the project goes in the startup script, never in a
@@ -59,7 +59,7 @@ again.
      `pyproject.toml`: the versions.
 3. Start it by hand with `exec` until it responds, and save what worked with
    `init_script_update` in the format from the next section. Files you
-   put together for testing go to `/tmp` in the meantime and later to `files`, never to the
+   put together for testing go to `$TMPDIR` in the meantime and later to `files`, never to the
    repo. If something can't be
    worked out from the repo (a variable with no example value, an external service),
    ask with `task_ask` instead of making up a value.
@@ -166,8 +166,11 @@ On save, Thulu prewarms the default branch: the next task should see `restored`.
   137; if it is the build, lower the parallelism (`--max-workers=2`,
   `NODE_OPTIONS=--max-old-space-size=3072`, `GOMAXPROCS=2`) before reporting.
 - **Time.** Each `exec` has a cap (30 minutes by default) and so does the
-  `init_run` install. Anything that takes longer goes in the background with
-  `setsid nohup ... &` and you follow it with `tail` on the log.
+  `init_run` install. A server or anything else that has to keep running goes
+  in the startup script and starts with `init_run`, which stops the previous
+  run's whole process group; follow it with `tail` on the log it returns. Never
+  detach a process from `exec` with setsid, nohup or disown: on a runner
+  machine it outlives the run and nobody stops it.
 
 ## When something fails
 

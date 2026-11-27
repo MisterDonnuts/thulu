@@ -222,6 +222,8 @@ Default 120s of waiting, polling every 10s. Raise it with `timeout_seconds` (cap
 
 Before triggering, `workflow_view({repo, workflow_id})` gives you the YAML: there you see whether it accepts `workflow_dispatch` and **which inputs it declares**. Blindly triggering a workflow that doesn't declare them fails with 422.
 
+In a task run, Thulu refuses `run_dispatch` until a person approves the `deploy_prod` approval on your task. Request it with `task_request_approval(key: "deploy_prod", ...)` and wait to be resumed. A refusal that names `deploy_prod` means wait for the person; retrying changes nothing. If your stage also grants `run_rerun` or `run_cancel`, they wait for the same approval: it is one token.
+
 `run_dispatch` returns the run it created (`run_id`), not a bare 204: the server finds the new id by comparing against the runs that existed before triggering. If GitHub takes more than 20s to queue it, it returns `run_id: null` and tells you how to find it.
 
 `inputs` must be strings: if the workflow declares `version: number`, send `inputs: { version: "3" }`, not `{ version: 3 }`.

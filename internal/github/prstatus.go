@@ -20,11 +20,20 @@ const maxPages = 3
 const maxWorkflowRuns = 20
 
 type PullRequest struct {
-	Number         int    `json:"number"`
-	Title          string `json:"title"`
-	State          string `json:"state"`
-	Draft          bool   `json:"draft"`
-	Merged         bool   `json:"merged"`
+	Number int `json:"number"`
+	// The GraphQL id; marking a draft ready has no REST endpoint.
+	NodeID string `json:"node_id"`
+	Title  string `json:"title"`
+	State  string `json:"state"`
+	Draft  bool   `json:"draft"`
+	Merged bool   `json:"merged"`
+	// The commit the merge left on the base branch: with squash, the squashed commit; with
+	// rebase, the last rebased one.
+	MergeCommitSHA string     `json:"merge_commit_sha"`
+	MergedAt       *time.Time `json:"merged_at"`
+	MergedBy       *struct {
+		Login string `json:"login"`
+	} `json:"merged_by"`
 	MergeableState string `json:"mergeable_state"`
 	HTMLURL        string `json:"html_url"`
 	Head           struct {
@@ -76,6 +85,21 @@ func StateOf(pr *PullRequest) string {
 		return PRStateDraft
 	}
 	return PRStateOpen
+}
+
+// GitHub fills merge_commit_sha on open PRs too (its test merge); only a merged PR's is real.
+func MergeSHAOf(pr *PullRequest) string {
+	if !pr.Merged {
+		return ""
+	}
+	return pr.MergeCommitSHA
+}
+
+func (pr *PullRequest) MergedByLogin() string {
+	if pr.MergedBy == nil {
+		return ""
+	}
+	return pr.MergedBy.Login
 }
 
 const (
@@ -185,9 +209,13 @@ type CIStatus struct {
 	Failed  int    `json:"failed"`
 	Running int    `json:"running"`
 	State   string `json:"state"`
+	// Each run or job by name, for the checks a branch requires.
+	Checks []CheckResult `json:"checks,omitempty"`
 }
 
-func (c *CIStatus) add(status, conclusion string) {
+func (c *CIStatus) add(r CheckResult) {
+	c.Checks = append(c.Checks, r)
+	status, conclusion := r.Status, r.Conclusion
 	c.Total++
 	switch status {
 	case "queued", "in_progress", "pending", "waiting", "requested":
@@ -224,15 +252,19 @@ func CheckRunsCI(ctx context.Context, token, owner, repo, sha string) (CIStatus,
 		var batch struct {
 			TotalCount int `json:"total_count"`
 			CheckRuns  []struct {
+				Name       string `json:"name"`
 				Status     string `json:"status"`
 				Conclusion string `json:"conclusion"`
+				App        struct {
+					ID int64 `json:"id"`
+				} `json:"app"`
 			} `json:"check_runs"`
 		}
 		if err := callLimit(ctx, token, http.MethodGet, base+strconv.Itoa(page), nil, &batch, readLimit); err != nil {
 			return CIStatus{}, err
 		}
 		for _, r := range batch.CheckRuns {
-			ci.add(r.Status, r.Conclusion)
+			ci.add(CheckResult{Name: r.Name, Status: r.Status, Conclusion: r.Conclusion, AppID: r.App.ID})
 		}
 		seen += len(batch.CheckRuns)
 		if len(batch.CheckRuns) == 0 || seen >= batch.TotalCount {
@@ -261,6 +293,7 @@ func ActionsCI(ctx context.Context, token, owner, repo, sha string) (CIStatus, e
 	for _, run := range runs.WorkflowRuns {
 		var jobs struct {
 			Jobs []struct {
+				Name       string `json:"name"`
 				Status     string `json:"status"`
 				Conclusion string `json:"conclusion"`
 			} `json:"jobs"`
@@ -272,12 +305,12 @@ func ActionsCI(ctx context.Context, token, owner, repo, sha string) (CIStatus, e
 		}
 		if len(jobs.Jobs) == 0 {
 			if run.Status != "completed" {
-				ci.add("queued", "")
+				ci.add(CheckResult{Status: "queued", AppID: actionsAppID})
 			}
 			continue
 		}
 		for _, j := range jobs.Jobs {
-			ci.add(j.Status, j.Conclusion)
+			ci.add(CheckResult{Name: j.Name, Status: j.Status, Conclusion: j.Conclusion, AppID: actionsAppID})
 		}
 	}
 	ci.settle()
@@ -285,20 +318,23 @@ func ActionsCI(ctx context.Context, token, owner, repo, sha string) (CIStatus, e
 }
 
 type PRStatus struct {
-	Number       int       `json:"number"`
-	Title        string    `json:"title"`
-	State        string    `json:"state"`
-	Head         string    `json:"head"`
-	Base         string    `json:"base"`
-	HeadSHA      string    `json:"-"`
-	CI           CIStatus  `json:"ci"`
-	Review       string    `json:"review"`
-	Mergeable    string    `json:"mergeable"`
-	ChangedFiles int       `json:"changed_files"`
-	Additions    int       `json:"additions"`
-	Deletions    int       `json:"deletions"`
-	Commits      int       `json:"commits"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	Number   int      `json:"number"`
+	Title    string   `json:"title"`
+	State    string   `json:"state"`
+	Head     string   `json:"head"`
+	Base     string   `json:"base"`
+	HeadSHA  string   `json:"-"`
+	MergeSHA string   `json:"merge_sha,omitempty"`
+	CI       CIStatus `json:"ci"`
+	// The checks the base branch requires, from branch protection and rulesets.
+	Required     RequiredStatus `json:"required_checks"`
+	Review       string         `json:"review"`
+	Mergeable    string         `json:"mergeable"`
+	ChangedFiles int            `json:"changed_files"`
+	Additions    int            `json:"additions"`
+	Deletions    int            `json:"deletions"`
+	Commits      int            `json:"commits"`
+	UpdatedAt    time.Time      `json:"updated_at"`
 }
 
 func FetchPRStatus(ctx context.Context, token, owner, repo string, number int, checks bool) (*PRStatus, error) {
@@ -314,6 +350,7 @@ func FetchPRStatus(ctx context.Context, token, owner, repo string, number int, c
 		Base:         pr.Base.Ref,
 		HeadSHA:      pr.Head.SHA,
 		Mergeable:    MergeableOf(pr),
+		MergeSHA:     MergeSHAOf(pr),
 		ChangedFiles: pr.ChangedFiles,
 		Additions:    pr.Additions,
 		Deletions:    pr.Deletions,
@@ -334,6 +371,7 @@ func FetchPRStatus(ctx context.Context, token, owner, repo string, number int, c
 	if pr.Head.SHA != "" {
 		st.CI = readCI(ctx, token, owner, repo, pr.Head.SHA, checks)
 	}
+	st.Required = readRequired(ctx, token, owner, repo, pr, st.CI)
 	return st, nil
 }
 

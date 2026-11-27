@@ -1,0 +1,7 @@
+error: unexpected argument '--gitignore' found
+
+  tip: a similar argument exists: '--ignore'
+
+Usage: jscpd --silent --reporters <REPORTERS> --output <OUTPUT> --min-tokens <MIN_TOKENS> --ignore <IGNORE> [PATH]...
+
+For more information, try '--help'.

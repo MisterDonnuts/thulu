@@ -60,6 +60,7 @@ var skipScripts = map[string]string{
 	"scripts/dev-version.sh":         "developer tool",
 	"scripts/third-party-notices.sh": "maintainer tool; its output is the English THIRD_PARTY_NOTICES file",
 	"scripts/k8s-dev.sh":             "developer tool",
+	"wiki/shots-kit/":                "maintainer tool that takes the docs site's screenshots",
 	"internal/api/scaffold/":         "a starter written into the user's agent repository, which they own and edit",
 	"internal/i18n/shell/":           "this guard's own fixtures",
 	"web/node_modules/":              "third-party code",

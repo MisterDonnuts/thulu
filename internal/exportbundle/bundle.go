@@ -84,6 +84,11 @@ type TaskSection struct {
 	TestCases    []task.TestCase      `json:"test_cases"`
 	// Absent from bundles older than approvals, which is not a version change.
 	Approvals []task.Approval `json:"approvals,omitempty"`
+	// Absent from bundles older than locked tests, which is not a version change.
+	LockedFiles []task.LockedFile `json:"locked_files,omitempty"`
+	// Absent from bundles older than task_criteria, which is not a version change: the import
+	// reads the criteria from the body's acceptance-criteria section instead.
+	Criteria []task.Criterion `json:"criteria,omitempty"`
 }
 
 type TaskDep struct {
