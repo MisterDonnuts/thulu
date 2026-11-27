@@ -4,7 +4,7 @@
 ARG BASE=ghcr.io/misterdonnuts/octopus-agent-base:latest
 
 # Cross-compiled on the build platform: a multi-arch release would otherwise run Go under QEMU.
-FROM --platform=$BUILDPLATFORM golang:1.26.11-alpine@sha256:ae52b5bc6ed045a9ed26ab03dc19327a802a9cc9aa8b27ed57f5c6b60579b0bb AS execagent-build
+FROM --platform=$BUILDPLATFORM golang:1.27.4-alpine@sha256:70bd7ddea8b6cbe5d6943cde279d6b67feb10cc924fb9100d1d8757c1575b280 AS execagent-build
 ARG TARGETOS=linux
 ARG TARGETARCH
 WORKDIR /src
