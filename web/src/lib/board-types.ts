@@ -1,4 +1,5 @@
 import { t } from "../i18n";
+import { agentColumns } from "./pickers";
 import type { Stage, TaskType } from "./stages";
 
 export const TYPE_TEMPLATES: Array<{ id: string; label: string; icon: string; color: string }> = [
@@ -40,4 +41,38 @@ export function validateNewType(id: string, label: string, existing: TaskType[])
   if (!id || !label) return t("lib.board_types.errors.id_label_required");
   if (existing.some((tt) => tt.id === id)) return t("lib.board_types.errors.duplicate", { id });
   return null;
+}
+
+// The select value for "same agent as the column": not a valid agent name, and not "" (no agent).
+export const TYPE_AGENT_COLUMN = "*column";
+
+// The columns where a type may name its own agent: the ones an agent runs in and the type walks.
+// Must match the daemon, which refuses agents on a skipped, start or finishing column.
+export function typeAgentStages<S extends Pick<Stage, "id" | "initial" | "terminal">>(
+  stages: readonly S[],
+  tt: Pick<TaskType, "skips">,
+): S[] {
+  return agentColumns(stages).filter((st) => !tt.skips.includes(st.id));
+}
+
+export function typeAgentValue(tt: Pick<TaskType, "agents">, stageID: string): string {
+  const agents = tt.agents ?? {};
+  return stageID in agents ? agents[stageID] : TYPE_AGENT_COLUMN;
+}
+
+export function withTypeAgent(
+  agents: Record<string, string> | null | undefined,
+  stageID: string,
+  value: string,
+): Record<string, string> {
+  const out = Object.fromEntries(Object.entries(agents ?? {}).filter(([id]) => id !== stageID));
+  if (value !== TYPE_AGENT_COLUMN) out[stageID] = value;
+  return out;
+}
+
+// Skipping a column also drops the type's agent there, or the daemon refuses the list.
+export function walkStage(tt: TaskType, stageID: string, walks: boolean): TaskType {
+  const skips = toggleSkip(tt.skips, stageID, walks);
+  if (walks || !tt.agents || !(stageID in tt.agents)) return { ...tt, skips };
+  return { ...tt, skips, agents: withTypeAgent(tt.agents, stageID, TYPE_AGENT_COLUMN) };
 }

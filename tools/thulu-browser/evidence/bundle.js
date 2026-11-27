@@ -3,9 +3,13 @@ import os from "node:os";
 import path from "node:path";
 
 import { t } from "../i18n.js";
+import { describeFinding } from "../lib/page-findings.js";
+import { describeProfile } from "../lib/throttle.js";
 import { contactSheet, pickChapters } from "./contact-sheet.js";
 import { encode, encodeSideBySide } from "./ffmpeg.js";
 import { align, frameAt } from "./reel.js";
+import { waitTag } from "./report.js";
+import { formatMetric } from "../lib/perf.js";
 
 export async function workDir() {
   return mkdtemp(path.join(os.tmpdir(), "evidence-"));
@@ -39,7 +43,8 @@ export async function makeBundle({ title, mode, runs, take, viewport, dir }) {
   const sheet = video
     ? await contactSheet({
         title: `${title} · ${runs.map((r) => r.label).filter(Boolean).join(" | ") || mode}`,
-        cells: pickChapters(chapters).map((c) => ({ frames: framesAt((c.start + c.end) / 2), label: c.label, at: c.start })),
+        cells: pickChapters(chapters).map((c) => ({ frames: framesAt((c.start + c.end) / 2), label: `${c.label}${waitTag(c)}`,
+          at: c.start })),
       })
     : null;
 
@@ -81,6 +86,30 @@ export function describeBundle(id, b) {
   for (const s of shots) {
     if (s.missing.length) lines.push(t("text.render_shot_missing", { name: s.name, missing: s.missing.join(", ") }));
     if (s.crowded) lines.push(t("text.render_shot_crowded", { name: s.name }));
+  }
+  const profile = b.runs[0]?.profile;
+  if (profile && Object.keys(profile).length) lines.push(t("text.render_profile", { profile: describeProfile(profile) }));
+  for (const r of b.runs) {
+    const found = r.findings ?? [];
+    if (!found.length) continue;
+    lines.push(t("text.render_findings", {
+      run: r.label ? `[${r.label}] ` : "",
+      count: found.reduce((n, f) => n + f.count, 0),
+      list: found.slice(0, 3).map(describeFinding).join("; "),
+    }));
+  }
+  for (const r of b.runs) {
+    const run = r.label ? `[${r.label}] ` : "";
+    if (r.cutWaits === false) {
+      lines.push(t("text.render_waits_filmed", { run }));
+      continue;
+    }
+    const cut = (r.gaps ?? []).filter((g) => g.cut);
+    if (!cut.length) continue;
+    const longest = cut.reduce((a, g) => (g.ms > a.ms ? g : a));
+    lines.push(t("text.render_waits_cut", { run, count: cut.length,
+      wait: formatMetric("response", cut.reduce((s, g) => s + g.ms, 0)),
+      longest: formatMetric("response", longest.ms), step: longest.step + 1 }));
   }
   lines.push("", t("text.render_next_steps"));
   return lines.join("\n");

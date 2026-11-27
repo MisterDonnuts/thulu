@@ -110,6 +110,8 @@ func TestPreferences_RefuseWhatTheUICannotRead(t *testing.T) {
 		"not json":          {"/me/preferences/tasks.view", `list`, http.StatusBadRequest},
 		"two values":        {"/me/preferences/tasks.view", `{"layout":"list"}{"layout":"board"}`, http.StatusBadRequest},
 		"unknown key":       {"/me/preferences/theme", `{"layout":"list"}`, http.StatusNotFound},
+		"comments sort":     {"/me/preferences/task.comments", `{"sort":"oldest"}`, http.StatusBadRequest},
+		"comments no sort":  {"/me/preferences/task.comments", `{}`, http.StatusBadRequest},
 		"larger than 4 KiB": {"/me/preferences/tasks.view", `{"layout":"list","sort":"` + strings.Repeat("x", 5000) + `"}`, http.StatusRequestEntityTooLarge},
 	} {
 		if w := putRaw(t, h, c.path, ana, c.body); w.Code != c.want {
@@ -162,4 +164,17 @@ func mapsEqual(a, b map[string]any) bool {
 		}
 	}
 	return true
+}
+
+func TestPreferences_TaskCommentsKeepsTheOrder(t *testing.T) {
+	t.Parallel()
+	srv, h := newIntegrationServer(t)
+	ana, _ := mintWorkspaceUserAs(t, srv, "ana-comments-prefs@test.com", "Ana", auth.RoleViewer)
+	if w := putRaw(t, h, "/me/preferences/task.comments", ana, `{"sort":"old"}`); w.Code != http.StatusOK {
+		t.Fatalf("PUT = %d: %s", w.Code, w.Body.String())
+	}
+	w := tokenDo(t, h, http.MethodGet, "/me/preferences", ana, nil)
+	if !strings.Contains(w.Body.String(), `"task.comments":{"sort":"old"}`) {
+		t.Errorf("GET = %s, want task.comments with sort old", w.Body.String())
+	}
 }

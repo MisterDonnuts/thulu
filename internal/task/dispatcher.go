@@ -117,9 +117,12 @@ type Dispatcher struct {
 	workloadID  WorkloadIdentity
 
 	room         *roomLine
+	fence        launchFence
 	queueMinutes func() int
 	slotWaits    sync.Map
 	stoppedBy    sync.Map
+	// Sandbox roots whose free waits for their last run to end.
+	freeDeferred sync.Map
 
 	// Serializes Reconcile (startup and every K8s janitor sweep): concurrent passes would replay
 	// the same orphan twice.
@@ -130,6 +133,9 @@ type Dispatcher struct {
 	// with the engine the run actually got.
 	runEngines  sync.Map
 	runProfiles sync.Map
+
+	// What runners read of the locked tests, by run instance, until the run's post-run takes it.
+	runnerTests runnerTestStash
 }
 
 type CredentialGate func(ctx context.Context, t *Task) ([]credentials.Fault, error)
@@ -307,23 +313,34 @@ func (d *Dispatcher) HandleStageEntered(ctx context.Context, t *Task, prev Stage
 
 	if info.Terminal && !prevInfo.Terminal {
 		d.notifyDependentsUnblocked(ctx, t.ID)
-		d.cleanupDoneTask(ctx, t)
+		if d.deferFreeForLiveRun(ctx, t) {
+			return
+		}
+		if !d.cleanupDoneTask(ctx, t) {
+			// The rest of the group may wait in a release_resources stage, done with the code as
+			// well: none of them enters that stage again to free it.
+			d.releaseGroupOnDone(ctx, t)
+		}
 		return
 	}
 
-	if !info.Initial && len(t.ProjectIDs) > 0 {
+	switch {
+	case info.ReleaseResources:
+		// Entering from another such stage finds nothing left to free.
+		if !prevInfo.ReleaseResources && !d.deferFreeForLiveRun(ctx, t) {
+			d.releaseStageResources(ctx, t)
+		}
+	case d.needsWorktree(t, t.Stage):
 		t = d.ensureWorktrees(ctx, t)
 	}
 
-	// A subtask shares the root's branch and PR; only the root opens the group's PR.
-	if info.OpenPR && !t.IsSubtask() {
-		label := info.Label
-		if label == "" {
-			label = string(t.Stage)
-		}
-		t = d.ensurePullRequests(ctx, t, label)
-	}
+	t = d.stagePullRequests(ctx, t, info)
+	d.launchAssignedAgent(ctx, t)
+}
 
+// launchAssignedAgent launches the agent assigned to the task's stage, or says why none runs.
+func (d *Dispatcher) launchAssignedAgent(ctx context.Context, t *Task) {
+	info, _ := d.stagesFor(t).Get(t.Stage)
 	agentName := t.AssignedAgent(t.Stage)
 	stageName := d.stageNote(t, t.Stage)
 	if agentName == "" {
@@ -408,24 +425,43 @@ func (d *Dispatcher) RelaunchTurns(ctx context.Context, t *Task) int {
 
 const relaunchWait = 20 * time.Second
 
+// The board decides first: the task type's own agent for the stage (an empty one means the stage
+// runs no agent for that type), then the column's default. Without either, a project template or
+// another task of the board with an agent there says one was expected.
 func (d *Dispatcher) missingAgent(ctx context.Context, t *Task, info types.StageInfo) bool {
 	if info.Terminal || info.Virtual {
 		return false
 	}
-	if d.projects != nil {
-		for _, pid := range t.ProjectIDs {
-			p, err := d.projects.Get(ctx, pid)
-			if err == nil && p.StageTemplate[string(info.ID)] != "" {
-				return true
-			}
-		}
+	columns, byType := stagepkg.BoardAgents(d.boards, t.BoardID, t.TypeID)
+	if agent, ok := byType[info.ID]; ok {
+		return agent != ""
 	}
-	found, err := d.store.BoardStageHasAgent(ctx, t.WorkspaceID, t.BoardID, string(info.ID), t.ID)
+	if columns[info.ID] != "" || d.templateNamesAgent(ctx, t, info.ID) {
+		return true
+	}
+	typeID := ""
+	if stagepkg.TypeAgentStages(d.boards, t.BoardID)[info.ID] {
+		typeID = t.TypeID
+	}
+	found, err := d.store.BoardStageHasAgent(ctx, t.WorkspaceID, t.BoardID, string(info.ID), typeID, t.ID)
 	if err != nil {
 		log.Printf("[task] %s", i18n.Log("task.log.board_stage_agent_failed", "task", t.ID, "err", err))
 		return false
 	}
 	return found
+}
+
+func (d *Dispatcher) templateNamesAgent(ctx context.Context, t *Task, stage Stage) bool {
+	if d.projects == nil {
+		return false
+	}
+	for _, pid := range t.ProjectIDs {
+		p, err := d.projects.Get(ctx, pid)
+		if err == nil && p.StageTemplate[string(stage)] != "" {
+			return true
+		}
+	}
+	return false
 }
 
 func (d *Dispatcher) FindAgentTypeForRelaunch(workspaceID, name string) *types.AgentType {
@@ -457,7 +493,7 @@ func (d *Dispatcher) RelaunchStage(ctx context.Context, t *Task, turnsOverride i
 	}
 	// A relaunch can hit a task whose worktree was never created (dispatch skipped, project linked
 	// later); the mounts need a real source.
-	if info, _ := d.stagesFor(t).Get(t.Stage); len(t.ProjectIDs) > 0 && !info.Initial {
+	if d.needsWorktree(t, t.Stage) {
 		t = d.ensureWorktrees(ctx, t)
 	}
 	turnsStr := ""

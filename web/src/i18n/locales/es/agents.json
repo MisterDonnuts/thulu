@@ -102,7 +102,9 @@
     "auditor_hint": "marcá las etapas en las que el auditor revisa la corrida al terminar; los ajustes son opcionales (vacíos, usa los del auditor)",
     "columns": "Columnas del tablero",
     "modes": "Modos",
-    "modes_hint": "no son columnas: el agente corre cuando alguien lo llama. Prompts, skills y MCP se eligen por modo igual que por columna."
+    "modes_hint": "no son columnas: el agente corre cuando alguien lo llama. Prompts, skills y MCP se eligen por modo igual que por columna.",
+    "auditor_mode": "Cuándo corre el auditor",
+    "auditor_mode_hint": "Sólo con señales se saltea la auditoría de una corrida limpia: corre si la corrida falló o se quedó sin turnos, tocó tests bloqueados, config de gates o supresiones, pasó el presupuesto de diff, levantó flags, no dejó reporte, vino de un relanzamiento con motivo, o la tarea es de riesgo alto. La Actividad de la tarea lista los chequeos de cada auditoría salteada."
   },
   "auditor": {
     "engine_same": "El mismo del agente ({engine})",
@@ -110,7 +112,12 @@
     "engine_no_turns": "{engine} no tiene límite de turnos, así que Turnos no se aplica.",
     "model_default": "— por defecto —",
     "skills_hint": "nombres separados por coma; se suman a la skill base y a la de revisión de calidad, si el workspace las tiene",
-    "pick_stage": "Elegí al menos una etapa válida arriba."
+    "pick_stage": "Elegí al menos una etapa válida arriba.",
+    "mode_signals": "Sólo con señales",
+    "mode_always": "Después de cada corrida",
+    "budget_lines": "Presupuesto de diff, líneas",
+    "budget_files": "Presupuesto de diff, archivos",
+    "budget_hint": "Líneas de producción que la rama puede agregar (sin contar las borradas ni los tests) antes de que corra el auditor. Vacío usa 400 líneas y 20 archivos."
   },
   "llm": {
     "key_line_html": "Clave: perfil predeterminado de {engine} <code class=\"code-inline\">{profile}</code>",
@@ -194,12 +201,14 @@
       "admin": "Administración",
       "deploy": "Deploy",
       "board": "Otros tableros",
+      "release": "Release",
       "other": "Otras"
     },
     "group_by_name": "{group} · se conceden por nombre",
     "group_hint": {
       "deploy": "Mergean PRs, disparan workflows y aprueban deploys. Ningún scope las incluye: tildalas sólo en la etapa que tiene que hacerlo.",
       "board": "Leen y cambian tareas de otros tableros del espacio de trabajo. Ningún scope las incluye: tildalas sólo si esta etapa trabaja sobre otros tableros.",
+      "release": "Mueven en lote otras tareas del tablero y corren tandas de Evidencia contra producción. Ningún scope las incluye y el daemon se las niega a una corrida que no las nombra: tildalas sólo en la etapa de release.",
       "other": "Ningún scope las incluye: el servidor las da sólo si se nombran una por una."
     },
     "deploy_template_title": "Concede thulu-github@read más run_dispatch, run_watch y run_logs: lo que necesita una etapa que despliega con GitHub Actions",
@@ -214,7 +223,7 @@
         "other": "En esta etapa concede {count} tools elegidas a mano."
       }
     },
-    "deploy_note": "run_dispatch dispara workflows de GitHub Actions: la GitHub App necesita el permiso Actions: write."
+    "deploy_note": "run_dispatch dispara workflows de GitHub Actions: la GitHub App necesita el permiso Actions: write, y en una tarea Thulu lo da sólo después de que una persona aprueba deploy_prod en esa tarea."
   },
   "prompts": {
     "intro": "Los archivos por etapa llevan el id de la etapa, así que un prompt escrito para una etapa propia vive o muere con ella. Cada guardado queda registrado: abrí un archivo y usá Historial para leer o restaurar una versión anterior.",

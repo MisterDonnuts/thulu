@@ -35,6 +35,8 @@ const (
 	QuestionDeliverySteered = "steered"
 	QuestionDeliveryResumed = "resumed"
 	QuestionDeliveryThread  = "thread"
+	// Nobody answered a non-blocking question before its stage ended: its default stood.
+	QuestionDeliveryDefault = "default"
 )
 
 // The octopus-api MCP checks only the shape (labels, defaults); these length limits are enforced
@@ -556,6 +558,7 @@ func (s *Store) AskQuestion(ctx context.Context, t *Task, target AskTarget, in A
 	comment := &Comment{
 		ID: mustGenerateID(), TaskID: t.ID, Source: SourceAgent, Author: target.Agent,
 		Body: renderQuestionComment(kind, target.Agent, blocking, payload), Stage: target.Stage, CreatedAt: now,
+		Kind: CommentQuestion,
 	}
 	q.CommentID = comment.ID
 
@@ -580,8 +583,10 @@ func (s *Store) AskQuestion(ctx context.Context, t *Task, target AskTarget, in A
 		return nil, apperr.RateLimited("task.questions.errors.open_limit", "max", MaxOpenQuestionsPerTask)
 	}
 	if _, err := tx.ExecContext(ctx, s.rb(
-		`INSERT INTO task_comments (id, task_id, parent_id, source, author, body, stage, created_at) VALUES (?,?,?,?,?,?,?,?)`),
-		comment.ID, comment.TaskID, "", comment.Source, comment.Author, comment.Body, comment.Stage, comment.CreatedAt); err != nil {
+		`INSERT INTO task_comments (id, task_id, parent_id, source, author, body, stage, created_at, kind)
+		 VALUES (?,?,?,?,?,?,?,?,?)`),
+		comment.ID, comment.TaskID, "", comment.Source, comment.Author, comment.Body, comment.Stage, comment.CreatedAt,
+		string(comment.Kind)); err != nil {
 		return nil, apperr.Wrap(err, "task.questions.errors.insert")
 	}
 	if _, err := tx.ExecContext(ctx, s.rb(
@@ -1076,33 +1081,65 @@ func (s *Store) claimAwaitingInput(ctx context.Context, taskID string) {
 	}
 }
 
-// Called by Store.Update on every stage change. Non-blocking questions stay here; a manual move
-// cancels them in the API.
-func (s *Store) cancelQuestionsLeftBehind(ctx context.Context, t *Task) {
-	open, err := s.queryQuestions(ctx, `WHERE task_id = ? AND status = ? AND blocking = TRUE AND stage <> ?`,
+// Called by Store.Update on every stage change, for the open questions of the stages the task
+// left. A blocking one is canceled: no stage will resume its run with the answer. A non-blocking
+// one never held the run, which went on with its default, so it closes with that default instead
+// of waiting in the inbox and in "Needs you" for an answer nobody reads.
+func (s *Store) settleQuestionsLeftBehind(ctx context.Context, t *Task) {
+	open, err := s.queryQuestions(ctx, `WHERE task_id = ? AND status = ? AND stage <> ?`,
 		t.ID, QuestionOpen, string(t.Stage))
 	if err != nil {
 		logx.Warn(err, "task.questions.log.list_open", "task", t.ID)
 		return
 	}
 	for i := range open {
-		q := &open[i]
-		ok, err := s.closeQuestion(ctx, q, QuestionCanceled, nil, "octopus")
-		if err != nil || !ok {
-			logx.Warn(err, "task.questions.log.cancel", "question", q.ID)
-			continue
-		}
-		_, replyErr := s.AddNote(ctx, q.TaskID, q.CommentID, SourceSystem, "octopus",
-			NoteOf("task.questions.reply.canceled_moved"))
-		logx.Warn(replyErr, "task.questions.log.post_reply", "question", q.ID)
-		logx.Warn(s.RecordEvent(ctx, q.TaskID, EventQuestionCanceled, q.ID, "octopus",
-			i18n.Text("task.questions.events.canceled", "kind", q.Kind), questionEventPayload(q)),
-			"task.questions.log.record_event", "task", q.TaskID)
-		if s.onQuestionCanceled != nil {
-			s.onQuestionCanceled(ctx, *q)
+		if open[i].Blocking {
+			s.cancelLeftBehind(ctx, &open[i])
+		} else {
+			s.applyQuestionDefault(ctx, &open[i])
 		}
 	}
 	s.claimAwaitingInput(ctx, t.ID)
+}
+
+func (s *Store) cancelLeftBehind(ctx context.Context, q *Question) {
+	ok, err := s.closeQuestion(ctx, q, QuestionCanceled, nil, "octopus")
+	if err != nil || !ok {
+		logx.Warn(err, "task.questions.log.cancel", "question", q.ID)
+		return
+	}
+	_, replyErr := s.AddNote(ctx, q.TaskID, q.CommentID, SourceSystem, "octopus",
+		NoteOf("task.questions.reply.canceled_moved"))
+	logx.Warn(replyErr, "task.questions.log.post_reply", "question", q.ID)
+	logx.Warn(s.RecordEvent(ctx, q.TaskID, EventQuestionCanceled, q.ID, "octopus",
+		i18n.Text("task.questions.events.canceled", "kind", q.Kind), questionEventPayload(q)),
+		"task.questions.log.record_event", "task", q.TaskID)
+	if s.onQuestionCanceled != nil {
+		s.onQuestionCanceled(ctx, *q)
+	}
+}
+
+// The answer is the agent's own default, recorded as a note and stamped delivery "default" so the
+// task view says nobody answered and no run will receive it.
+func (s *Store) applyQuestionDefault(ctx context.Context, q *Question) {
+	ans := QuestionAnswers{Answers: []QuestionAnswer{}, Note: q.Payload.Default}
+	ok, err := s.closeQuestion(ctx, q, QuestionAnswered, &ans, "octopus")
+	if err != nil || !ok {
+		logx.Warn(err, "task.questions.log.apply_default", "question", q.ID)
+		return
+	}
+	if s.claimDelivery(ctx, []string{q.ID}, QuestionDeliveryDefault) {
+		q.Delivery = QuestionDeliveryDefault
+	}
+	_, replyErr := s.AddNote(ctx, q.TaskID, q.CommentID, SourceSystem, "octopus",
+		NoteOf("task.questions.reply.default_applied", "default", q.Payload.Default))
+	logx.Warn(replyErr, "task.questions.log.post_reply", "question", q.ID)
+	payload := questionEventPayload(q)
+	payload["defaulted"] = true
+	logx.Warn(s.RecordEvent(ctx, q.TaskID, EventQuestionAnswered, q.ID, "octopus",
+		i18n.Text("task.questions.events.defaulted", "kind", q.Kind), payload),
+		"task.questions.log.record_event", "task", q.TaskID)
+	s.notifyTask(ctx, q.TaskID)
 }
 
 // The API turns this into the question.canceled webhook; set at boot.

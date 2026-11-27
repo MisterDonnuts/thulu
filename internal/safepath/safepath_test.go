@@ -37,10 +37,10 @@ func TestReadFileNested(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(dir, "stages"), 0o750); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "stages", "plan.md"), []byte("x"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "stages", "spec.md"), []byte("x"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := ReadFile(dir, "stages/plan.md"); err != nil {
+	if _, err := ReadFile(dir, "stages/spec.md"); err != nil {
 		t.Fatalf("nested read: %v", err)
 	}
 }

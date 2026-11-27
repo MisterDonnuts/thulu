@@ -129,10 +129,15 @@ func (s *Server) handleInternalProjectGithubToken(w http.ResponseWriter, r *http
 
 // It lacks what a pod or a machine pushed until syncAgentResult runs.
 func (s *Server) worktreeGitForProject(ctx context.Context, t *task.Task, projID string) (project.WorktreeGit, error) {
-	if s.kube == nil {
-		return s.projectStore.HostWorktreeGit(ctx, projID, t.ID)
+	return s.projectStore.HostWorktreeGit(ctx, projID, worktreeOwner(s.kube != nil, t))
+}
+
+// The task whose worktree t works in: its own under Docker, its root's under Kubernetes.
+func worktreeOwner(kube bool, t *task.Task) string {
+	if kube {
+		return t.SandboxRootID()
 	}
-	return s.projectStore.HostWorktreeGit(ctx, projID, t.SandboxRootID())
+	return t.ID
 }
 
 func (s *Server) syncAgentResult(ctx context.Context, t *task.Task, projID string) error {
@@ -453,6 +458,9 @@ func (s *Server) handleInternalTaskGithubToken(w http.ResponseWriter, r *http.Re
 		}
 		if err != nil {
 			writeError(w, r, http.StatusInternalServerError, err)
+			return
+		}
+		if refuseStoredGithubToken(w, r, rec) {
 			return
 		}
 		writeJSON(w, http.StatusOK, internalGithubTokenResp{

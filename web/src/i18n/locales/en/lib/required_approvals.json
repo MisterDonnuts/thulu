@@ -24,5 +24,7 @@
     "label": "Approval \"{key}\" needs a label",
     "key": "Approval key \"{key}\" must be lowercase [a-z0-9_], up to 32 characters",
     "duplicate": "Two approvals share the key \"{key}\""
-  }
+  },
+  "checks": "Wait for required checks",
+  "checks_title": "Approving waits until the checks GitHub requires on the pull request (branch protection or rulesets) are green. A column before this one, or this one, has to open the pull request."
 }

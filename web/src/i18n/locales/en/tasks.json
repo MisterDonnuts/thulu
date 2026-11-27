@@ -202,6 +202,10 @@
     "changed": "Type changed"
   },
   "confirm": {
+    "move_back_title": "Send \"{title}\" back to {stage}?",
+    "move_back_message": "Tell the agent of {stage} why it gets the task back. The reason goes to Comments with the move.",
+    "move_back_button": "Send back",
+    "move_back_need_reason": "Write why the task goes back.",
     "fork_running_title": "Fork a running task?",
     "fork_running_message": "Snapshots the current state. Anything the live agent produces afterwards stays in the original.",
     "fork_button": "Fork",

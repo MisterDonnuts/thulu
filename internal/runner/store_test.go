@@ -215,6 +215,65 @@ func TestExpireLosesSilentAndUnclaimedJobs(t *testing.T) {
 	}
 }
 
+// A daemon that was down past a run's lease adopts it as it starts: the runner that still holds the
+// run renews it with its next heartbeat, and only a runner that stays silent through the grace loses
+// it. Jobs that ended, were never claimed or belong to the runner's lease alone are left as they are.
+func TestAdoptRunningKeepsARunThroughADaemonRestart(t *testing.T) {
+	s := newTestStore(t)
+	ctx := context.Background()
+	rn := register(t, s, "ws1", "laptop")
+	alive := enqueue(t, s, rn.RunnerID, "ws1", "projA")
+	if _, err := s.Claim(ctx, rn.RunnerID, ProtocolVersion, []string{"projA"}, time.Minute); err != nil {
+		t.Fatal(err)
+	}
+	silent := enqueue(t, s, rn.RunnerID, "ws1", "projA")
+	if _, err := s.Claim(ctx, rn.RunnerID, ProtocolVersion, []string{"projA"}, time.Minute); err != nil {
+		t.Fatal(err)
+	}
+	done := enqueue(t, s, rn.RunnerID, "ws1", "projA")
+	if _, err := s.Claim(ctx, rn.RunnerID, ProtocolVersion, []string{"projA"}, time.Minute); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Finish(ctx, rn.RunnerID, done.ID, FinishRequest{ExitCode: 0}); err != nil {
+		t.Fatal(err)
+	}
+
+	// The daemon comes back five minutes later: every lease ran out while nobody answered.
+	start := time.Now().UTC().Add(5 * time.Minute)
+	s.now = func() time.Time { return start }
+	n, err := s.AdoptRunning(ctx, time.Minute)
+	if err != nil || n != 2 {
+		t.Fatalf("AdoptRunning = %d, %v; want the two running jobs", n, err)
+	}
+	if n, err := s.Expire(ctx, time.Hour); err != nil || n != 0 {
+		t.Fatalf("Expire right after adoption = %d, %v; want nothing lost", n, err)
+	}
+	if _, err := s.Heartbeat(ctx, rn.RunnerID, alive.ID, DefaultLease); err != nil {
+		t.Fatalf("the runner's heartbeat after the restart: %v", err)
+	}
+	if _, err := s.Heartbeat(ctx, "other-runner", alive.ID, time.Minute); apperr.KindOf(err) != apperr.KindConflict {
+		t.Errorf("another runner's heartbeat err = %v, want conflict: adoption keeps the job its runner's", err)
+	}
+
+	s.now = func() time.Time { return start.Add(50 * time.Second) }
+	if _, err := s.Heartbeat(ctx, rn.RunnerID, alive.ID, DefaultLease); err != nil {
+		t.Fatalf("a later heartbeat: %v", err)
+	}
+	s.now = func() time.Time { return start.Add(90 * time.Second) }
+	if n, err := s.Expire(ctx, time.Hour); err != nil || n != 1 {
+		t.Fatalf("Expire after the grace = %d, %v; want the silent job alone", n, err)
+	}
+	for id, want := range map[string]string{alive.ID: StateRunning, silent.ID: StateLost, done.ID: StateFinished} {
+		if j, _ := s.GetJob(ctx, id); j.State != want {
+			t.Errorf("job %s = %s, want %s", id, j.State, want)
+		}
+	}
+	// A second adoption, as a later restart would run it, never shortens a lease.
+	if n, err := s.AdoptRunning(ctx, time.Second); err != nil || n != 0 {
+		t.Errorf("AdoptRunning with a renewed lease = %d, %v; want nothing touched", n, err)
+	}
+}
+
 func TestRevokeEndsJobsAndCredential(t *testing.T) {
 	s := newTestStore(t)
 	ctx := context.Background()

@@ -20,7 +20,13 @@
     "decide_forbidden": "only the person this chat acts for can decide what it asked for",
     "action_not_found": "action not found",
     "already_decided": "this was already decided",
-    "policy_off_partial": "turned off, but some delegations did not end"
+    "policy_off_partial": "turned off, but some delegations did not end",
+    "task_fixed": "this chat's task cannot change: Thulu opened it for a mention or a thread",
+    "task_while_delegated": "a chat acting for you cannot have a task; end it before linking one",
+    "task_other_workspace": "the task belongs to another workspace",
+    "bad_mode": "mode must be queue, steer or empty",
+    "queued_not_found": "that message already went out or was not queued",
+    "no_transcript": "this turn has no transcript"
   },
   "audit": {
     "created": "Chat created with {agent}",
@@ -61,7 +67,12 @@
     "mention_stage": "**Current stage:** {stage}\n",
     "mention_description": "\n**Task description:**\n\n{body}\n",
     "mention_unseen": "\n---\n\n**In the thread, since your last reply:**\n\n{transcript}",
-    "mention_comment": "\n---\n\n**Comment from {speaker}:**\n\n{body}"
+    "mention_comment": "\n---\n\n**Comment from {speaker}:**\n\n{body}",
+    "context_start": "[Thulu context for this message]\n",
+    "context_end": "[End of context]\n\n",
+    "handoff_header": "This conversation continues the one the person had with {agent} in the chat \"{title}\". The latest of it:\n",
+    "refs_header": "Tasks the message mentions (use your tools to read more):\n",
+    "ref_line": "- `{id}` {title} — stage {stage}, status {status}\n"
   },
   "log": {
     "post_notice_failed": "post @{agent} notice on task {task}",
@@ -69,6 +80,7 @@
     "record_mention_finished_failed": "record mention-finished event for task {task}",
     "add_reply_failed": "add @{agent} reply to task {task}",
     "list_comments_failed": "list comments of task {task}",
-    "record_action_result_failed": "[chat] record result of {action}"
+    "record_action_result_failed": "[chat] record result of {action}",
+    "evict_relinked_chat": "chat {chat}: could not release the container after changing the task"
   }
 }

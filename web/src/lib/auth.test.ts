@@ -73,6 +73,33 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+describe("apiBase", () => {
+  const cases: Array<{ name: string; href: string; want: string }> = [
+    { name: "default daemon port", href: "http://127.0.0.1:8585/", want: "http://127.0.0.1:8585" },
+    { name: "proxy on 443", href: "https://thulu.example/", want: "https://thulu.example" },
+    {
+      name: "daemon on another port (serve -addr, port-forward)",
+      href: "http://127.0.0.1:18931/agents/",
+      want: "http://127.0.0.1:18931",
+    },
+    {
+      name: "Astro dev server reaches the daemon on :8585",
+      href: "http://localhost:4321/",
+      want: "http://localhost:8585",
+    },
+  ];
+  for (const c of cases) {
+    it(c.name, async () => {
+      const u = new URL(c.href);
+      vi.stubGlobal("window", {
+        location: { protocol: u.protocol, hostname: u.hostname, port: u.port, origin: u.origin },
+      });
+      const { apiBase } = await load();
+      expect(apiBase()).toBe(c.want);
+    });
+  }
+});
+
 describe("isSessionEndpoint", () => {
   it("matches the session endpoints by path, and nothing else", async () => {
     const { isSessionEndpoint } = await load();

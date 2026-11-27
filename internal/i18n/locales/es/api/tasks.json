@@ -8,10 +8,14 @@
   "comments": {
     "agent_turn_limit": "Los agentes ya hablaron {turns} veces seguidas en este hilo: {agents} no se lanza hasta que escriba una persona.",
     "mention_no_prompt": "@{agent} no puede responder: no tiene prompt cargado (ni `prompts/mention.md` ni `prompts/main.md`). Cargalo en **Agentes → {agent}** y volvé a mencionarlo.",
-    "relaunch_requested": "Se pidió relanzar **{stage}** con {turns} turnos."
+    "access_given": "Di acceso a {cases} y los corrí de nuevo.",
+    "access_given_secrets": "Di acceso a {cases} con {secrets} y los corrí de nuevo."
   },
   "errors": {
+    "reason_too_long": "el motivo puede tener como máximo {max} caracteres",
+    "reason_required_send_back": "Para mover una tarea hacia atrás hace falta un motivo: va a Comments y al agente de la columna donde cae.",
     "agent_index_agents_only": "sólo la corrida de un agente carga su índice de corrida",
+    "waive_person_only": "sólo una persona saltea casos de prueba: la corrida de un agente no puede registrar un salteo",
     "agent_needs_repo": "El agente {agent:%q} necesita un repo vinculado. Vinculá un proyecto, elegí otro agente o marcá este agente como works_without_repo.",
     "archive_subtask": "Una subtarea se archiva con su tarea madre: archivá la madre.",
     "auditor_feedback_auditor_only": "sólo la corrida del auditor carga feedback del auditor",
@@ -64,8 +68,23 @@
     "merge_conflict_files": "{count} archivos tienen conflictos con {target}; no se integró nada",
     "merge_no_upload_project": "la tarea no tiene un proyecto subido donde integrar; un proyecto clonado de un repositorio usa un pull request",
     "merge_pick_project": "la tarea tiene varios proyectos subidos; indicá cuál en project_id",
+    "merge_required_checks": "el merge espera los checks que GitHub exige en los pull requests de la tarea: {checks}",
     "merge_nothing": "la rama {branch} todavía no tiene commits para integrar",
-    "section_not_found": "el cuerpo de la tarea no tiene la sección {section:%q}"
+    "section_not_found": "el cuerpo de la tarea no tiene la sección {section:%q}",
+    "stage_verdict_agent_only": "sólo el agente de la etapa sube un veredicto de etapa; el auditor usa auditor-feedback",
+    "stage_verdict_instance_mismatch": "la instancia no es la corrida para la que se emitió esta key",
+    "flags_import_stage": "la etapa {stage} no toma flags.yaml (ingest_flags está apagado)",
+    "run_moves_own_task": "una corrida no mueve la tarea en la que trabaja (etapa, tipo o tablero): Thulu la mueve cuando la corrida termina, o una persona la mueve a mano",
+    "flow_flags_person_only": "sólo una persona cambia flow_flags; un agente los pone con el flags.yaml del refinamiento",
+    "flow_flags_invalid": "flow_flags {values} no son válidos: ids cortos como ui o api, {max} como máximo",
+    "access_environment_other_project": "el entorno {environment} no es de ninguno de los proyectos de la tarea",
+    "access_environment_required": "los secretos necesitan un entorno de evidencia: mandá environment_id",
+    "access_no_cases": "nombrá al menos un caso de prueba al que dar acceso",
+    "access_person_only": "sólo una persona con sesión iniciada le da acceso a un agente: ni una corrida de agente ni una API key pueden",
+    "access_secret_empty": "el secreto {name} no tiene valor",
+    "access_unknown_case": "la tarea no tiene el caso de prueba {case}",
+    "criteria_approve_person_only": "sólo una persona con sesión iniciada aprueba criterios de aceptación: ni una corrida de agente ni una API key pueden",
+    "stage_skips_patch": "stage_skips no se modifica con PATCH: agregá un salteo con POST /tasks/<id>/stage-skips y quitalo con POST /tasks/<id>/stage-skips/<stage>/remove"
   },
   "hints": {
     "answers_in_chat": "**{agent}** contesta en su chat sobre esta tarea.",
@@ -77,10 +96,14 @@
     "fork_prefix": "Fork de "
   },
   "log": {
+    "post_decision": "publicar la decisión en la tarea {task}",
+    "open_stop": "buscar el freno abierto de la tarea {task}",
     "activate_mappings_failed": "activar los mapeos del flag {flag} (entorno {env}): {err}",
-    "add_relaunch_comment": "agregar el comentario de relanzamiento a la tarea {task}",
+    "brief_reports": "leer los reportes de la tarea {task} para su brief",
     "bind_attachments": "asociar adjuntos al comentario {comment}",
     "close_runs_dir": "api: cerrar el directorio de corridas",
+    "reap_subtask_sandbox": "api: matar lo que las corridas de la subtarea borrada {task} dejaron en el sandbox de {owner}",
+    "reap_subtask_run": "api: matar lo que la corrida {instance} de la subtarea borrada {task} dejó en el sandbox de {owner}",
     "destroy_sandbox": "api: destruir el sandbox de la tarea {task}",
     "discover_agents_failed": "menciones: descubrir agentes: {err}",
     "environment_for_flag_failed": "buscar el entorno del flag {flag}: {err}",
@@ -120,7 +143,12 @@
     "stamp_chat_delivery": "marcar entrega por chat en el mensaje {message}",
     "stamp_comment_delivery": "marcar entrega por comentario en el mensaje {message}",
     "stamp_mention_delivery": "marcar entrega por mención en el mensaje {message}",
-    "task_breakdown": "leer el desglose de costo de la tarea {task}"
+    "task_breakdown": "leer el desglose de costo de la tarea {task}",
+    "brief_access": "brief de la tarea {task}: leer el acceso dado",
+    "restore_queued_cases": "devolver los casos de la tarea {task} tras un relanzamiento que no arrancó",
+    "list_task_containers_failed": "listar los contenedores de la tarea {task} para frenarlos: {err}",
+    "remove_task_container_failed": "borrar el contenedor {id} de la tarea {task}: {err}",
+    "removed_task_container": "se borró el contenedor {id} de la tarea borrada {task} (instancia {instance}, imagen {image}, estado {state})"
   },
   "prompts": {
     "brief_audit_heading": "## Corrida auditada: `{run}`\n\n",
@@ -132,6 +160,7 @@
     "brief_flow": "**Flujo:** {flow}\n\n",
     "brief_replies_hidden": "_({hidden} respuestas anteriores sin mostrar)_\n\n",
     "brief_repo_branch": "- **Rama por defecto:** {branch}\n",
+    "brief_repo_base": "- **Commit base:** `{sha}`, de donde sale la rama de la tarea desde {branch}. Compará contra este commit, no contra un nombre de rama: un clon en un pod puede no tener {branch} (`thulu-gates run --base {sha}`).\n",
     "brief_repo_mount": "- **Montaje:** `/workspace/projects/{mount}/`\n",
     "brief_repo_url": "- **Repo:** {repo}\n",
     "brief_repos_heading": "## Repos disponibles\n\n",
@@ -144,9 +173,37 @@
     "brief_thread_resolved_by": ", resuelto por {who}",
     "brief_thread_summary": "_Hilo `{thread}`, {replies} respuestas{status}._\n\n",
     "brief_title": "# Tarea: {title}\n\n",
-    "brief_repo_hosted": "- **Repo:** subido a Thulu, sin remote en GitHub. Commiteá en la rama de la tarea y pusheá a origin como siempre; no hay pull request: una persona integra la rama desde la tarea.\n"
+    "brief_repo_hosted": "- **Repo:** subido a Thulu, sin remote en GitHub. Commiteá en la rama de la tarea y pusheá a origin como siempre; no hay pull request: una persona integra la rama desde la tarea.\n",
+    "brief_reports_heading": "## Reportes de los controles anteriores\n\nEl último reporte de cada columna anterior cuyo agente da veredicto. Cada uno dice arriba qué commit miró; el historial completo está en la pestaña Reportes de la tarea.\n\n",
+    "brief_report_item": "### {stage} (`{id}`), de {author}, {when}\n\n",
+    "brief_report_cut": "\n\n_(cortado a los {max} caracteres; el reporte completo está en la pestaña Reportes de la tarea)_\n\n",
+    "brief_stage_verdict": "**Esta etapa toma un veredicto de su agente:** antes de salir, escribí `verdict.md` en el directorio de salida, con el front matter de la skill `octopus-run` (`verdict: continue`, `kick_back` o `block`). Un veredicto que sólo está en tu reporte no cuenta: una salida limpia sin un `verdict.md` legible bloquea la tarea acá.\n\n",
+    "brief_stage_surface": "**Esta etapa escribe la superficie de la spec:** listá lo que toca el cambio en `surface:` dentro de `flags.yaml` (formato en la skill `octopus-run`). Las etapas siguientes que corren sólo para una superficie se saltean si la tuya no la nombra.\n\n",
+    "brief_stage_lock_tests": "**Esta etapa bloquea los tests que escribe:** si salís con código 0, cada archivo de test que agregaste o cambiaste tiene que quedar igual en las etapas siguientes. Listá otros archivos que tampoco pueden cambiar (fixtures, snapshots) en `locked-tests.txt` en el directorio de salida, una ruta relativa a la raíz del repo por línea.\n\n",
+    "brief_locked_tests": "**Tests bloqueados:** {files}. Los escribió una etapa anterior como el contrato que el código tiene que pasar. Si tu corrida cambia uno, la tarea se frena acá hasta que una persona apruebe el cambio.\n\n",
+    "brief_handoff_heading": "## Traspaso\n\nLo que las otras etapas le pasaron a esta, sacado de su `verdict.md` y de las notas del auditor. Los reportes completos están en la pestaña Reportes de la tarea.\n\n",
+    "brief_handoff_kick_back": "### Devuelta desde {stage} (`{id}`) por {author}, {when}\n\nPor esto la tarea volvió a esta etapa. Arreglá primero lo que nombra.\n\n",
+    "brief_handoff_changes": "### Cambios pedidos en {approval} en {stage} (`{id}`) por {who}, {when}\n\n",
+    "brief_handoff_previous": "### Último veredicto de esta etapa: `{verdict}`, {when}\n\n",
+    "brief_handoff_earlier_heading": "### Lo que pasaron las etapas anteriores\n\n",
+    "brief_handoff_earlier_item": "#### {stage} (`{id}`), de {author}, {when}\n\n",
+    "brief_handoff_next": "Siguiente",
+    "brief_handoff_delta": "Delta (nuevo, arreglado, sigue abierto)",
+    "brief_access_heading": "## Acceso dado\n\n",
+    "brief_access_cases": "Una persona te dio lo que bloqueaba estos casos. Corré sólo estos: {cases}.\n\n",
+    "brief_access_secrets": "Secretos nuevos en el entorno de evidencia {environment}: {secrets}. Nombralos por su nombre; este brief nunca trae sus valores.\n\n",
+    "brief_access_env_unknown": "(no se encontró el entorno)",
+    "brief_test_case_covers": " · cubre: {covers}",
+    "brief_skips_heading": "## Columnas que saltea esta tarea\n\n",
+    "brief_skip_line": "- `{stage}` ({place}): {reason} (lo puso {by})",
+    "brief_skip_ahead": "adelante",
+    "brief_skip_passed": "ya pasada",
+    "brief_skips_remove_hint": "Si tu trabajo hace necesaria una de estas columnas (tocaste UI, una migración, auth…), quitá su salteo con `task_skip_remove` y un motivo. Una columna de adelante corre cuando la tarea llegue; una que la tarea ya pasó la hace volver ahí.\n\n",
+    "brief_skips_audit": "Auditás el refinamiento: revisá que cada salteo tenga un motivo que se sostenga para este cambio. La spec dio riesgo **{risk}**; un salteo en un cambio de riesgo alto es un hallazgo salvo que su motivo muestre que la columna no aporta nada.\n\n",
+    "brief_stage_skips": "**Esta etapa puede saltear columnas siguientes:** cuando el cambio no necesita una, ponela en `skip:` dentro de `flags.yaml`, cada entrada con `stage` y `reason` (una entrada sin motivo se rechaza y su columna corre). Columnas que podés saltear: {skippable}. Nunca se saltean: {never}.\n\n"
   },
   "timeline": {
+    "relaunch_requested": "se pidió relanzar {stage} con {turns} turnos",
     "cloned_from": "clonada de {task}",
     "dependency_removed": "ya no depende de {task}",
     "dependent_added": "{task} depende de esta tarea",
@@ -161,6 +218,15 @@
     "subtask_of": "subtarea de {parent}: {title}",
     "subtasks_reordered": "se reordenaron las subtareas",
     "merged": "{who} integró {branch} en {target} de {project} ({commit})",
-    "section_removed": "se quitó la sección {section:%q}"
+    "section_removed": "se quitó la sección {section:%q}",
+    "kick_back_reset": "relanzada desde bloqueada: las devoluciones vuelven a contar desde cero",
+    "access_given": {
+      "one": "acceso dado a {cases} con {count} secreto",
+      "other": "acceso dado a {cases} con {count} secretos"
+    },
+    "criteria_set": {
+      "one": "{count} criterio de aceptación guardado",
+      "other": "{count} criterios de aceptación guardados"
+    }
   }
 }

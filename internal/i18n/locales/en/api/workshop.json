@@ -6,6 +6,9 @@
   },
   "audit": {
     "imported": "agents and skills imported: {count} written",
-    "installed": "installed from the Workshop: {count} written"
+    "installed": "installed from the Workshop: {count} written",
+    "flow_board": "board {board} from flow {flow}: {resolution}",
+    "installed_partial": "installed from the Workshop: {count} written, a flow board failed",
+    "imported_partial": "agents and skills imported: {count} written, a flow board failed"
   }
 }

@@ -8,6 +8,7 @@ import {
   buildStream,
   firstLine,
   foldStream,
+  groupByRound,
   groupSummary,
   groupSystem,
   initials,
@@ -33,7 +34,6 @@ import {
   excerpt,
   filterBarHTML,
   metaHTML,
-  questionWhoText,
   runCardHTML,
   resolvedLineHTML,
   systemLineHTML,
@@ -81,6 +81,10 @@ describe("parseFilter", () => {
     expect(parseFilter("runs")).toBe("runs");
     expect(parseFilter("nope")).toBe("all");
     expect(parseFilter(null)).toBe("all");
+  });
+
+  it("reads a remembered System filter as All: those rows moved to History", () => {
+    expect(parseFilter("system")).toBe("all");
   });
 });
 
@@ -142,14 +146,38 @@ describe("buildStream", () => {
     expect(items.map((i) => i.type)).toEqual(["run", "run"]);
   });
 
-  it("keeps comments only under Comments and system lines ungrouped under System", () => {
+  it("keeps comments only under Comments", () => {
     expect(buildStream({ comments, events, runs, filter: "comments" }).map((i) => i.id)).toEqual([
       "c1",
       "c2",
     ]);
-    const sys = buildStream({ comments, events, runs, filter: "system" });
-    expect(sys.every((i) => i.type === "system")).toBe(true);
-    expect(sys.map((i) => i.id)).toEqual(["run-a", "ev-m1", "ev-m2", "run-b"]);
+  });
+
+  it("shows a skip added or removed as a line, and leaves passing over to the daemon's note", () => {
+    const ev = (id: string, kind: string, min: number): StreamEvent => ({
+      id,
+      kind,
+      created_at: at(min),
+      actor: "ana@example.com",
+      payload: { stage: "testing", reason: "docs only", by: "ana@example.com" },
+    });
+    const items = buildStream({
+      comments: [],
+      events: [
+        ev("a", "stage_skip_added", 1),
+        ev("p", "stage_skipped", 3),
+        ev("r", "stage_skip_removed", 5),
+      ],
+      runs: [],
+      filter: "all",
+    });
+    const entries = items.flatMap((i) =>
+      i.type === "group" ? i.entries : i.type === "system" ? [i.entry] : [],
+    );
+    expect(entries.map((e) => [e.event?.kind, e.kind])).toEqual([
+      ["stage_skip_added", "other"],
+      ["stage_skip_removed", "other"],
+    ]);
   });
 
   it("lists subtasks added", () => {
@@ -158,7 +186,7 @@ describe("buildStream", () => {
       events: [],
       runs: [],
       children: [{ id: "k1", title: "Child", created_at: at(3) }],
-      filter: "system",
+      filter: "all",
     });
     expect(items[0]).toMatchObject({ type: "system", entry: { kind: "subtask" } });
   });
@@ -278,8 +306,12 @@ describe("words", () => {
     ).toBe("You");
     expect(authorLabel({ author: "", source: "agent" })).toBe("An agent");
     expect(authorLabel({ author: "coder", source: "agent" })).toBe("coder");
+    expect(authorLabel({ author: "agent:thulu-evidence", source: "user" })).toBe("thulu-evidence");
+    expect(authorLabel({ author: "agent:", source: "user" })).toBe("An agent");
     expect(authorLabel({ author: "automation", source: "automation" })).toBe("An automation");
     expect(authorLabel({ author: "", source: "automation" })).toBe("An automation");
+    expect(authorLabel({ author: "octopus", source: "system" })).toBe("Thulu");
+    expect(authorLabel({ author: "", source: "system" })).toBe("Thulu");
   });
 
   it("reads the dev-mode operator's comments as the viewer's", () => {
@@ -311,6 +343,10 @@ describe("words", () => {
   it("says who reads a comment", () => {
     const handles = ["coder", "qa"];
     expect(audienceLine({ text: "hi", handles })).toBe("Visible to the workspace.");
+    expect(audienceLine({ text: "hi", handles, hint: "Use the menu." })).toBe("Use the menu.");
+    expect(audienceLine({ text: "@qa hi", handles, hint: "Use the menu." })).toContain(
+      "@qa replies to it",
+    );
     expect(audienceLine({ text: "@qa check", handles })).toContain("@qa replies to it");
     expect(audienceLine({ text: "ok", handles, fallback: "coder" })).toContain("@coder replies");
     expect(audienceLine({ text: "ok", handles, notify: { agent: "coder", on: true } })).toContain(
@@ -329,6 +365,37 @@ describe("openThreadCount", () => {
       comment("c", 5),
     ];
     expect(openThreadCount(cs)).toBe(1);
+  });
+
+  it("leaves out threads rooted at an agent question", () => {
+    const cs = [
+      comment("q", 1),
+      comment("q1", 2, { parent_id: "q" }),
+      comment("a", 3),
+      comment("a1", 4, { parent_id: "a" }),
+    ];
+    expect(openThreadCount(cs)).toBe(2);
+    expect(openThreadCount(cs, (id) => id === "q")).toBe(1);
+  });
+});
+
+describe("groupByRound", () => {
+  const item = (id: string, min: number) => ({ id, at: at(min) });
+  const roundOf = (iso: string) => (iso < at(10) ? 1 : iso < at(20) ? 2 : 3);
+
+  it("cuts the stream into rounds and keeps the order", () => {
+    const g = groupByRound([item("a", 1), item("b", 2), item("c", 12), item("d", 25)], roundOf);
+    expect(g.map((x) => [x.round, x.items.map((i) => i.id)])).toEqual([
+      [1, ["a", "b"]],
+      [2, ["c"]],
+      [3, ["d"]],
+    ]);
+  });
+
+  it("keeps a late item in the round already open instead of reopening an older one", () => {
+    const g = groupByRound([item("a", 1), item("c", 12), item("late", 3)], roundOf);
+    expect(g.map((x) => x.items.map((i) => i.id))).toEqual([["a"], ["c", "late"]]);
+    expect(groupByRound([], roundOf)).toEqual([]);
   });
 });
 
@@ -403,6 +470,23 @@ describe("activity markup", () => {
     expect(
       threadActionsHTML({ id: "t", replies: 2, resolved: true, agent: "coder", canSubtask: true }),
     ).toContain("Reopen");
+  });
+
+  it("draws the thread's actions as links in the comment footer, See in Activity last", () => {
+    const html = threadActionsHTML({
+      id: "t",
+      replies: 0,
+      resolved: false,
+      agent: "coder",
+      canSubtask: true,
+      seeActivity: true,
+    });
+    expect(html).toMatch(/^<div class="cm-ft">/);
+    expect(html).toContain("btn-link");
+    expect(html).toMatch(/data-see-activity="t"[^>]*>See in Activity<\/button><\/div>$/);
+    expect(
+      threadActionsHTML({ id: "t", replies: 0, resolved: false, agent: "", canSubtask: false }),
+    ).not.toContain("data-see-activity");
   });
 
   it("folds a resolved thread to one escaped line", () => {
@@ -572,7 +656,7 @@ describe("notes in the stream", () => {
       events: [],
       runs: [],
       notes: [note],
-      filter: "system",
+      filter: "all",
     });
     expect(items).toHaveLength(1);
     const it0 = items[0] as Extract<StreamItem, { type: "system" }>;
@@ -772,7 +856,7 @@ describe("excerpt", () => {
   });
 });
 
-describe("apply form and pinned question", () => {
+describe("apply form", () => {
   it("draws the note box with Send to", () => {
     const html = applyFormHTML("r1", "coder", "<x>");
     expect(html).toContain('data-thread-apply-send="r1"');
@@ -791,11 +875,6 @@ describe("apply form and pinned question", () => {
     expect(html).toContain('data-thread-apply-cancel="r1"');
     expect(html).toMatch(/class="btn btn-primary btn-sm composer-submit"/);
     expect(html).toMatch(/<span class="composer-audience">[^<]*coder[^<]*<\/span>/);
-  });
-
-  it("says a non-blocking question keeps the agent working", () => {
-    expect(questionWhoText("backend", false)).toBe("backend asked and keeps working");
-    expect(questionWhoText("backend", true)).not.toContain("keeps working");
   });
 });
 
@@ -819,7 +898,7 @@ describe("filterBarHTML", () => {
       /^<div class="segmented segmented-sm" id="act-filter" role="radiogroup" aria-label="Show">/,
     );
     const values = Array.from(html.matchAll(/name="act-filter" value="(\w+)"/g), (m) => m[1]);
-    expect(values).toEqual(["all", "comments", "runs", "system"]);
+    expect(values).toEqual(["all", "comments", "runs"]);
     expect(html.match(/ checked/g)).toHaveLength(1);
     expect(html).toMatch(/value="runs" checked/);
   });

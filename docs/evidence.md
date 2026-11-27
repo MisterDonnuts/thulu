@@ -179,9 +179,10 @@ unique indexes).
 | source_task_id, source_case_key | text | when copied from a task case |
 | status | text | `draft` (no take), `ready` (take, never run), or the last run's status |
 | last_run_at | timestamptz null | |
+| safe_for_prod | boolean | a person marked the case harmless to replay against production; an API key cannot set it, and a take written by a key or a recording clears it |
 | created_by, updated_by, created_at, updated_at | | |
 
-`evidence_batches`: id, workspace_id, environment_id, trigger (`manual`,
+`evidence_batches`: id, workspace_id, environment_id, trigger (`agent`, `manual`,
 `schedule`, `deploy`, `api`, `recording`), trigger_ref (who or what: an email,
 `owner/name@sha · <GitHub environment>`), status (`queued`, `running`,
 `done`, `canceled`, `error`), counts (total, passed, failed, blocked, errored,
@@ -193,17 +194,25 @@ source_branch, source_commit, sandbox_status (`''` for other batches,
 `pending`, `starting`, `ready`, `failed`, `released`), sandbox_phase (while
 starting: `room`, `source`, `tools`, `setup`, `start`), sandbox_error,
 sandbox_reason, sandbox_reason_args, sandbox_log (the last 3000 bytes of the
-init script's output when it failed).
+init script's output when it failed), safe_only (only cases marked
+`safe_for_prod` were queued) and task_id (the task the batch was queued for,
+`''` otherwise).
 
 `evidence_runs`: id, workspace_id, batch_id, case_id, environment_id, position,
 status (`queued`, `running`, `pass`, `fail`, `blocked`, `error`, `canceled`),
-checks jsonb (`[{label, expected, observed, pass, measured}]`), failures jsonb
-(`[{step, kind, label, error}]`), error text, duration_ms, take jsonb (the take
-as run), report_md text, video_id, take_id, chapters_id, poster_id (artifact
-ids or `''`), shot_ids jsonb, created_at, started_at, finished_at.
+checks jsonb (`[{label, expected, observed, pass, measured, metric?, value?}]`,
+metric and value on a perf check), failures jsonb (`[{step, kind, label,
+error}]`), error text, duration_ms, take jsonb (the take as run), report_md
+text, video_id, take_id, chapters_id, poster_id (artifact ids or `''`),
+shot_ids jsonb, metrics jsonb (the runner's `{profile, steps, waits, a11y}`,
+`{}` from an older runner; past 256 KiB the steps are dropped and
+`steps_dropped` is set), findings jsonb (page errors by step, `[{step, kind,
+text?, url?, status?, method?, resource?, count}]`, at most 200), created_at,
+started_at, finished_at. A run list leaves metrics and findings out; a single
+run has them.
 
 `evidence_artifacts`: id, workspace_id, run_id, kind (`video`, `take`,
-`chapters`, `shot`, `poster`), filename, mime_type, size, path, created_at.
+`chapters`, `shot`, `poster`, `metrics`), filename, mime_type, size, path, created_at.
 Files live under `<dataDir>/evidence/<workspace>/<run>/`; they count against the
 workspace storage quota together with task attachments. Deleting a case
 deletes its runs and their files.
@@ -228,11 +237,11 @@ per-environment rules of Permissions.
 | `/evidence/context` | GET | viewer | the caller's role, workspace-level `can`, the projects with their case and environment counts and Sandbox availability, `unassigned_cases`, `standalone_environments`, `show_project_picker` (more than one project) |
 | `/evidence/summary` | GET | viewer | `?project_id=&include_unassigned=1` → `{cases, recorded, counts, running, last_batch}`: cases by status, how many have a take, runs queued or running, the latest batch |
 | `/evidence/cases` | GET | viewer | `?q=&status=&project_id=&include_unassigned=&tag=&priority=&environment_id=` → `{cases, counts, tags}`; `tag` and `priority` take a comma list (every tag, any priority); `project_id=none` is the cases without a project; `include_unassigned=1` adds them to a `project_id` filter. With `environment_id` only the cases that run there are listed, and `status` and `counts` are each case's latest result there, `not_run` when it never ran there (another workspace's environment is 404). `tags` lists the tags of the cases in the project scope, other filters aside. Each case has `latest: {<env_id>: {run_id, status, finished_at, poster_id}}` and no take body (`has_take` instead) |
-| `/evidence/cases` | POST | developer | create (`title` required, `project_id` and `take` optional); returns the case |
+| `/evidence/cases` | POST | developer | create (`title` required, `project_id`, `take` and `safe_for_prod` optional; `safe_for_prod` from a signed-in person only, as on PATCH); returns the case |
 | `/evidence/cases/{case}` | GET | viewer | `{case, recordings}`: the case with its take and its last 20 runs, and its recordings |
-| `/evidence/cases/{case}` | PATCH | developer | title, description, steps, expected, priority, tags, project_id |
+| `/evidence/cases/{case}` | PATCH | developer | title, description, steps, expected, priority, tags, project_id, safe_for_prod (a signed-in person only: an API key gets 403 `person_required`) |
 | `/evidence/cases/{case}` | DELETE | developer | case, runs, files |
-| `/evidence/cases/{case}/take` | PUT | developer | upload a take (JSON body = the take); validated; `take_source = upload` |
+| `/evidence/cases/{case}/take` | PUT | developer | upload a take (JSON body = the take); validated; `take_source = upload`; from an API key it clears `safe_for_prod` |
 | `/evidence/cases/{case}/take` | DELETE | developer | back to draft |
 | `/evidence/cases/from-task` | POST | developer | `{task_id, case}`: copies a task case, and the take of its latest run when it has one |
 | `/evidence/cases/{case}/record` | POST | developer | `{environment_id, agent_type?}` → `{recording, chat_id}`: opens a chat with an agent that records the take (see Recording); refuses a Sandbox (409 `sandbox_no_record`) and an environment the case does not run on (409 `case_not_on_env`) |
@@ -243,13 +252,13 @@ per-environment rules of Permissions.
 | `/evidence/environments/{id}` | DELETE | admin | standalone only; refuses while a batch is queued or running there |
 | `/evidence/environments/{id}/secrets` | PUT | developer | `{name: value\|null}`: set or remove (null) values; names `^[A-Z][A-Z0-9_]{0,40}$`, at most 20; production needs admin |
 | `/evidence/environments/{id}/link` | POST | admin | `{project_environment_id}`: a standalone row becomes that project environment's (keeps its id, runs and logins); the project environment's own row is deleted; 409 `link_target_has_runs` when that row has batches |
-| `/evidence/runs` | POST | developer | `{environment_id, case_ids?, project_id?, include_unassigned?, tag?, branch?}`: queue a batch of the recorded cases that match and run on the environment (all of them when nothing narrows it) → the batch with its runs. Explicit `case_ids` that do not run there: 409 `case_not_on_env` naming them. `branch` only on a Sandbox (default: the project's default branch; elsewhere 400). A Sandbox that is not available: 412 with the reason. No URL: 412 `env_no_url`. Nothing matches: 412 `nothing_to_run` |
-| `/evidence/environments/{id}/run` | POST | developer | the CI hook: same as above with this environment; `trigger = api`; on a Sandbox it accepts `branch` |
-| `/evidence/batches` | GET | viewer | recent batches, newest first, `?environment_id=&project_id=&limit=` |
+| `/evidence/runs` | POST | developer | `{environment_id, case_ids?, project_id?, include_unassigned?, tag?, branch?, safe_only?}`: queue a batch of the recorded cases that match and run on the environment (all of them when nothing narrows it; with `safe_only`, only the cases marked `safe_for_prod`) → the batch with its runs. Explicit `case_ids` that do not run there: 409 `case_not_on_env` naming them. `branch` only on a Sandbox (default: the project's default branch; elsewhere 400). A Sandbox that is not available: 412 with the reason. No URL: 412 `env_no_url`. Nothing matches: 412 `nothing_to_run`; with `safe_only`, when every match lacks the mark: 412 `only_unsafe` naming them. A `safe_only` batch answers `skipped_unsafe`, the keys it left out |
+| `/evidence/environments/{id}/run` | POST | developer | the CI hook: same as above with this environment; `trigger = api`; on a Sandbox it accepts `branch`. An agent run reaches it only when its octopus-api grant names `evidence_batch_run` (otherwise 403 `run_evidence_scope`); its batch gets `trigger = agent`, `task_id` and `trigger_ref` = the run's task, is forced to `safe_only` when the environment is production (`is_production`, or the project's `release_environment` by name, display name or slug), and takes `branch` only on the Sandbox of a project its task works on (403 `run_branch_scope`) |
+| `/evidence/batches` | GET | viewer | recent batches, newest first, `?environment_id=&project_id=&trigger=&ref=&task_id=&limit=`; `ref` matches part of `trigger_ref` (a deploy's is `owner/repo@sha7 · environment`) |
 | `/evidence/batches/{id}` | GET | viewer | the batch and its runs, with the Sandbox fields and `sandbox_log` |
 | `/evidence/batches/{id}/cancel` | POST | developer | queued runs → canceled; the runner stops after the current one; a Sandbox that is still starting is stopped and torn down |
 | `/evidence/runs` | GET | viewer | `?case_id=&environment_id=&batch_id=&status=&limit=` newest first |
-| `/evidence/runs/{id}` | GET | viewer | the run with checks, failures, report and artifact list |
+| `/evidence/runs/{id}` | GET | viewer | the run with checks, failures, findings, metrics, report and artifact list |
 | `/evidence/artifacts/{id}` | GET | viewer | the file, with range support (video seek) |
 
 Errors on batches and runs come in the request's language. When a batch or
@@ -292,7 +301,7 @@ Runner routes (the runner's key only; it names its batch):
 |---|---|---|
 | `/evidence/jobs/{batch}/next` | POST | `200 {run: {id, case_key, title}, take, base_url, allowed_hosts, secrets, sandbox, environment: {name, kind}}` or `204` when nothing is left; `base_url` is the batch's |
 | `/evidence/jobs/{batch}/runs/{run}/artifacts` | POST | multipart `file` + `kind` → `{id}` |
-| `/evidence/jobs/{batch}/runs/{run}/result` | POST | `{status, checks, failures, duration_ms, report_md, error, video_id, take_id, chapters_id, poster_id, shot_ids}` |
+| `/evidence/jobs/{batch}/runs/{run}/result` | POST | `{status, checks, failures, findings?, metrics?, duration_ms, report_md, error, video_id, take_id, chapters_id, poster_id, shot_ids}` |
 | `/evidence/jobs/{batch}/unreachable` | POST | `{error}`: the batch's URL never answered; closes it as an environment failure |
 
 Recording routes (the recording chat's key only):

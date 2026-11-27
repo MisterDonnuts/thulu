@@ -10,7 +10,7 @@
 // call sites that go through this package do not need a //nolint:gosec.
 //
 // Every function takes a base directory and a name relative to it. The name may
-// be nested ("stages/plan.md"); a leading slash is stripped so a request path
+// be nested ("stages/spec.md"); a leading slash is stripped so a request path
 // like "/main.md" is treated as relative to the base rather than rejected.
 //
 // For absolute paths read back from a trusted store, use [Rel] to split off the

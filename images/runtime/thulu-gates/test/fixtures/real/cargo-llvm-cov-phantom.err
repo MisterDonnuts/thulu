@@ -1,0 +1,15 @@
+info: cargo-llvm-cov currently setting cfg(coverage); you can opt-out it by passing --no-cfg-coverage
+warning: process didn't exit successfully: `/home/dev/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo clean --package calc --color never --manifest-path /work/rs-phantom/Cargo.toml --target-dir /work/rs-phantom/target/llvm-cov-target` (exit status: 101)
+--- stderr
+    Updating crates.io index
+error: no matching package named `quantum-left-pad-zz9` found
+location searched: crates.io index
+required by package `calc v0.1.0 (/work/rs-phantom)`
+
+error: process didn't exit successfully: `/home/dev/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo test --no-run --tests --manifest-path /work/rs-phantom/Cargo.toml --target-dir /work/rs-phantom/target/llvm-cov-target` (exit status: 101)
+--- stderr
+    Updating crates.io index
+error: no matching package named `quantum-left-pad-zz9` found
+location searched: crates.io index
+required by package `calc v0.1.0 (/work/rs-phantom)`
+

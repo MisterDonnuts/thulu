@@ -77,7 +77,7 @@ func (c *Client) do(ctx context.Context, method, path, contentType string, body 
 		logx.Warn(rerr, "hostrun.log.read_answer_failed", "path", path)
 		return &callError{Status: resp.StatusCode, Body: strings.TrimSpace(string(b))}
 	}
-	if out == nil {
+	if out == nil || resp.StatusCode == http.StatusNoContent {
 		return nil
 	}
 	if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
@@ -129,12 +129,21 @@ func (c *Client) Log(ctx context.Context, jobID string, chunk []byte) error {
 	return c.do(ctx, http.MethodPost, "jobs/"+jobID+"/log", "text/plain", bytes.NewReader(chunk), nil)
 }
 
-func (c *Client) Outputs(ctx context.Context, jobID, dir string) error {
+// Outputs uploads dir and returns the files left out: the ones over the runner's budget, then any
+// the daemon refused to keep.
+func (c *Client) Outputs(ctx context.Context, jobID, dir string) ([]runner.SkippedOutput, error) {
 	pr, pw := io.Pipe()
-	go func() { pw.CloseWithError(runner.PackOutputs(dir, pw)) }()
-	err := c.do(ctx, http.MethodPut, "jobs/"+jobID+"/outputs", "application/gzip", pr, nil)
+	packed := make(chan []runner.SkippedOutput, 1)
+	go func() {
+		skipped, err := runner.PackOutputs(dir, pw)
+		packed <- skipped
+		pw.CloseWithError(err)
+	}()
+	var answer runner.OutputsResponse
+	err := c.do(ctx, http.MethodPut, "jobs/"+jobID+"/outputs", "application/gzip", pr, &answer)
 	logx.Close(pr, "outputs upload") //i18n:ignore resource name in a log line
-	return err
+	skipped := <-packed
+	return append(skipped, answer.Skipped...), err
 }
 
 func (c *Client) Finish(ctx context.Context, jobID string, res runner.FinishRequest) error {

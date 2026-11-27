@@ -18,6 +18,8 @@ const (
 	EventPullRequest     = "github.pull_request"
 	EventPush            = "github.push"
 	EventCheckSuite      = "github.check_suite"
+	EventDeployment      = "github.deployment_status"
+	EventWorkflowRun     = "github.workflow_run"
 
 	EventTaskCreated      = "task.created"
 	EventTaskStageChanged = "task.stage_changed"
@@ -31,6 +33,8 @@ var knownEvents = map[string]string{
 	EventPullRequest:      "automation.events.pull_request",
 	EventPush:             "automation.events.push",
 	EventCheckSuite:       "automation.events.check_suite",
+	EventDeployment:       "automation.events.deployment_status",
+	EventWorkflowRun:      "automation.events.workflow_run",
 	EventTaskCreated:      "automation.events.task_created",
 	EventTaskStageChanged: "automation.events.task_stage_changed",
 	EventTaskFailed:       "automation.events.task_failed",
@@ -43,8 +47,19 @@ var githubPayloadFields = []string{
 	"pr_url", "pr_number", "pr_title", "pr_draft", "branch",
 	"comment", "comment_url", "comment_by", "review_state", "review_body",
 	"issue_number", "issue_title", "ref",
+	"head_sha", "before", "default_branch", "is_default_branch", "base_ref", "merged", "merge_sha",
 	"task_id", "task_title", "task_stage",
 }
+
+// Must match the keys api.addGithubEventFields adds for deployment_status. evidence_batch_ids are
+// the batches the deploy hook already queued for this deployment, so a recipe hands them on instead
+// of queuing a second smoke.
+var deployPayloadFields = append(append([]string{}, githubPayloadFields...),
+	"environment", "deploy_state", "sha", "deployment_id", "target_url", "evidence_batch_ids")
+
+// Must match the keys api.addGithubEventFields adds for workflow_run.
+var workflowRunPayloadFields = append(append([]string{}, githubPayloadFields...),
+	"workflow_name", "workflow_path", "run_id", "run_url", "run_status", "conclusion", "head_branch", "sha", "run_event")
 
 // Must match the keys built by api.publishTaskAutomationEvent.
 var taskPayloadFields = []string{
@@ -62,6 +77,8 @@ var payloadFields = map[string][]string{
 	EventPullRequest:      githubPayloadFields,
 	EventPush:             githubPayloadFields,
 	EventCheckSuite:       githubPayloadFields,
+	EventDeployment:       deployPayloadFields,
+	EventWorkflowRun:      workflowRunPayloadFields,
 	EventTaskCreated:      taskPayloadFields,
 	EventTaskStageChanged: append([]string{"from", "to"}, taskPayloadFields...),
 	EventTaskFailed:       taskPayloadFields,

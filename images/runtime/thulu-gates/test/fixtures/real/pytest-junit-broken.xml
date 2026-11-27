@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="5" time="0.169" timestamp="2026-11-18T10:44:26.662326-03:00" hostname="dev-host"><testcase classname="tests.test_core" name="test_clamp" time="0.002" /><testcase classname="tests.test_core" name="test_average" time="0.000" /><testcase classname="tests.test_stats" name="test_median" time="0.000" /><testcase classname="tests.test_stats" name="test_window" time="0.000" /><testcase classname="tests.test_stats" name="test_median_even" time="0.001"><failure message="assert 1.5 == 3&#10; +  where 1.5 = median([1, 2])">def test_median_even() -&gt; None:
+&gt;       assert median([1, 2]) == 3
+E       assert 1.5 == 3
+E        +  where 1.5 = median([1, 2])
+
+tests/test_stats.py:15: AssertionError</failure></testcase></testsuite></testsuites>

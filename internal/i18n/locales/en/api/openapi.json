@@ -35,14 +35,44 @@
     "unknown_stream": "Unknown stream, or owned by another caller"
   },
   "schemas": {
+    "workspace_agent_turns": {
+      "about": "How many replies agents give each other in one comment thread before they wait for a person",
+      "value": "the workspace's own choice; null when it chose none",
+      "default": "what a workspace without a value gets",
+      "ceiling": "the most a workspace may choose",
+      "effective": "what the workspace's threads get: the value, or the default"
+    },
+    "comment_meta": {
+      "about": "the structured part of a typed comment; every field optional",
+      "action": "decision: move, send_back, relaunch, waive, access, approve, request_changes or waive_approval",
+      "cases": "decision: the test cases a waive or an access grant covered",
+      "secrets": "decision: names of the secrets an access grant stored, never their values",
+      "report_id": "block: the stage_verdict report with the agent's full report",
+      "turns": "pause: the replies agents gave each other before they paused"
+    },
+    "comment": {
+      "parent_id": "the thread's root comment; empty on a root. Send it to reply",
+      "kind": "comment, question, block, decision, approval or pause; comment for conversation and older rows"
+    },
+    "relaunch": {
+      "turns": "turns for the run; 0 or absent uses the stage's",
+      "reason": "optional: why it runs again. Posted as a decision comment; without one the relaunch is only a timeline event"
+    },
     "task": {
-      "body": "Markdown description. Populated by {route} only — the list endpoints return it empty so a board poll does not carry every description."
+      "reason": "{route}: why the stage changes. Required from a person moving the task back; optional otherwise. Posted as a comment of kind decision, as a reply to the open stop",
+      "body": "Markdown description. Populated by {route} only — the list endpoints return it empty so a board poll does not carry every description.",
+      "attention": "{route} only: what the task needs from a person {kind, headline, stage, run_id, verdict_lost, items, options, approval_id, question_id, thread_id}, or null",
+      "upcoming_approvals": "{route} only: approvals of later stages, and approvals given on an older head (stale)",
+      "criteria": "Acceptance criteria rows; only {route} carries them",
+      "round": "1, plus one each time the task went back to an earlier stage; only {route} carries it"
     },
     "test_case": {
       "key": "TC-<n> unless given; unique per task. {param} in a path accepts it or the id",
       "priority": "low, medium, high or critical",
-      "status": "pending, pass, fail, blocked or skipped",
-      "runs": "Newest first"
+      "status": "pending, pass, fail, blocked, skipped or waived",
+      "runs": "Newest first",
+      "covers": "Criterion keys the case covers ({route}); when empty, read from \"Covers: AC-n\" in the description",
+      "preconditions": "What must hold before the case runs; when empty, read from \"Preconditions:\" in the description"
     },
     "report": {
       "source": "agent, auditor or user",
@@ -50,9 +80,16 @@
       "body": "Markdown"
     },
     "test_case_run": {
-      "verdict": "pass, fail or blocked",
+      "verdict": "pass, fail, blocked or waived (waived needs a note, the reason, and a person: an agent run gets 403)",
       "report_id": "The evidence report in the Reports tab",
-      "comment_id": "Where runs recorded before reports existed kept their report"
+      "comment_id": "Where runs recorded before reports existed kept their report",
+      "needs": "Only on a blocked run: what a person must bring; kinds come from {route}",
+      "observed": "What happened, at most {max} characters; the detail goes in note",
+      "round": "The task's round when the run was recorded; set by the daemon",
+      "tried": "On a blocked run: none, simulated or partial",
+      "tried_result": "What the attempt showed",
+      "vtt_attachment_id": "Subtitles or chapters (.vtt) named after the video; linked by the daemon",
+      "writes_data": "Whether the case writes real data"
     },
     "webhook": {
       "secret": "Signing secret; returned only on creation and rotation",
@@ -83,7 +120,32 @@
       "default": "the install's limit, what a workspace without a value gets; 0 = no limit",
       "ceiling": "the most a workspace may choose",
       "effective": "what the workspace's runs get: min(value, ceiling), or the default",
-      "body": "whole minutes from 1 to the ceiling, or null to go back to the install default"
+      "body": "a whole number from 1 to the setting's ceiling (minutes for agent.max_run_minutes, replies for agent_turns_per_thread), or null to go back to the default"
+    },
+    "access": {
+      "environment_id": "Evidence environment of one of the task's projects; it keeps the secrets",
+      "reason": "Optional; posted as the decision's text",
+      "secret_names": "Names of the secrets saved; values never come back",
+      "secrets": "Secret name to value; names are upper case, like TEST_USER_PASSWORD"
+    },
+    "criteria_approve": {
+      "keys": "Criteria to approve; empty approves all"
+    },
+    "criteria_request": {
+      "criteria": "The whole list, in order; it replaces the current one"
+    },
+    "criterion": {
+      "approved_by": "Who approved the criterion; empty since its text last changed",
+      "key": "AC-n, unique within the task"
+    },
+    "need": {
+      "kind": "One of the kinds {route} lists",
+      "secrets": "Secrets a person must give; only for kinds that ask for them"
+    },
+    "need_kind": {
+      "actions": "What a person can do: access, by_hand, skip, rerun, review_video",
+      "order": "Sort order, lower first",
+      "secrets": "Whether this kind asks for secrets"
     }
   },
   "ops": {
@@ -217,6 +279,10 @@
     "record_test_case_run": {
       "summary": "Record a run of a test case",
       "description": "verdict is required. Every attachment, report and comment id must belong to the task (404 otherwise). The case takes the verdict as its status and counts as covered. Answers {run, test_case}."
+    },
+    "waive_test_cases": {
+      "summary": "Skip test cases with a reason",
+      "description": "Body {cases: [keys or ids], reason}; reason is required. Records a run with verdict waived per case, by the caller (an agent run's key gets 403), with the reason as note and the task's HEAD when known. When the task is blocked in a stage whose needs-person cases are now all passed or waived, it moves on as after a continue verdict. Answers {waived, advanced, stage}."
     },
     "list_workspace_test_cases": {
       "summary": "QA view: test cases across the caller's workspace",
@@ -456,6 +522,25 @@
     },
     "put_workspace_setting": {
       "summary": "Set or clear one of the workspace's own settings (admin)"
+    },
+    "approve_criteria": {
+      "summary": "Approve acceptance criteria",
+      "description": "A person approves the named criteria, or every criterion when keys is empty. Changing a criterion's text clears its approval. Signed-in people only: an API key gets 403."
+    },
+    "give_test_case_access": {
+      "summary": "Give an agent access to blocked test cases",
+      "description": "Saves the secrets in an evidence environment of the task's project (the values never come back), marks the cases queued, posts a decision naming the secrets and relaunches the stage for those cases. Signed-in people only: an API key gets 403."
+    },
+    "list_criteria": {
+      "summary": "List acceptance criteria"
+    },
+    "list_need_kinds": {
+      "summary": "List what a blocked test case can need",
+      "description": "The catalog of need kinds: icon, order, the actions a person can take and whether the kind asks for secrets."
+    },
+    "set_criteria": {
+      "summary": "Replace acceptance criteria",
+      "description": "Replaces the whole list and rewrites the brief's acceptance-criteria section, one AC-n line per criterion. Keys look like AC-1, are unique and carry text."
     }
   }
 }

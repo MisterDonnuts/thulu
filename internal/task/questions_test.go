@@ -536,6 +536,79 @@ func TestStageChangeCancelsTheQuestionsLeftBehind(t *testing.T) {
 	}
 }
 
+// The run that asked went on with its default; once the task leaves that stage the question
+// closes with the default and stops waiting in the inbox. A blocking one is still canceled.
+func TestLeavingTheStageAppliesTheDefaultOfNonBlockingQuestions(t *testing.T) {
+	_, store, _ := newConvDispatcher(t)
+	ctx := t.Context()
+	tk := questionTask(t, store)
+	in := oneQuestion()
+	in.Blocking, in.Default = ptr(false), "Postgres, since it is already in the stack"
+	soft := ask(t, store, tk, "ctr-1", in)
+	hard := ask(t, store, tk, "ctr-1", oneQuestion())
+
+	review := types.StageReview
+	if _, err := store.Update(ctx, tk.ID, Patch{Stage: &review}); err != nil {
+		t.Fatalf("move: %v", err)
+	}
+
+	got, _ := store.GetQuestion(ctx, tk.ID, soft.ID)
+	if got.Status != QuestionAnswered || got.AnsweredBy != "octopus" || got.Delivery != QuestionDeliveryDefault ||
+		got.Answers == nil || got.Answers.Note != in.Default || got.AnsweredAt == nil {
+		t.Errorf("non-blocking question = %+v (answers %+v), want answered by octopus with its default", got, got.Answers)
+	}
+	if blocking, _ := store.GetQuestion(ctx, tk.ID, hard.ID); blocking.Status != QuestionCanceled {
+		t.Errorf("blocking question is %s, want canceled", blocking.Status)
+	}
+	if pending, _ := store.ListPendingQuestions(ctx, testWS, false); len(pending) != 0 {
+		t.Errorf("pending = %+v, want none", pending)
+	}
+
+	events, err := store.ListEvents(ctx, tk.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defaulted := false
+	for _, e := range events {
+		var p struct {
+			Defaulted bool `json:"defaulted"`
+		}
+		if e.Kind == EventQuestionAnswered && e.RefID == soft.ID && json.Unmarshal(e.Payload, &p) == nil && p.Defaulted {
+			defaulted = true
+		}
+	}
+	if !defaulted {
+		t.Error("no question_answered event marked defaulted")
+	}
+
+	full := mustGet(t, store, tk.ID)
+	replied := false
+	for _, c := range full.Comments {
+		if c.ParentID == soft.CommentID && strings.Contains(c.Body, in.Default) {
+			replied = true
+		}
+	}
+	if !replied {
+		t.Error("no reply under the question saying the default stands")
+	}
+}
+
+// A question of the stage the task is still in keeps waiting, whatever else moves.
+func TestNonBlockingQuestionOfTheCurrentStageStaysOpen(t *testing.T) {
+	_, store, _ := newConvDispatcher(t)
+	tk := questionTask(t, store)
+	in := oneQuestion()
+	in.Blocking, in.Default = ptr(false), "Postgres"
+	q := ask(t, store, tk, "ctr-1", in)
+	title := "renamed"
+	if _, err := store.Update(t.Context(), tk.ID, Patch{Title: &title}); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := store.GetQuestion(t.Context(), tk.ID, q.ID); got.Status != QuestionOpen {
+		t.Errorf("question is %s, want open", got.Status)
+	}
+}
+
 func TestReconcileRelaunchesAResumeThatNeverStarted(t *testing.T) {
 	d, store, l := newConvDispatcher(t)
 	tk := questionTask(t, store)

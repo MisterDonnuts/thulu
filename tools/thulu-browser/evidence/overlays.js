@@ -44,6 +44,9 @@ export function installCinema(opts) {
     .verdict dt { opacity: .65; } .verdict dd { margin: 0; word-break: break-word; }
     .badge { position: absolute; left: 16px; top: 16px; padding: 6px 12px; border-radius: 8px;
       background: rgba(6,12,24,.9); color: #EAF2FF; font-weight: 700; letter-spacing: .3px; border-left: 4px solid ${ACCENT}; }
+    .stamp { position: absolute; left: 50%; top: 16px; transform: translateX(-50%); padding: 6px 14px; border-radius: 999px;
+      background: rgba(6,12,24,.92); color: #FFD27A; font-weight: 700; font-variant-numeric: tabular-nums;
+      border: 2px solid ${TONE.warn}; box-shadow: 0 8px 24px rgba(0,0,0,.4); }
     .hidden { display: none; }`;
 
   function mount() {
@@ -56,11 +59,11 @@ export function installCinema(opts) {
         fill="#fff" stroke="#0B1220" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
       <div class="caption"><div class="text"></div><div class="track"><div class="bar"></div></div></div>
       <div class="verdict"><div class="head"><span class="mark"></span><span class="title"></span></div><dl></dl></div>
-      <div class="badge hidden"></div></div>`;
+      <div class="badge hidden"></div><div class="stamp hidden"></div></div>`;
     (document.documentElement || document).appendChild(host);
     const $ = (s) => shadow.querySelector(s);
     ui = { host, root: $(".root"), cursor: $(".cursor"), ring: $(".ring"), caption: $(".caption"), text: $(".text"),
-      track: $(".track"), bar: $(".bar"), verdict: $(".verdict"), badge: $(".badge") };
+      track: $(".track"), bar: $(".bar"), verdict: $(".verdict"), badge: $(".badge"), stamp: $(".stamp") };
     if (state.badge) api.badge(state.badge);
     if (state.caption) api.caption(state.caption);
     return ui;
@@ -134,6 +137,14 @@ export function installCinema(opts) {
       state.badge = text || "";
       u.badge.textContent = state.badge;
       u.badge.classList.toggle("hidden", !state.badge);
+    },
+    // A pill over the page for a moment: how long the app made the viewer wait in the time just cut.
+    stamp(text, ms) {
+      const u = mount();
+      u.stamp.textContent = text || "";
+      u.stamp.classList.toggle("hidden", !text);
+      clearTimeout(state.stampTimer);
+      state.stampTimer = setTimeout(() => u.stamp.classList.add("hidden"), ms || 1500);
     },
     hide() { mount().root.classList.add("hidden"); },
     show() { mount().root.classList.remove("hidden"); },

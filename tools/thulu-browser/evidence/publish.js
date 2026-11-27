@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { t } from "../i18n.js";
 import { postReport, uploadAttachment } from "../lib/octopus.js";
 import { recordCaseRuns } from "./cases.js";
-import { buildReport, chaptersVtt, judgedRun } from "./report.js";
+import { buildReport, chaptersVtt, judgedRun, timingWanted } from "./report.js";
 
 export function slug(text, fallback = "evidence") {
   const s = String(text || "")
@@ -22,7 +22,7 @@ export function slug(text, fallback = "evidence") {
  * task publish and a library run (evidence/job.js), which differ only in
  * where the bytes go.
  * @param {Awaited<ReturnType<import('./bundle.js').makeBundle>>} b
- * @param {(file: { kind: "shot"|"clean"|"video"|"chapters"|"take", filename: string, body: Buffer, mime: string })
+ * @param {(file: { kind: "shot"|"clean"|"video"|"chapters"|"take"|"metrics", filename: string, body: Buffer, mime: string })
  *          => Promise<{ id: string, filename: string } | undefined>} upload  undefined leaves the file out
  * @param {{ clean?: boolean }} opts  clean=false skips the unannotated captures
  * @returns {Promise<{ attachments: { video?: any, chapters?: any, take?: any, shots: { annotated?: any, clean?: any }[] },
@@ -58,7 +58,27 @@ export async function uploadBundle(b, upload, { clean = true } = {}) {
     ? await upload({ kind: "take", filename: `${base}.take.json`, body: Buffer.from(JSON.stringify(b.take, null, 2)),
       mime: "application/json" })
     : undefined;
-  return { attachments: { video, chapters, take, shots }, captures };
+  // Timing goes up only when the report shows it (a throttled take or a perf check), with the page
+  // errors and the waits cut next to it.
+  const metrics = timingWanted(b.runs)
+    ? await upload({ kind: "metrics", filename: `${base}.metrics.json`, body: Buffer.from(JSON.stringify(metricsFile(b), null, 2)),
+      mime: "application/json" })
+    : undefined;
+  return { attachments: { video, chapters, take, shots, metrics }, captures };
+}
+
+/** Every run's timing, page errors and waits, as the metrics file carries them. */
+export function metricsFile(b) {
+  return {
+    schema: 1,
+    runs: b.runs.map((r) => ({
+      ...(r.label ? { label: r.label } : {}),
+      profile: r.profile ?? {},
+      steps: r.metrics ?? [],
+      findings: r.findings ?? [],
+      waits: { cut: r.cutWaits !== false, gaps: r.gaps ?? [] },
+    })),
+  };
 }
 
 /**

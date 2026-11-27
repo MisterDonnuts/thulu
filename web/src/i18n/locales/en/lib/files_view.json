@@ -1,0 +1,8 @@
+{
+  "size": {
+    "kb": "{n} KB",
+    "mb": "{n} MB"
+  },
+  "hint": "Evidence, reports and logs the agents attached",
+  "empty": "No files yet. Drop files on the task or use Add files."
+}

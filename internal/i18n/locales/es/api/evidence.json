@@ -17,6 +17,7 @@
     "no_auth_store": "esta instancia no tiene keys",
     "project_not_found": "no existe el proyecto {id}",
     "recording_chat_only": "sólo el agente de un chat de grabación puede usar esto",
+    "run_branch_scope": "una corrida de agente arma un sandbox desde una rama sólo en el Sandbox de un proyecto en el que trabaja su tarea",
     "runner_create": "crear el runner de evidencia de la tanda {batch}",
     "runner_only": "sólo el runner de esta tanda puede usar esto",
     "runner_start": "arrancar el runner de evidencia de la tanda {batch}",
@@ -47,5 +48,8 @@
   "reasons": {
     "runner_exit": "el ejecutor terminó con código {code}",
     "deadline": "la tanda superó su tiempo límite"
+  },
+  "labels": {
+    "person_safe_for_prod": "marcar un caso como seguro para producción"
   }
 }

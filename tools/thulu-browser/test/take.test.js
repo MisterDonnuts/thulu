@@ -78,6 +78,57 @@ test("@names resolve only where a selector goes", () => {
   assert.deepEqual(steps[1].shot.redact, ["[data-testid=email]"]);
 });
 
+test("a perf check names its metric and takes a number as the maximum, with no target or match", () => {
+  const perf = (over) => take([{ kind: "verify", case: "TC-1", check: "perf", ...over }]);
+  assert.equal(parseTake(perf({ metric: "lcp", expected: "2500" })).steps[0].metric, "lcp");
+  assert.ok(parseTake(perf({ metric: "cls", expected: "0.1" })));
+  assert.ok(parseTake(perf({ metric: "response", expected: "800" })));
+  assert.throws(() => parseTake(perf({ expected: "2500" })), /needs a metric/);
+  assert.throws(() => parseTake(perf({ metric: "lcp", expected: "fast" })), /a number/);
+  assert.throws(() => parseTake(perf({ metric: "lcp", expected: "" })), /a number/);
+  assert.throws(() => parseTake(perf({ metric: "lcp", expected: "-1" })), /a number/);
+  assert.throws(() => parseTake(perf({ metric: "lcp", expected: "2500", match: "contains" })), /no match/);
+  assert.throws(() => parseTake(perf({ metric: "lcp", expected: "2500", target: "#hero" })), /no target/);
+  assert.throws(() => parseTake(perf({ metric: "tti", expected: "2500" })), TakeError);
+  assert.throws(() => parseTake(take([{ kind: "verify", case: "TC-1", check: "text", target: "h1", expected: "x",
+    metric: "lcp" }])), /only with check "perf"/);
+});
+
+test("a take carries its network, CPU and color scheme, and its ignore patterns", () => {
+  const t = parseTake(take([{ kind: "goto", url: "/" }], {
+    network: "slow-4g", cpu_throttle: 4, color_scheme: "dark", ignore_errors: ["analytics\\.example"],
+  }));
+  assert.equal(t.network, "slow-4g");
+  assert.equal(t.cpu_throttle, 4);
+  assert.equal(t.color_scheme, "dark");
+  assert.deepEqual(t.ignore_errors, ["analytics\\.example"]);
+  assert.throws(() => parseTake(take([{ kind: "goto", url: "/" }], { network: "5g" })), TakeError);
+  assert.throws(() => parseTake(take([{ kind: "goto", url: "/" }], { cpu_throttle: 40 })), TakeError);
+  assert.throws(() => parseTake(take([{ kind: "goto", url: "/" }], { color_scheme: "sepia" })), TakeError);
+  assert.throws(() => parseTake(take([{ kind: "goto", url: "/" }], { ignore_errors: ["("] })), /regular expression/);
+});
+
+test("an a11y step takes its scope, tags and threshold, and @names resolve in its scope", () => {
+  const parsed = parseTake(take([
+    { kind: "a11y", case: "TC-3", include: ["@form"], exclude: ["#ads"], tags: ["wcag2aa"], fail_on: "critical", disable_rules: ["color-contrast"] },
+    { kind: "a11y" },
+  ]));
+  const lib = parseLibrary({ targets: { form: "#checkout" } });
+  const [scoped, plain] = compileSteps(parsed.steps, lib);
+  assert.deepEqual(scoped.include, ["#checkout"]);
+  assert.equal(scoped.fail_on, "critical");
+  assert.equal(plain.include, undefined);
+  assert.throws(() => parseTake(take([{ kind: "a11y", fail_on: "fatal" }])), TakeError);
+  assert.throws(() => parseTake(take([{ kind: "a11y", target: "#x" }])), TakeError, "strict: an a11y step has no target");
+});
+
+test("cut_waits and a think note pass the strict schema", () => {
+  const parsed = parseTake(take([{ kind: "note", text: "I expected the price here", level: "think" }], { cut_waits: false }));
+  assert.equal(parsed.cut_waits, false);
+  assert.equal(parsed.steps[0].level, "think");
+  assert.throws(() => parseTake(take([{ kind: "goto", url: "/" }], { cut_waits: "no" })), TakeError);
+});
+
 test("compile problems are listed together: unknown flow, target, missing param, recursion", () => {
   const steps = parseTake(take([
     { kind: "use", flow: "nope" },

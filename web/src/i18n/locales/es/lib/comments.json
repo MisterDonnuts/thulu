@@ -1,0 +1,39 @@
+{
+  "filter": {
+    "all": "Todo",
+    "questions": "Preguntas de agentes",
+    "decisions": "Decisiones",
+    "talk": "Conversación"
+  },
+  "sort": {
+    "new": "Más nuevos primero",
+    "old": "Más viejos primero"
+  },
+  "decision": {
+    "moved_to": "Movida a {stage}",
+    "moved": "Movida",
+    "sent_back_to": "Devuelta a {stage}",
+    "sent_back": "Devuelta",
+    "reran": "Volvió a correr {stage}",
+    "reran_plain": "Volvió a correr la etapa",
+    "skipped": "Eximió {cases}",
+    "skipped_plain": "Eximió casos",
+    "access": "Dio acceso para {cases}",
+    "access_plain": "Le dio acceso al agente",
+    "approved": "Aprobó",
+    "changes": "Pidió cambios",
+    "approval_skipped": "Eximió la aprobación",
+    "other": "Decisión"
+  },
+  "kind": {
+    "waiting": "Te espera",
+    "stopped": "Frenó por una persona",
+    "approval": "Aprobación",
+    "question": "Pregunta"
+  },
+  "paused": {
+    "one": "Los agentes se pausaron después de {count} respuesta. Respondé para que sigan.",
+    "other": "Los agentes se pausaron después de {count} respuestas. Respondé para que sigan."
+  },
+  "paused_plain": "Los agentes se pausaron. Respondé para que sigan."
+}

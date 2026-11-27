@@ -1,0 +1,4 @@
+Error: Command 'cd . && python3 work.py' contains unquoted shell syntax ('&&').
+Explicitly choose how to execute it:
+  -S / --shell=default  Interpret shell syntax.
+  -N / --shell=none     Run directly, passing '&&' as a literal argument.

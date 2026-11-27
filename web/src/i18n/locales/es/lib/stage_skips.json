@@ -1,0 +1,34 @@
+{
+  "why": {
+    "initial": "La primera columna nunca se saltea.",
+    "terminal": "Una columna final nunca se saltea.",
+    "virtual": "No es una columna del tablero.",
+    "no_skip": "El tablero marca esta columna como que nunca se saltea.",
+    "refinement": "En esta columna se deciden los salteos, así que siempre corre.",
+    "approvals": "Le pide una aprobación a una persona, así que siempre corre.",
+    "pull_request": "Maneja el pull request o el release, así que siempre corre."
+  },
+  "editor": {
+    "title": "Columnas que saltea {title}",
+    "message": "Una columna salteada no corre para esta tarea. Cada cambio necesita un motivo, que queda en Actividad.",
+    "save": "Guardar salteos",
+    "skip": "Saltear {stage}",
+    "run_again": "Volver a correr {stage}",
+    "skipped_by": "La salteó {by}: {reason}",
+    "why_current": "La tarea está en esta columna.",
+    "reason_skip": "Por qué saltear {stage}",
+    "reason_run": "Por qué correr {stage}",
+    "reason_again": "Por qué volver a correr {stage}",
+    "back_warning": "La tarea vuelve a {stage} y sigue adelante desde ahí.",
+    "need_reason": "Poné un motivo para cada cambio.",
+    "reason_required": "Decí por qué.",
+    "no_changes": "No cambió nada.",
+    "saved": {
+      "one": "Salteos guardados: {count} cambio",
+      "other": "Salteos guardados: {count} cambios"
+    },
+    "saved_back": "La tarea vuelve a {stage}.",
+    "saved_later": "La tarea vuelve a {stage} cuando termine su corrida actual.",
+    "failed": "No se pudo guardar el salteo de {stage}: {error}"
+  }
+}

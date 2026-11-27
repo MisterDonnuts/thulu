@@ -8,39 +8,25 @@
   },
   "new": {
     "title": "New chat",
-    "agent": "Agent",
-    "linked_task": "Linked task (optional)",
-    "no_task": "— no task —",
-    "title_label": "Title (optional)",
-    "title_placeholder": "e.g. Sprint plan",
-    "create": "Create chat",
-    "no_agents": "— no agent has the Chat stage —",
     "option_lacks_prompt": "{agent} (no chat prompt)",
     "option_lacks_llm": "{agent} (no model credential)",
     "option_lacks_both": "{agent} (no prompt or credential)",
     "hint_no_agents": "No agent has the Chat stage. Add it to one in its settings.",
     "hint_no_agents_link": "Go to Agents",
     "hint_no_prompt": "{agent} has no prompt for the Chat stage: the chat is created, but the first message fails.",
-    "hint_no_prompt_link": "Add the prompt",
     "hint_no_llm": "This workspace has no model credential for {agent}.",
-    "hint_no_llm_link": "Open AI engines",
     "reused": "@{agent} already had a chat about “{task}”. You are in that one."
   },
   "conversation": {
-    "default_title": "Chat",
     "rename_hint": "Click to rename",
-    "rename_prompt": "Chat title:",
-    "replying": "Replying"
+    "rename_prompt": "Chat title:"
   },
   "subtitle": {
-    "agent_task": "@{agent} · {task}",
-    "context": "{tokens} of 200k context",
-    "open_task": "Open the task"
+    "agent_task": "@{agent} · {task}"
   },
   "menu": {
     "aria": "Chat options",
     "title": "Options",
-    "delegate": "Act for me",
     "reset": "Reset conversation",
     "reset_sub": "Clears the history and the agent's session",
     "archive": "Archive",
@@ -48,11 +34,6 @@
     "unarchive": "Unarchive"
   },
   "delegate": {
-    "pill": "Acts for you",
-    "pill_until": "Acts for you until {time}",
-    "sub_off": "Handles the boards' tasks on your behalf",
-    "sub_on": "Acts for {person}. Click to turn it off",
-    "sub_linked": "Only in a chat that is not linked to a task",
     "disabled_by_owner": "An owner turned off delegated chats in this workspace.",
     "confirm_title": "Let @{agent} act for you?",
     "confirm_message": {
@@ -88,26 +69,35 @@
     "archive_ok": "Archive"
   },
   "composer": {
-    "aria": "Send a message",
     "label": "Message",
-    "placeholder": "Write to the agent…",
     "send": "Send",
     "archived_note": "Archived chat. Unarchive it to write.",
     "thread_note": "What you write here stays in this chat; it does not go back to the task's thread.",
-    "open_task": "Open the task"
+    "open_task": "Open the task",
+    "agent_pick": "Pick an agent",
+    "hash": "Name a task",
+    "hint_task": "task",
+    "hint_agent": "agent",
+    "hint_commands": "commands",
+    "hint_steer": "stop and send",
+    "placeholder_agent": "Message {agent}",
+    "placeholder_live": "Sends when the turn ends",
+    "placeholder_new": "Ask or request something",
+    "queue": "Queue",
+    "queue_sub": "Goes out when the turn ends. Enter",
+    "send_options": "Send options",
+    "steer": "Stop and send",
+    "steer_sub": "Cuts the turn and sends this now. {keys}"
   },
   "empty": {
     "no_chats": "No conversations yet. Create a chat with an agent to discuss a task or an implementation without cluttering the comments."
   },
   "errors": {
-    "http_status": "HTTP {status}",
-    "http_daemon": "Error — HTTP {status} from the daemon.",
     "offline_decide": "Daemon offline — could not decide.",
     "offline_create": "Daemon offline — could not create the chat.",
     "offline_delegation": "Daemon offline — could not change it.",
     "offline_send": "Daemon offline — the message was not sent.",
     "busy_reset": "The agent is replying — wait for it to finish.",
-    "busy_send": "The agent is still replying to the previous message.",
     "offline_archive": "Daemon offline: could not archive.",
     "no_prompt_link": "Add the chat prompt",
     "no_prompt": "{agent} has no prompt for the Chat stage: until you add one, every message fails."
@@ -119,24 +109,215 @@
     "undo": "Undo"
   },
   "tools": {
-    "summary": {
-      "one": "Used {count} tool",
-      "other": "Used {count} tools"
-    },
-    "omitted": {
-      "one": "and {count} more",
-      "other": "and {count} more"
+    "subagent": "Subagent",
+    "thulu_label": "Thulu",
+    "thulu": {
+      "agent_settings": "read an agent's settings",
+      "board_current": "read the board",
+      "board_tasks_list": "listed the board's tasks",
+      "project_list": "listed projects",
+      "skills_list": "listed skills",
+      "subtask_create": "created a subtask",
+      "task_add_comment": "commented",
+      "task_add_dependency": "added a dependency",
+      "task_attach": "attached a file",
+      "task_attachments": "listed attachments",
+      "task_clone": "cloned a task",
+      "task_create": "created a task",
+      "task_delete": "deleted a task",
+      "task_get": "read the task",
+      "task_move_to_board": "moved it to another board",
+      "task_relaunch": "relaunched a task",
+      "task_sections_get": "read sections",
+      "task_update": "updated the task",
+      "tasks_list": "listed tasks"
     }
   },
   "brief": {
     "evidence_recording": "Recording {key} on {env}",
-    "show_instructions": "Show the agent instructions",
     "summary": "Context the agent received"
   },
-  "intro": {
-    "task": "@{agent} answers about “{task}”: it gets the task and its code, if any, and reads the rest with its tools.",
-    "loose": "@{agent} starts with no task or code: it knows what you write and what it reads with its tools.",
-    "shared": "Every member of the workspace sees this chat: @{agent} answers mentions on the task from it.",
-    "personal": "Only you see this chat."
+  "commands": {
+    "delegate": {
+      "word": "delegate",
+      "title": "Act for me",
+      "sub": "The agent creates and moves tasks on your behalf for a few hours"
+    },
+    "task": {
+      "word": "task",
+      "title": "Make a task from this",
+      "sub": "Asks the agent to write a task from the conversation",
+      "prompt": "Create a task from what we've discussed so far."
+    },
+    "reset": {
+      "word": "reset",
+      "title": "Start over",
+      "sub": "Clears the messages and the agent's session"
+    },
+    "archive": {
+      "word": "archive",
+      "title": "Archive the chat",
+      "sub": "Leaves the list; you can bring it back"
+    }
+  },
+  "ctx": {
+    "delegate_off": "Act for me",
+    "delegate_on": "Acting for you until {time}",
+    "delegate_toast_on": "{agent} can act for you.",
+    "delegate_toast_off": "The agent stopped acting for you.",
+    "link_task": "Link a task",
+    "linked": "The chat is now linked to “{task}”.",
+    "remove_task": "Remove task",
+    "unlinked": "The chat has no task now."
+  },
+  "duration": {
+    "seconds": "{s}s",
+    "minutes": "{m}m {s}s"
+  },
+  "effects": {
+    "label": "In Thulu",
+    "created": "created",
+    "updated": "updated",
+    "moved": "moved",
+    "moved_many": {
+      "one": "moved {count} task",
+      "other": "moved {count} tasks"
+    },
+    "moved_to": "moved to {stage}",
+    "commented": "commented on",
+    "linked": "linked",
+    "with": "with",
+    "attached": "attached to",
+    "deleted": "deleted",
+    "relaunched": "relaunched",
+    "failed": "failed",
+    "failed_why": "failed: {detail}"
+  },
+  "fail": {
+    "head": "No answer",
+    "canceled_head": "You stopped the turn",
+    "retry": "Retry",
+    "transcript": "See the transcript",
+    "no_steps": "The turn didn't get to use any tools.",
+    "no_transcript": "This turn kept no transcript."
+  },
+  "foot": {
+    "context": "{tokens} of context",
+    "copied": "Copied",
+    "copy": "Copy",
+    "cost": "US${cost}",
+    "retry": "Retry"
+  },
+  "handoff": {
+    "toast": "Opening a new chat with {agent} and passing it a summary of this one."
+  },
+  "head": {
+    "close": "Close",
+    "expand": "Expand",
+    "shrink": "Back to panel"
+  },
+  "live": {
+    "starting": "Starting",
+    "stop": "Stop",
+    "stopped": "You stopped the turn. What it already did stays above.",
+    "thinking": "Thinking"
+  },
+  "mcp": {
+    "browser": "browser",
+    "thulu_comment": "Thulu · comments",
+    "thulu_read": "Thulu · reads",
+    "thulu_write": "Thulu · creates and moves tasks"
+  },
+  "pop": {
+    "agents": "Agents",
+    "agents_current": "In this chat",
+    "agents_none": "No agents are ready to chat.",
+    "agents_query": "Agents · “{q}”",
+    "agents_recent": "Recent",
+    "agents_workspace": "In this workspace",
+    "commands": "Commands",
+    "lacks_llm": "Missing a model credential",
+    "lacks_prompt": "Missing its chat prompt",
+    "new_chat": "new chat",
+    "switch_note": "Picking another agent opens a new chat with a summary; the one with {agent} stays as it is.",
+    "task_failed": "Failed",
+    "task_running": "Running",
+    "tasks": "Tasks",
+    "tasks_none": "No task matches.",
+    "tasks_query": "Tasks · “{q}”"
+  },
+  "rows": {
+    "archived": "Archived",
+    "error": "Error",
+    "idle": "Up to date",
+    "needs_you": "Needs you",
+    "older": "Older",
+    "preview_error": "The last turn failed",
+    "preview_needs_you": "Waiting for you to confirm an action",
+    "preview_running": "Working…",
+    "running": "Working",
+    "search": "Search chats",
+    "search_empty": "No chat matches",
+    "search_placeholder": "Search by title or message",
+    "today": "Today",
+    "week": "This week"
+  },
+  "run": {
+    "cache": "{tokens} read from cache",
+    "failed": "Failed",
+    "ok": "Finished fine",
+    "out_of_turns": "Ran out of turns",
+    "output": "{tokens} output tokens"
+  },
+  "start": {
+    "handoff": "You pick up from “{title}”. {agent} gets a summary with your first message.",
+    "sugg_boards": "What's stuck on my boards?",
+    "sugg_needs": "What does {task} need to move on?",
+    "sugg_next": "How is {task} going?",
+    "title": "How can I help?"
+  },
+  "steps": {
+    "count": {
+      "one": "{count} step",
+      "other": "{count} steps"
+    },
+    "kinds": {
+      "cmd": {
+        "one": "{count} command",
+        "other": "{count} commands"
+      },
+      "edit": {
+        "one": "{count} edit",
+        "other": "{count} edits"
+      },
+      "mcp": {
+        "one": "{count} tool",
+        "other": "{count} tools"
+      },
+      "read": {
+        "one": "{count} read",
+        "other": "{count} reads"
+      },
+      "sub": {
+        "one": "{count} subagent",
+        "other": "{count} subagents"
+      },
+      "thulu": {
+        "one": "{count} Thulu action",
+        "other": "{count} Thulu actions"
+      }
+    },
+    "omitted": {
+      "one": "and {count} more step",
+      "other": "and {count} more steps"
+    },
+    "worked": "Worked {duration} · {steps}",
+    "working": "Working · {steps}"
+  },
+  "user": {
+    "handoff_note": "Comes from another chat, with a summary",
+    "queued": "Queued",
+    "sending": "Sending",
+    "unqueue": "Remove from queue"
   }
 }

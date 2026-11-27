@@ -301,6 +301,19 @@ const [pressBefore, pressAfter] = t("agents.empty.create_hint", { key: SPLIT }).
     .aud-overrides .aud-skills-field {
       grid-column: 1 / -1;
     }
+    /* The two numbers of the signals budget share a line, the hint under them. */
+    .aud-budget {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 160px));
+      gap: var(--s-3);
+    }
+    .aud-budget[hidden] {
+      display: none;
+    }
+    .aud-budget .aud-budget-hint {
+      grid-column: 1 / -1;
+      margin: 0;
+    }
     /* On a phone the turns and the model stack too. */
     @media (max-width: 480px) {
       .aud-overrides {
@@ -502,6 +515,7 @@ const [pressBefore, pressAfter] = t("agents.empty.create_hint", { key: SPLIT }).
       exportItems,
       paintUpdates,
       updateBadgeHTML,
+      workshopTabFromQuery,
       workshopUpdates,
     } from "../lib/workshop";
     import { matchesQuery } from "../lib/filter";
@@ -626,6 +640,10 @@ const [pressBefore, pressAfter] = t("agents.empty.create_hint", { key: SPLIT }).
         auditor_model_by_stage: Record<string, string>;
         auditor_engine_by_stage: Record<string, string>;
         auditor_skills_by_stage: Record<string, string[]>;
+        // "always" or "signals"; 0 budgets mean the daemon's default (400 lines, 20 files).
+        auditor_mode?: string;
+        auditor_max_diff_lines?: number;
+        auditor_max_diff_files?: number;
         system_skills_off: Record<string, string[]>;
         // system_skills_by_stage from the server is ignored: it goes stale as soon as an MCP toggle
         // changes.
@@ -664,6 +682,7 @@ const [pressBefore, pressAfter] = t("agents.empty.create_hint", { key: SPLIT }).
         admin: "agents.mcp.group.admin",
         deploy: "agents.mcp.group.deploy",
         board: "agents.mcp.group.board",
+        release: "agents.mcp.group.release",
         "": "agents.mcp.group.other",
       };
       const OPTIMIZER_PROBLEM_KEYS: Record<"engine" | "model", string> = {
@@ -673,6 +692,7 @@ const [pressBefore, pressAfter] = t("agents.empty.create_hint", { key: SPLIT }).
       const GROUP_HINT_KEYS: Record<string, string> = {
         deploy: "agents.mcp.group_hint.deploy",
         board: "agents.mcp.group_hint.board",
+        release: "agents.mcp.group_hint.release",
         other: "agents.mcp.group_hint.other",
       };
 
@@ -775,6 +795,8 @@ const [pressBefore, pressAfter] = t("agents.empty.create_hint", { key: SPLIT }).
         onApplied: () => void bootstrap(),
       });
       $("workshop-btn").addEventListener("click", () => workshop.open("agent"), { signal });
+      const askedTab = workshopTabFromQuery(window.location.search);
+      if (askedTab) workshop.open(askedTab);
       $("export-all-btn").addEventListener(
         "click",
         () => {
@@ -1528,6 +1550,19 @@ const [pressBefore, pressAfter] = t("agents.empty.create_hint", { key: SPLIT }).
             .join("") ||
           emptyStateHTML({ size: "inline", dashed: true, title: t("agents.auditor.pick_stage") });
 
+        // An agent without an auditor reads "signals" from the daemon: the mode a new one gets.
+        const auditorMode = settings.auditor_mode === "always" ? "always" : "signals";
+        const auditorModeOptsHTML = [
+          { v: "signals", label: t("agents.auditor.mode_signals") },
+          { v: "always", label: t("agents.auditor.mode_always") },
+        ]
+          .map(
+            (o) =>
+              `<option value="${o.v}"${when(auditorMode === o.v, " selected")}>${esc(o.label)}</option>`,
+          )
+          .join("");
+        const budgetValue = (n: number | undefined) => (n && n > 0 ? String(n) : "");
+
         // "auto" stores no label on purpose: pinning it would freeze the agent's behavior when its
         // engine changes.
         const skillsMode = settings!.skills_mode ?? "";
@@ -1589,6 +1624,27 @@ const [pressBefore, pressAfter] = t("agents.empty.create_hint", { key: SPLIT }).
               hint: t("agents.settings.auditor_hint"),
               control: `<div class="aud-grid">${auditorRowsHTML}</div>`,
             })}
+            ${fieldHTML({
+              label: t("agents.settings.auditor_mode"),
+              for: "set-aud-mode",
+              hint: t("agents.settings.auditor_mode_hint"),
+              control: `<select id="set-aud-mode">${auditorModeOptsHTML}</select>`,
+            })}
+            <div class="aud-budget" id="aud-budget"${when(auditorMode !== "signals", " hidden")}>
+              ${fieldHTML({
+                label: t("agents.auditor.budget_lines"),
+                for: "set-aud-lines",
+                control: `<input type="number" min="0" max="1000000" placeholder="400" id="set-aud-lines"
+                  value="${esc(budgetValue(settings.auditor_max_diff_lines))}" />`,
+              })}
+              ${fieldHTML({
+                label: t("agents.auditor.budget_files"),
+                for: "set-aud-files",
+                control: `<input type="number" min="0" max="1000000" placeholder="20" id="set-aud-files"
+                  value="${esc(budgetValue(settings.auditor_max_diff_files))}" />`,
+              })}
+              <p class="hint aud-budget-hint">${esc(t("agents.auditor.budget_hint"))}</p>
+            </div>
             ${optimizerFieldHTML()}
           </div>`;
 
@@ -2031,6 +2087,12 @@ const [pressBefore, pressAfter] = t("agents.empty.create_hint", { key: SPLIT }).
               if (overrides) overrides.hidden = !el.checked;
             });
           });
+      }
+
+      // Empty, negative or not a number means the default budget (0).
+      function budgetInput(id: string): number {
+        const n = Math.trunc(Number(($(id) as HTMLInputElement).value));
+        return Number.isFinite(n) && n > 0 ? n : 0;
       }
 
       function noStageHTML(): string {
@@ -2772,6 +2834,11 @@ const [pressBefore, pressAfter] = t("agents.empty.create_hint", { key: SPLIT }).
         settings.auditor_model_by_stage = auditorModel;
         settings.auditor_engine_by_stage = auditorEngine;
         settings.auditor_skills_by_stage = auditorSkills;
+        const mode = ($("set-aud-mode") as HTMLSelectElement).value;
+        settings.auditor_mode = mode === "always" ? "always" : "signals";
+        settings.auditor_max_diff_lines = budgetInput("set-aud-lines");
+        settings.auditor_max_diff_files = budgetInput("set-aud-files");
+        $("aud-budget").hidden = settings.auditor_mode !== "signals";
 
         settings.skills_mode = ($("set-skills-mode") as HTMLSelectElement).value;
         settings.works_without_repo = ($("set-no-repo") as HTMLInputElement).checked;

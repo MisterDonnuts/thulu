@@ -21,12 +21,35 @@
   --avatar-size: var(--control-h);
   font-size: var(--t-xs);
 }
+.avatar-xs {
+  --avatar-size: 18px;
+  font-size: 7.5px;
+}
 .avatar-square {
   border-radius: var(--r-md);
+}
+.avatar-xs.avatar-square {
+  border-radius: var(--r-sm);
 }
 .avatar-agent {
   background: var(--color-special-bg);
   color: var(--color-special);
+}
+.avatar-hue-1 {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+.avatar-hue-2 {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.avatar-hue-3 {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+.avatar-hue-4 {
+  background: var(--danger-soft);
+  color: var(--danger);
 }
 .avatar-system {
   background: var(--surface-2);

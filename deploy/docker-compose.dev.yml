@@ -184,6 +184,7 @@ services:
     volumes:
       - ../tools/thulu-github/server.js:/app/server.js:ro
       - ../tools/thulu-github/i18n.js:/app/i18n.js:ro
+      - ../tools/thulu-github/github-proxy.json:/app/github-proxy.json:ro
       - ../tools/thulu-github/locales:/app/locales:ro
 
   thulu-browser:

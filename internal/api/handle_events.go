@@ -85,6 +85,9 @@ func (s *Server) resolveTopic(ctx context.Context, topic string, sc eventhub.Sco
 				return ch.WorkspaceID, string(ch.Kind), ch, true
 			}), nil
 
+	case strings.HasPrefix(topic, topicChatTurnPfx):
+		return s.chatTurnSource(ctx, topic, sc)
+
 	case strings.HasPrefix(topic, topicLogsPfx):
 		id := strings.TrimPrefix(topic, topicLogsPfx)
 		if id == "" {

@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -61,6 +62,26 @@ type StageInfo struct {
 	RequiredApprovals  []ApprovalRequirement `json:"required_approvals,omitempty"`
 	OnChangesRequested string                `json:"on_changes_requested,omitempty"`
 	ChangesKickBackTo  Stage                 `json:"changes_kick_back_to,omitempty"`
+
+	// The stage's agent may end its run with a verdict.md that sends the task back or blocks it.
+	AgentVerdict bool `json:"agent_verdict,omitempty"`
+	// Test files this stage writes are locked: a later stage changing one opens a test_change
+	// approval.
+	LockTests bool `json:"lock_tests,omitempty"`
+	// Run only when the task's flow flags hold one of these values; nil flow flags run everything.
+	SkipUnless []string `json:"skip_unless,omitempty"`
+	// Tasks may not skip this column (task stage_skips). Initial, terminal, gate and PR columns are
+	// never skippable whatever this says.
+	NoSkip bool `json:"no_skip,omitempty"`
+	// Entering the stage frees the task's sandbox and worktrees, as a terminal stage does.
+	ReleaseResources bool `json:"release_resources,omitempty"`
+	// Where a merged pull request moves the task.
+	MergeTarget bool `json:"merge_target,omitempty"`
+	PRDraft     bool `json:"pr_draft,omitempty"`
+	PRReady     bool `json:"pr_ready,omitempty"`
+	// Per board only: the shared stages catalog never carries it, since an agent name belongs to a
+	// workspace.
+	DefaultAgent string `json:"default_agent,omitempty"`
 }
 
 const (
@@ -74,6 +95,9 @@ type ApprovalRequirement struct {
 	Label         string   `json:"label"`
 	TaskTypes     []string `json:"task_types,omitempty"`
 	ResetOnChange bool     `json:"reset_on_change"`
+	// Approving it waits until the checks the task's pull requests must pass on GitHub (branch
+	// protection or rulesets) are green.
+	RequiredChecks bool `json:"required_checks,omitempty"`
 }
 
 func (r *ApprovalRequirement) UnmarshalJSON(b []byte) error {
@@ -101,7 +125,14 @@ type ParamDef struct {
 }
 
 type AuditorSpec struct {
-	Stages       []string          `json:"stages,omitempty"`
+	Stages []string `json:"stages,omitempty"`
+	// AuditorModeAlways or AuditorModeSignals; empty reads as always, so a spec stored before modes
+	// existed keeps running after every stage.
+	Mode string `json:"mode,omitempty"`
+	// The production diff budget the signals mode checks; 0 takes DefaultAuditMaxDiffLines and
+	// DefaultAuditMaxDiffFiles, the budget the Thulu developer prompt states.
+	MaxDiffLines int               `json:"max_diff_lines,omitempty"`
+	MaxDiffFiles int               `json:"max_diff_files,omitempty"`
 	TurnsByStage map[string]string `json:"turns_by_stage,omitempty"`
 	ModelByStage map[string]string `json:"model_by_stage,omitempty"`
 	// Empty for a stage: the auditor runs on the agent's engine.
@@ -119,6 +150,45 @@ func (a *AuditorSpec) RunsForStage(stage string) bool {
 		}
 	}
 	return false
+}
+
+const (
+	// The auditor runs after every run of its stages.
+	AuditorModeAlways = "always"
+	// The auditor runs only when the finished run shows a signal (task.auditSignals); otherwise the
+	// stage advances as if it had said continue.
+	AuditorModeSignals = "signals"
+
+	DefaultAuditMaxDiffLines = 400
+	DefaultAuditMaxDiffFiles = 20
+)
+
+// ValidAuditorMode accepts the stored values; empty is the legacy "always".
+func ValidAuditorMode(m string) bool {
+	return m == "" || m == AuditorModeAlways || m == AuditorModeSignals
+}
+
+// EffectiveMode is the mode the dispatcher applies: anything but signals runs every time.
+func (a *AuditorSpec) EffectiveMode() string {
+	if a != nil && a.Mode == AuditorModeSignals {
+		return AuditorModeSignals
+	}
+	return AuditorModeAlways
+}
+
+// DiffBudget is the production lines and files a run may change before the signals mode audits it.
+func (a *AuditorSpec) DiffBudget() (lines, files int) {
+	lines, files = DefaultAuditMaxDiffLines, DefaultAuditMaxDiffFiles
+	if a == nil {
+		return lines, files
+	}
+	if a.MaxDiffLines > 0 {
+		lines = a.MaxDiffLines
+	}
+	if a.MaxDiffFiles > 0 {
+		files = a.MaxDiffFiles
+	}
+	return lines, files
 }
 
 func (a *AuditorSpec) TurnsForStage(stage string) string {
@@ -346,9 +416,23 @@ func parseAuditorLabels(labels map[string]string, validStages []Stage) *AuditorS
 		return nil
 	}
 	spec := &AuditorSpec{Stages: stages}
+	if m := strings.TrimSpace(labels[LabelAuditorMode]); m != "" && ValidAuditorMode(m) {
+		spec.Mode = m
+	}
+	spec.MaxDiffLines = positiveLabel(labels[LabelAuditorMaxDiffLines])
+	spec.MaxDiffFiles = positiveLabel(labels[LabelAuditorMaxDiffFiles])
 	seedLegacyAuditor(spec, labels)
 	applyAuditorStageOverrides(spec, labels)
 	return spec
+}
+
+// 0 for a label that is missing or not a positive integer.
+func positiveLabel(v string) int {
+	n, err := strconv.Atoi(strings.TrimSpace(v))
+	if err != nil || n < 0 {
+		return 0
+	}
+	return n
 }
 
 func auditorStages(labels map[string]string, validStages []Stage) []string {
@@ -496,6 +580,9 @@ const (
 	LabelAuditorTurnsLegacy    = "thulu.auditor.turns"
 	LabelAuditorModelLegacy    = "thulu.auditor.model"
 	LabelAuditorSkillsLegacy   = "thulu.auditor.skills"
+	LabelAuditorMode           = "thulu.auditor.mode"
+	LabelAuditorMaxDiffLines   = "thulu.auditor.max_diff_lines"
+	LabelAuditorMaxDiffFiles   = "thulu.auditor.max_diff_files"
 	LabelWorksWithoutRepo      = "thulu.works_without_repo"
 	LabelTokenOptimizer        = "thulu.token_optimizer" //nolint:gosec // G101: label name
 	LabelTokenOptimizerEngine  = LabelTokenOptimizer + ".engine"

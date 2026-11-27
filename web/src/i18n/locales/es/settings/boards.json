@@ -2,7 +2,8 @@
   "list": {
     "title": "Tableros",
     "intro": "Cada tablero es un flujo con sus propias columnas y reglas. Una tarea entra a un tablero al crearse y se queda en él.",
-    "new": "Tablero nuevo"
+    "new": "Tablero nuevo",
+    "install_flow": "Instalar un flujo"
   },
   "empty": {
     "title": "Todavía no hay tableros",
@@ -20,7 +21,9 @@
     "tasks": {
       "one": "{count} tarea",
       "other": "{count} tareas"
-    }
+    },
+    "flow": "{flow} rev. {rev}",
+    "flow_hint": "Instalado desde el Workshop. Actualizarlo desde ahí reescribe sus columnas y tipos de tarea."
   },
   "menu": {
     "open": "Abrir tablero",
@@ -44,7 +47,10 @@
     "description_hint": "Aparece debajo del nombre del tablero. Hasta 280 caracteres.",
     "saving": "Guardando…",
     "saved": "Guardado",
-    "edit_behavior": "Comportamiento"
+    "edit_behavior": "Comportamiento",
+    "kick_backs": "Devoluciones por tarea",
+    "kick_backs_hint": "Cuántas veces se puede devolver una tarea (un auditor, el veredicto de un agente o un pedido de cambios) antes de que quede bloqueada esperando a una persona. 0 es sin límite.",
+    "kick_backs_invalid": "Usá un número entero de 0 a {max}."
   },
   "columns": {
     "title": "Columnas",
@@ -62,7 +68,15 @@
     },
     "wip_work": "Suma a En curso",
     "wip_review": "Suma a Para revisar",
-    "none": "Las tareas esperan acá a una persona."
+    "none": "Las tareas esperan acá a una persona.",
+    "pr_draft": "PR borrador",
+    "pr_ready": "PR listo",
+    "merge_target": "Recibe lo mergeado",
+    "release_resources": "Libera recursos",
+    "agent_verdict": "Decide el agente",
+    "lock_tests": "Tests bloqueados",
+    "skip_unless": "Sólo {values}",
+    "no_skip": "Nunca se saltea"
   },
   "types": {
     "title": "Tipos de tarea",
@@ -125,7 +139,16 @@
     "fix_to": "Moverlas a",
     "fix_go": "Mover y guardar",
     "fix_undo": "Deshacer el cambio",
-    "untyped": "Sin tipo (recorre todo el tablero)"
+    "untyped": "Sin tipo (recorre todo el tablero)",
+    "agents": "Agentes de este tipo",
+    "agents_set": {
+      "one": "Agentes de este tipo ({count} elegido)",
+      "other": "Agentes de este tipo ({count} elegidos)"
+    },
+    "agents_hint": "Las tareas de este tipo corren este agente en vez del de la columna. Sólo aparecen las columnas por las que pasa el tipo.",
+    "agent_column": "El de la columna",
+    "agent_column_named": "El de la columna ({agent})",
+    "agent_none": "Sin agente"
   },
   "new": {
     "title": "Tablero nuevo",

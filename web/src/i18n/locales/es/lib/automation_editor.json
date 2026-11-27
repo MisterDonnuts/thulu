@@ -14,7 +14,10 @@
       "other": "Encontró {count} tareas"
     },
     "script": "El script terminó con código {code}",
-    "http": "El servidor respondió HTTP {code}"
+    "http": "El servidor respondió HTTP {code}",
+    "moved": "Movió \"{title}\" a {stage}",
+    "move_gated": "\"{title}\" no se movió: {approvals} frena el paso a {stage}",
+    "move_noop": "\"{title}\" ya estaba en {stage}"
   },
   "sample": {
     "pr_title": "Arreglar la redirección del login",

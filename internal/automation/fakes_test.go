@@ -25,6 +25,11 @@ type fakeTasks struct {
 	queries     []automation.TaskQuery
 	stageAgents map[string]string
 	quietAgents map[string]bool
+	moves       []automation.MoveRequest
+	// Tasks whose next move a pending approval holds, with its label.
+	held map[string]string
+	// Tasks whose move wakes an agent in the destination stage.
+	moveAgents map[string]string
 }
 
 func newFakeTasks() *fakeTasks {
@@ -36,6 +41,8 @@ func newFakeTasks() *fakeTasks {
 
 		stageAgents: map[string]string{},
 		quietAgents: map[string]bool{},
+		held:        map[string]string{},
+		moveAgents:  map[string]string{},
 	}
 }
 
@@ -86,6 +93,26 @@ func (f *fakeTasks) MentionAgent(_ context.Context, workspaceID, taskID, agent, 
 	f.writeWS = append(f.writeWS, workspaceID)
 	f.mentions[taskID] = append(f.mentions[taskID], agent+": "+body)
 	return "title of " + taskID, nil
+}
+
+func (f *fakeTasks) MoveTask(_ context.Context, req automation.MoveRequest) (automation.MoveResult, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	res := automation.MoveResult{TaskID: req.TaskID, Title: "title of " + req.TaskID, From: "release", To: req.Stage}
+	if agent := f.moveAgents[req.TaskID]; agent != "" && req.BeforeAgent != nil {
+		if err := req.BeforeAgent(agent); err != nil {
+			return res, err
+		}
+		res.Agent = agent
+	}
+	f.writeWS = append(f.writeWS, req.WorkspaceID)
+	f.moves = append(f.moves, req)
+	if label, ok := f.held[req.TaskID]; ok {
+		res.Gated, res.Approvals, res.Agent = true, []string{label}, ""
+		return res, nil
+	}
+	res.Moved = true
+	return res, nil
 }
 
 func (f *fakeTasks) TaskOpen(_ context.Context, taskID string) (bool, error) {

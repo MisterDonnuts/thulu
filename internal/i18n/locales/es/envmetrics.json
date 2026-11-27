@@ -77,7 +77,10 @@
     "collect_credential_refused": "ninguna credencial puede leer las métricas del environment {env}: {detail}. Concedé una credencial de cloud a este environment (no a todo el workspace) en Settings → Credenciales",
     "collect_credential_load": "cargar la credencial del environment {env}",
     "collector_no_targets": "el recolector no tiene acceso a las credenciales; no se puede recolectar nada",
-    "list_collected_signals": "listar las señales ya recolectadas del environment"
+    "list_collected_signals": "listar las señales ya recolectadas del environment",
+    "post_deploys": "post /deploys",
+    "decode_deploys_response": "leer la respuesta de deploys (HTTP {status})",
+    "deploys_http_status": "la lectura de deploys devolvió HTTP {status}: {message}"
   },
   "log": {
     "collector_disabled_no_url": "recolector desactivado (no hay MCP_THULU_CLOUD_URL configurada)",

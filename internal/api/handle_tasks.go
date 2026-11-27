@@ -130,6 +130,7 @@ func (s *Server) handleListTasks(w http.ResponseWriter, r *http.Request) {
 		f := task.CardFilter{
 			Board:    r.URL.Query().Get("board"),
 			Stage:    r.URL.Query().Get("stage"),
+			Project:  r.URL.Query().Get("project"),
 			TopLevel: !includeSubtasks,
 			Archived: r.URL.Query().Get("archived") == "true",
 		}
@@ -181,7 +182,7 @@ func (s *Server) handleCreateTask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Out-of-scope projects are reported exactly like missing ones.
-	assigns, badProject := s.mergeProjectStageTemplates(r, body.ProjectIDs, body.StageAssignments)
+	templates, badProject := s.projectStageTemplates(r, body.ProjectIDs)
 	if badProject != "" {
 		writeErrKey(w, r, http.StatusBadRequest, "api.tasks.errors.project_not_found", "project", badProject)
 		return
@@ -203,6 +204,7 @@ func (s *Server) handleCreateTask(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	assigns := resolveAssignments(s.boards, boardID, typeID, templates, body.StageAssignments)
 
 	t := &task.Task{
 		Title:            body.Title,
@@ -286,26 +288,6 @@ func (s *Server) resolveTaskType(explicit, boardID string) (string, error) {
 	return stagepkg.DefaultTaskType(s.boards.BoardTypes(boardID)), nil
 }
 
-func (s *Server) mergeProjectStageTemplates(r *http.Request, projectIDs []string, overrides map[task.Stage]string) (map[task.Stage]string, string) {
-	wid, unrestricted := s.callerWorkspace(r)
-	assigns := map[task.Stage]string{}
-	for _, pid := range projectIDs {
-		proj, err := s.projectStore.Get(r.Context(), pid)
-		if err != nil || !workspaceVisible(proj.WorkspaceID, wid, unrestricted) {
-			return nil, pid
-		}
-		for k, v := range proj.StageTemplate {
-			if _, ok := assigns[task.Stage(k)]; !ok {
-				assigns[task.Stage(k)] = v
-			}
-		}
-	}
-	for k, v := range overrides {
-		assigns[k] = v
-	}
-	return assigns, ""
-}
-
 func (s *Server) initialStageGate(ctx context.Context, t *task.Task, stage task.Stage) (int, any, bool) {
 	if !s.boards.Board(t.BoardID).Valid(stage) {
 		return http.StatusBadRequest, keyedRefusal(ctx, nil, "api.tasks.errors.invalid_stage", "stage", stage), false
@@ -354,7 +336,7 @@ func (s *Server) handleGetTask(w http.ResponseWriter, r *http.Request) {
 			t.Children = children
 		}
 	}
-	writeJSON(w, http.StatusOK, t)
+	writeJSON(w, http.StatusOK, s.taskWithAttention(r, t))
 }
 
 func taskCopyBase(src *task.Task, prefix string) *task.Task {
@@ -499,6 +481,8 @@ func (s *Server) handleRelaunchTask(w http.ResponseWriter, r *http.Request) {
 
 	var body struct {
 		Turns int `json:"turns,omitempty"`
+		// Optional: with one, the relaunch is posted as a decision answering the open stop.
+		Reason *string `json:"reason,omitempty"`
 	}
 	if !decodeOptionalBody(w, r, &body) {
 		return
@@ -507,12 +491,34 @@ func (s *Server) handleRelaunchTask(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	reason, ok := decisionReason(w, r, author, body.Reason, false, "")
+	if !ok {
+		return
+	}
+	stop := s.openStop(r.Context(), t.ID)
 
 	turns := body.Turns
 	if turns <= 0 {
 		turns = s.taskDispatcher.RelaunchTurns(r.Context(), t)
 	}
+	if !s.relaunchNow(w, r, t, author, turns) {
+		return
+	}
+	// A relaunch without a reason is only this event; with one, the reason is a decision in
+	// Comments and the event points at it. The dispatcher records EventAgentRunStarted on launch.
+	commentID := s.postDecision(r.Context(), t.ID, stop, author, reason, task.CommentMeta{
+		Action: task.DecisionRelaunch, FromStage: t.Stage, ToStage: t.Stage,
+	})
+	s.recordRelaunchRequested(r.Context(), t, author, turns, commentID)
 
+	full, getErr := s.taskStore.Get(r.Context(), t.ID)
+	logx.Warn(getErr, "api.tasks.log.reload_after_relaunch", "task", t.ID)
+	writeJSON(w, http.StatusOK, map[string]any{"task": full, "turns": turns})
+}
+
+// relaunchNow starts the task's stage again with turns. On a refusal it writes the answer and
+// returns false.
+func (s *Server) relaunchNow(w http.ResponseWriter, r *http.Request, t *task.Task, author auth.Author, turns int) bool {
 	if err := s.taskDispatcher.RelaunchStage(launchCtx(r.Context()), t, turns); err != nil {
 		var notStarted *task.NotStartedError
 		if errors.As(err, &notStarted) {
@@ -521,21 +527,31 @@ func (s *Server) handleRelaunchTask(w http.ResponseWriter, r *http.Request) {
 				"code":  apperr.Code(err),
 				"cause": notStarted.Cause,
 			})
-			return
+			return false
 		}
 		writeError(w, r, http.StatusConflict, err)
-		return
+		return false
 	}
 	s.cancelQuestionsFor(r, t, "task.questions.reply.canceled_relaunch")
-	// The dispatcher records EventAgentRunStarted on launch; recording it here would leave a
-	// "started" with no "finished" if the launch fails.
-	_, addErr := s.taskStore.AddNote(r.Context(), t.ID, "", commentSource(author), author.Name,
-		task.NoteOf("api.tasks.comments.relaunch_requested", "stage", s.taskDispatcher.StageNote(t, t.Stage), "turns", turns))
-	logx.Warn(addErr, "api.tasks.log.add_relaunch_comment", "task", t.ID)
+	// A person taking a task out of blocked starts the send-back count again; the move-by-hand
+	// reset is in applyUpdateSideEffects.
+	if t.Status == task.StatusBlocked && !author.Agent {
+		s.recordEvent(r.Context(), t.ID, task.EventKickBackReset, "", author.Label(),
+			i18n.Text("api.tasks.timeline.kick_back_reset"), map[string]string{"stage": string(t.Stage)})
+	}
+	return true
+}
 
-	full, getErr := s.taskStore.Get(r.Context(), t.ID)
-	logx.Warn(getErr, "api.tasks.log.reload_after_relaunch", "task", t.ID)
-	writeJSON(w, http.StatusOK, map[string]any{"task": full, "turns": turns})
+// recordRelaunchRequested leaves the relaunch on the timeline; commentID is the decision that
+// carries its reason, "" when there was none.
+func (s *Server) recordRelaunchRequested(ctx context.Context, t *task.Task, author auth.Author, turns int, commentID string) {
+	payload := map[string]any{"stage": string(t.Stage), "turns": turns}
+	if commentID != "" {
+		payload["comment_id"] = commentID
+	}
+	s.recordEvent(ctx, t.ID, task.EventRelaunchRequested, "", author.Label(),
+		i18n.Text("api.tasks.timeline.relaunch_requested", "stage", s.taskDispatcher.StageNote(t, t.Stage), "turns", turns),
+		payload)
 }
 
 func (s *Server) handleCancelQueuedRun(w http.ResponseWriter, r *http.Request) {
@@ -649,10 +665,19 @@ type taskPatchRequest struct {
 	BoardID          *string               `json:"board_id,omitempty"`
 	TypeID           *string               `json:"type_id,omitempty"`
 	Archived         *bool                 `json:"archived,omitempty"`
+	// A person's call: an agent sets them only through flags.yaml in a stage with ingest_flags.
+	FlowFlags *[]string `json:"flow_flags,omitempty"`
+	// Why the stage changes. Required from a person moving the task back (a send-back); optional
+	// moving it forward. With one, it is posted as a decision answering the open stop.
+	Reason *string `json:"reason,omitempty"`
+
+	// Edited through POST /tasks/{id}/stage-skips and .../remove, which check who may add one.
+	StageSkips json.RawMessage `json:"stage_skips,omitempty"`
 
 	BranchName      json.RawMessage `json:"branch_name,omitempty"`
 	WorktreePaths   json.RawMessage `json:"worktree_paths,omitempty"`
 	PRURLs          json.RawMessage `json:"pr_urls,omitempty"`
+	MergeSHAs       json.RawMessage `json:"merge_shas,omitempty"`
 	CurrentRunID    json.RawMessage `json:"current_run_id,omitempty"`
 	CurrentInstance json.RawMessage `json:"current_instance,omitempty"`
 }
@@ -666,6 +691,7 @@ func (req *taskPatchRequest) serverOwnedFields() []string {
 		{"branch_name", req.BranchName},
 		{"worktree_paths", req.WorktreePaths},
 		{"pr_urls", req.PRURLs},
+		{"merge_shas", req.MergeSHAs},
 		{"current_run_id", req.CurrentRunID},
 		{"current_instance", req.CurrentInstance},
 	} {
@@ -697,6 +723,74 @@ func (req *taskPatchRequest) patch() task.Patch {
 	}
 }
 
+// The flow flags decide which conditional stages run; an agent of a later stage could drop "ui" and
+// skip its own QA, so only a person edits them here.
+func personFlowFlags(w http.ResponseWriter, r *http.Request, in *[]string, p *task.Patch) bool {
+	if in == nil {
+		return true
+	}
+	author, ok := requireAuthor(w, r)
+	if !ok {
+		return false
+	}
+	if author.Agent {
+		writeErrKey(w, r, http.StatusForbidden, "api.tasks.errors.flow_flags_person_only")
+		return false
+	}
+	flags, invalid := task.NormalizeFlowFlags(*in)
+	if len(invalid) > 0 {
+		writeErrKey(w, r, http.StatusBadRequest, "api.tasks.errors.flow_flags_invalid",
+			"values", strings.Join(invalid, ", "), "max", task.MaxFlowFlags)
+		return false
+	}
+	p.FlowFlags = &flags
+	return true
+}
+
+// A run moving the task it works on picks which stages run after it: a forward move skips their
+// agents and the approvals they would open, and the gate only holds approvals already opened.
+// Retyping or moving it to another board does the same. The parent counts too: a subtask's code
+// travels in its PR. A delegated chat acts for a person and keeps the person's hand.
+func (s *Server) runMovesOwnTask(ctx context.Context, prev *task.Task, p task.Patch) bool {
+	scope := auth.APIKeyRunScope(ctx)
+	if !scope.IsRun() || scope.Delegated() || scope.TaskID == "" {
+		return false
+	}
+	moved := p.Stage != nil && *p.Stage != prev.Stage ||
+		p.TypeID != nil && *p.TypeID != prev.TypeID ||
+		p.BoardID != nil && *p.BoardID != prev.BoardID
+	if !moved {
+		return false
+	}
+	if prev.ID == scope.TaskID {
+		return true
+	}
+	own, err := s.taskStore.GetRow(ctx, scope.TaskID)
+	return err != nil || own == nil || own.ParentID == prev.ID
+}
+
+// callerPatch turns the request into the patch this caller may apply: fields the daemon owns, flow
+// flags from an agent and a run moving its own task are refused with the answer already written.
+func (s *Server) callerPatch(w http.ResponseWriter, r *http.Request, prev *task.Task, req *taskPatchRequest) (task.Patch, bool) {
+	if len(req.StageSkips) > 0 {
+		writeErrKey(w, r, http.StatusBadRequest, "api.tasks.errors.stage_skips_patch")
+		return task.Patch{}, false
+	}
+	if owned := req.serverOwnedFields(); len(owned) > 0 {
+		writeErrKey(w, r, http.StatusBadRequest, "api.tasks.errors.daemon_owned_fields", "fields", strings.Join(owned, ", "))
+		return task.Patch{}, false
+	}
+	p := req.patch()
+	if !personFlowFlags(w, r, req.FlowFlags, &p) {
+		return task.Patch{}, false
+	}
+	if s.runMovesOwnTask(r.Context(), prev, p) {
+		writeErrKey(w, r, http.StatusForbidden, "api.tasks.errors.run_moves_own_task")
+		return task.Patch{}, false
+	}
+	return p, true
+}
+
 func (s *Server) handleUpdateTask(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
@@ -709,11 +803,10 @@ func (s *Server) handleUpdateTask(w http.ResponseWriter, r *http.Request) {
 	if !decodeBody(w, r, &req) {
 		return
 	}
-	if owned := req.serverOwnedFields(); len(owned) > 0 {
-		writeErrKey(w, r, http.StatusBadRequest, "api.tasks.errors.daemon_owned_fields", "fields", strings.Join(owned, ", "))
+	p, ok := s.callerPatch(w, r, prev, &req)
+	if !ok {
 		return
 	}
-	p := req.patch()
 
 	// A subtask archived alone vanished from both board and archived list, and blocked deleting its
 	// parent.
@@ -738,24 +831,20 @@ func (s *Server) handleUpdateTask(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, status, body)
 		return
 	}
+	s.retypeAssignments(r.Context(), prev, &p)
 
 	stageChanged := p.Stage != nil && *p.Stage != prev.Stage
-	if stageChanged {
-		if status, body, ok := s.checkStageTransition(r.Context(), id, prev, p); !ok {
-			writeJSON(w, status, body)
-			return
-		}
-	} else if p.BoardID != nil && *p.BoardID != prev.BoardID {
-		if status, body, ok := s.approvalGate(r.Context(), prev, prev.Stage, task.OffBoard, task.GateManual); !ok {
-			writeJSON(w, status, body)
-			return
-		}
+	decision, passed := s.moveGate(w, r, prev, p, req.Reason)
+	if !passed {
+		return
 	}
 
 	if stageChanged && p.Status == nil {
 		idle := task.StatusIdle
 		p.Status = &idle
 	}
+	// Moving the task into a column it skips drops that skip in the mover's name.
+	p.By = authorLabel(r)
 
 	updated, err := s.taskStore.Update(r.Context(), id, p)
 	if err != nil {
@@ -763,7 +852,7 @@ func (s *Server) handleUpdateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.applyUpdateSideEffects(r, prev, updated, p, stageChanged)
+	s.applyUpdateSideEffects(r, prev, updated, p, stageChanged, decision)
 
 	full, err := s.taskStore.Get(r.Context(), id)
 	logx.Warn(err, "api.tasks.log.reload_after_update", "task", id)
@@ -874,19 +963,73 @@ func (s *Server) invisiblePatchProject(r *http.Request, p task.Patch) string {
 	return ""
 }
 
-func (s *Server) applyUpdateSideEffects(r *http.Request, prev, updated *task.Task, p task.Patch, stageChanged bool) {
-	id := updated.ID
+// moveDecision is the reason a PATCH gave for its stage change and whether that change goes back.
+type moveDecision struct {
+	reason string
+	back   bool
+}
+
+// moveReason reads the reason of a stage change: a person moving the task back must give one.
+// moveGate runs what a stage or board change must pass, after the board and type gates: the reason
+// a person owes for moving back, then the stage's exit gate (or the approvals a board change leaves
+// behind). It writes the refusal and returns false when the change may not go on.
+func (s *Server) moveGate(w http.ResponseWriter, r *http.Request, prev *task.Task, p task.Patch, raw *string) (moveDecision, bool) {
+	stageChanged := p.Stage != nil && *p.Stage != prev.Stage
+	back := stageChanged && (p.BoardID == nil || *p.BoardID == prev.BoardID) && s.movesBackOn(prev, prev.Stage, *p.Stage)
+	reason, ok := s.moveReason(w, r, raw, back)
+	if !ok {
+		return moveDecision{}, false
+	}
+	switch {
+	case stageChanged:
+		if status, body, passed := s.checkStageTransition(r.Context(), prev.ID, prev, p); !passed {
+			writeJSON(w, status, body)
+			return moveDecision{}, false
+		}
+	case p.BoardID != nil && *p.BoardID != prev.BoardID:
+		if status, body, passed := s.approvalGate(r.Context(), prev, prev.Stage, task.OffBoard, task.GateManual); !passed {
+			writeJSON(w, status, body)
+			return moveDecision{}, false
+		}
+	}
+	return moveDecision{reason: reason, back: back}, true
+}
+
+func (s *Server) moveReason(w http.ResponseWriter, r *http.Request, raw *string, back bool) (string, bool) {
+	if raw == nil && !back {
+		return "", true
+	}
+	author, ok := requireAuthor(w, r)
+	if !ok {
+		return "", false
+	}
+	return decisionReason(w, r, author, raw, back, "api.tasks.errors.reason_required_send_back")
+}
+
+func (s *Server) applyUpdateSideEffects(r *http.Request, prev, updated *task.Task, p task.Patch, stageChanged bool,
+	d moveDecision,
+) {
 	if stageChanged {
-		s.recordEvent(r.Context(), id, task.EventStageEntered, "", "user",
-			fmt.Sprintf("%s → %s", prev.Stage, updated.Stage),
-			map[string]string{"from": string(prev.Stage), "to": string(updated.Stage)})
-		s.emit(r, "task.stage_changed", "task.stage_changed", id, "task",
-			i18n.Text("api.tasks.audit.task_stage_changed", "task", id, "from", prev.Stage, "to", updated.Stage),
-			map[string]string{"task_id": id, "from": string(prev.Stage), "to": string(updated.Stage)})
-		s.publishTaskAutomationEvent(context.WithoutCancel(r.Context()), automation.EventTaskStageChanged, updated,
-			map[string]any{"from": string(prev.Stage), "to": string(updated.Stage)})
-		s.cancelQuestionsFor(r, updated, "task.questions.reply.canceled_moved")
-		s.taskDispatcher.HandleStageEntered(launchCtx(r.Context()), updated, prev.Stage)
+		// Only a person's move resets the board's send-back count: an agent moving its own task
+		// through the API must not wipe it.
+		m := stageMove{To: updated.Stage, Cause: task.GateManual, Via: task.ViaManual, Actor: "user", req: r}
+		if a, err := auth.AuthorFromRequest(r); err == nil {
+			if a.Agent {
+				m.Actor = a.Label()
+			} else {
+				m.ByPerson = true
+			}
+			// Before stageMoved: entering the new stage resolves the stop this decision answers.
+			action := task.DecisionMove
+			if d.back {
+				action = task.DecisionSendBack
+			}
+			if id := s.postDecision(r.Context(), updated.ID, s.openStop(r.Context(), updated.ID), a, d.reason,
+				task.CommentMeta{Action: action, FromStage: prev.Stage, ToStage: updated.Stage}); id != "" {
+				m.Extra = map[string]any{"comment_id": id}
+			}
+		}
+		s.stageMoved(r.Context(), prev, updated, m)
 		return
 	}
 	if agentJustAssigned(prev, updated, p) {
@@ -1169,10 +1312,6 @@ func (s *Server) dispatchMentions(ctx context.Context, taskID string, c *task.Co
 	}
 }
 
-// Stops agents mentioning each other forever on the workspace's tokens; a person's message resets
-// the count.
-const maxAgentTurns = 3
-
 func (s *Server) agentMentions(ctx context.Context, c *task.Comment) []*types.AgentType {
 	var named []*types.AgentType
 	for _, at := range s.mentionedAgents(s.taskWorkspace(ctx, c.TaskID), c.Body) {
@@ -1187,15 +1326,21 @@ func (s *Server) agentMentions(ctx context.Context, c *task.Comment) []*types.Ag
 	if !ok {
 		return nil
 	}
-	if th.AgentTurnsSincePerson() < maxAgentTurns {
+	// Stops agents mentioning each other forever on the workspace's tokens; a person's message
+	// resets the count.
+	limit := s.agentTurnsPerThread(ctx, s.taskWorkspace(ctx, c.TaskID))
+	if th.AgentTurnsSincePerson() < limit {
 		return named
 	}
 	handles := make([]string, len(named))
 	for i, at := range named {
 		handles[i] = "@" + at.Name
 	}
-	_, err := s.taskStore.AddNote(ctx, c.TaskID, th.Root.ID, task.SourceSystem, "octopus",
-		task.NoteOf("api.tasks.comments.agent_turn_limit", "turns", maxAgentTurns, "agents", strings.Join(handles, ", ")))
+	n := task.NoteOf("api.tasks.comments.agent_turn_limit", "turns", limit, "agents", strings.Join(handles, ", "))
+	_, err := s.taskStore.PostComment(ctx, task.NewComment{
+		TaskID: c.TaskID, ThreadID: th.Root.ID, Source: task.SourceSystem, Author: "octopus", Note: &n,
+		Kind: task.CommentPause, Meta: &task.CommentMeta{Turns: limit},
+	})
 	logx.Warn(err, "api.tasks.log.note_turn_limit", "task", c.TaskID)
 	return nil
 }
@@ -1594,12 +1739,20 @@ const maxFlagsYAML = 256 << 10
 
 func (s *Server) handleImportFlags(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	if _, ok := s.taskForCaller(w, r, id); !ok {
+	t, ok := s.taskForCaller(w, r, id)
+	if !ok {
 		return
 	}
 	// Author comes from the credential, so a run cannot raise flags in another agent's name.
 	author, ok := requireAuthor(w, r)
 	if !ok {
+		return
+	}
+	// Same rule as the Docker path (postStageRun): only a stage with ingest_flags reads flags.yaml.
+	// Its surface decides which stages run, so a later stage's agent must not rewrite it.
+	if author.Agent && !s.runIngestsFlags(r, author, t) {
+		writeErrKey(w, r, http.StatusForbidden, "api.tasks.errors.flags_import_stage",
+			"stage", auth.APIKeyRunScope(r.Context()).Stage)
 		return
 	}
 	data, err := io.ReadAll(io.LimitReader(r.Body, maxFlagsYAML+1))
@@ -1611,15 +1764,29 @@ func (s *Server) handleImportFlags(w http.ResponseWriter, r *http.Request) {
 		writeErrKey(w, r, http.StatusRequestEntityTooLarge, "api.tasks.errors.flags_yaml_too_large", "max", maxFlagsYAML)
 		return
 	}
-	created, err := task.ParseAndAddFlags(r.Context(), s.taskStore, id, author.Label(), data)
+	res, err := task.ParseAndAddFlags(r.Context(), s.taskStore, id, skipActorOf(r, author), data)
 	if err != nil {
 		writeError(w, r, http.StatusBadRequest, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"task_id": id, "flags_created": created})
+	writeJSON(w, http.StatusOK, map[string]any{
+		"task_id": id, "flags_created": res.Created, "flow_flags": res.FlowFlags,
+		"risk": res.Risk, "size": res.Size, "invalid_surface": res.Invalid,
+		"stage_skips": res.StageSkips, "skips_refused": res.SkipsRefused,
+	})
 }
 
 const maxReportBody = 256 << 10
+
+// The auditor never ingests: it judges the stage, it does not write its spec.
+func (s *Server) runIngestsFlags(r *http.Request, author auth.Author, t *task.Task) bool {
+	stage := auth.APIKeyRunScope(r.Context()).Stage
+	if author.IsAuditor() || stage == "" {
+		return false
+	}
+	info, ok := s.boards.BoardFor(t.BoardID, t.TypeID).Get(task.Stage(stage))
+	return ok && info.IngestFlags
+}
 
 // The verdict is not applied here: postStageRun reads it after the container exits
 // (Dispatcher.auditorVerdict), for both runtimes.
@@ -1658,6 +1825,75 @@ func (s *Server) handleImportAuditorFeedback(w http.ResponseWriter, r *http.Requ
 	}
 	rep, err := s.taskStore.AddReport(r.Context(), id, task.SourceAuditor, author.Name,
 		task.ReportKindAuditorFeedback, "", string(data), instanceID)
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, rep)
+}
+
+// The stage's own agent files its verdict.md here under Kubernetes; postStageRun reads it after the
+// container exits (Dispatcher.agentVerdict), as it does the auditor's feedback.
+func (s *Server) handleImportStageVerdict(w http.ResponseWriter, r *http.Request) {
+	s.importStageRunFile(w, r, task.ReportKindStageVerdict)
+}
+
+// locked-tests.txt of a lock_tests stage, uploaded by its pod; postStageRun reads it back like
+// verdict.md.
+func (s *Server) handleImportLockedTests(w http.ResponseWriter, r *http.Request) {
+	s.importStageRunFile(w, r, task.ReportKindLockedTests)
+}
+
+// The test files a lock_tests stage locked, with the blob each must keep.
+func (s *Server) handleListLockedFiles(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if _, ok := s.taskForCaller(w, r, id); !ok {
+		return
+	}
+	files, err := s.taskStore.ListLockedFiles(r.Context(), id)
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"files": files})
+}
+
+// A file the stage's own agent leaves for the daemon, stored as a report of its run. The run key's
+// scope must name the instance, so the file lands only on the run that key was minted for.
+func (s *Server) importStageRunFile(w http.ResponseWriter, r *http.Request, kind string) {
+	id := r.PathValue("id")
+	if _, ok := s.taskForCaller(w, r, id); !ok {
+		return
+	}
+	author, ok := requireAuthor(w, r)
+	if !ok {
+		return
+	}
+	// The auditor judges through auditor-feedback; letting it file here would let it skip the
+	// stage's own gates.
+	if !author.Agent || author.IsAuditor() {
+		writeErrKey(w, r, http.StatusForbidden, "api.tasks.errors.stage_verdict_agent_only")
+		return
+	}
+	instanceID := strings.TrimSpace(r.URL.Query().Get("instance"))
+	if !task.IsStageInstanceFor(instanceID, id, auth.APIKeyRunScope(r.Context()).Stage) {
+		writeErrKey(w, r, http.StatusBadRequest, "api.tasks.errors.stage_verdict_instance_mismatch")
+		return
+	}
+	data, err := io.ReadAll(io.LimitReader(r.Body, maxReportBody+1))
+	if err != nil {
+		writeErrKey(w, r, http.StatusBadRequest, "api.tasks.errors.body_unreadable")
+		return
+	}
+	if len(data) > maxReportBody {
+		writeErrKey(w, r, http.StatusRequestEntityTooLarge, "api.tasks.errors.feedback_too_large", "max", maxReportBody)
+		return
+	}
+	if len(bytes.TrimSpace(data)) == 0 {
+		writeErrKey(w, r, http.StatusBadRequest, "api.tasks.errors.feedback_empty")
+		return
+	}
+	rep, err := s.taskStore.AddReport(r.Context(), id, task.SourceAgent, author.Name, kind, "", string(data), instanceID)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, err)
 		return
@@ -1882,10 +2118,11 @@ func (s *Server) handleListStages(w http.ResponseWriter, r *http.Request) {
 		withVirtual = true
 	}
 	if board := r.URL.Query().Get("board"); board != "" {
-		if _, ok := s.boardForCaller(w, r, board); !ok {
+		info, ok := s.boardForCaller(w, r, board)
+		if !ok {
 			return
 		}
-		writeJSON(w, http.StatusOK, boardColumns(r, s.boards.Board(board)))
+		writeJSON(w, http.StatusOK, boardColumns(r, info, s.boards.Board(board)))
 		return
 	}
 	catalog := s.visibleCatalog(r)
@@ -1905,6 +2142,7 @@ func (s *Server) handleGetTaskBrief(w http.ResponseWriter, r *http.Request) {
 	b.WriteString(i18n.Text("api.tasks.prompts.brief_title", "title", t.Title))
 	b.WriteString(i18n.Text("api.tasks.prompts.brief_stage", "stage", t.Stage))
 	s.writeBriefBoard(&b, t)
+	s.writeBriefLockedTests(r.Context(), &b, t)
 	s.writeBriefRepos(r.Context(), &b, t)
 	if len(t.Tags) > 0 {
 		b.WriteString(i18n.Text("api.tasks.prompts.brief_tags", "tags", strings.Join(t.Tags, ", ")))
@@ -1914,12 +2152,17 @@ func (s *Server) handleGetTaskBrief(w http.ResponseWriter, r *http.Request) {
 		b.WriteString(t.Body)
 		b.WriteString("\n\n")
 	}
+	s.writeBriefSkips(r.Context(), &b, t, strings.TrimSpace(r.URL.Query().Get("audit")) != "")
+	s.writeBriefHandoff(r.Context(), &b, t)
 	writeBriefComments(&b, t, strings.TrimSpace(r.URL.Query().Get("thread")))
 	writeBriefApprovals(&b, t)
 	writeBriefTestCases(&b, t)
+	s.writeBriefAccessGiven(r.Context(), &b, t)
 	writeBriefQuestions(&b, r, t)
 	if run := strings.TrimSpace(r.URL.Query().Get("audit")); run != "" {
 		s.writeBriefAuditedRun(r.Context(), &b, t.ID, run)
+	} else {
+		s.writeBriefEarlierReports(r.Context(), &b, t)
 	}
 
 	w.Header().Set("Content-Type", "text/markdown")
@@ -1949,7 +2192,54 @@ func (s *Server) writeBriefBoard(b *strings.Builder, t *task.Task) {
 		}
 		b.WriteString(i18n.Text("api.tasks.prompts.brief_flow", "flow", strings.Join(ids, " → ")))
 	}
+	// octopus-run tells the agent to write verdict.md only when the brief says so.
+	if info, ok := s.boards.BoardFor(boardID, t.TypeID).Get(t.Stage); ok {
+		if info.AgentVerdict {
+			b.WriteString(i18n.Text("api.tasks.prompts.brief_stage_verdict"))
+		}
+		// Same rule for flags.yaml's surface and locked-tests.txt: octopus-run documents them, the
+		// brief says when they count. The surface only matters on a board with conditional stages;
+		// older boards ingest flags.yaml in review stages that have no spec to write.
+		if info.IngestFlags && hasConditionalStage(stages) {
+			b.WriteString(i18n.Text("api.tasks.prompts.brief_stage_surface"))
+		}
+		if info.IngestFlags {
+			writeBriefSkippable(b, stages, info)
+		}
+		if info.LockTests {
+			b.WriteString(i18n.Text("api.tasks.prompts.brief_stage_lock_tests"))
+		}
+	}
 	b.WriteString(i18n.Text("api.tasks.prompts.brief_board_note"))
+}
+
+func hasConditionalStage(stages []types.StageInfo) bool {
+	for i := range stages {
+		if len(stages[i].SkipUnless) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// A later stage learns which tests it may not touch before it touches them, not from the approval
+// its run opens.
+func (s *Server) writeBriefLockedTests(ctx context.Context, b *strings.Builder, t *task.Task) {
+	files, err := s.taskStore.ListLockedFiles(ctx, t.ID)
+	if err != nil || len(files) == 0 {
+		return
+	}
+	var paths []string
+	for _, f := range files {
+		if f.Stage == t.Stage || f.BlobSHA == "" {
+			continue
+		}
+		paths = append(paths, "`"+f.Path+"`")
+	}
+	if len(paths) == 0 {
+		return
+	}
+	b.WriteString(i18n.Text("api.tasks.prompts.brief_locked_tests", "files", strings.Join(paths, ", ")))
 }
 
 func (s *Server) writeBriefRepos(ctx context.Context, b *strings.Builder, t *task.Task) {
@@ -1973,6 +2263,10 @@ func (s *Server) writeBriefRepos(ctx context.Context, b *strings.Builder, t *tas
 		}
 		if proj.DefaultBranch != "" {
 			b.WriteString(i18n.Text("api.tasks.prompts.brief_repo_branch", "branch", proj.DefaultBranch))
+			// A pod clones only the task branch, so tools there cannot find the base by branch name.
+			if base := s.projectStore.WorktreeBase(ctx, pid, t.ID); base != "" {
+				b.WriteString(i18n.Text("api.tasks.prompts.brief_repo_base", "sha", base, "branch", proj.DefaultBranch))
+			}
 		}
 		if proj.Description != "" {
 			fmt.Fprintf(b, "\n%s\n", proj.Description)
@@ -1983,12 +2277,14 @@ func (s *Server) writeBriefRepos(ctx context.Context, b *strings.Builder, t *tas
 
 const briefThreadReplies = 6
 
+// System notes stay out: they repeat the run lifecycle and verdicts the brief already carries in
+// its own sections. A system note that people replied to stays as the root of their thread.
 func writeBriefComments(b *strings.Builder, t *task.Task, fullThread string) {
-	if len(t.Comments) == 0 {
+	threads := briefThreads(t.Comments)
+	if len(threads) == 0 {
 		return
 	}
 	b.WriteString(i18n.Text("api.tasks.prompts.brief_discussion_heading"))
-	threads := task.Threads(t.Comments)
 	for i := range threads {
 		th := &threads[i]
 		writeBriefComment(b, "###", &th.Root)
@@ -2014,6 +2310,26 @@ func writeBriefComments(b *strings.Builder, t *task.Task, fullThread string) {
 	}
 }
 
+func briefThreads(comments []task.Comment) []task.Thread {
+	all := task.Threads(comments)
+	out := make([]task.Thread, 0, len(all))
+	for i := range all {
+		th := all[i]
+		replies := make([]task.Comment, 0, len(th.Replies))
+		for j := range th.Replies {
+			if th.Replies[j].Source != task.SourceSystem {
+				replies = append(replies, th.Replies[j])
+			}
+		}
+		th.Replies = replies
+		if th.Root.Source == task.SourceSystem && len(replies) == 0 {
+			continue
+		}
+		out = append(out, th)
+	}
+	return out
+}
+
 func writeBriefTestCases(b *strings.Builder, t *task.Task) {
 	if len(t.TestCases) == 0 {
 		return
@@ -2023,6 +2339,9 @@ func writeBriefTestCases(b *strings.Builder, t *task.Task) {
 	for i := range t.TestCases {
 		c := &t.TestCases[i]
 		fmt.Fprintf(b, "- **%s** (%s) — %s", c.Key, c.Status, c.Title)
+		if len(c.Covers) > 0 {
+			b.WriteString(i18n.Text("api.tasks.prompts.brief_test_case_covers", "covers", strings.Join(c.Covers, ", ")))
+		}
 		if expected := briefLine(c.Expected); expected != "" {
 			b.WriteString(i18n.Text("api.tasks.prompts.brief_test_case_expected", "expected", expected))
 		}
@@ -2045,6 +2364,14 @@ func writeBriefComment(b *strings.Builder, heading string, c *task.Comment) {
 	label := string(c.Source)
 	if c.Author != "" {
 		label = fmt.Sprintf("%s (%s)", c.Source, c.Author)
+	}
+	// A decision or a stop says what it is, so the agent reads a send-back's reason as one.
+	if c.Kind != "" && c.Kind != task.CommentPlain {
+		kind := string(c.Kind)
+		if c.Meta != nil && c.Meta.Action != "" {
+			kind += ": " + c.Meta.Action
+		}
+		label += " · " + kind
 	}
 	fmt.Fprintf(b, "%s %s — %s\n\n%s\n\n", heading, label, c.CreatedAt.Format("2006-01-02 15:04"), c.Body)
 }

@@ -59,6 +59,15 @@ describe("normalizeRequiredApprovals", () => {
     ]);
   });
 
+  it("keeps required_checks only when it is on", () => {
+    const { rows } = normalizeRequiredApprovals([
+      { key: "merge", label: "Merge", required_checks: true },
+      { key: "qa", label: "QA", required_checks: false },
+    ]);
+    expect(rows[0].required_checks).toBe(true);
+    expect("required_checks" in rows[1]).toBe(false);
+  });
+
   it("refuses a row without a label, a bad key, and a repeated key", () => {
     expect(normalizeRequiredApprovals([{ key: "qa", label: " " }]).problem).toContain("qa");
     expect(normalizeRequiredApprovals([{ key: "Q-A", label: "QA" }]).problem).toContain("Q-A");
@@ -89,6 +98,24 @@ describe("approvals editor", () => {
       on_changes_requested: "kick_back",
       changes_kick_back_to: "in_progress",
     });
+  });
+
+  it("reads the required-checks box back", () => {
+    const root = editor(
+      approvalsEditorHTML(
+        { required_approvals: [{ key: "merge", label: "Merge", required_checks: true }] },
+        types,
+        earlier,
+      ),
+    );
+    const box = find<HTMLInputElement>(root, '[data-ra="checks"]');
+    expect(box.checked).toBe(true);
+    expect(approvalsPatch(root)).toMatchObject({
+      required_approvals: [{ key: "merge", required_checks: true }],
+    });
+    box.checked = false;
+    const patch = approvalsPatch(root) as { required_approvals: object[] };
+    expect(patch.required_approvals[0]).not.toHaveProperty("required_checks");
   });
 
   it("forgets the kick-back target unless the mode uses it", () => {

@@ -1,0 +1,24 @@
+{
+  "comments": {
+    "moved": "{by} integró {url} ({sha}); la tarea pasó a {stage}",
+    "waiting": "se integró {url} ({sha}); la tarea avanza cuando se integren también estos repositorios: {projects}",
+    "out_of_order": "se integró {url} ({sha}) con la tarea todavía en {stage}, antes de cualquier etapa que abre el PR; queda donde está",
+    "deferred": "se integró {url} ({sha}) mientras un agente trabajaba en la tarea; pasa a {stage} cuando termine la corrida",
+    "other_branch": "{url} se integró en {base}, no en {default}: no quedó registrado para el release",
+    "other_head": "{url} se integró desde {head}, no desde la rama de la tarea {branch}: no quedó registrado y la tarea sigue donde está",
+    "closed_unmerged": "{by} cerró {url} sin integrarlo"
+  },
+  "events": {
+    "merged": "{by} integró {url} ({sha})"
+  },
+  "waived_note": "integrado en GitHub por {by}",
+  "log": {
+    "save_sha": "guardar el commit de integración de la tarea {task}",
+    "record": "registrar la integración en la tarea {task}",
+    "comment": "comentar la integración en la tarea {task}",
+    "move": "mover la tarea integrada {task}",
+    "reconcile_list": "listar las tareas del tablero {board} para buscar PRs integrados",
+    "reconcile_read": "leer el PR {url}",
+    "reconciled": "PRs integrados: {read} leídos, {merged} integrados, {moved} tareas movidas"
+  }
+}

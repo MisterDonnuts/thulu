@@ -123,6 +123,67 @@ func EncodeTools(meta map[string]string, calls []ToolCall, limit int) {
 	meta[MetaTools] = string(raw)
 }
 
+// Keys a turn's assistant message carries besides the tools: the turn it answers (its
+// transcript's name), what it cost and what it changed in Thulu.
+const (
+	MetaTurnID        = "turn_id"
+	MetaModel         = "model"
+	MetaOutputTokens  = "output_tokens"
+	MetaCacheRead     = "cache_read_tokens"
+	MetaCacheCreation = "cache_creation_tokens"
+	MetaContextTokens = "context_tokens"
+	MetaCostUSD       = "cost_usd"
+	MetaNumTurns      = "num_turns"
+	MetaStopReason    = "stop_reason"
+	MetaEffects       = "effects"
+	// MetaCanceled marks the failure of a turn its person stopped.
+	MetaCanceled = "canceled"
+	// MetaRefs lists the tasks a message mentioned with #, comma-separated.
+	MetaRefs = "refs"
+	// MetaHandoffFrom names the chat whose conversation a first message carried over.
+	MetaHandoffFrom = "handoff_from"
+)
+
+// What a turn's octopus-api calls changed: the web shows them under the reply.
+type EffectAction string
+
+const (
+	EffectCreated    EffectAction = "created"
+	EffectUpdated    EffectAction = "updated"
+	EffectMoved      EffectAction = "moved"
+	EffectCommented  EffectAction = "commented"
+	EffectLinked     EffectAction = "linked"
+	EffectAttached   EffectAction = "attached"
+	EffectDeleted    EffectAction = "deleted"
+	EffectRelaunched EffectAction = "relaunched"
+)
+
+type Effect struct {
+	Action      EffectAction `json:"action"`
+	TaskID      string       `json:"task_id,omitempty"`
+	OtherTaskID string       `json:"other_task_id,omitempty"`
+	Detail      string       `json:"detail,omitempty"`
+	Count       int          `json:"count,omitempty"`
+	Error       bool         `json:"error,omitempty"`
+}
+
+// At most this many effects are kept per turn; a batch past it is a script, not a conversation.
+const maxEffects = 30
+
+func EncodeEffects(meta map[string]string, fx []Effect) {
+	if len(fx) == 0 {
+		return
+	}
+	if len(fx) > maxEffects {
+		fx = fx[:maxEffects]
+	}
+	raw, err := json.Marshal(fx)
+	if err != nil {
+		return
+	}
+	meta[MetaEffects] = string(raw)
+}
+
 type Store struct {
 	db *sql.DB
 }
@@ -404,6 +465,11 @@ func (s *Store) FindLive(ctx context.Context, want *Chat) (*Chat, error) {
 
 func (s *Store) RenameChat(ctx context.Context, id, title string) error {
 	return s.execOne(ctx, `UPDATE chats SET title = ?, updated_at = ? WHERE id = ?`, title, time.Now(), id)
+}
+
+// SetTask links the chat to a task, or unlinks it with "".
+func (s *Store) SetTask(ctx context.Context, id, taskID string) error {
+	return s.execOne(ctx, `UPDATE chats SET task_id = ?, updated_at = ? WHERE id = ?`, taskID, time.Now(), id)
 }
 
 func (s *Store) SetArchived(ctx context.Context, id string, archived bool) error {

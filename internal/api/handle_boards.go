@@ -14,6 +14,7 @@ import (
 	"github.com/MisterDonnuts/thulu/internal/task"
 	"github.com/MisterDonnuts/thulu/internal/types"
 	"github.com/MisterDonnuts/thulu/internal/webhook"
+	"github.com/MisterDonnuts/thulu/internal/workshop"
 )
 
 // The board store is unscoped on purpose (dispatcher, janitor and terminality need every board);
@@ -86,8 +87,9 @@ func (s *Server) visibleCatalog(r *http.Request) []types.StageInfo {
 	if def := s.callerDefaultBoard(r); def != "" {
 		sort.SliceStable(boards, func(i, j int) bool { return boards[i].ID == def && boards[j].ID != def })
 	}
+	locale := i18n.RequestLocale(r)
 	for _, b := range boards {
-		cols := s.boards.Board(b.ID).List()
+		cols := localizeColumns(b, s.boards.Board(b.ID).List(), locale)
 		for i := range cols {
 			if !seen[cols[i].ID] {
 				seen[cols[i].ID] = true
@@ -96,14 +98,16 @@ func (s *Server) visibleCatalog(r *http.Request) []types.StageInfo {
 		}
 	}
 	sort.SliceStable(out, func(i, j int) bool { return out[i].Position < out[j].Position })
-	return stagepkg.LocalizeSeeded(out, i18n.RequestLocale(r))
+	return out
 }
 
 func (s *Server) visibleTypeCatalog(r *http.Request) []stagepkg.TaskTypeInfo {
 	seen := map[string]bool{}
 	out := []stagepkg.TaskTypeInfo{}
+	locale := i18n.RequestLocale(r)
 	for _, b := range s.visibleBoards(r) {
 		tt := s.boards.BoardTypes(b.ID)
+		localizeTypes(b, tt, locale)
 		for i := range tt {
 			t := &tt[i]
 			if seen[t.ID] {
@@ -130,7 +134,7 @@ func localizedBoards(r *http.Request, boards []stagepkg.BoardInfo) []stagepkg.Bo
 	locale := i18n.RequestLocale(r)
 	out := make([]stagepkg.BoardInfo, len(boards))
 	for i := range boards {
-		out[i] = stagepkg.LocalizeSeededBoard(boards[i], locale)
+		out[i] = localizeBoard(boards[i], locale)
 	}
 	return out
 }
@@ -150,10 +154,24 @@ func (s *Server) handleListBoards(w http.ResponseWriter, r *http.Request) {
 			boards[i].OpenCount = openTaskCount(tasks, s.boards.Board(boards[i].ID))
 		}
 	}
+	for i := range boards {
+		boards[i].Flow = s.flowWithEdited(boards[i])
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"boards":  localizedBoards(r, boards),
 		"default": defaultID,
 	})
+}
+
+// flowWithEdited returns a copy of the board's flow origin with Edited filled, so the UI can tell
+// a flow update from a conflict on each board. The store's pointer is never written.
+func (s *Server) flowWithEdited(b stagepkg.BoardInfo) *stagepkg.BoardFlow {
+	if b.Flow == nil {
+		return nil
+	}
+	f := *b.Flow
+	f.Edited = f.Hash != "" && workshop.FlowHash(b.MaxKickBacks, s.boards.Board(b.ID).List(), s.boards.BoardTypes(b.ID)) != f.Hash
+	return &f
 }
 
 func openTaskCount(tasks []task.Task, reg stagepkg.Registry) int {
@@ -173,7 +191,8 @@ func openTaskCount(tasks []task.Task, reg stagepkg.Registry) int {
 
 func (s *Server) handleListBoardStages(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	if _, ok := s.boardForCaller(w, r, id); !ok {
+	board, ok := s.boardForCaller(w, r, id)
+	if !ok {
 		return
 	}
 	reg := s.boards.Board(id)
@@ -184,15 +203,15 @@ func (s *Server) handleListBoardStages(w http.ResponseWriter, r *http.Request) {
 		}
 		reg = s.boards.BoardFor(id, typeID)
 	}
-	writeJSON(w, http.StatusOK, boardColumns(r, reg))
+	writeJSON(w, http.StatusOK, boardColumns(r, board, reg))
 }
 
-func boardColumns(r *http.Request, reg stagepkg.Registry) []types.StageInfo {
+func boardColumns(r *http.Request, board stagepkg.BoardInfo, reg stagepkg.Registry) []types.StageInfo {
 	cols := reg.List()
 	if v := r.URL.Query().Get("include_virtual"); v == "1" || v == "true" {
 		cols = reg.ListWithVirtual()
 	}
-	return stagepkg.LocalizeSeeded(cols, i18n.RequestLocale(r))
+	return localizeColumns(board, cols, i18n.RequestLocale(r))
 }
 
 type CreateBoardRequest struct {
@@ -202,6 +221,8 @@ type CreateBoardRequest struct {
 	Stages      []types.StageInfo `json:"stages,omitempty"`
 	CloneFrom   string            `json:"clone_from,omitempty"`
 	Default     bool              `json:"default,omitempty"`
+	// 0 is no cap.
+	MaxKickBacks int `json:"max_kick_backs,omitempty"`
 }
 
 func (s *Server) handleCreateBoard(w http.ResponseWriter, r *http.Request) {
@@ -224,7 +245,12 @@ func (s *Server) handleCreateBoard(w http.ResponseWriter, r *http.Request) {
 	}
 	info := stagepkg.BoardInfo{
 		ID: req.ID, Label: req.Label, Description: req.Description,
-		WorkspaceID: boardWID,
+		WorkspaceID: boardWID, MaxKickBacks: req.MaxKickBacks,
+	}
+	// A clone of the workspace's own board carries agents it already has; a typed list is checked.
+	if err := s.checkStageAgents(boardWID, req.Stages, nil); err != nil {
+		writeError(w, r, http.StatusBadRequest, err)
+		return
 	}
 	if err := s.stageAdmin.CreateBoard(r.Context(), info, stages); err != nil {
 		writeError(w, r, http.StatusBadRequest, err)
@@ -240,7 +266,7 @@ func (s *Server) handleCreateBoard(w http.ResponseWriter, r *http.Request) {
 	s.emitBoardsChanged(r, audit.KindBoardCreated, req.ID,
 		i18n.Text("api.boards.audit.board_created", "board", req.ID, "stages", len(stages)))
 	writeJSON(w, http.StatusCreated, map[string]any{
-		"board":  stagepkg.LocalizeSeededBoard(info, i18n.RequestLocale(r)),
+		"board":  localizeBoard(info, i18n.RequestLocale(r)),
 		"stages": s.boardStages(r, req.ID),
 	})
 }
@@ -272,6 +298,8 @@ type BoardPatch struct {
 	// Only true is honored: exactly one board per workspace is default, so a board loses it only by
 	// another gaining it.
 	Default *bool `json:"default"`
+	// 0 is no cap. The flow origin fields belong to the Workshop and are not patchable here.
+	MaxKickBacks *int `json:"max_kick_backs"`
 }
 
 func (s *Server) handleUpdateBoard(w http.ResponseWriter, r *http.Request) {
@@ -289,6 +317,7 @@ func (s *Server) handleUpdateBoard(w http.ResponseWriter, r *http.Request) {
 	}
 	patch.Set(&info.Label, p.Label)
 	patch.Set(&info.Description, p.Description)
+	patch.Set(&info.MaxKickBacks, p.MaxKickBacks)
 	if err := s.stageAdmin.UpdateBoard(r.Context(), info); err != nil {
 		writeError(w, r, http.StatusBadRequest, err)
 		return

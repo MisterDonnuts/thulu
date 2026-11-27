@@ -254,6 +254,8 @@ type SandboxBatchSpec struct {
 	Trigger    string
 	TriggerRef string
 	Locale     string
+	SafeOnly   bool
+	TaskID     string
 }
 
 func (s *Service) QueueSandbox(ctx context.Context, ws, author string, spec SandboxBatchSpec) (*Batch, error) {
@@ -262,7 +264,8 @@ func (s *Service) QueueSandbox(ctx context.Context, ws, author string, spec Sand
 		return nil, err
 	}
 	return s.Queue(ctx, ws, author, BatchSpec{EnvironmentID: env.ID, CaseIDs: spec.CaseIDs, Tag: spec.Tag,
-		Branch: spec.Branch, Trigger: spec.Trigger, TriggerRef: spec.TriggerRef, Locale: spec.Locale})
+		Branch: spec.Branch, Trigger: spec.Trigger, TriggerRef: spec.TriggerRef, Locale: spec.Locale,
+		SafeOnly: spec.SafeOnly, TaskID: spec.TaskID})
 }
 
 func (s *Service) CancelBatch(ctx context.Context, ws, id string) (*Batch, error) {
@@ -357,16 +360,18 @@ func deployMatches(e *Environment, name string) bool {
 	return e.Name == DeploySlug(name) || (e.DisplayName != "" && strings.EqualFold(e.DisplayName, strings.TrimSpace(name)))
 }
 
-func (s *Service) OnDeploy(ctx context.Context, d Deploy) int {
+// OnDeploy queues a batch on each environment the deploy matches and returns their ids, so the
+// automation event for the same deploy can hand them to a release agent instead of a second smoke.
+func (s *Service) OnDeploy(ctx context.Context, d Deploy) []string {
 	if d.Repo == "" || len(d.Workspaces) == 0 {
-		return 0
+		return nil
 	}
 	envs, err := s.Store.DeployEnvironments(ctx, d.Workspaces)
 	if err != nil {
 		logx.Warn(err, "evidence.log.list_failed")
-		return 0
+		return nil
 	}
-	n := 0
+	var ids []string
 	for i := range envs {
 		e := &envs[i]
 		repo, ok := GitHubRepo(e.RepoURL)
@@ -378,18 +383,20 @@ func (s *Service) OnDeploy(ctx context.Context, d Deploy) int {
 			ref += "@" + shortSHA(d.SHA)
 		}
 		ref += " · " + d.Environment
-		if _, err := s.Store.CreateBatch(ctx, e.WorkspaceID, "deploy", BatchSpec{
+		b, err := s.Store.CreateBatch(ctx, e.WorkspaceID, "deploy", BatchSpec{
 			EnvironmentID: e.ID, Trigger: TriggerDeploy, TriggerRef: ref,
-		}); err == nil {
-			n++
-		} else if apperr.KindOf(err) != apperr.KindPrecondition {
+		})
+		switch {
+		case err == nil:
+			ids = append(ids, b.ID)
+		case apperr.KindOf(err) != apperr.KindPrecondition:
 			logx.Warn(err, "evidence.log.deploy_failed", "env", e.ID)
 		}
 	}
-	if n > 0 {
+	if len(ids) > 0 {
 		s.Kick()
 	}
-	return n
+	return ids
 }
 
 func shortSHA(s string) string {

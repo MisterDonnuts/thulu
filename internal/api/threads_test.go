@@ -12,6 +12,7 @@ import (
 
 	"github.com/MisterDonnuts/thulu/internal/auth"
 	"github.com/MisterDonnuts/thulu/internal/i18n"
+	"github.com/MisterDonnuts/thulu/internal/settings"
 	"github.com/MisterDonnuts/thulu/internal/task"
 	"github.com/MisterDonnuts/thulu/internal/types"
 )
@@ -366,19 +367,41 @@ func TestThreads_AgentsCallEachOtherWithinALimit(t *testing.T) {
 	if got := names(srv.agentMentions(ctx, agentSays(root.ID, "probe-a", "@probe-a @probe-b what do you see?"))); len(got) != 1 || got[0] != "probe-b" {
 		t.Errorf("turn 1 launches %v, want probe-b and not itself", got)
 	}
-	if got := srv.agentMentions(ctx, agentSays(root.ID, "probe-b", "@probe-a el header")); len(got) != 1 {
-		t.Errorf("turn 2 launches %v, want probe-a", names(got))
+	// With no workspace value the cap is 5: the fifth reply in a row launches nobody.
+	hops := []struct{ who, body string }{{"probe-b", "@probe-a el header"}, {"probe-a", "@probe-b y el footer?"}, {"probe-b", "@probe-a igual"}}
+	for i, hop := range hops {
+		if got := srv.agentMentions(ctx, agentSays(root.ID, hop.who, hop.body)); len(got) != 1 {
+			t.Errorf("turn %d launches %v, want one agent", i+2, names(got))
+		}
 	}
 	if got := srv.agentMentions(ctx, agentSays(root.ID, "probe-a", "@probe-b sure?")); got != nil {
-		t.Errorf("turn 3 launches %v, want nobody", names(got))
+		t.Errorf("turn 5 launches %v, want nobody", names(got))
 	}
 	comments := commentsOf(t, &runScopeRig{srv: srv}, taskID)
-	if last := comments[len(comments)-1]; last.Source != task.SourceSystem || !strings.Contains(last.Body, "@probe-b won't be launched") {
-		t.Errorf("no notice of the limit: %+v", last)
+	last := comments[len(comments)-1]
+	if last.Source != task.SourceSystem || !strings.Contains(last.Body, "@probe-b won't be launched") ||
+		last.Kind != task.CommentPause || last.Meta == nil || last.Meta.Turns != 5 || last.ParentID != root.ID {
+		t.Errorf("no pause note in the thread: %+v", last)
 	}
 
 	_, _ = store.AddReply(ctx, taskID, root.ID, task.SourceUser, "p@x", "sigan")
 	if got := srv.agentMentions(ctx, agentSays(root.ID, "probe-b", "@probe-a dale")); len(got) != 1 {
 		t.Errorf("after a person wrote, %v launched, want probe-a", names(got))
+	}
+
+	// The workspace's agent_turns_per_thread replaces the default.
+	if err := srv.settingsStore.PutWorkspaceRaw(ctx, srv.taskWorkspace(ctx, taskID), settings.AgentTurnsPerThreadKey, "2"); err != nil {
+		t.Fatal(err)
+	}
+	_, _ = store.AddReply(ctx, taskID, root.ID, task.SourceUser, "p@x", "de nuevo")
+	if got := srv.agentMentions(ctx, agentSays(root.ID, "probe-a", "@probe-b mirá")); len(got) != 1 {
+		t.Errorf("turn 1 with a cap of 2 launches %v, want probe-b", names(got))
+	}
+	if got := srv.agentMentions(ctx, agentSays(root.ID, "probe-b", "@probe-a visto")); got != nil {
+		t.Errorf("turn 2 with a cap of 2 launches %v, want nobody", names(got))
+	}
+	comments = commentsOf(t, &runScopeRig{srv: srv}, taskID)
+	if last := comments[len(comments)-1]; last.Kind != task.CommentPause || last.Meta == nil || last.Meta.Turns != 2 {
+		t.Errorf("pause note = %+v, want turns 2", last)
 	}
 }

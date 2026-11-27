@@ -193,6 +193,34 @@ test("POST /collect reads with the target the daemon sent", async () => {
   assert.equal(daemonCalls.length, 0, "the collect must not call the daemon");
 });
 
+test("POST /deploys needs the target the daemon authorized and never calls the daemon", async () => {
+  daemonCalls.length = 0;
+  const post = (body) => fetch(`${base}/deploys`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  assert.equal((await post({})).status, 400);
+  assert.equal((await post({ environment_id: "env9" })).status, 400);
+  assert.equal((await post({
+    environment_id: "env9",
+    environment: { environment_id: "env1", provider: "gcp" },
+    credential: { provider: "gcp", kind: "gcp_sa", payload: { json: "{}" } },
+  })).status, 400, "a target for another environment id is refused");
+
+  const res = await post({
+    environment_id: "env9",
+    environment: { environment_id: "env9", project_id: "p1", provider: "aws" },
+    credential: { name: "prod", provider: "aws", kind: "aws_keys", payload: { access_key_id: "x", secret_access_key: "y" } },
+  });
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.unavailable, true);
+  assert.deepEqual(body.deploys, []);
+  assert.match(body.reason, /AWS/);
+  assert.equal(daemonCalls.length, 0, "the deploy read must not call the daemon");
+});
+
 test("POST /collect refuses a target for another environment id", async () => {
   const res = await fetch(`${base}/collect`, {
     method: "POST",

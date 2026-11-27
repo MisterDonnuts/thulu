@@ -3,7 +3,9 @@ import { describe, expect, it, vi } from "vitest";
 import {
   ago,
   fmtDateMinute,
+  fmtClock,
   fmtDay,
+  fmtDayClock,
   fmtMs,
   formatSeconds,
   isoLocal,
@@ -97,5 +99,25 @@ describe("fmtDay", () => {
 
   it("hands back what it cannot read", () => {
     expect(fmtDay("soon")).toBe("soon");
+  });
+});
+
+describe("fmtClock", () => {
+  it("writes a 24-hour clock with two digits each", () => {
+    expect(fmtClock(new Date(2026, 10, 20, 9, 4).toISOString())).toBe("09:04");
+    expect(fmtClock("soon")).toBe("soon");
+  });
+});
+
+describe("fmtDayClock", () => {
+  it("writes the day and a 24-hour clock", () => {
+    const d = new Date(2026, 10, 20, 23, 4);
+    const out = fmtDayClock(d.toISOString());
+    expect(out).toMatch(/20/);
+    expect(out.endsWith(", 23:04")).toBe(true);
+  });
+
+  it("hands back what it cannot read", () => {
+    expect(fmtDayClock("soon")).toBe("soon");
   });
 });

@@ -1,0 +1,27 @@
+{
+  "revision": 9,
+  "tags": ["flow", "spec"],
+  "descriptions": {
+    "es": "Refina una tarea del flujo Thulu antes de que alguien la toque: explora el repo, reproduce el bug si lo hay, pregunta sólo lo que el código no responde y deja una spec con criterios Given/When/Then, la interfaz que van a usar los tests, superficie, tamaño y riesgo. No escribe código ni casos de prueba."
+  },
+  "definition": {
+    "name": "thulu-refiner",
+    "type": "thulu-refiner",
+    "description": "Refines a task of the Thulu flow before anyone works it: explores the repo, reproduces the bug if there is one, asks only what the code cannot answer and leaves a spec with Given/When/Then criteria, the interface the tests will call, surface, size and risk. Writes no code and no test cases.",
+    "valid_stages": ["refinement"],
+    "engine": "claude-code",
+    "effort": "high",
+    "turns_by_stage": {"refinement": "80"},
+    "skills_by_stage": {"refinement": ["spec-writing"]},
+    "mcp_by_stage": {
+      "refinement": [
+        "octopus-api@read+task_ask+task_section_set+task_criteria_set+task_add_comment+task_add_report+subtask_create",
+        "thulu-sandbox",
+        "thulu-browser@browser_new_session+browser_navigate+browser_get_state+browser_get_text+browser_click+browser_type+browser_close_session+evidence_shot"
+      ]
+    },
+    "system_skills_off": {
+      "refinement": ["octopus-test-cases", "octopus-evidence-library", "octopus-observability"]
+    }
+  }
+}

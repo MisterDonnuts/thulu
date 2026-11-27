@@ -182,7 +182,14 @@
     "plan_database_external": "Base        externa, la restaurás vos (-restore external)",
     "stopping_for_restore": "   parando {service} para que nada escriba durante la restauración",
     "plan_back_to_chart": "Vuelve a    {version} (chart {ref}@{digest})",
-    "restoring": "   restaurando {path}"
+    "restoring": "   restaurando {path}",
+    "cli_replaced": "Reemplacé el CLI en {path}: {from} → {to}",
+    "cli_blocked": "\n!! El CLI en {path} sigue en {from} (esta actualización instaló {to}): este usuario no puede escribir en {dir}.\n!! Si escribís thulu ahí, corre la versión vieja. Reemplazalo con:\n!!   {command}\n",
+    "cli_replace_failed": "\n!! No pude reemplazar el CLI en {path}: {err}\n!! Reemplazalo a mano:\n!!   {command}\n",
+    "cli_dev_left": "No toqué {path}: es un build de desarrollo.",
+    "cli_fetch_failed": "No pude conseguir el CLI de {version} para reemplazar los del PATH: {err}",
+    "runner_restart": "El servicio del runner corre {path}, que ahora es {version}. Reinicialo para que tome el binario nuevo (corta los jobs en curso): {command}",
+    "runner_outdated": "El servicio del runner corre {path}, que sigue en {version} (esta actualización instaló {target}). Apuntalo al CLI nuevo: {command}"
   },
   "labels": {
     "daemon_not_answering": "el daemon no responde: puede estar parado",
@@ -203,5 +210,11 @@
     "snapshot_placeholder": "<snapshot>",
     "unknown": "desconocida",
     "mirror_note": "Sin firma. Dónde puso este mirror cada artefacto de {manifest}; los digests son los del manifiesto firmado, y apply lee ese, no este archivo."
+  },
+  "drift": {
+    "cli": "aviso: {path} es {version}, este CLI es {self}",
+    "runner": "aviso: el servicio del runner corre {path}, que es {version}; este CLI es {self}",
+    "stack": "aviso: el stack en {url} corre {version}; este CLI es {self}",
+    "fix": "`thulu update` lleva los CLI y el stack a una misma versión; `thulu runner service install` apunta el servicio al CLI del PATH."
   }
 }

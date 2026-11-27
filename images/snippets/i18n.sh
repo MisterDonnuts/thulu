@@ -85,6 +85,7 @@ _i18n_tmpl() {
   'en:agent.log.flags_upload_failed') _i18n_t='could not upload flags.yaml — the review gate will not see these findings' ;;
   'en:agent.log.hook_running') _i18n_t='running hook {project}/{stage}.sh (in parallel)' ;;
   'en:agent.log.index_upload_failed') _i18n_t='could not upload _index.md to the Reports tab' ;;
+  'en:agent.log.locked_tests_upload_failed') _i18n_t='could not upload locked-tests.txt — the paths it lists will not be locked' ;;
   'en:agent.log.mcp_browser_not_ready') _i18n_t='this run'\''s thulu-browser did not answer on {url} within {seconds}s — its tools fail until it does' ;;
   'en:agent.log.mcp_config_written') _i18n_t='MCP config written: {file}' ;;
   'en:agent.log.mcp_no_servers') _i18n_t='MCP_TOOLS is set but OCTOPUS_MCP_SERVERS lists no server — not writing {file}' ;;
@@ -131,6 +132,7 @@ Output:    {output}' ;;
   'en:agent.log.steering_on') _i18n_t='Steering:  on ({queue})' ;;
   'en:agent.log.tokopt_host_not_ready') _i18n_t='the token optimizer'\''s worker host is not listening on {socket}; in-pod delegations will fail' ;;
   'en:agent.log.tokopt_worker_no_token') _i18n_t='the token optimizer'\''s in-pod worker has no token (OCTOPUS_TOKEN_OPTIMIZER_WORKER_OAUTH_TOKEN is empty), so its host does not start; in-pod delegations will fail' ;;
+  'en:agent.log.verdict_upload_failed') _i18n_t='could not upload verdict.md — the stage verdict will not be applied' ;;
   'en:agent.prompts.auditor_context') _i18n_t='## Run context
 
 - Agent: `{agent}`
@@ -162,7 +164,7 @@ Briefly explain your verdict (3–10 lines). Mention concrete issues if any.
 
 Verdict semantics:
 - **continue** — the agent did its job for this stage. The task follows its course: it advances if the stage advances on its own.
-- **kick_back** — work needs significant rework. Set `kick_back_to` to a previous stage from the **Flow** the task lists.
+- **kick_back** — work needs significant rework. Set `kick_back_to` to a previous stage from the **Flow** the task lists, or to this same stage (`{stage}`) when its own agent can fix it: a new run of the stage redoes it with your notes, which it reads in its brief. Either way it counts as a return.
 - **needs_more_turns** — the agent ran out of turns mid-task. Re-running with extra turns will finish the work.
 - **block** — work is incomplete or wrong but the right action is unclear. The human will decide.
 
@@ -193,7 +195,7 @@ You were called in a comment: this is a **question**, not a stage run.
 - The task'\''s stage does NOT move, nothing is committed, NO auditor runs.' ;;
   'en:agent.prompts.brief_stage_finish') _i18n_t='## How to finish
 
-- Your report goes in `{output_dir}/_index.md` and is published in the task'\''s Reports tab (markdown, 256 KB at most). A short message for the conversation goes in `{output_dir}/comment.md`.
+- Your report goes in `{output_dir}/_index.md` and is published in the task'\''s Reports tab (markdown, 256 KB at most). The next stage reads your handoff in its brief: put it in `verdict.md` (`next`, `delta`) when your stage takes one, and in the report. A stage run does not write `comment.md`. Comment with `task_add_comment` only to address a person: an answer they are waiting for, or something they must know that the verdict cannot carry. In a continuation, where a person wrote to you, `{output_dir}/comment.md` is your reply to them.
 - To attach captures or files, use `task_attach` from `octopus-api`, or `evidence_publish` if you filmed with `thulu-browser`. Files left in `{output_dir}/screenshots/` are uploaded only when Thulu runs on Docker.
 - What you changed in the repos is committed on its own when the run ends, so you do not need `git commit`. If git refuses to write (under Docker `.git` is read-only), leave your changes where they are: do not copy `.git` or point it elsewhere. If you open the PR with `pr_create`, it is linked to the task.
 - Do not move the task to another stage. If the stage advances on its own, Thulu moves it when you finish cleanly, once the approvals holding it are settled.' ;;
@@ -290,6 +292,7 @@ Read one when the instructions above point to it.' ;;
   'es:agent.log.flags_upload_failed') _i18n_t='no se pudo subir flags.yaml — el gate de revisión no va a ver estos hallazgos' ;;
   'es:agent.log.hook_running') _i18n_t='ejecutando hook {project}/{stage}.sh (paralelo)' ;;
   'es:agent.log.index_upload_failed') _i18n_t='no se pudo subir _index.md a la pestaña Reports' ;;
+  'es:agent.log.locked_tests_upload_failed') _i18n_t='no se pudo subir locked-tests.txt — las rutas que lista no van a quedar bloqueadas' ;;
   'es:agent.log.mcp_browser_not_ready') _i18n_t='el thulu-browser de este run no respondió en {url} en {seconds}s — sus tools fallan hasta que responda' ;;
   'es:agent.log.mcp_config_written') _i18n_t='Config de MCP escrita: {file}' ;;
   'es:agent.log.mcp_no_servers') _i18n_t='MCP_TOOLS está seteada pero OCTOPUS_MCP_SERVERS no trae ningún servidor — no se escribe {file}' ;;
@@ -336,6 +339,7 @@ Output:     {output}' ;;
   'es:agent.log.steering_on') _i18n_t='Steering:  activo ({queue})' ;;
   'es:agent.log.tokopt_host_not_ready') _i18n_t='el host de workers del Token optimizer no escucha en {socket}; las delegaciones dentro del pod van a fallar' ;;
   'es:agent.log.tokopt_worker_no_token') _i18n_t='el worker del Token optimizer dentro del pod no tiene token (OCTOPUS_TOKEN_OPTIMIZER_WORKER_OAUTH_TOKEN está vacía), así que su host no arranca; las delegaciones dentro del pod van a fallar' ;;
+  'es:agent.log.verdict_upload_failed') _i18n_t='no se pudo subir verdict.md — el veredicto de la etapa no se va a aplicar' ;;
   'es:agent.prompts.auditor_context') _i18n_t='## Contexto de la corrida
 
 - Agente: `{agent}`
@@ -367,7 +371,7 @@ Explicá brevemente tu veredicto (3–10 líneas). Mencioná problemas concretos
 
 Qué significa cada veredicto:
 - **continue** — el agente hizo su trabajo en esta etapa. La tarea sigue su curso: avanza si la etapa avanza sola.
-- **kick_back** — el trabajo necesita rehacerse en serio. Poné en `kick_back_to` una etapa anterior del **Flujo** que lista la tarea.
+- **kick_back** — el trabajo necesita rehacerse en serio. Poné en `kick_back_to` una etapa anterior del **Flujo** que lista la tarea, o esta misma etapa (`{stage}`) cuando su propio agente lo puede arreglar: una corrida nueva de la etapa la rehace con tus notas, que lee en su brief. En los dos casos cuenta como una vuelta.
 - **needs_more_turns** — al agente se le acabaron los turnos a mitad de la tarea. Volver a correrlo con más turnos termina el trabajo.
 - **block** — el trabajo está incompleto o mal pero no está claro qué hacer. Decide una persona.
 
@@ -398,7 +402,7 @@ Te invocaron en un comentario — esto es una **consulta**, no un run de stage.
 - NO se mueve el stage de la tarea, NO se commitea, NO corre auditor.' ;;
   'es:agent.prompts.brief_stage_finish') _i18n_t='## Cómo terminar
 
-- Tu reporte va en `{output_dir}/_index.md` y se publica en la pestaña Reports de la tarea (markdown, 256 KB como máximo). Un mensaje corto para la conversación va en `{output_dir}/comment.md`.
+- Tu reporte va en `{output_dir}/_index.md` y se publica en la pestaña Reports de la tarea (markdown, 256 KB como máximo). La etapa siguiente lee tu traspaso en su brief: ponelo en `verdict.md` (`next`, `delta`) cuando tu etapa toma uno, y en el reporte. Una corrida de etapa no escribe `comment.md`. Comentá con `task_add_comment` sólo para hablarle a una persona: una respuesta que está esperando, o algo que tiene que saber y el veredicto no puede llevar. En una continuación, donde una persona te escribió, `{output_dir}/comment.md` es tu respuesta.
 - Para adjuntar capturas o archivos usá `task_attach` de `octopus-api`, o `evidence_publish` si filmaste con `thulu-browser`. Lo que dejes en `{output_dir}/screenshots/` se sube sólo cuando Thulu corre en Docker.
 - Lo que cambiaste en los repos se commitea solo cuando termina la corrida, así que no hace falta `git commit`. Si git no te deja escribir (en Docker `.git` es de sólo lectura), dejá los cambios donde están: no copies `.git` ni lo apuntes a otro lado. Si abrís el PR con `pr_create`, queda vinculado a la tarea.
 - No muevas la tarea de etapa. Si la etapa avanza sola, Thulu la mueve cuando terminás bien, una vez resueltas las aprobaciones que la frenan.' ;;

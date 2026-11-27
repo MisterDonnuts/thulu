@@ -114,20 +114,31 @@
     "send_to_never_ran": "Esta tarea todavía no corrió: no hay sesión a la que mandarle el hilo. El primer agente lo lee en su brief.",
     "apply_note_label": "Indicación para {agent}",
     "apply_note_placeholder": "Indicación (opcional): qué hacer con lo que se decidió",
-    "apply_hint": "{agent} recibe el hilo entero y lleva a cabo lo que se concluyó."
+    "apply_hint": "{agent} recibe el hilo entero y lleva a cabo lo que se concluyó.",
+    "see_activity": "Ver en Actividad"
   },
   "filter": {
     "all": "Todo",
     "comments": "Comentarios",
-    "runs": "Corridas",
-    "system": "Sistema"
+    "runs": "Corridas"
   },
   "question": {
-    "waiting": "{agent} espera tu respuesta",
-    "waiting_unnamed": "Un agente espera tu respuesta",
-    "pinned": "Fijada",
-    "asked_working": "{agent} preguntó y sigue trabajando",
-    "asked_working_unnamed": "Un agente preguntó y sigue trabajando"
+    "unnamed": "Un agente",
+    "canceled": "Cancelada",
+    "count": {
+      "one": "{count} pregunta",
+      "other": "{count} preguntas"
+    },
+    "waiting": "Te espera",
+    "you_answered": "Respondiste el {when}",
+    "who_answered": "{who} respondió el {when}",
+    "answered_at": "Respondida el {when}",
+    "stopped_waited": "El agente frenó y esperó la respuesta",
+    "kept_working": "El agente siguió trabajando mientras esperaba",
+    "in_stage": "en {stage}",
+    "asked": "preguntó el {when}",
+    "no_answer": "Sin respuesta para esta",
+    "options": "Opciones que ofreció"
   },
   "audience": {
     "workspace": "Lo ve todo el workspace.",

@@ -10,6 +10,7 @@ import (
 
 	"github.com/MisterDonnuts/thulu/internal/apperr"
 	"github.com/MisterDonnuts/thulu/internal/auth"
+	"github.com/MisterDonnuts/thulu/internal/gatesprofile"
 	"github.com/MisterDonnuts/thulu/internal/i18n"
 	"github.com/MisterDonnuts/thulu/internal/sandbox"
 	"github.com/MisterDonnuts/thulu/internal/task"
@@ -25,6 +26,11 @@ func (s *Server) resolveTaskWorkspace(ctx context.Context, taskID string) (strin
 	t, err := s.taskStore.Get(ctx, taskID)
 	if err != nil || t == nil {
 		return "", "", "", nil, apperr.NotFound("api.sandbox.errors.task_id_not_found", "task", taskID)
+	}
+	// A finished task gave its sandbox up on entering the stage; a call now would build a new one
+	// that only the idle eviction removes.
+	if s.taskStore.InTerminalStage(t) {
+		return "", "", "", nil, apperr.Precondition("api.sandbox.errors.task_finished", "task", taskID, "stage", t.Stage)
 	}
 	owner := t
 	if t.IsSubtask() {
@@ -48,8 +54,42 @@ func (s *Server) resolveTaskWorkspace(ctx context.Context, taskID string) (strin
 	return owner.ID, "", owner.WorkspaceID, projects, nil
 }
 
+// sandboxGatesProfile is the gate profile file for the task's sandbox: the profiles of the sandbox
+// owner's projects, under the directory names the sandbox mounts them by (the ones
+// resolveTaskWorkspace gives). A run of a subtask uses its parent's sandbox, and so its projects.
+func (s *Server) sandboxGatesProfile(ctx context.Context, taskID string) []byte {
+	if s.taskStore == nil || s.projectStore == nil {
+		return nil
+	}
+	t, err := s.taskStore.Get(ctx, taskID)
+	if err != nil || t == nil {
+		return nil
+	}
+	if t.IsSubtask() {
+		if parent, perr := s.taskStore.Get(ctx, t.ParentID); perr == nil && parent != nil {
+			t = parent
+		}
+	}
+	byName := map[string]string{}
+	for _, projectID := range t.ProjectIDs {
+		proj, perr := s.projectStore.Get(ctx, projectID)
+		if perr != nil {
+			continue
+		}
+		name := filepath.Base(proj.Path)
+		if proj.Path == "" {
+			// Code on a runner's machine has no mount here; with a single project thulu-gates applies
+			// the entry wherever the agent put the code.
+			name = proj.Name
+		}
+		byName[name] = string(proj.GatesProfile)
+	}
+	return gatesprofile.File(byName)
+}
+
 func (s *Server) newSandboxMCPHandler(mgr *sandbox.Manager) *sandbox.MCPHandler {
 	return sandbox.NewMCPHandler(mgr, sandbox.WorkspaceResolverFunc(s.resolveTaskWorkspace)).
+		WithGatesProfiles(s.sandboxGatesProfile).
 		WithAttacher(s.attachBytesToTask).
 		WithAuthorizer(sandboxAuthorizer{s}).
 		WithInitScripts(sandboxInitScripts{s}).
@@ -121,6 +161,11 @@ func sandboxOwnerID(t *task.Task) string {
 		return t.ParentID
 	}
 	return t.ID
+}
+
+// RunInstance comes from the run key, never from the request: a run cannot pass for another one.
+func (sandboxAuthorizer) RunInstance(r *http.Request) string {
+	return auth.APIKeyRunScope(r.Context()).Instance
 }
 
 func (sandboxAuthorizer) Principal(r *http.Request) string {

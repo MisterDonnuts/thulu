@@ -11,6 +11,10 @@ import {
   kickBackTarget,
   type ChangesStage,
   pendingApprovalCount,
+  waitsForChecks,
+  approvalLabel,
+  stageAhead,
+  testChangeFiles,
   type Approval,
 } from "./approvals";
 
@@ -73,6 +77,50 @@ describe("decisionBody", () => {
 });
 
 describe("approvalsPaneHTML", () => {
+  it("disables Approve and says why while required checks hold it", () => {
+    const view = { checksHoldOf: () => "PR #7: build failed" };
+    const doc = new DOMParser().parseFromString(
+      approvalsPaneHTML([design], null, view),
+      "text/html",
+    );
+    const approve = doc.querySelector<HTMLButtonElement>('[data-ap="approved"]');
+    expect(approve?.disabled).toBe(true);
+    const line = doc.getElementById(approve?.getAttribute("aria-describedby") ?? "");
+    expect(line?.textContent).toContain("PR #7: build failed");
+    expect(doc.querySelector<HTMLButtonElement>('[data-ap="waived"]')?.disabled).toBe(false);
+    expect(approvalsSig([design], null, view)).not.toBe(approvalsSig([design], null, {}));
+
+    const free = new DOMParser().parseFromString(
+      approvalsPaneHTML([design], null, {}),
+      "text/html",
+    );
+    expect(free.querySelector<HTMLButtonElement>('[data-ap="approved"]')?.disabled).toBe(false);
+    expect(free.querySelector(".ap-checks")).toBeNull();
+  });
+
+  it("lets Approve go ahead of checks that still run, and says the task waits for them", () => {
+    const view = { checksWaitOf: () => "PR #7: build still running" };
+    const doc = new DOMParser().parseFromString(
+      approvalsPaneHTML([design], null, view),
+      "text/html",
+    );
+    const approve = doc.querySelector<HTMLButtonElement>('[data-ap="approved"]');
+    expect(approve?.disabled).toBe(false);
+    const line = doc.getElementById(approve?.getAttribute("aria-describedby") ?? "");
+    expect(line?.textContent).toContain("PR #7: build still running");
+    expect(line?.textContent).toContain("stays in this column");
+    expect(approvalsSig([design], null, view)).not.toBe(approvalsSig([design], null, {}));
+
+    // A failing check wins over the running ones: Approve stays disabled.
+    const both = { ...view, checksHoldOf: () => "PR #7: build failed" };
+    const held = new DOMParser().parseFromString(
+      approvalsPaneHTML([design], null, both),
+      "text/html",
+    );
+    expect(held.querySelector<HTMLButtonElement>('[data-ap="approved"]')?.disabled).toBe(true);
+    expect(held.querySelector(".ap-checks")?.textContent).not.toContain("still running");
+  });
+
   it("ranks a pending row's buttons: Approve primary, Request changes, Waive ghost", () => {
     const html = approvalsPaneHTML([design], null);
     expect(html).toMatch(/class="btn btn-primary btn-sm"[^>]*data-ap="approved"/);
@@ -228,6 +276,19 @@ describe("approvalsPaneHTML", () => {
   });
 });
 
+describe("waitsForChecks", () => {
+  const stages = [
+    { id: "review", required_approvals: [{ key: "merge", required_checks: true }, { key: "qa" }] },
+  ];
+  it("is true only for a stage approval whose definition waits for checks", () => {
+    const merge: Approval = { ...design, key: "merge", stage: "review" };
+    expect(waitsForChecks(merge, stages)).toBe(true);
+    expect(waitsForChecks({ ...merge, key: "qa" }, stages)).toBe(false);
+    expect(waitsForChecks({ ...merge, stage: "testing" }, stages)).toBe(false);
+    expect(waitsForChecks({ ...merge, source: "person" }, stages)).toBe(false);
+  });
+});
+
 describe("approvalsSig", () => {
   it("moves with a decision, the open note box, the ask form and the menu", () => {
     const a = approvalsSig([design], null);
@@ -305,6 +366,84 @@ describe("changesEffect", () => {
     );
     expect(changesEffect({ stage: "ready" }, "review", board, "x")).toContain("only recorded");
     expect(changesEffect({}, "review", board, "x")).toContain("only recorded");
+  });
+});
+
+describe("an approval held in a stage the task has not reached", () => {
+  const board: ChangesStage[] = [
+    { id: "backlog", label: "Backlog", position: 0, initial: true },
+    { id: "testing", label: "Testing", position: 1 },
+    { id: "review", label: "Human review", position: 2 },
+    { id: "done", label: "Done", position: 3, terminal: true },
+  ];
+  const ux: Approval = {
+    id: "ux",
+    label: "UX review",
+    stage: "review",
+    source: "agent",
+    status: "pending",
+  };
+
+  it("is ahead only while the task sits in an earlier column", () => {
+    expect(stageAhead(ux, "testing", board)?.label).toBe("Human review");
+    expect(stageAhead(ux, "review", board)).toBeNull();
+    expect(stageAhead({ stage: "testing" }, "review", board)).toBeNull();
+    expect(stageAhead({}, "testing", board)).toBeNull();
+    expect(stageAhead(ux, "gone", board)).toBeNull();
+  });
+
+  it("says changes wait for that stage instead of claiming they are recorded", () => {
+    expect(changesEffect(ux, "testing", board, "")).toBe(
+      "Changes can be requested once the task reaches Human review. Approving or waiving works now.",
+    );
+  });
+
+  it("disables Request changes and drops it from the menu, as the daemon refuses it", () => {
+    const view = { aheadOf: () => "Human review", effectOf: () => "waits" };
+    const doc = new DOMParser().parseFromString(approvalsPaneHTML([ux], null, view), "text/html");
+    const btn = doc.querySelector<HTMLButtonElement>('[data-ap="changes_requested"]');
+    expect(btn?.disabled).toBe(true);
+    expect(btn?.getAttribute("aria-describedby")).toBe("ap-effect-ux");
+    expect(doc.querySelector('[data-ap="approved"]')?.hasAttribute("disabled")).toBe(false);
+    const decided = { ...ux, status: "approved", decided_by: "ana" };
+    const menu = approvalsPaneHTML([decided], null, { ...view, menuFor: "ux" });
+    expect(menu).toContain('data-ap="waived"');
+    expect(menu).not.toContain('data-ap="changes_requested"');
+    expect(approvalsSig([ux], null, view)).not.toBe(approvalsSig([ux], null, {}));
+  });
+});
+
+describe("a changed locked test", () => {
+  const change: Approval = {
+    id: "tc",
+    key: "test_change",
+    label: "Change to locked tests",
+    source: "system",
+    status: "pending",
+    payload: { ref: "p@abc", files: [{ path: "src/login.test.js" }, { path: "e2e/a.spec.ts" }] },
+  };
+
+  it("lists the files a person is asked to accept", () => {
+    expect(testChangeFiles(change)).toEqual(["src/login.test.js", "e2e/a.spec.ts"]);
+    const html = approvalsPaneHTML([change], null);
+    expect(html).toContain("The 2 locked tests that changed:");
+    expect(html).toContain("<code>e2e/a.spec.ts</code>");
+  });
+
+  it("reads in the viewer's language whatever locale the daemon opened it in", () => {
+    expect(approvalLabel({ ...change, label: "Cambio en tests bloqueados" })).toBe(
+      "Change to locked tests",
+    );
+    expect(approvalLabel({ ...change, source: "agent", label: "Mine" })).toBe("Mine");
+  });
+
+  it("ignores the key outside system approvals and odd payloads", () => {
+    expect(testChangeFiles({ ...change, source: "agent" })).toEqual([]);
+    expect(testChangeFiles({ ...change, payload: { files: "x" } })).toEqual([]);
+    expect(testChangeFiles({ ...change, payload: null })).toEqual([]);
+    expect(approvalsPaneHTML([{ ...change, payload: undefined }], null)).not.toContain(
+      "approval-files",
+    );
   });
 });
 

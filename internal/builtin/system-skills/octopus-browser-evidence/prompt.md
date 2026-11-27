@@ -94,17 +94,34 @@ red.
 | `count` | how many elements match | `expected: "3"` |
 | `url` | the current URL (contains, by default) | `expected: "/orders/"` |
 | `title` | the page title | |
+| `perf` | a timing metric, with `metric` and no `target`; passes when it is at most `expected` | `metric: "lcp", expected: "2500"` |
 
-`match` changes the comparison: `equals` (default), `contains`, `regex`.
+`match` changes the comparison: `equals` (default), `contains`, `regex`. A
+`perf` check takes no `match`.
+
+Accessibility is its own step, not a `check`: `a11y_scan` in a live take (or
+`{ "kind": "a11y", "case": "TC-5" }` in the JSON) runs axe-core, WCAG 2.2 AA by
+default, and passes when no violation is at `fail_on` (`serious` by default)
+or worse. `include` and `exclude` narrow it to part of the page. Scan once the
+page shows the state the case is about, and write in the report that a clean
+scan does not cover keyboard use or a screen reader.
 
 `observed` without `check` is for what only you can judge ("the icon is
 aligned with the text"). In the report it is marked as observed by the
-agent, not measured. Use it sparingly.
+agent, not measured. Use it sparingly, and keep it to one sentence: the
+case's run keeps the first 280 characters and moves the whole text to its
+note.
 
 Before filming, read the task's cases with `task_test_cases` and use their key
 (`TC-3`) as `case`, written exactly the same. That way the report and the cases talk about the
 same thing, and on publish each case gets its run. If the task has no cases,
 use the ticket's identifier (`DoD-2`) and no run is recorded.
+
+Give every case at least one verification of its own, even when one take
+covers several cases: that is what puts the video, the second and the
+screenshots on that case's run. A case the take cannot reach because a person
+has to bring something (a real account, a device) stays out of the take:
+record it `blocked` with `needs` (skill `octopus-test-cases`).
 
 ## Annotated screenshots
 
@@ -184,6 +201,37 @@ Not test cases on this task: TC-2a
   report are already on the task: record those runs with
   `task_test_case_run` and the `report_id` the response gives, without publishing
   again.
+
+## Timing and page errors
+
+Every action in a session is timed, and the page errors it causes are filed
+under it. `browser_metrics` returns the steps with TTFB, FCP, LCP, CLS, INP and
+`response_ms` (input to the last DOM change); `browser_findings` lists console
+errors, uncaught exceptions, 4xx/5xx responses and failed requests by step.
+
+To prove a flow is fast enough, or did not get slower:
+
+- Throttle the session or the take: `network` (`fast-4g`, `slow-4g`, `3g`,
+  `offline`), `cpu_throttle` (1 to 20) and `color_scheme` (`light`, `dark`).
+  A live take keeps the session's profile; every replay applies it again.
+- Verify with `check: "perf"`, `metric` (`ttfb`, `fcp`, `lcp`, `cls`, `inp`,
+  or `response` for the last action) and `expected` as the maximum, in ms (CLS
+  without unit). It is measured again on every replay.
+- These are lab numbers from one run, not field data. A threshold means
+  something only against main measured the same way: film the before/after
+  with the same take and read the difference the report puts next to each
+  perf verdict. `cpu_throttle` is relative to the machine, so never compare
+  numbers from two machines.
+- A page error never fails a check by itself. Report the ones that matter (a
+  500 after "Pay") with `evidence_note(level="issue")`, and list third-party
+  noise in `ignore_errors`.
+
+- The app's waits are cut from the video and marked with ⏱ (on screen, in the
+  chapters and on the report's first line), so a slow step is still visible.
+  For a take about how slow the flow feels, set `cut_waits: false` and the
+  waits are filmed in real time.
+
+There is an example in `examples/evidence/takes/shop-142-checkout-perf.json`.
 
 ## Before and after
 
@@ -273,13 +321,15 @@ All of them accept `label` and `side_effect`.
 | `hold` | `ms`: a pause without a bar |
 | `viewport` | `width`, `height` |
 | `shot` | `shot`: same as `evidence_shot` |
-| `verify` | same as `evidence_verify` |
-| `note` | `text`, `level` (`step`, `fact`, `issue`) |
+| `verify` | same as `evidence_verify`; with `check: "perf"`, `metric` and the maximum as `expected` |
+| `a11y` | optional `case`, `include`, `exclude` (targets), `tags`, `fail_on` (`critical`, `serious`, `moderate`, `minor`), `disable_rules` |
+| `note` | `text`, `level` (`step`, `fact`, `issue`, `think`: what a blind tester says, listed in the report's Think-aloud section) |
 | `use` | `flow`, `params` |
 
 The take: `version: 1`, `title`, `base_url`, `viewport`, and optionally
-`timezone`, `locale`, `allowed_hosts`, `redact_css`. Setting `timezone` and
-`locale` makes dates and currencies come out the same on every replay.
+`timezone`, `locale`, `allowed_hosts`, `redact_css`, `network`, `cpu_throttle`,
+`color_scheme`, `ignore_errors` and `cut_waits`. Setting `timezone` and `locale` makes dates
+and currencies come out the same on every replay.
 
 ## Common errors
 

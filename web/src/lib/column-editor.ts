@@ -3,6 +3,7 @@ import { ALT_KEY, altKeyWord } from "./shortcuts";
 import {
   BoardEditor,
   FLAG_KEYS,
+  PR_FLAGS,
   defaultInsertIndex,
   STAGE_COLORS,
   WIP_GROUPS,
@@ -11,6 +12,11 @@ import {
   flowWarningText,
   flowWarnings,
   normalizeHex,
+  approvalsAddLock,
+  kickBackChoices,
+  parseSkipUnless,
+  skipUnlessText,
+  stagePatchLock,
   slugify,
   RESERVED_STAGE_IDS,
   type EditResult,
@@ -103,6 +109,34 @@ const FLAG_TEXT: Record<FlagKey, { name: string; desc: string }> = {
   open_pr: {
     name: t("lib.board_editor.flags.open_pr"),
     desc: t("lib.board_editor.flags.open_pr_desc"),
+  },
+  agent_verdict: {
+    name: t("lib.board_editor.flags.agent_verdict"),
+    desc: t("lib.board_editor.flags.agent_verdict_desc"),
+  },
+  lock_tests: {
+    name: t("lib.board_editor.flags.lock_tests"),
+    desc: t("lib.board_editor.flags.lock_tests_desc"),
+  },
+  pr_draft: {
+    name: t("lib.board_editor.flags.pr_draft"),
+    desc: t("lib.board_editor.flags.pr_draft_desc"),
+  },
+  pr_ready: {
+    name: t("lib.board_editor.flags.pr_ready"),
+    desc: t("lib.board_editor.flags.pr_ready_desc"),
+  },
+  merge_target: {
+    name: t("lib.board_editor.flags.merge_target"),
+    desc: t("lib.board_editor.flags.merge_target_desc"),
+  },
+  release_resources: {
+    name: t("lib.board_editor.flags.release_resources"),
+    desc: t("lib.board_editor.flags.release_resources_desc"),
+  },
+  no_skip: {
+    name: t("lib.board_editor.flags.no_skip"),
+    desc: t("lib.board_editor.flags.no_skip_desc"),
   },
 };
 
@@ -653,6 +687,65 @@ export function mountColumnEditor(opts: ColumnEditorOpts): ColumnEditor {
     return flagCheckHTML(flag, flagState(st, flag, editor.stages));
   }
 
+  // The column's own agent: every new task on this board gets it unless its project template or its
+  // task type names another.
+  function boardAgentRowHTML(st: Stage): string {
+    const picker = opts.agentPicker;
+    if (!picker || !takesAgent(st)) return "";
+    const value = st.default_agent ?? "";
+    const names = picker.choices(st.id);
+    if (value && !names.includes(value)) names.push(value);
+    const options = [
+      `<option value=""${value === "" ? " selected" : ""}>${esc(t("lib.column_agent.picker_none"))}</option>`,
+      ...names.map(
+        (n) => `<option value="${esc(n)}"${value === n ? " selected" : ""}>${esc(n)}</option>`,
+      ),
+    ].join("");
+    return fieldHTML({
+      label: t("lib.column_agent.board_picker"),
+      for: "ce-board-agent",
+      help: t("lib.column_agent.board_picker_desc"),
+      errorId: "ce-board-agent-error",
+      control: `<select id="ce-board-agent" data-ce-board-agent aria-describedby="ce-board-agent-help" ${opts.canEdit ? "" : "disabled"}>${options}</select>`,
+      cls: "ce-agent",
+      attrs: { "data-ce-board-agent-row": "" },
+    });
+  }
+
+  // Values of the task's flow flags (surface: in flags.yaml) that make the column run; empty runs it
+  // for every task.
+  function skipUnlessRowHTML(st: Stage): string {
+    const lock = skipUnlessLock(st);
+    return fieldHTML({
+      label: t("lib.board_editor.skip_unless.label"),
+      for: "ce-skip-unless",
+      help: lock || t("lib.board_editor.skip_unless.help"),
+      errorId: "ce-skip-unless-error",
+      control: `<input id="ce-skip-unless" data-ce-skip spellcheck="false" autocomplete="off" placeholder="${esc(t("lib.board_editor.skip_unless.placeholder"))}" value="${esc(skipUnlessText(st))}" aria-describedby="ce-skip-unless-help" ${opts.canEdit && !lock ? "" : "disabled"} />`,
+      attrs: { "data-ce-skip-row": "" },
+    });
+  }
+
+  // Why the column cannot become skippable (an edge column, approvals, publishing flags, a column
+  // that sends changes back to it); "" when it can. One that already is stays editable.
+  function skipUnlessLock(st: Stage): string {
+    if (st.skip_unless?.length) return "";
+    if (st.no_skip) return t("lib.board_editor.locks.skip_unless_no_skip");
+    return stagePatchLock(editor.stages, st.id, { skip_unless: ["skip"] });
+  }
+
+  // The add button follows the board: a column that becomes skippable takes no approvals.
+  function refreshApprovalsAdd(st: Stage) {
+    const add = behaviorBody?.querySelector<HTMLButtonElement>("[data-ra-add]");
+    const note = behaviorBody?.querySelector<HTMLElement>("[data-ra-add-lock]");
+    const lock = approvalsAddLock(editor.stages, st);
+    if (add && opts.canEdit) add.disabled = lock !== "";
+    if (note) {
+      note.textContent = lock;
+      note.hidden = lock === "";
+    }
+  }
+
   function agentRowHTML(st: Stage): string {
     const picker = opts.agentPicker;
     if (!picker) return "";
@@ -727,10 +820,7 @@ export function mountColumnEditor(opts: ColumnEditorOpts): ColumnEditor {
 
   function behaviorHTML(st: Stage): string {
     const types = opts.taskTypes?.() ?? [];
-    const idx = editor.stages.findIndex((s) => s.id === st.id);
-    const earlier = editor.stages
-      .slice(0, Math.max(idx, 0))
-      .map((s) => ({ id: s.id, label: s.label }));
+    const earlier = kickBackChoices(editor.stages, st).map((s) => ({ id: s.id, label: s.label }));
     const legacy = st.blocked_by_flags ? legacyFlagCheckHTML() : "";
     const wip = segmentedHTML(
       "ce-wip",
@@ -750,15 +840,28 @@ export function mountColumnEditor(opts: ColumnEditorOpts): ColumnEditor {
       <section class="ce-section" aria-labelledby="ce-sec-agent">
         <h4 id="ce-sec-agent" class="ce-section-title">${esc(t("lib.board_editor.behavior.agent"))}</h4>
         <div class="form-stack">
+          ${boardAgentRowHTML(st)}
           ${agentRowHTML(st)}
           ${checkGroupHTML({
             labelledBy: "ce-sec-agent",
             itemsHTML:
-              FLAG_KEYS.filter((f) => f !== "initial" && f !== "terminal")
+              FLAG_KEYS.filter(
+                (f) =>
+                  f !== "initial" && f !== "terminal" && f !== "no_skip" && !PR_FLAGS.includes(f),
+              )
                 .map((f) => flagRowHTML(st, f))
                 .join("") + legacy,
           })}
+          ${skipUnlessRowHTML(st)}
+          ${flagRowHTML(st, "no_skip")}
         </div>
+      </section>
+      <section class="ce-section" aria-labelledby="ce-sec-pr">
+        <h4 id="ce-sec-pr" class="ce-section-title">${esc(t("lib.board_editor.behavior.pr"))}</h4>
+        ${checkGroupHTML({
+          labelledBy: "ce-sec-pr",
+          itemsHTML: PR_FLAGS.map((f) => flagRowHTML(st, f)).join(""),
+        })}
       </section>
       <section class="ce-section" aria-labelledby="ce-sec-wip">
         <h4 id="ce-sec-wip" class="ce-section-title">${esc(t("lib.board_editor.behavior.wip"))}</h4>
@@ -768,7 +871,7 @@ export function mountColumnEditor(opts: ColumnEditorOpts): ColumnEditor {
       </section>
       <section class="ce-section ce-approvals" id="ce-approvals" aria-labelledby="ce-sec-ra">
         <h4 id="ce-sec-ra" class="ce-section-title">${esc(t("lib.board_editor.menu.approvals"))}</h4>
-        <div class="ra-body">${approvalsEditorHTML(st, types, earlier)}</div>
+        <div class="ra-body">${approvalsEditorHTML(st, types, earlier, approvalsAddLock(editor.stages, st))}</div>
         <div class="ce-approvals-foot">
           ${fieldErrorHTML({ tag: "span", cls: "ce-ra-error" })}
           <span class="ce-ra-status" aria-hidden="true"></span>
@@ -828,6 +931,37 @@ export function mountColumnEditor(opts: ColumnEditorOpts): ColumnEditor {
     behaviorBody
       .querySelectorAll<HTMLInputElement>('input[name="ce-wip"]')
       .forEach((r) => (r.checked = r.value === st.wip_group));
+    refreshApprovalsAdd(st);
+    const skip = behaviorBody.querySelector<HTMLInputElement>("[data-ce-skip]");
+    const skipRow = skip?.closest<HTMLElement>("[data-ce-skip-row]");
+    if (skip && skipRow && skip.disabled !== (!opts.canEdit || skipUnlessLock(st) !== "")) {
+      skipRow.outerHTML = skipUnlessRowHTML(st);
+    } else if (skip && document.activeElement !== skip) skip.value = skipUnlessText(st);
+    const boardAgent = behaviorBody.querySelector<HTMLSelectElement>("[data-ce-board-agent]");
+    if (boardAgent && document.activeElement !== boardAgent) {
+      boardAgent.value = st.default_agent ?? "";
+    }
+  }
+
+  function saveSkipUnless(id: string, input: HTMLInputElement) {
+    const st = stageOf(id);
+    if (!st) return;
+    const parsed = parseSkipUnless(input.value);
+    if ("problem" in parsed) {
+      setFieldError(input, parsed.problem);
+      return;
+    }
+    const lock = stagePatchLock(editor.stages, id, { skip_unless: parsed.values });
+    if (lock) {
+      setFieldError(input, lock);
+      return;
+    }
+    setFieldError(input, "");
+    if (parsed.values.join(",") === (st.skip_unless ?? []).join(",")) return;
+    void track(
+      editor.patch(id, { skip_unless: parsed.values }),
+      t("lib.board_editor.behavior.saved", { setting: t("lib.board_editor.skip_unless.label") }),
+    );
   }
 
   behaviorBody?.addEventListener("change", (e) => {
@@ -836,6 +970,18 @@ export function mountColumnEditor(opts: ColumnEditorOpts): ColumnEditor {
     if (!id) return;
     if (input.hasAttribute("data-ce-agent")) {
       void saveAgent(input as unknown as HTMLSelectElement);
+      return;
+    }
+    if (input.hasAttribute("data-ce-board-agent")) {
+      setFieldError(input, "");
+      void track(
+        editor.patch(id, { default_agent: input.value }),
+        t("lib.board_editor.behavior.saved", { setting: t("lib.column_agent.board_picker") }),
+      );
+      return;
+    }
+    if (input.hasAttribute("data-ce-skip")) {
+      saveSkipUnless(id, input);
       return;
     }
     const flag = input.dataset.flag as FlagKey | undefined;
@@ -911,6 +1057,13 @@ export function mountColumnEditor(opts: ColumnEditorOpts): ColumnEditor {
     const read = readApprovals();
     if (read && "problem" in read) {
       approvalsProblem(read.problem);
+      return false;
+    }
+    // The daemon's flow rules: a skippable or resource-freeing column, a kick-back target that may
+    // be skipped, required checks with no pull request yet.
+    const lock = read ? stagePatchLock(editor.stages, id, read) : "";
+    if (lock) {
+      approvalsProblem(lock);
       return false;
     }
     approvalsProblem(null);
@@ -995,6 +1148,7 @@ export function mountColumnEditor(opts: ColumnEditorOpts): ColumnEditor {
         (focused?.closest(".ce-approvals")
           ? behaviorBody.querySelector<HTMLElement>(".ce-ra-error")
           : null) ??
+        focused?.closest(".field")?.querySelector<HTMLElement>(":scope > .field-error") ??
         behaviorBody.querySelector<HTMLElement>(".ce-wip-error");
       if (slot) {
         slot.textContent = errorText(res.error);

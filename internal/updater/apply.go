@@ -50,9 +50,13 @@ func (u *updateRun) apply(ctx context.Context, latest bool) error {
 	current := u.installedVersion(prev)
 	if latest && current == m.Version && u.opts.Version == "" {
 		u.say("updater.cli.already_on", "version", m.Version)
+		u.syncCLI(ctx, m, "")
 		return nil
 	}
 	if done, derr := u.delegate(ctx, m, u.delegatedArgs("apply", "-version", m.Version)); done || derr != nil {
+		if done && derr == nil {
+			u.syncAfterDelegate(ctx, m)
+		}
 		return derr
 	}
 
@@ -74,6 +78,9 @@ func (u *updateRun) apply(ctx context.Context, latest bool) error {
 		return runErr
 	}
 	u.finish(ctx, st, res, runErr)
+	if runErr == nil && res == ResultOK {
+		u.syncCLI(ctx, m, "")
+	}
 	return runErr
 }
 

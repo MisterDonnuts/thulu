@@ -2,11 +2,11 @@
   "none": "No agent in any project",
   "one": "Runs {agent}",
   "some": "Runs {agents} in {with} of {count} projects",
-  "picker": "Default agent",
+  "picker": "Per-project override",
   "picker_desc": "New tasks of the projects that start on this board copy it. A task runs in this column the agent it has assigned for it.",
   "picker_none": "None",
   "picker_mixed": "Different in each project",
-  "no_projects": "No project starts on this board yet: the agent is picked in each project's template.",
+  "no_projects": "No project starts on this board yet. A project that needs another agent here picks it in its template.",
   "projects": {
     "one": "Saved to the template of {count} project.",
     "other": "Saved to the template of {count} projects."
@@ -18,5 +18,7 @@
   },
   "cleared": "{column} no longer has a default agent",
   "save_failed": "Could not save to {project}: {error}",
-  "start_end": "Start and end columns run no agent."
+  "start_end": "Start and end columns run no agent.",
+  "board_picker": "Agent of this column",
+  "board_picker_desc": "Every new task on this board gets it, unless its project template or its task type names another."
 }

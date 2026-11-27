@@ -42,6 +42,13 @@ type Project struct {
 	// allowed before it touches it, so a path set here alone reaches nothing outside them.
 	RunnerPath string    `json:"runner_path,omitempty"`
 	CreatedAt  time.Time `json:"created_at"`
+
+	// '' | auto | batch; see releaseMigration.
+	ReleaseMode        string `json:"release_mode,omitempty"`
+	ReleaseEnvironment string `json:"release_environment,omitempty"`
+
+	// The quality-gate profile, a JSON object or empty; see gatesProfileMigration.
+	GatesProfile json.RawMessage `json:"gates_profile,omitempty"`
 }
 
 // Empty means the clone is on disk, which every project created before background clones has.
@@ -116,6 +123,13 @@ type Patch struct {
 	RunnerID *string `json:"runner_id,omitempty"`
 	// Same caveat as RunnerID: the API layer checks the path against the runner's allowed folders.
 	RunnerPath *string `json:"runner_path,omitempty"`
+
+	ReleaseMode        *string `json:"release_mode,omitempty"`
+	ReleaseEnvironment *string `json:"release_environment,omitempty"`
+
+	// A JSON object replaces the profile whole; {} clears it. Not authorized here: the API layer
+	// keeps agent runs from changing it.
+	GatesProfile *json.RawMessage `json:"gates_profile,omitempty"`
 }
 
 type Store struct {
@@ -225,7 +239,7 @@ func Migrations(in migrate.Inspector) ([]migrate.Migration, error) {
 	// 25 is envDisplayNameMigration, 26 source, 27 and 28 cloneMigrations.
 	migrations = append(migrations, envDisplayNameMigration, sourceMigration)
 	migrations = append(migrations, cloneMigrations...)
-	migrations = append(migrations, runnerMigration, runnerPathMigration)
+	migrations = append(migrations, runnerMigration, runnerPathMigration, releaseMigration, deployWatchMigration, gatesProfileMigration)
 	return migrations, nil
 }
 
@@ -419,15 +433,23 @@ func (s *Store) Update(ctx context.Context, id string, p Patch) (*Project, error
 	if rerr := proj.applyRunnerPatch(p.RunnerID, p.RunnerPath); rerr != nil {
 		return nil, rerr
 	}
+	if rerr := proj.applyReleasePatch(p.ReleaseMode, p.ReleaseEnvironment); rerr != nil {
+		return nil, rerr
+	}
+	if gerr := proj.applyGatesProfilePatch(p.GatesProfile); gerr != nil {
+		return nil, gerr
+	}
 	tplJSON, err := json.Marshal(proj.StageTemplate)
 	if err != nil {
 		return nil, apperr.Wrap(err, "project.errors.marshal_template")
 	}
 	_, err = s.db.ExecContext(ctx,
 		s.rb(`UPDATE projects SET name=?, default_branch=?, description=?,
-		    stage_template=?, default_board_id=?, github_installation_id=?, runner_id=?, runner_path=? WHERE id=?`),
+		    stage_template=?, default_board_id=?, github_installation_id=?, runner_id=?, runner_path=?,
+		    release_mode=?, release_environment=?, gates_profile=? WHERE id=?`),
 		proj.Name, proj.DefaultBranch, proj.Description,
-		string(tplJSON), proj.DefaultBoardID, proj.GithubInstallationID, proj.RunnerID, proj.RunnerPath, proj.ID,
+		string(tplJSON), proj.DefaultBoardID, proj.GithubInstallationID, proj.RunnerID, proj.RunnerPath,
+		proj.ReleaseMode, proj.ReleaseEnvironment, string(proj.GatesProfile), proj.ID,
 	)
 	return proj, err
 }
@@ -459,7 +481,8 @@ func (p *Project) applyRunnerPatch(runnerID, runnerPath *string) error {
 // MigrateLegacyStageCmds to drain.
 const projectColumns = `id, name, path, repo_url, default_branch, description,
 	        stage_template, default_board_id, workspace_id, github_installation_id, source,
-	        clone_status, clone_error, clone_detail, runner_id, runner_path, created_at`
+	        clone_status, clone_error, clone_detail, runner_id, runner_path, created_at,
+	        release_mode, release_environment, gates_profile`
 
 type rowScanner interface {
 	Scan(dest ...any) error
@@ -467,11 +490,15 @@ type rowScanner interface {
 
 func scanProject(r rowScanner) (*Project, error) {
 	p := &Project{}
-	var tplJSON string
+	var tplJSON, gates string
 	if err := r.Scan(&p.ID, &p.Name, &p.Path, &p.RepoURL, &p.DefaultBranch,
 		&p.Description, &tplJSON, &p.DefaultBoardID, &p.WorkspaceID,
-		&p.GithubInstallationID, &p.Source, &p.CloneStatus, &p.CloneError, &p.CloneDetail, &p.RunnerID, &p.RunnerPath, &p.CreatedAt); err != nil {
+		&p.GithubInstallationID, &p.Source, &p.CloneStatus, &p.CloneError, &p.CloneDetail, &p.RunnerID, &p.RunnerPath, &p.CreatedAt,
+		&p.ReleaseMode, &p.ReleaseEnvironment, &gates); err != nil {
 		return nil, err
+	}
+	if gates != "" {
+		p.GatesProfile = json.RawMessage(gates)
 	}
 	if err := json.Unmarshal([]byte(tplJSON), &p.StageTemplate); err != nil {
 		return nil, apperr.Wrap(err, "project.errors.unmarshal_template_for", "id", p.ID)
@@ -546,6 +573,11 @@ func (s *Store) Delete(ctx context.Context, id string) error {
 	}
 	// Stop a running clone first, or it keeps writing into the directory removed below.
 	s.clones.stop(id)
+	// A project later created under this id (an import) must not inherit this one's watches. Their
+	// automations belong to the caller (api), which removes them before calling Delete.
+	if watchErr := s.deleteDeployWatchesForProject(ctx, id); watchErr != nil {
+		return watchErr
+	}
 	if proj.CodeOnRunner() {
 		return s.deleteRunnerProject(ctx, proj)
 	}

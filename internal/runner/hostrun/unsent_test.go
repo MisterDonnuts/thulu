@@ -3,6 +3,7 @@ package hostrun
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -153,7 +154,7 @@ func TestSweepSavesTheWorkACrashLeftInAClone(t *testing.T) {
 	writeFile(t, filepath.Join(stuck.project(), "out.txt"), "other")
 	writeFile(t, filepath.Join(stuck.project(), ".git", "objects", "info", "alternates"), t.TempDir()+"/objects\n")
 
-	sweepLeftovers(ctx, runs)
+	d.r.sweepAll(ctx)
 
 	if got := gitIn(t, d.r.cfg.mirrorDir("p1"), "show", unsentRef("octopus-result-1", "j1")+":out.txt"); got != "work" {
 		t.Errorf("the mirror keeps %q for the crashed run", got)
@@ -294,13 +295,49 @@ func TestATurnWhoseAnswerNeverArrivesEndsLost(t *testing.T) {
 		if err := os.MkdirAll(filepath.Join(j.root, "runs", "i1"), 0o750); err != nil {
 			t.Fatal(err)
 		}
-		j.report(context.Background(), runner.FinishRequest{ExitCode: 0})
+		j.report(context.Background(), runner.FinishRequest{ExitCode: 0}, false)
 		res := <-finished
 		switch {
 		case kind != "" && (res.ExitCode != runner.ExitLost || res.Error == ""):
 			t.Errorf("a turn whose answer never arrived finished as %+v, want lost with the reason", res)
 		case kind == "" && res.ExitCode != 0:
 			t.Errorf("a run whose outputs never arrived finished as %+v, want its own exit code", res)
+		case kind == "" && res.OutputsError == "":
+			t.Errorf("a run whose outputs never arrived finished as %+v, want the upload's error", res)
 		}
+	}
+}
+
+// The daemon reads the verdict from the outputs: the finish report says which files stayed out, the
+// runner's budget ones and the ones the daemon refused, so a lost verdict is not blamed on the agent.
+func TestAReportListsTheOutputsThatStayedOut(t *testing.T) {
+	finished := make(chan runner.FinishRequest, 1)
+	mux := http.NewServeMux()
+	mux.HandleFunc("PUT /runner/v1/jobs/{id}/outputs", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.Copy(io.Discard, r.Body)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(runner.OutputsResponse{Skipped: []runner.SkippedOutput{{Path: "late.bin", Size: 9}}})
+	})
+	mux.HandleFunc("POST /runner/v1/jobs/{id}/finish", func(w http.ResponseWriter, r *http.Request) {
+		var res runner.FinishRequest
+		_ = json.NewDecoder(r.Body).Decode(&res)
+		finished <- res
+		w.WriteHeader(http.StatusNoContent)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	r := &Runner{cfg: &Config{DaemonURL: srv.URL}, client: NewClient(srv.URL, runner.CredentialPrefix+"test", "test")}
+	j := &job{r: r, root: t.TempDir(), spec: &runner.JobSpec{ID: "j1", InstanceID: "i1"}}
+	out := filepath.Join(j.root, "runs", "i1")
+	if err := os.MkdirAll(out, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(out, "verdict.md"), []byte("---\nverdict: continue\n---\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	j.report(context.Background(), runner.FinishRequest{ExitCode: 0}, false)
+	res := <-finished
+	if res.OutputsError != "" || len(res.OutputsSkipped) != 1 || res.OutputsSkipped[0].Path != "late.bin" {
+		t.Errorf("finished as %+v, want late.bin listed and no upload error", res)
 	}
 }

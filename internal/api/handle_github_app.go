@@ -73,6 +73,7 @@ func (s *Server) githubTokenForProjectWith(ctx context.Context, projectID string
 
 var tokenPermissionExtras = map[string]githubapp.Permissions{
 	"actions:write":     {"actions": "write"},           //i18n:ignore GitHub permission token
+	"contents:write":    {"contents": "write"},          //i18n:ignore GitHub permission token
 	"deployments:write": githubapp.PermDeploymentsWrite, //i18n:ignore GitHub permission token
 	"workflows:write":   githubapp.PermWorkflowsWrite,   //i18n:ignore GitHub permission token
 	// An installation without Checks: read fails the mint and the endpoint answers 404; the MCP's
@@ -83,9 +84,9 @@ var tokenPermissionExtras = map[string]githubapp.Permissions{
 func tokenPermissionsParam(r *http.Request) (githubapp.Permissions, error) {
 	raw := r.URL.Query().Get("permissions")
 	if raw == "" {
-		return githubapp.PermsAgentTools, nil
+		return githubapp.PermsRunTools, nil
 	}
-	perms := githubapp.PermsAgentTools
+	perms := githubapp.PermsRunTools
 	for _, name := range strings.Split(raw, ",") {
 		extra, ok := tokenPermissionExtras[name]
 		if !ok {
@@ -560,7 +561,10 @@ func (s *Server) handleGithubWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 	event := r.Header.Get("X-GitHub-Event")
 	s.invalidatePRStatus(event, payload)
-	s.evidenceDeployHook(r.Context(), event, payload)
+	s.noteGithubHook(payload)
+	s.githubMergeHook(r.Context(), event, payload)
+	s.githubChecksHook(r.Context(), event, payload)
+	batchIDs := s.evidenceDeployHook(r.Context(), event, payload)
 	switch event {
 	case "ping":
 		writeJSON(w, http.StatusOK, map[string]any{"ok": true})
@@ -581,26 +585,34 @@ func (s *Server) handleGithubWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	default:
 		if kind := githubEventKind(event); kind != "" {
-			var ev githubEventPayload
-			if err := json.Unmarshal(payload, &ev); err != nil {
-				// Accept anyway: answering 4xx makes GitHub disable the hook.
-				logx.Warn(err, "api.github.log.webhook_decode_failed", "event", event)
-				w.WriteHeader(http.StatusNoContent)
-				return
-			}
-			if workspaceID := s.githubEventWorkspace(r.Context(), ev); workspaceID != "" {
-				data, dedupeKey := s.automationPayload(r.Context(), event, workspaceID, ev)
-				s.publishAutomationEvent(r.Context(), kind, workspaceID, dedupeKey, data)
-			} else {
-				// Log only kind and numeric id: the rest of the payload is sender-controlled text.
-				log.Printf("[github] %s", i18n.Log("api.github.log.webhook_unattributed",
-					"kind", kind, "installation", ev.Installation.ID))
-			}
+			s.publishGithubAutomationEvent(r.Context(), event, kind, payload, batchIDs)
 		}
 		// Always acknowledge, or GitHub marks deliveries failed and disables the hook.
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
+}
+
+// publishGithubAutomationEvent never fails the delivery: a payload it cannot read is logged and
+// acknowledged, since answering 4xx makes GitHub disable the hook.
+func (s *Server) publishGithubAutomationEvent(ctx context.Context, event, kind string, payload []byte, batchIDs []string) {
+	var ev githubEventPayload
+	if err := json.Unmarshal(payload, &ev); err != nil {
+		logx.Warn(err, "api.github.log.webhook_decode_failed", "event", event)
+		return
+	}
+	workspaceID := s.githubEventWorkspace(ctx, ev)
+	if workspaceID == "" {
+		// Log only kind and numeric id: the rest of the payload is sender-controlled text.
+		log.Printf("[github] %s", i18n.Log("api.github.log.webhook_unattributed",
+			"kind", kind, "installation", ev.Installation.ID))
+		return
+	}
+	data, dedupeKey := s.automationPayload(ctx, event, workspaceID, ev)
+	if key := addGithubEventFields(event, payload, batchIDs, data); key != "" {
+		dedupeKey = key
+	}
+	s.publishAutomationEvent(ctx, kind, workspaceID, dedupeKey, data)
 }
 
 // Webhooks carry no workspace: these upserts must never claim a row (UpsertInstallation keeps

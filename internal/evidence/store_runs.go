@@ -18,7 +18,7 @@ import (
 const batchCols = `b.id, b.workspace_id, b.environment_id, b.trigger, b.trigger_ref, b.status, b.total, b.passed,
 	b.failed, b.blocked, b.errored, b.canceled, b.runner, b.error, b.created_by, b.created_at, b.started_at, b.finished_at,
 	b.base_url, b.source_branch, b.source_commit, b.sandbox_status, b.sandbox_phase, b.sandbox_error,
-	b.sandbox_reason, b.sandbox_reason_args, b.locale`
+	b.sandbox_reason, b.sandbox_reason_args, b.locale, b.safe_only, b.task_id`
 
 func scanBatch(r rowScanner, extra ...any) (Batch, error) {
 	var b Batch
@@ -27,7 +27,7 @@ func scanBatch(r rowScanner, extra ...any) (Batch, error) {
 	dest := append([]any{&b.ID, &b.WorkspaceID, &b.EnvironmentID, &b.Trigger, &b.TriggerRef, &b.Status, &b.Total,
 		&b.Passed, &b.Failed, &b.Blocked, &b.Errored, &b.Canceled, &b.Runner, &b.Error, &b.CreatedBy,
 		&b.CreatedAt, &started, &finished, &b.BaseURL, &b.SourceBranch, &b.SourceCommit, &b.SandboxStatus,
-		&b.SandboxPhase, &b.SandboxError, &b.SandboxReason, &reasonArgs, &b.Locale}, extra...)
+		&b.SandboxPhase, &b.SandboxError, &b.SandboxReason, &reasonArgs, &b.Locale, &b.SafeOnly, &b.TaskID}, extra...)
 	err := r.Scan(dest...)
 	b.CreatedAt = b.CreatedAt.UTC()
 	b.StartedAt, b.FinishedAt = timePtr(started), timePtr(finished)
@@ -78,6 +78,10 @@ type BatchSpec struct {
 	Trigger           string   `json:"-"`
 	TriggerRef        string   `json:"-"`
 	Locale            string   `json:"-"`
+	// Only the cases a person marked safe for production.
+	SafeOnly bool `json:"safe_only,omitempty"`
+	// The task the batch was queued for; set by the caller, never by the request body.
+	TaskID string `json:"-"`
 }
 
 // Must agree with CaseRunsOn. Columns are unqualified (evidence_cases).
@@ -98,7 +102,8 @@ func (s *Store) CreateBatch(ctx context.Context, ws, author string, spec BatchSp
 		return nil, err
 	}
 	b := Batch{ID: newID(), WorkspaceID: ws, EnvironmentID: env.ID, Trigger: spec.Trigger, TriggerRef: spec.TriggerRef,
-		Status: BatchQueued, CreatedBy: author, CreatedAt: time.Now().UTC(), BaseURL: env.BaseURL, Locale: spec.Locale}
+		Status: BatchQueued, CreatedBy: author, CreatedAt: time.Now().UTC(), BaseURL: env.BaseURL, Locale: spec.Locale,
+		SafeOnly: spec.SafeOnly, TaskID: spec.TaskID}
 	if b.Trigger == "" {
 		b.Trigger = TriggerManual
 	}
@@ -113,13 +118,68 @@ func (s *Store) CreateBatch(ctx context.Context, ws, author string, spec BatchSp
 	case env.BaseURL == "":
 		return nil, apperr.Precondition("evidence.errors.env_no_url", "env", env.Label())
 	}
+	where, args, err := s.batchCaseFilter(ctx, ws, env, spec)
+	if err != nil {
+		return nil, err
+	}
+	var unsafe []string
+	if spec.SafeOnly {
+		if unsafe, err = s.unsafeKeys(ctx, where, args); err != nil {
+			return nil, err
+		}
+		where = append(where, "safe_for_prod")
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, apperr.Wrap(err, "evidence.errors.begin")
+	}
+	defer func() { _ = tx.Rollback() }()
+	if _, err = tx.ExecContext(ctx, s.rb(`INSERT INTO evidence_batches (id, workspace_id, environment_id, trigger,
+		trigger_ref, status, created_by, created_at, base_url, source_branch, sandbox_status, locale, safe_only, task_id)
+		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`),
+		b.ID, ws, env.ID, b.Trigger, b.TriggerRef, BatchQueued, author, b.CreatedAt, b.BaseURL, b.SourceBranch,
+		b.SandboxStatus, b.Locale, b.SafeOnly, b.TaskID); err != nil {
+		return nil, apperr.Wrap(err, "evidence.errors.insert_batch")
+	}
+	res, err := tx.ExecContext(ctx, s.rb(`INSERT INTO evidence_runs (id, workspace_id, batch_id, case_id,
+		environment_id, position, status, take, created_at)
+		SELECT substr(md5(random()::text || id), 1, 16), workspace_id, ?, id, ?,
+			ROW_NUMBER() OVER (ORDER BY CAST(SUBSTRING(key FROM '[0-9]+$') AS INTEGER) NULLS LAST, created_at),
+			'queued', take, ?
+		FROM evidence_cases WHERE `+strings.Join(where, " AND ")), append([]any{b.ID, env.ID, b.CreatedAt}, args...)...)
+	if err != nil {
+		return nil, apperr.Wrap(err, "evidence.errors.insert_batch")
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 && len(unsafe) > 0 {
+		return nil, apperr.Precondition("evidence.errors.only_unsafe", "count", len(unsafe), "keys", strings.Join(unsafe, ", "))
+	}
+	if n == 0 {
+		return nil, apperr.Precondition("evidence.errors.nothing_to_run")
+	}
+	b.Total = int(n)
+	if _, err = tx.ExecContext(ctx, s.rb(`UPDATE evidence_batches SET total = ? WHERE id = ?`), b.Total, b.ID); err != nil {
+		return nil, apperr.Wrap(err, "evidence.errors.insert_batch")
+	}
+	if err = tx.Commit(); err != nil {
+		return nil, apperr.Wrap(err, "evidence.errors.commit")
+	}
+	out, err := s.GetBatch(ctx, ws, b.ID)
+	if err == nil {
+		out.SkippedUnsafe = unsafe
+	}
+	return out, err
+}
+
+// batchCaseFilter is the WHERE over evidence_cases that picks a batch's cases, before safe_only.
+func (s *Store) batchCaseFilter(ctx context.Context, ws string, env *Environment, spec BatchSpec) ([]string, []any, error) {
 	//i18n:ignore SQL fragment
 	where := []string{"workspace_id = ?", "take IS NOT NULL"}
 	args := []any{ws}
 	if len(spec.CaseIDs) > 0 {
 		cond, ids := caseRefs(spec.CaseIDs)
-		if eligErr := s.checkEligible(ctx, ws, env, cond, ids); eligErr != nil {
-			return nil, eligErr
+		if err := s.checkEligible(ctx, ws, env, cond, ids); err != nil {
+			return nil, nil, err
 		}
 		where = append(where, cond)
 		args = append(args, ids...)
@@ -136,39 +196,27 @@ func (s *Store) CreateBatch(ctx context.Context, ws, author string, spec BatchSp
 		where = append(where, "tags @> CAST(? AS jsonb)")
 		args = append(args, jsonText([]string{spec.Tag}))
 	}
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, apperr.Wrap(err, "evidence.errors.begin")
-	}
-	defer func() { _ = tx.Rollback() }()
-	if _, err = tx.ExecContext(ctx, s.rb(`INSERT INTO evidence_batches (id, workspace_id, environment_id, trigger,
-		trigger_ref, status, created_by, created_at, base_url, source_branch, sandbox_status, locale)
-		VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`),
-		b.ID, ws, env.ID, b.Trigger, b.TriggerRef, BatchQueued, author, b.CreatedAt, b.BaseURL, b.SourceBranch,
-		b.SandboxStatus, b.Locale); err != nil {
-		return nil, apperr.Wrap(err, "evidence.errors.insert_batch")
-	}
-	res, err := tx.ExecContext(ctx, s.rb(`INSERT INTO evidence_runs (id, workspace_id, batch_id, case_id,
-		environment_id, position, status, take, created_at)
-		SELECT substr(md5(random()::text || id), 1, 16), workspace_id, ?, id, ?,
-			ROW_NUMBER() OVER (ORDER BY CAST(SUBSTRING(key FROM '[0-9]+$') AS INTEGER) NULLS LAST, created_at),
-			'queued', take, ?
-		FROM evidence_cases WHERE `+strings.Join(where, " AND ")), append([]any{b.ID, env.ID, b.CreatedAt}, args...)...)
+	return where, args, nil
+}
+
+// unsafeKeys lists the cases the other filters pick that nobody marked safe for production, so a
+// safe_only batch can say what it did not run.
+func (s *Store) unsafeKeys(ctx context.Context, where []string, args []any) ([]string, error) {
+	rows, err := s.db.QueryContext(ctx, s.rb(`SELECT key FROM evidence_cases WHERE `+strings.Join(where, " AND ")+
+		` AND NOT safe_for_prod ORDER BY CAST(SUBSTRING(key FROM '[0-9]+$') AS INTEGER) NULLS LAST, created_at`), args...)
 	if err != nil {
 		return nil, apperr.Wrap(err, "evidence.errors.insert_batch")
 	}
-	n, _ := res.RowsAffected()
-	if n == 0 {
-		return nil, apperr.Precondition("evidence.errors.nothing_to_run")
+	defer rows.Close()
+	var keys []string
+	for rows.Next() {
+		var k string
+		if err = rows.Scan(&k); err != nil {
+			return nil, apperr.Wrap(err, "evidence.errors.insert_batch")
+		}
+		keys = append(keys, k)
 	}
-	b.Total = int(n)
-	if _, err = tx.ExecContext(ctx, s.rb(`UPDATE evidence_batches SET total = ? WHERE id = ?`), b.Total, b.ID); err != nil {
-		return nil, apperr.Wrap(err, "evidence.errors.insert_batch")
-	}
-	if err = tx.Commit(); err != nil {
-		return nil, apperr.Wrap(err, "evidence.errors.commit")
-	}
-	return s.GetBatch(ctx, ws, b.ID)
+	return keys, rows.Err()
 }
 
 func caseRefs(refs []string) (string, []any) {
@@ -259,20 +307,43 @@ func (s *Store) batchByID(ctx context.Context, id string) (*Batch, error) {
 }
 
 func (s *Store) ListBatches(ctx context.Context, ws, envID, projectID string, limit int) ([]Batch, error) {
-	limit = clampLimit(limit)
+	return s.FindBatches(ctx, ws, BatchFilter{EnvironmentID: envID, ProjectID: projectID, Limit: limit})
+}
+
+// BatchFilter narrows FindBatches; empty fields do not filter.
+type BatchFilter struct {
+	EnvironmentID string
+	ProjectID     string
+	Trigger       string
+	// A substring of trigger_ref: a deploy's is "owner/repo@sha7 · environment", an agent's the task.
+	Ref    string
+	TaskID string
+	Limit  int
+}
+
+// FindBatches lists a workspace's batches, newest first.
+func (s *Store) FindBatches(ctx context.Context, ws string, f BatchFilter) ([]Batch, error) {
 	q := `SELECT ` + batchCols + ` FROM evidence_batches b WHERE b.workspace_id = ?`
 	args := []any{ws}
-	if envID != "" {
-		q += ` AND b.environment_id = ?`
-		args = append(args, envID)
+	for _, c := range []struct{ col, val string }{
+		{"b.environment_id", f.EnvironmentID}, {"b.trigger", f.Trigger}, {"b.task_id", f.TaskID},
+	} {
+		if c.val != "" {
+			q += ` AND ` + c.col + ` = ?`
+			args = append(args, c.val)
+		}
 	}
-	if cond, cargs := projectCond("e.project_id", projectID, false); cond != "" {
+	if f.Ref != "" {
+		q += ` AND b.trigger_ref LIKE ? ESCAPE '\'`
+		args = append(args, "%"+likeEscape(f.Ref)+"%")
+	}
+	if cond, cargs := projectCond("e.project_id", f.ProjectID, false); cond != "" {
 		//i18n:ignore SQL fragment
 		q += ` AND b.environment_id IN (SELECT e.id FROM evidence_environments e WHERE ` + cond + `)`
 		args = append(args, cargs...)
 	}
 	q += ` ORDER BY b.created_at DESC LIMIT ?`
-	args = append(args, limit)
+	args = append(args, clampLimit(f.Limit))
 	rows, err := s.db.QueryContext(ctx, s.rb(q), args...)
 	if err != nil {
 		return nil, apperr.Wrap(err, "evidence.errors.list_batches")
@@ -617,14 +688,21 @@ func (s *Store) ListRuns(ctx context.Context, f RunFilter) ([]Run, error) {
 
 func (s *Store) GetRun(ctx context.Context, ws, id string) (*Run, error) {
 	var take sql.NullString
-	var report string
+	var report, metrics, findings string
 	//i18n:ignore SQL fragment
-	r, err := scanRun(s.db.QueryRowContext(ctx, s.rb(`SELECT `+runCols+`, r.take::text, r.report_md`+runFrom+
-		` WHERE r.workspace_id = ? AND r.id = ?`), ws, id), &take, &report)
+	r, err := scanRun(s.db.QueryRowContext(ctx, s.rb(`SELECT `+runCols+`, r.take::text, r.report_md, r.metrics::text,
+		r.findings::text`+runFrom+` WHERE r.workspace_id = ? AND r.id = ?`), ws, id), &take, &report, &metrics, &findings)
 	if err != nil {
 		return nil, notFound(err, "evidence.errors.run_not_found", "id", id)
 	}
 	r.ReportMD = report
+	r.Metrics = json.RawMessage(metrics)
+	if err = json.Unmarshal([]byte(findings), &r.Findings); err != nil {
+		return nil, apperr.Wrap(err, "evidence.errors.list_runs")
+	}
+	if r.Findings == nil {
+		r.Findings = []Finding{}
+	}
 	r.localize(ctx)
 	if take.Valid {
 		r.Take = json.RawMessage(take.String)
@@ -696,12 +774,21 @@ func (s *Store) FinishRun(ctx context.Context, ws, batchID, runID string, res Ru
 	if res.ShotIDs == nil {
 		res.ShotIDs = []string{}
 	}
+	metrics, err := runMetrics(res.Metrics)
+	if err != nil {
+		return nil, err
+	}
+	if len(res.Findings) > maxFindings {
+		res.Findings = res.Findings[:maxFindings]
+	}
 	now := time.Now().UTC()
 	_, err = s.db.ExecContext(ctx, s.rb(`UPDATE evidence_runs SET status = ?, checks = CAST(? AS jsonb),
 		failures = CAST(? AS jsonb), error = ?, duration_ms = ?, report_md = ?, video_id = ?, take_id = ?,
-		chapters_id = ?, poster_id = ?, shot_ids = CAST(? AS jsonb), finished_at = ? WHERE id = ?`),
+		chapters_id = ?, poster_id = ?, shot_ids = CAST(? AS jsonb), metrics = CAST(? AS jsonb),
+		findings = CAST(? AS jsonb), finished_at = ? WHERE id = ?`),
 		res.Status, jsonText(res.Checks), jsonText(res.Failures), res.Error, res.DurationMS, res.ReportMD,
-		res.VideoID, res.TakeID, res.ChaptersID, res.PosterID, jsonText(res.ShotIDs), now, runID)
+		res.VideoID, res.TakeID, res.ChaptersID, res.PosterID, jsonText(res.ShotIDs), metrics, jsonText(res.Findings),
+		now, runID)
 	if err != nil {
 		return nil, apperr.Wrap(err, "evidence.errors.finish_run")
 	}
@@ -713,6 +800,29 @@ func (s *Store) FinishRun(ctx context.Context, ws, batchID, runID string, res Ru
 		return nil, err
 	}
 	return s.GetRun(ctx, ws, runID)
+}
+
+// The runner's metrics as stored: a JSON object, '{}' when absent. Past maxMetricsBytes the per-step
+// list goes first (the metrics artifact keeps it), then everything: a result is never refused for its
+// timing.
+func runMetrics(raw json.RawMessage) (string, error) {
+	if len(raw) == 0 || string(raw) == "null" {
+		return "{}", nil
+	}
+	var obj map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &obj); err != nil || obj == nil {
+		return "", apperr.Invalid("evidence.errors.metrics_invalid")
+	}
+	if len(raw) <= maxMetricsBytes {
+		return string(raw), nil
+	}
+	delete(obj, "steps")
+	obj["steps_dropped"] = json.RawMessage("true")
+	b, err := json.Marshal(obj)
+	if err != nil || len(b) > maxMetricsBytes {
+		return `{"steps_dropped":true}`, nil
+	}
+	return string(b), nil
 }
 
 const artifactCols = `id, workspace_id, run_id, kind, filename, mime_type, size, path, created_at`
@@ -891,4 +1001,8 @@ func scanSummaryCounts(rows *sql.Rows, sum *Summary) error {
 		sum.Recorded += rec
 	}
 	return rows.Err()
+}
+
+func likeEscape(s string) string {
+	return strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(s)
 }

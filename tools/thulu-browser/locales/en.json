@@ -14,13 +14,18 @@
       "description": "Stateless: open a URL and return the visible text (post-JS render). Use browser_get_text instead when you have an active session."
     },
     "browser_new_session": {
-      "description": "Create a persistent browser session (isolated BrowserContext). Returns a session_id — pass it to all browser_* tools. Pass instance_id + agent_type to enable screenshot/video persistence and script name resolution. Set record_video=true to record the full session as a .webm — the file is saved when you call browser_close_session. For evidence a person will watch, use evidence_start instead: it films only the actions, with cursor and subtitles. For mobile/9:16 recordings use viewport_width=390 viewport_height=844. Sessions expire after 10 min of inactivity.",
+      "description": "Create a persistent browser session (isolated BrowserContext). Returns a session_id — pass it to all browser_* tools. Pass instance_id + agent_type to enable screenshot/video persistence and script name resolution. Set record_video=true to record the full session as a .webm — the file is saved when you call browser_close_session. For evidence a person will watch, use evidence_start instead: it films only the actions, with cursor and subtitles. For mobile/9:16 recordings use viewport_width=390 viewport_height=844. network and cpu_throttle slow the session down (Chrome DevTools presets, CPU factor) and color_scheme sets prefers-color-scheme; a take filmed in the session keeps them. Every action is timed (browser_metrics) and page errors are collected per step (browser_findings). Sessions expire after 10 min of inactivity.",
       "params": {
         "task_id": "Your $TASK_ID — every browser_screenshot in this session then uploads its full-res PNG to the task automatically (preferred delivery).",
         "instance_id": "Your $INSTANCE_ID env var (optional run-dir persistence + script resolution)",
         "agent_type": "Your $AGENT_NAME env var (optional run-dir persistence)",
         "record_video": "Record the session as a .webm video. File is saved on close.",
-        "video_filename": "Output filename without extension (default: recording-{timestamp})"
+        "video_filename": "Output filename without extension (default: recording-{timestamp})",
+        "network": "Network throttling: fast-4g, slow-4g, 3g or offline (Chrome DevTools presets). Default none.",
+        "cpu_throttle": "CPU slowdown factor, 1 to 20 (4 = four times slower). Relative to this machine, so compare against main measured the same way.",
+        "color_scheme": "prefers-color-scheme the page sees: light or dark",
+        "ignore_errors": "Regular expressions; page errors whose status, method, URL or text match are not collected (e.g. a third-party script you do not own)",
+        "blind": "Blind-user mode: get_state lists only roles, accessible names and states (no ids, classes or paths), only the first navigation is allowed, and scripts and the session log are refused. For a tester that must find its way as a person would."
       }
     },
     "browser_close_session": {
@@ -61,7 +66,7 @@
         "index": "Element index from browser_get_state",
         "selector": "CSS selector (alternative to index)",
         "text": "What to type. Can be left out when `secret` names a test login of a recording chat: the value is then fetched from Thulu and typed without anyone seeing it.",
-        "secret": "Name of what `text` is (e.g. \"password\") when it must not be shown or stored: it is left out of the log and the reply, typed as dots on camera, and a take keeps only the name. In a recording chat, pass only secret=\"NAME\" (a test login name from evidence_recording) and no text: the value comes from Thulu.",
+        "secret": "Name of what `text` is (e.g. \"password\") when it must not be shown or stored: it is left out of the log and the reply, typed as dots on camera, and a take keeps only the name. In a recording chat (a name from evidence_recording), or in a task run that a person gave access (a name under \"Access given\" in the brief), pass only secret=\"NAME\" and no text: the value comes from Thulu.",
         "label": "During a take (evidence_start): what this step shows, in the ticket's words. Subtitle and chapter."
       }
     },
@@ -133,7 +138,8 @@
       "params": {
         "title": "What the take proves, e.g. \"SHOP-142 · checkout keeps the coupon\"",
         "base_url": "Origin the take replays against. Default: the current page's origin.",
-        "redact_css": "CSS selectors blurred on every frame (emails, tokens, names)."
+        "redact_css": "CSS selectors blurred on every frame (emails, tokens, names).",
+        "cut_waits": "false films the app's waits in real time, for a take about how slow the flow feels. Default true: waits are cut and marked with ⏱."
       }
     },
     "evidence_shot": {
@@ -151,17 +157,21 @@
       }
     },
     "evidence_verify": {
-      "description": "Record a verification: a test case, what was expected and what the page shows. Prefer `check` (visible, hidden, text, value, count, url, title) with a target: the engine measures it now and again on every replay, polling until it matches or times out. `observed` is for what only you can judge. Inside a take a pass/fail card appears in the video.",
+      "description": "Record a verification: a test case, what was expected and what the page shows. Prefer `check` (visible, hidden, text, value, count, url, title) with a target: the engine measures it now and again on every replay, polling until it matches or times out. check \"perf\" with a `metric` (ttfb, fcp, lcp, cls, inp, response) and `expected` as the maximum (ms; CLS without unit) reads the metric once and passes when it is at most that. `observed` is for what only you can judge. Inside a take a pass/fail card appears in the video.",
       "params": {
         "case": "Case id as the ticket names it, e.g. \"TC-3\"",
-        "expected": "Expected value. For visible/hidden checks: \"visible\" or \"hidden\".",
+        "expected": "Expected value. For visible/hidden checks: \"visible\" or \"hidden\". For perf: the maximum, a number (ms, or plain for CLS).",
         "match": "Default equals (url: contains)",
         "observed": "What you observed, when there is no check to measure it",
-        "timeout_ms": "How long a check may poll (default 5000)"
+        "timeout_ms": "How long a check may poll (default 5000)",
+        "metric": "For check \"perf\": ttfb, fcp, lcp, cls, inp, or response (the last action's response time)"
       }
     },
     "evidence_note": {
-      "description": "Say something in the video: a subtitle held on screen with a progress bar. level=fact or issue also lists it in the report (issue = a finding). Requires a take."
+      "description": "Say something in the video: a subtitle held on screen with a progress bar. level=fact or issue also lists it in the report (issue = a finding). Requires a take.",
+      "params": {
+        "level": "step: a subtitle only. fact or issue: also listed in the report (issue = a finding). think: what a blind tester says while working the page out, listed with its second in the report's Think-aloud section."
+      }
     },
     "evidence_finish": {
       "description": "Stop recording and render the take into a draft: an MP4 without dead time, and a contact sheet you get back as an image. Returns render_id (for evidence_publish) and take_id (the take as JSON, replayable with evidence_render). Nothing reaches the task until evidence_publish. discard=true throws the take away."
@@ -180,7 +190,11 @@
         "compare_base_url": "Second origin for a side-by-side before/after",
         "labels": "Badges for the two sides (default Before, After)",
         "pace": "1 = default rhythm, 1.5 = slower, 0.7 = faster",
-        "task_id": "Task the render will be published to (can also be given to evidence_publish)"
+        "task_id": "Task the render will be published to (can also be given to evidence_publish)",
+        "network": "Network throttling for this replay (overrides the take's; none clears it)",
+        "cpu_throttle": "CPU slowdown factor for this replay (overrides the take's; 1 clears it)",
+        "color_scheme": "prefers-color-scheme for this replay: light or dark (overrides the take's)",
+        "cut_waits": "Overrides the take's cut_waits for this replay: false films the waits in real time."
       }
     },
     "evidence_recording": {
@@ -201,6 +215,31 @@
         "task_id": "Default: the task the session or render was started for",
         "record_runs": "Record the verdicts as runs of the task's test cases"
       }
+    },
+    "browser_metrics": {
+      "description": "Lab timing of the session, step by step: TTFB, FCP, LCP, CLS and INP (web-vitals) after each action, and how long the page took to respond to it (response_ms: from the input to the last DOM change before the page settled; a click with no DOM change and no request is reported as dead). Also the throttling profile and the page errors counted by kind. One run in this browser, not field data: compare against main measured the same way.",
+      "params": {
+        "format": "text (default) or json, for numbers you will compare"
+      }
+    },
+    "browser_findings": {
+      "description": "Page errors of the session by step: console errors, uncaught exceptions (pageerror), responses with status 4xx/5xx and requests that failed. Each one belongs to the action that was running when it arrived. Query strings are cut from URLs and typed secrets are masked. They never change a verdict on their own: report the ones that matter."
+    },
+    "a11y_scan": {
+      "description": "Accessibility scan of the current page with axe-core (WCAG 2.2 AA by default): violations summarized by impact (critical, serious, moderate, minor), each rule with its elements. Inside a take it is recorded as a check that fails with a violation at fail_on or worse, and is re-run on every replay. A clean scan is not a certification: axe finds part of what WCAG asks.",
+      "params": {
+        "include": "CSS selectors to scan only (default: the whole page).",
+        "exclude": "CSS selectors to leave out (third-party widgets, for instance).",
+        "tags": "axe tags to run. Default: {tags}.",
+        "fail_on": "Lowest impact that fails the check. Default: serious.",
+        "disable_rules": "axe rule ids to skip, e.g. color-contrast while a redesign is pending. Say why in the report.",
+        "case": "Test case this check proves (TC-n), inside a take.",
+        "shot": "Also take an annotated capture with up to 6 failing elements framed in red.",
+        "task_id": "Attach the full axe results (JSON) to this task."
+      }
+    },
+    "browser_go_back": {
+      "description": "Goes back one page in the session history, like the browser's back button. Counts as a back step in browser_metrics' journey. Not recordable in a take."
     }
   },
   "params": {
@@ -268,9 +307,23 @@
     "not_recording_chat": "there is no open recording in this chat: evidence_recording and evidence_save_case work only in the chat Thulu opens to record an Evidence case (Evidence → a case → Record with agent), until its take is saved",
     "save_one_take": "give exactly one of take_id, render_id or take",
     "render_has_no_take": "render {id} has no take to save (nothing was recorded between evidence_start and evidence_finish)",
-    "type_needs_text": "browser_type needs text, or secret alone in a recording chat",
-    "secret_not_available": "no test login named \"{name}\" is available here: without text, secret works only in a recording chat and only with a name its environment has (evidence_recording lists them). Outside one, pass text together with secret",
-    "job_bad_next": "the daemon answered the next run without a run id"
+    "type_needs_text": "browser_type needs text, or secret alone in a recording chat or a task run given access",
+    "secret_not_available": "no test login named \"{name}\" is available here: without text, secret works only in a recording chat with a name its environment has (evidence_recording lists them), or in a task run with a name under \"Access given\" in the brief. Otherwise, pass text together with secret",
+    "job_bad_next": "the daemon answered the next run without a run id",
+    "bad_network": "unknown network profile \"{value}\" (use one of: {allowed})",
+    "bad_cpu_throttle": "cpu_throttle must be a number from 1 to {max}, got \"{value}\"",
+    "bad_color_scheme": "color_scheme must be light or dark, got \"{value}\"",
+    "bad_ignore_pattern": "ignore_errors: \"{pattern}\" is not a valid regular expression ({err})",
+    "ignore_not_regex": "not a valid regular expression",
+    "perf_needs_metric": "a perf check needs a metric: {metrics}",
+    "perf_expected_number": "a perf check's expected is the maximum, a number (ms, or plain for CLS); got \"{expected}\"",
+    "perf_no_match": "a perf check compares against a maximum; it takes no match",
+    "perf_no_target": "a perf check measures the page, not an element; it takes no target",
+    "metric_needs_perf": "metric goes only with check \"perf\"",
+    "a11y_failed": "Accessibility scan failed: {error}",
+    "blind_navigate": "Blind session: only the first navigation is allowed. Find the next page through the page itself (links, buttons) or go back with browser_go_back.",
+    "blind_tool": "Blind session: {tool} is not available, it shows how the page is built.",
+    "go_back_in_take": "browser_go_back cannot be recorded in a take. Navigate to the page with browser_navigate instead."
   },
   "labels": {
     "inline": "(inline)",
@@ -285,7 +338,24 @@
     "after": "After",
     "mode_live": "live",
     "mode_replay": "replay",
-    "mode_compare": "before/after"
+    "mode_compare": "before/after",
+    "no_data": "(no data)",
+    "rating_good": "good",
+    "rating_needs_improvement": "needs improvement",
+    "rating_poor": "poor",
+    "no_throttling": "no throttling",
+    "scheme_light": "light",
+    "scheme_dark": "dark",
+    "impact_critical": "critical",
+    "impact_serious": "serious",
+    "impact_moderate": "moderate",
+    "impact_minor": "minor",
+    "state_disabled": "disabled",
+    "state_checked": "checked",
+    "state_expanded": "expanded",
+    "state_collapsed": "collapsed",
+    "state_required": "required",
+    "state_invalid": "invalid"
   },
   "text": {
     "screenshot_of": "Screenshot of {url} ({width}x{height}, full_page={full_page}, {bytes} bytes)",
@@ -307,6 +377,7 @@
     },
     "take_unfinished": "\nThe take \"{title}\" was never finished and was discarded.",
     "recorded": "Recorded: {what}\nCurrent URL: {url}",
+    "recorded_blind": "Recorded: {what}\nPage: {title}",
     "navigated": "Navigated to: {url}\nTitle: {title}",
     "state_header": "Page: {title}\nURL:  {url}\n\nInteractive elements (use index for click/type/select/hover):",
     "state_total": {
@@ -408,7 +479,114 @@
     "case_saved": "Saved as {key}'s recording.",
     "case_saved_changes_data": "The take changes data, so it will not replay automatically: that first run will end in error. Say so to the person.",
     "case_saved_no_checks": "The take has no checks: a replay can only tell whether its steps ran.",
-    "case_saved_observed_only": "Some checks are observed, not measured (no check + target): replays copy what you saw instead of measuring it."
+    "case_saved_observed_only": "Some checks are observed, not measured (no check + target): replays copy what you saw instead of measuring it.",
+    "unit_ms": "{value} ms",
+    "unit_s": "{value} s",
+    "metric_under": "under {value}",
+    "metric_rated": "{metric} {value} ({rating})",
+    "metric_plain": "{metric} {value}",
+    "step_dead": "No response: the page did not change and sent no request.",
+    "step_timing": {
+      "one": "Response {response}; settled at {settled} ({count} request).",
+      "other": "Response {response}; settled at {settled} ({count} requests)."
+    },
+    "step_findings": {
+      "one": "{count} page error: {list}",
+      "other": "{count} page errors: {list}"
+    },
+    "finding_times": " ×{count}",
+    "finding_http": "{status} {method} {url}",
+    "finding_failed": "{method} {url} failed: {error}",
+    "finding_console": "Console error: {text}",
+    "finding_pageerror": "Uncaught error: {text}",
+    "profile_cpu": "CPU {rate}x",
+    "session_profile": "Profile: {profile}.",
+    "metrics_header": "Lab timing, one run in this browser (not field data) · {profile}",
+    "metrics_page": "Page now: {url}\n  {vitals}",
+    "metrics_steps": {
+      "one": "Last {count} timed step:",
+      "other": "Last {count} timed steps:"
+    },
+    "metrics_step": "  #{n} {tool} {what} · response {response} · {vitals}",
+    "metrics_dead": "none (dead)",
+    "metrics_no_steps": "No timed steps yet: navigate or interact first.",
+    "metrics_findings": "Page errors: {http} HTTP 4xx/5xx, {failed} failed requests, {console} console errors, {pageerror} uncaught. Detail in browser_findings.",
+    "findings_none": "No page errors in this session.",
+    "findings_header": {
+      "one": "{count} page error, by step:",
+      "other": "{count} page errors, by step:"
+    },
+    "findings_step": "#{n} {tool} {what}",
+    "findings_dropped": {
+      "one": "{count} more was left out (at most 50 per step and 200 per session).",
+      "other": "{count} more were left out (at most 50 per step and 200 per session)."
+    },
+    "report_perf_delta": " ({delta})",
+    "report_page_errors": "### Page errors",
+    "report_page_error": "- `{at}` {label}: {finding}",
+    "report_timing": "### Timing",
+    "report_timing_note": "Lab numbers from one run in this browser, not field data. Compare them against main measured the same way.",
+    "report_timing_run": "**{run}**",
+    "report_timing_header": "| Step | Response | TTFB | FCP | LCP | CLS | INP |",
+    "render_profile": "Profile: {profile}",
+    "render_findings": {
+      "one": "{run}{count} page error: {list}",
+      "other": "{run}{count} page errors: {list}"
+    },
+    "a11y_count": "{count} {impact}",
+    "a11y_counts": "Violations: {counts}",
+    "a11y_header": "Accessibility of {url} (axe {axe}, {tags})",
+    "a11y_fail_on": {
+      "one": "Fails at {impact} or worse: {count} rule.",
+      "other": "Fails at {impact} or worse: {count} rules."
+    },
+    "a11y_rule": "- FAIL [{impact}] {id}: {help}. {count} element(s): {targets}. {url}",
+    "a11y_rule_below": "- [{impact}] {id}: {help}. {count} element(s): {targets}. {url}",
+    "a11y_incomplete": {
+      "one": "{count} check needs a person to judge it (axe could not decide).",
+      "other": "{count} checks need a person to judge them (axe could not decide)."
+    },
+    "a11y_caveat": "axe finds part of what WCAG asks (names, labels, contrast, roles, structure). A clean scan does not make the page accessible: keyboard use and a screen reader still need a person.",
+    "a11y_expected": "no violation {impact} or worse",
+    "a11y_expected_any": "no violation",
+    "a11y_observed_clean": "no violation",
+    "a11y_observed_none": {
+      "one": "{count} violation below the threshold",
+      "other": "{count} violations below the threshold"
+    },
+    "a11y_observed_impact": "{count} {impact} ({rules})",
+    "a11y_in_take": "Recorded in the take as a check: {result}.",
+    "a11y_attached": "Full results attached to {task}: {file} (id {id}).",
+    "a11y_shot_title": "Accessibility violations",
+    "a11y_shot_nothing": "No capture: no failing element can be pointed at on the page (none, or all inside a shadow root or a frame).",
+    "a11y_shot_needs_task": "No capture: outside a take it needs task_id (or a session with task_id).",
+    "auto_a11y": "Accessibility scan",
+    "auto_a11y_case": "Accessibility {case}",
+    "wait_cut": "⏱ {wait} of waiting cut",
+    "chapter_wait": " · ⏱ {wait}",
+    "chapter_wait_pair": " · ⏱ {left} | {right}",
+    "report_waits_cut": {
+      "one": "{wait} of waiting cut ({count} wait)",
+      "other": "{wait} of waiting cut ({count} waits)"
+    },
+    "report_waits_filmed": "waits filmed in real time",
+    "render_waits_cut": {
+      "one": "{run}{wait} of waiting cut from the video ({count} wait, the longest {longest} at step {step}). Each cut is marked with ⏱ in the video and the chapters.",
+      "other": "{run}{wait} of waiting cut from the video ({count} waits, the longest {longest} at step {step}). Each cut is marked with ⏱ in the video and the chapters."
+    },
+    "render_waits_filmed": "{run}Waits filmed in real time (cut_waits: false).",
+    "recording_waits_filmed": "\nThe app's waits are filmed in real time (cut_waits: false).",
+    "report_think": "### Think-aloud",
+    "report_think_line": "- `{at}` {text}",
+    "session_blind": "Blind mode: browser_get_state lists roles, accessible names and states only; one navigation (the start URL), then move through the page or with browser_go_back. Scripts and the session log are off.",
+    "blind_state_header": "Page: {title} ({host})\n\nWhat a screen reader announces (use the index for click/type/select/hover):",
+    "blind_element": "[{n}] {role} {name}{extra}",
+    "blind_unnamed": "(no name)",
+    "blind_value": "value \"{value}\"",
+    "blind_link_host": "goes to {host}",
+    "went_back": "Went back to: {where}",
+    "go_back_none": "Nothing to go back to: this is the first page of the session.",
+    "journey_line": "Journey: {actions} actions, {navigations} navigations, {backs} back, {dead} dead clicks, {errors} page errors, {time} on task."
   },
   "log": {
     "session_expired": "[session] expired: {id}",
@@ -436,5 +614,8 @@
     "job_unreachable": "evidence runner: {url} never answered ({error}); the batch closes as an environment failure",
     "host_gateway": "  Host loopback:     {host} (sessions of runs on a runner)",
     "host_loopback_unconfigured": "[session] a run on a runner asked for the host's localhost, but HOST_GATEWAY is not set: its pages open this container's localhost"
+  },
+  "meta": {
+    "bcp47": "en"
   }
 }

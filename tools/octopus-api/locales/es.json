@@ -9,6 +9,32 @@
         "id": "Id de la tarea."
       }
     },
+    "task_reports": {
+      "description": "Lee la pestaña Reports de la tarea: el reporte de cada etapa (kind agent_index), su veredicto (stage_verdict), la devolución del auditor (auditor_feedback) y la evidencia archivada. Los comentarios y task_get no los traen. Del más nuevo al más viejo; un body de más de 4000 caracteres sale cortado (truncated: true, chars: largo completo), y report_id devuelve ese reporte entero. Filtrá por stage y kind para encontrar, por ejemplo, la última revisión IA.",
+      "params": {
+        "id": "Id de la tarea.",
+        "stage": "Sólo los reportes de esta etapa (un id de columna, como ai_review).",
+        "kind": "Sólo este tipo: agent_index, stage_verdict, auditor_feedback o evidence.",
+        "report_id": "Devuelve entero este reporte, con el id de un listado."
+      }
+    },
+    "task_events": {
+      "description": "Lee la actividad de la tarea: cambios de etapa, corridas que arrancan y terminan (con su código de salida), veredictos, corridas y veredictos del auditor, relanzamientos con su motivo, preguntas, aprobaciones, saltos, banderas y avisos del runner. Los comentarios y task_get no la traen. Devuelve los últimos eventos (100 salvo que limit diga otra cosa), del más viejo al más nuevo, con un resumen cada uno y sin payload; las llamadas a herramientas y los latidos quedan afuera salvo que kind nombre uno. event_id devuelve un evento con su payload (cortado pasados 20000 caracteres).",
+      "params": {
+        "id": "Id de la tarea.",
+        "kind": "Sólo este tipo, como stage_entered, agent_run_finished, auditor_verdict o relaunch_requested.",
+        "since": "Sólo eventos posteriores a esta hora ISO.",
+        "limit": "Cuántos de los últimos eventos (100 por defecto).",
+        "event_id": "Devuelve este evento con su payload, con el id de un listado."
+      }
+    },
+    "task_attachment_read": {
+      "description": "Abre un adjunto de la tarea (ids de task_attachments, de un comentario o de las corridas de un caso: capture_attachment_ids y take_attachment_id). Una imagen (PNG, JPEG, GIF, WebP de hasta 3,75 MB) vuelve como imagen para mirarla; texto, logs, JSON, SARIF y markdown vuelven como texto, cortado pasados 100000 caracteres. Un video no se puede abrir: leé su toma (el take_attachment_id de la corrida, un JSON con lo observado segundo a segundo y las anotaciones) y sus capturas. Tampoco se abren PDFs ni otros binarios.",
+      "params": {
+        "id": "Id de la tarea.",
+        "attachment_id": "Id del adjunto."
+      }
+    },
     "board_current": {
       "description": "Dónde estoy: el tablero (flujo) donde vive la tarea de esta corrida, sus columnas en el orden del flujo y la columna donde está la tarea ahora. Las tareas que creás con task_create caen en ESTE tablero. Llamala antes de crear tareas, así el `stage` que pasás es una columna que este tablero tiene de verdad."
     },
@@ -71,12 +97,27 @@
       }
     },
     "task_section_set": {
-      "description": "Crea o reemplaza UNA sección estructurada del body de la tarea sin tocar el resto. Slugs canónicos (se insertan en este orden): goal, context, definition-of-done, test-cases, out-of-scope, risks, notes; sus encabezados se ponen solos. Cualquier otro slug necesita un `title` explícito y se agrega al final. El contenido es markdown; escribí el DoD como líneas de checklist `- [ ]` para poder tildarlas después. Usala para escribir el plan de una tarea dentro de la tarea misma. Los casos de prueba ya NO van acá: agregalos con task_test_case_add, que le da a cada uno una key, un estado y sus corridas (no por la sección test-cases).",
+      "description": "Crea o reemplaza UNA sección estructurada del body de la tarea sin tocar el resto. Slugs canónicos (se insertan en este orden): goal, context, definition-of-done, test-cases, out-of-scope, risks, notes; sus encabezados se ponen solos. Cualquier otro slug necesita un `title` explícito y se agrega al final. El contenido es markdown; escribí el DoD como líneas de checklist `- [ ]` para poder tildarlas después. Usala para escribir el plan de una tarea dentro de la tarea misma. Los casos de prueba ya NO van acá: agregalos con task_test_case_add, que le da a cada uno una key, un estado y sus corridas (no por la sección test-cases). Los criterios de aceptación tampoco se escriben acá: task_criteria_set los guarda como lista y escribe su sección.",
       "params": {
         "id": "Id de la tarea.",
         "slug": "Dirección de la sección, p. ej. 'goal', 'definition-of-done', 'test-cases'.",
         "content": "Contenido markdown de la sección (sin la línea del encabezado).",
         "title": "Texto del encabezado. Sólo hace falta para slugs no canónicos."
+      }
+    },
+    "task_criteria_get": {
+      "description": "Lista los criterios de aceptación de la tarea en orden: key (AC-1…), texto, posición, y quién aprobó cada uno y cuándo (vacío si no está aprobado). Leelos acá, no de la sección acceptance-criteria del body: la sección se genera desde esta lista.",
+      "params": {
+        "id": "Id de la tarea."
+      }
+    },
+    "task_criteria_set": {
+      "description": "Reemplaza los criterios de aceptación de la tarea por esta lista, en orden. Cada uno necesita una key de la forma AC-n, única en la tarea, y un texto (2000 caracteres como máximo, 100 criterios como máximo). Thulu reescribe la sección acceptance-criteria del body desde la lista, así que no escribas esa sección con task_section_set. Un criterio cuyo texto cambia pierde su aprobación, y los casos que lo cubren quedan marcados si los tests ya están bloqueados. Devuelve la lista guardada.",
+      "params": {
+        "id": "Id de la tarea.",
+        "criteria": "La lista entera, en orden. Los criterios que no mandes se borran.",
+        "criteria_key": "AC-n, p. ej. 'AC-1'. Conservá la key de un criterio cuando editás su texto: los casos apuntan a ella.",
+        "criteria_text": "Un comportamiento observable, p. ej. Given/When/Then. Se conservan los saltos de línea."
       }
     },
     "task_checklist_check": {
@@ -122,7 +163,8 @@
     "task_relaunch": {
       "description": "Vuelve a lanzar el agente de la etapa actual de la tarea. Usala cuando una corrida murió por max_turns. `turns` es opcional: por defecto, el doble del presupuesto por etapa que tiene hoy el agente.",
       "params": {
-        "turns": "Presupuesto de turnos, opcional."
+        "turns": "Presupuesto de turnos, opcional.",
+        "reason": "Opcional. Por qué relanzás, en una frase. Queda publicado en la tarea como decisión."
       }
     },
     "task_list_dependencies": {
@@ -143,10 +185,11 @@
       "description": "Saca la dependencia `id → depends_on_task_id`. Si no existía, no hace nada. Usala para desbloquear una tarea cuyo bloqueante resultó no tener que ver, o para bajar una dependencia hard a soft (sacarla y agregarla como soft)."
     },
     "task_add_comment": {
-      "description": "Publica un comentario en una tarea. El daemon lo firma con tu nombre de agente, a partir de tu credencial. Un comentario de un agente lanza a los otros agentes que @menciona, hasta 3 turnos de agente seguidos por hilo desde la última vez que escribió una persona; pasado ese tope el hilo lo avisa y no se lanza nadie hasta que conteste una persona. El body se muestra como markdown, así que un adjunto embebido como ![<filename>](/task-attachments/<id>) aparece inline: una imagen como imagen, un .mp4 o .webm como reproductor.",
+      "description": "Publica un comentario en una tarea. Los comentarios son conversación: una respuesta a una persona o a un agente, una pregunta, o algo que una persona tiene que saber. El informe de tu etapa va en _index.md y el traspaso en verdict.md, nunca en un comentario. Escribí corto: qué necesitás o qué cambió, en una o dos frases. El daemon lo firma con tu nombre de agente, a partir de tu credencial. Un comentario de un agente lanza a los otros agentes que @menciona, hasta el tope de turnos de agente seguidos por hilo del workspace (5 si nadie lo cambió) desde la última vez que escribió una persona; pasado ese tope el hilo lo avisa y no se lanza nadie hasta que conteste una persona. El body se muestra como markdown, así que un adjunto embebido como ![<filename>](/task-attachments/<id>) aparece inline: una imagen como imagen, un .mp4 o .webm como reproductor.",
       "params": {
         "body": "Markdown del comentario.",
-        "parent_id": "Responder en un hilo: el id de cualquier comentario del hilo (la respuesta se suma al hilo de ese comentario). Omitilo para abrir un hilo nuevo. Si te @mencionaron en un hilo, pasá su id (THREAD_ID) para que tu respuesta caiga ahí.",
+        "reply_to": "Responder en un hilo: el id de cualquier comentario del hilo (la respuesta se suma al hilo de ese comentario). Omitilo para abrir un hilo nuevo. Si te @mencionaron en un hilo, pasá su id (THREAD_ID) para que tu respuesta caiga ahí.",
+        "parent_id": "Lo mismo que reply_to; queda para prompts viejos. Si vienen los dos, gana reply_to.",
         "attachment_ids": "Adjuntos (ya subidos con task_attach) que pertenecen a este comentario. Aparecen debajo, y los que además embebiste en el body se muestran inline en vez de dos veces."
       }
     },
@@ -181,24 +224,43 @@
       "params": {
         "label": "Quién tiene que revisar, como lo diría el equipo (\"Diseño\", \"QA\", \"Seguridad\").",
         "reason": "Qué cambió y qué mirar, para que quien revisa no tenga que reconstruirlo.",
-        "key": "Id corto y estable, opcional (design, qa), del tipo de key que usa una etapa en sus aprobaciones requeridas."
+        "key": "Id corto y estable, opcional (design, qa), del tipo de key que usa una etapa en sus aprobaciones requeridas.",
+        "stage": "Id opcional de una etapa posterior de la línea Flujo de la tarea (p. ej. review) donde la tiene que decidir una persona. La aprobación retiene la salida de esa etapa en vez de la actual, así la tarea sigue avanzando hasta llegar ahí. Si lo omitís, retiene la etapa actual. Las etapas anteriores y la última se rechazan."
+      }
+    },
+    "task_skip_add": {
+      "description": "Saltea una columna para esta tarea, con un motivo. La tarea pasa de largo esa columna cuando llega, y la columna aparece salteada con tu motivo. Sólo el agente de la etapa de refinamiento (mientras corre sobre esta tarea) o una persona pueden sumar un salto; cualquier otro agente recibe un rechazo y no cambia nada. No se pueden saltear las columnas con gate (aprobaciones requeridas), las de PR, las marcadas no_skip, la de refinamiento, la primera ni la última, ni una columna donde la tarea está o que ya pasó. Cuando refinás, preferí la clave skip de flags.yaml; esta tool es para un salto que decidís fuera de ese archivo.",
+      "params": {
+        "id": "Id de la tarea.",
+        "stage": "Id de la columna a saltear, una columna posterior del tablero de la tarea (p. ej. test_design).",
+        "reason": "Por qué esta tarea no necesita la columna, con el detalle suficiente para que un agente posterior juzgue si su trabajo lo cambia (\"cambio de texto en una plantilla de email, sin lógica para probar\"). Obligatorio."
+      }
+    },
+    "task_skip_remove": {
+      "description": "Hace que una columna que la tarea saltea vuelva a correr, con un motivo. Cualquier agente que trabaje en la tarea o una persona pueden quitar un salto. Una columna por delante de la tarea corre cuando la tarea llega. Una columna que la tarea ya pasó la manda de vuelta ahí, y la tarea sigue hacia adelante desde esa columna; si la tarea está en tu propia etapa en curso, el movimiento espera a que tu corrida termine bien, así que terminá tu trabajo como siempre. Quitá un salto cuando tu trabajo hace necesaria la columna (tocaste UI, una migración, auth).",
+      "params": {
+        "id": "Id de la tarea.",
+        "stage": "Id de la columna salteada (task_get las lista en stage_skips).",
+        "reason": "Qué de tu trabajo hace necesaria la columna (\"sumé una migración a orders\"). Obligatorio; aparece en la Actividad de la tarea."
       }
     },
     "task_test_cases": {
-      "description": "Lista los casos de prueba de una tarea en orden, cada uno con key (TC-1…), title, description, steps, expected, priority, status (pending | pass | fail | blocked | skipped), covered y sus corridas de la más nueva a la más vieja (veredicto, observed, ids de adjuntos de video/toma/captura, id del reporte; las corridas viejas traen un id de comentario en su lugar). Leela antes de probar una tarea y antes de registrar nada, así trabajás contra las keys que existen.",
+      "description": "Lista los casos de prueba de una tarea en orden, cada uno con key (TC-1…), title, description, preconditions, steps, expected, covers (los AC-n que prueba), priority, status (pending | queued | pass | fail | blocked | skipped | waived), covered y sus corridas de la más nueva a la más vieja (veredicto, observed, note, needs, tried, writes_data, ronda, ids de adjuntos de video/toma/captura, id del reporte; las corridas viejas traen un id de comentario en su lugar). queued quiere decir que una persona dio acceso y el caso espera una corrida nueva. Leela antes de probar una tarea y antes de registrar nada, así trabajás contra las keys que existen.",
       "params": {
         "id": "Id de la tarea."
       }
     },
     "task_test_case_add": {
-      "description": "Agrega casos de prueba a una tarea, siempre como un array `cases`, uno o varios. Cada caso necesita un `title`; si omitís `key`, se asigna TC-<máx+1>. `description`, `steps` y `expected` son markdown (steps suele ser una lista numerada). Los casos nuevos arrancan pending, sin cubrir, y van al final. Usala para escribir los casos de prueba del plan, en vez de una sección ## Test Cases en el body. Devuelve los casos creados.",
+      "description": "Agrega casos de prueba a una tarea, siempre como un array `cases`, uno o varios. Cada caso necesita un `title`; si omitís `key`, se asigna TC-<máx+1>. `covers` lista los criterios de aceptación que prueba (AC-n, ver task_criteria_get) y `preconditions` lo que tiene que estar listo antes del paso 1: usá estos campos, no líneas \"Covers:\" o \"Preconditions:\" en la descripción. `steps` es una lista numerada corta, una acción por paso; `expected` es la línea \"Pass if\", que se chequea de un vistazo y con valores reales. Los casos nuevos arrancan pending, sin cubrir, y van al final. Usala para escribir los casos de prueba del plan, en vez de una sección ## Test Cases en el body. Devuelve los casos creados.",
       "params": {
         "id": "Id de la tarea.",
         "cases_title": "Obligatorio. 200 caracteres como máximo.",
         "cases_key": "Key explícita opcional, p. ej. 'TC-4'. Tiene que ser única en la tarea.",
-        "cases_description": "Contexto, precondiciones, datos (markdown).",
-        "cases_steps": "Cómo ejercitarlo (markdown).",
-        "cases_expected": "El resultado esperado (markdown)."
+        "cases_description": "Contexto que el tester necesita y no es precondición ni paso (markdown). Muchas veces queda vacío.",
+        "cases_steps": "Lista numerada corta, una acción por paso (markdown).",
+        "cases_expected": "Pass if: una línea que se chequea mirando, con valores reales.",
+        "cases_preconditions": "Lo que tiene que estar listo antes del paso 1: usuario, datos, configuración, entorno, con valores literales.",
+        "cases_covers": "Keys de los criterios de aceptación que prueba el caso, p. ej. ['AC-2']. Cuando la tarea tiene criterios, una key desconocida se rechaza con la lista de las válidas."
       }
     },
     "task_test_case_update": {
@@ -206,7 +268,9 @@
       "params": {
         "id": "Id de la tarea.",
         "case": "Key del caso (p. ej. 'TC-3') o id.",
-        "position": "Orden dentro de la tarea."
+        "position": "Orden dentro de la tarea.",
+        "preconditions": "Lo que tiene que estar listo antes del paso 1.",
+        "covers": "Keys de los criterios de aceptación que prueba el caso (AC-n). Reemplaza la lista."
       }
     },
     "task_test_case_delete": {
@@ -217,17 +281,27 @@
       }
     },
     "task_test_case_run": {
-      "description": "Registra una ejecución de un caso de prueba con su evidencia. El `verdict` (pass | fail | blocked) pasa a ser el estado del caso y lo marca como cubierto. `case` es la key (TC-3) o el id. Los ids de evidencia tienen que ser de la misma tarea: primero subí los archivos con task_attach y después pasá sus ids acá. NO la llames para un caso que ya registró evidence_publish de thulu-browser: cada paso de verificación cuyo `case` coincide con una key de la tarea se vuelve una corrida por sí solo, con el video, la toma, las capturas y el reporte que publicó en la pestaña Reports; registrarlo de nuevo acá contaría dos veces la misma ejecución.",
+      "description": "Registra una ejecución de un caso de prueba con su evidencia. El `verdict` (pass | fail | blocked) pasa a ser el estado del caso y lo marca como cubierto. `case` es la key (TC-3) o el id. `observed` es una frase con lo que viste; el detalle va en `note`. En una corrida blocked, `needs` dice qué tiene que traer una persona, `tried` y `tried_result` lo que lograste sin eso, y `writes_data` si el caso crea datos reales. Los ids de evidencia tienen que ser de la misma tarea: primero subí los archivos con task_attach y después pasá sus ids acá. NO la llames para un caso que ya registró evidence_publish de thulu-browser: cada paso de verificación cuyo `case` coincide con una key de la tarea se vuelve una corrida por sí solo, con el video, la toma, las capturas y el reporte que publicó en la pestaña Reports; registrarlo de nuevo acá contaría dos veces la misma ejecución.",
       "params": {
         "id": "Id de la tarea.",
         "case": "Key del caso (p. ej. 'TC-3') o id.",
-        "observed": "Lo que se vio, en una o dos líneas.",
-        "note": "Nota más larga en markdown.",
+        "observed": "Lo que viste, en una frase con el valor real (280 caracteres como máximo), p. ej. 'Order total $100.00: sin descuento'. El detalle va en note.",
+        "note": "El detalle: cómo llegaste, logs, qué más notaste (markdown). Las personas lo ven plegado.",
         "video_attachment_id": "Id del adjunto con la grabación.",
         "take_attachment_id": "Id del adjunto con la toma reproducible (JSON).",
         "report_id": "Id del reporte de la pestaña Reports de la tarea que tiene la evidencia.",
         "comment_id": "Id del comentario de un reporte publicado como comentario. Las corridas pasan report_id.",
-        "capture_attachment_ids": "Ids de los adjuntos con las capturas tomadas durante la corrida."
+        "capture_attachment_ids": "Ids de los adjuntos con las capturas tomadas durante la corrida.",
+        "needs": "Sólo con verdict blocked: qué tiene que traer una persona para que el caso corra, una entrada por cosa. Las personas ven los casos trabados agrupados por tipo, con las acciones que ofrece ese tipo (darle acceso al agente, probar a mano, saltear).",
+        "needs_kind": "Qué tipo de cosa falta. Uno de: {kinds}. El daemon rechaza cualquier otro tipo.",
+        "needs_kind_unlisted": "Qué tipo de cosa falta, del catálogo del daemon (GET /test-cases/need-kinds). Un tipo desconocido se rechaza con la lista de los válidos.",
+        "needs_label": "Qué, exactamente, en pocas palabras, p. ej. 'Una cuenta de prueba de Google'.",
+        "needs_secrets": "Secretos que una persona puede guardar en el entorno de Evidencia del proyecto para que corras el caso vos: el nombre que vas a escribir con secret= y para qué sirve. Nunca un valor. Sólo para tipos que admiten secretos.",
+        "secrets_name": "Nombre del secreto, p. ej. 'GOOGLE_TEST_EMAIL': letras, dígitos y guiones bajos.",
+        "secrets_label": "Para qué sirve, p. ej. 'Email de la cuenta de prueba de Google'.",
+        "tried": "Con verdict blocked: qué probaste sin lo que falta. none: nada; simulated: simulaste la parte que falta (un login falso, una URL abierta directo); partial: corriste los pasos hasta donde se frenó.",
+        "tried_result": "Qué mostró eso, en una frase (280 caracteres como máximo), p. ej. 'Con un login falso, /signup-email muestra el email cargado y deshabilitado'.",
+        "writes_data": "true cuando correr el caso crea o cambia datos reales (usuarios, órdenes, emails): se avisa a las personas antes de dejarlo correr."
       }
     },
     "agent_list": {
@@ -271,7 +345,10 @@
       "params": {
         "model": "p. ej. 'opus', 'sonnet', 'haiku'.",
         "effort": "'low' | 'medium' | 'high'.",
-        "system_skills_off": "Por etapa, las skills del sistema (octopus-*) que este agente no recibe ahí, p. ej. {\"review\": [\"octopus-browser-evidence\"]}. Si no lo pasás, se conserva la lista actual; {} vuelve a prender todas las skills del sistema."
+        "system_skills_off": "Por etapa, las skills del sistema (octopus-*) que este agente no recibe ahí, p. ej. {\"review\": [\"octopus-browser-evidence\"]}. Si no lo pasás, se conserva la lista actual; {} vuelve a prender todas las skills del sistema.",
+        "auditor_mode": "always: el auditor corre después de cada corrida de sus etapas. signals: corre sólo si la corrida deja una señal (falló o se quedó sin turnos, un veredicto que no es continue, tests bloqueados cambiados o sin revisar, config de gates o supresiones tocadas, diff sobre el presupuesto, flags, sin reporte, una persona que relanzó con motivo, riesgo alto); si no, la etapa sigue como si hubiera dicho continue.",
+        "auditor_max_diff_lines": "Modo signals: líneas de producción que la rama puede agregar antes de que corra el auditor (sin contar las borradas ni los tests). 0 es el de fábrica, 400.",
+        "auditor_max_diff_files": "Modo signals: archivos de producción a los que la rama puede agregar líneas antes de que corra el auditor. 0 es el de fábrica, 20."
       }
     },
     "agent_type_write_file": {
@@ -304,7 +381,11 @@
       }
     },
     "project_update": {
-      "description": "Modifica un proyecto. Cambian sólo los campos que pasás."
+      "description": "Modifica un proyecto. Cambian sólo los campos que pasás.",
+      "params": {
+        "release_mode": "Cómo llega a producción el trabajo mergeado: auto (cada merge dispara un deploy), batch (una tarea de release despacha lo acumulado) o vacío.",
+        "release_environment": "El entorno de GitHub o de Evidence que es producción para este proyecto."
+      }
     },
     "project_delete": {
       "description": "Borra un proyecto (NO elimina sus worktrees en disco ni el repo de origen). Las tareas vinculadas pierden el vínculo."
@@ -370,6 +451,73 @@
         "panels_width": "1 = media fila, 2 = fila completa.",
         "task_id": "Mandalo SIEMPRE: el daemon le suma a la tarea una aprobación de revisión vinculada a la propuesta, así aprobarla la cierra en un solo paso."
       }
+    },
+    "deploy_contents": {
+      "description": "Qué tareas lleva un commit deployado. Lista las tareas del proyecto que esperan en la etapa merge_target de su tablero (o en `stage`), cada una con su `merge_sha` (el commit que su integración dejó en la rama por defecto) e `included`: true si merge_sha es ancestro de `sha`, false si no, \"unknown\" si el historial no pudo contestar (sin merge_sha, un commit que la fuente no tiene). `reverted` marca una tarea cuya integración revierte un commit posterior dentro de `sha`. Con `prev_sha` (el deploy anterior), `already_deployed` marca las tareas que ya estaban y `reverts` lista cada revert de prev_sha..sha. `source` dice si contestó GitHub o el clon del daemon; `truncated` indica que esperaban más de 50 tareas.",
+      "params": {
+        "project_id": "El proyecto del deploy.",
+        "sha": "El commit deployado (de 7 a 40 caracteres hexadecimales). Leelo del deploy mismo; nunca supongas que es la punta de la rama por defecto.",
+        "stage": "Id de etapa a revisar en lugar de la etapa merge_target de cada tablero.",
+        "prev_sha": "El commit deployado antes, para already_deployed y los reverts del rango."
+      }
+    },
+    "stage_tasks_list": {
+      "description": "Las tareas del tablero de esta corrida que están en una etapa, opcionalmente sólo las que tocan un proyecto. Cada una trae sus merge_shas (por proyecto: el commit que dejó su merge en la rama principal), merge_sha del proyecto pedido, pr_urls, updated_at y days_since_update. Sirve para ver qué espera en Release antes de preparar un deploy.",
+      "params": {
+        "stage": "Id de una etapa del tablero de esta corrida, por ejemplo release.",
+        "project_id": "Sólo tareas vinculadas a este proyecto; además completa merge_sha con el commit de merge de ese proyecto."
+      }
+    },
+    "tasks_move_batch": {
+      "description": "Mueve hasta 50 tareas del tablero de esta corrida de una etapa a otra posterior en un solo pedido, con una nota que queda en cada tarea. Nunca mueve hacia atrás, nunca salta una etapa que pide una aprobación y cada tarea pasa igual por la compuerta de salida de su etapa. Responde moved, gated (una aprobación frenó la tarea: nombrala) y skipped (con el motivo). Con require_included sólo se mueven las tareas cuyo commit de merge lleva el commit deployado. Nunca pases tu propia tarea de release. Sólo se concede nombrándola.",
+      "params": {
+        "task_ids": "Ids de las tareas a mover, de 1 a 50.",
+        "from_stage": "La etapa en la que están ahora: la etapa merge_target del tablero o una posterior. Una tarea en otra etapa queda en skipped como wrong_stage.",
+        "to_stage": "Una etapa posterior del mismo tablero.",
+        "note": "Por qué se mueven: el commit deployado, el veredicto de salud, el resultado del smoke. Queda escrita en cada tarea.",
+        "deployed_sha": "El commit que se deployó (de 7 a 40 caracteres hexadecimales).",
+        "project_id": "El proyecto que se deployó. Obligatorio con require_included.",
+        "require_included": "Mover sólo las tareas cuyo merge_sha lleva el commit deployado y que ningún commit posterior revierte. Necesita deployed_sha y project_id."
+      }
+    },
+    "evidence_batch_run": {
+      "description": "Lanza una tanda de Evidence en un entorno y opcionalmente la espera. Contra producción (un entorno marcado como producción o el release_environment del proyecto) la plataforma corre sólo los casos que una persona marcó como seguros para producción, diga lo que diga safe_only; los casos que dejó afuera vuelven como skipped_side_effect y skipped_side_effect_cases. Devuelve los conteos, los casos que fallaron y timed_out si la espera se terminó antes. Sólo se concede nombrándola.",
+      "params": {
+        "environment_id": "Id del entorno de Evidence donde correr.",
+        "tag": "Sólo casos con esta etiqueta, por ejemplo smoke.",
+        "case_ids": "Sólo estos casos, por id o clave (EV-12).",
+        "project_id": "Sólo casos de este proyecto.",
+        "safe_only": "Sólo casos marcados como seguros para producción. Contra producción se fuerza.",
+        "branch": "Rama desde la que armar un Sandbox. Sólo en el Sandbox de un proyecto en el que trabaja tu tarea.",
+        "wait_seconds": "Segundos a esperar que la tanda termine, de 0 a 600 (por defecto 0: vuelve apenas queda encolada). Un cliente que no pide notificaciones de progreso espera como mucho 45 segundos. Con timed_out: true, llamá a evidence_batch_get con el batch_id."
+      }
+    },
+    "evidence_batch_get": {
+      "description": "El estado y los resultados de una tanda de Evidence: conteos, casos que fallaron y si terminó. Se busca por batch_id, o por environment_id y sha para encontrar la tanda que ya lanzó el deploy de ese commit. Opcionalmente la espera.",
+      "params": {
+        "batch_id": "El id de la tanda, de evidence_batch_run, del brief o de un comentario del deploy.",
+        "environment_id": "Con sha: el entorno al que fue el deploy.",
+        "sha": "Con environment_id: el commit deployado; encuentra la tanda más nueva que lanzó ese deploy.",
+        "wait_seconds": "Segundos a esperar que la tanda termine, de 0 a 600 (por defecto 0)."
+      }
+    },
+    "deploy_watch_set": {
+      "description": "Registra cómo vigila Thulu los deploys de un proyecto de la tarea de esta corrida, o actualiza la vigilancia con el mismo origen y destino. Desde ahí cada deploy, o cada cambio que vea una vigilancia por intervalo (éxito/fallo, versión nueva), abre una tarea de release del proyecto en este tablero. Orígenes: github_workflow (target: el archivo del workflow en .github/workflows o su nombre), github_deployment (target: el environment de GitHub), cloud (target: el id de un entorno de Cloud Run del proyecto) y http (target: una URL https cuya respuesta dice si el deploy está arriba y, en un campo version/sha/commit, cuál es). Se concede sólo nombrándola.",
+      "params": {
+        "source": "github_workflow, github_deployment, cloud o http.",
+        "target": "Archivo o nombre del workflow, environment de GitHub, id del entorno o URL, según el origen.",
+        "interval": "Cada cuánto consultar, sólo cloud y http: de 5m a 24h en minutos enteros, como 15m o 1h. Por defecto 15m. No lo pases para los orígenes de GitHub.",
+        "project_id": "El proyecto, cuando la tarea tiene más de uno."
+      }
+    },
+    "deploy_watch_list": {
+      "description": "Las vigilancias de deploys de los proyectos de la tarea de esta corrida: origen, destino, intervalo, la automatización que generó Thulu y el último estado, versión y error que vio cada una. Se concede sólo nombrándola."
+    },
+    "deploy_watch_delete": {
+      "description": "Borra una vigilancia de deploys de un proyecto de la tarea de esta corrida y la automatización que Thulu generó para ella. Se concede sólo nombrándola.",
+      "params": {
+        "watch_id": "El id de la vigilancia, de deploy_watch_list."
+      }
     }
   },
   "errors": {
@@ -388,6 +536,7 @@
     "ask_bool": "{field} tiene que ser true o false",
     "ask_string": "{field} tiene que ser un string",
     "ask_required": "{field} es obligatorio y no puede estar vacío",
+    "skip_reason_required": "reason es obligatorio y no puede estar en blanco: decí por qué, en concreto, para que las personas de la tarea y los agentes posteriores puedan juzgarlo",
     "ask_default_required": "default es obligatorio cuando blocking es false: decí qué vas a hacer si nadie contesta",
     "ask_questions_count": "questions lleva de {min} a {max} ítems, llegaron {count}. Poné las que más importan en una sola llamada.",
     "ask_header_long": "{field} '{header}' pasa de {max} caracteres: es un chip, dejalo en una o dos palabras",
@@ -407,7 +556,18 @@
     "session_not_found": "no se encontró la sesión",
     "handshake_no_key": "una sesión MCP necesita la key del run en el handshake (X-API-Key o Authorization: Bearer)",
     "message_key_mismatch": "este mensaje no trae la key con la que se abrió su sesión",
-    "list_only_session": "esta sesión se abrió sin credencial: puede listar las tools, no llamarlas"
+    "list_only_session": "esta sesión se abrió sin credencial: puede listar las tools, no llamarlas",
+    "tool_release_named": "la tool '{name}' mueve otras tareas o lanza una tanda contra producción, y ningún scope concede eso, ni siquiera write. Hay que nombrarla en la lista de tools MCP del agente (thulu.mcp.default.<stage>: octopus-api@…+{name}).",
+    "batch_get_args": "evidence_batch_get necesita batch_id, o environment_id y sha juntos",
+    "deploy_batch_not_found": "ningún deploy de {sha} lanzó una tanda en el entorno {env}: lanzá una con evidence_batch_run",
+    "observed_too_long": "observed tiene {count} caracteres y el límite es {max}. Escribí lo que viste en una frase y poné el detalle en note.",
+    "criteria_not_array": "criteria tiene que ser un array de {key, text}: la lista entera, en orden.",
+    "report_not_found": "La tarea no tiene el reporte {id}.",
+    "event_not_found": "La tarea no tiene el evento {id}.",
+    "attachment_not_found": "La tarea no tiene el adjunto {id}.",
+    "attachment_video": "{name} es un video y acá no se puede abrir. Leé la toma de la corrida (take_attachment_id) y sus capturas (capture_attachment_ids).",
+    "attachment_unreadable": "{name} ({type}) no se puede abrir acá: sólo imágenes, texto y JSON.",
+    "attachment_too_big": "{name} pesa {size} bytes; las imágenes se abren hasta {max}."
   },
   "text": {
     "mappings_proposed_note": "Las propuestas no hacen nada hasta que una persona las aprueba en la página del proyecto. Con task_id, la tarea ya muestra la aprobación de revisión pendiente.",
@@ -416,7 +576,13 @@
     "ask_blocking_fallback": "Pregunta publicada. Terminá tu turno ahora con una línea de resumen; la corrida se retoma con la respuesta.",
     "ask_nonblocking_fallback": "Pregunta publicada. Seguí con tu default; una respuesta que llegue mientras corrés te va a alcanzar, una posterior queda en el hilo.",
     "ask_reference": "id de la pregunta: {question} · hilo: {comment}",
-    "approval_requested_note": "La tarea no puede avanzar desde esta etapa hasta que una persona apruebe o saltee esto. No podés aprobarlo vos; seguí trabajando."
+    "approval_requested_note": "La tarea no puede avanzar desde esta etapa hasta que una persona apruebe o saltee esto. No podés aprobarlo vos; seguí trabajando.",
+    "skip_added_note": "La tarea pasa de largo esta columna cuando llega. Un agente posterior cuyo trabajo haga necesaria la columna quita el salto con task_skip_remove.",
+    "skip_removed_ahead": "La columna está por delante de la tarea: corre cuando la tarea llegue.",
+    "skip_removed_back": "La tarea ya había pasado esta columna, así que volvió ahí; corre la columna y sigue hacia adelante desde ella.",
+    "skip_removed_deferred": "La tarea ya había pasado esta columna. Vuelve ahí cuando tu corrida actual termine bien; terminá tu trabajo como siempre.",
+    "skip_removed_not_moved": "El salto ya no está, pero la tarea no volvió a la columna. Mirá la Actividad de la tarea para ver por qué.",
+    "attachment_truncated": "[cortado: el archivo tiene {chars} caracteres]"
   },
   "labels": {
     "none": "(ninguno)"
@@ -425,9 +591,15 @@
     "unknown_scope": "[octopus-api] scope desconocido '{scope}', se usa 'read'",
     "listening": "servidor MCP octopus-api escuchando en :{port}",
     "octopus_api": "  OCTOPUS_API:  {url}",
-    "tools": "  Tools:        {total} (read: {read}, write: {write}, entre tableros: {cross_board}, sólo se conceden por nombre)",
+    "tools": "  Tools:        {total} (read: {read}, write: {write}, entre tableros: {cross_board}, release: {release}; estas dos últimas sólo se conceden por nombre)",
     "sse_endpoint": "  Endpoint SSE: GET  /sse?scope=read|write[&tools=a,b][&task=<id>][&catalog=1]",
     "health": "  Health:       GET  /health",
     "shutting_down": "\nllegó {signal}, apagando"
+  },
+  "progress": {
+    "batch": "Tanda {id}: {status}, {done} de {total} casos terminados"
+  },
+  "hints": {
+    "batch_check_again": "La tanda sigue corriendo. Llamá a evidence_batch_get con batch_id {id} para leerla de nuevo."
   }
 }

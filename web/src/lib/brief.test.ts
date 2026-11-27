@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  briefOutline,
   checklistCount,
+  filledLines,
   matchSubtask,
   sectionAuthors,
-  shouldFold,
   splitBrief,
   unwrapMarkdownFence,
 } from "./brief";
@@ -37,13 +38,6 @@ describe("checklistCount", () => {
   it("counts done and total, skipping code blocks", () => {
     const src = "- [x] a\n- [ ] b\n* [X] c\n```\n- [ ] code\n```\n- plain";
     expect(checklistCount(src)).toEqual({ done: 2, total: 3 });
-  });
-});
-
-describe("shouldFold", () => {
-  it("folds sections over thirty lines", () => {
-    expect(shouldFold({ lines: 30 })).toBe(false);
-    expect(shouldFold({ lines: 31 })).toBe(true);
   });
 });
 
@@ -149,5 +143,34 @@ describe("unwrapMarkdownFence", () => {
     ]) {
       expect(unwrapMarkdownFence(body)).toEqual({ text: body, wrapped: false });
     }
+  });
+});
+
+describe("briefOutline", () => {
+  it("opens the text before the first heading and folds every section", () => {
+    const o = briefOutline(splitBrief("Intro line\n\n## Context\nA\n## Risks\nB"));
+    expect(o.lead).toBe("Intro line");
+    expect(o.leadSection).toBeNull();
+    expect(o.sections.map((s) => s.slug)).toEqual(["context", "risks"]);
+  });
+
+  it("opens a leading Goal section without its heading", () => {
+    const o = briefOutline(splitBrief("## Goal\nShip it\n\n## Context\nA"));
+    expect(o.lead).toBe("Ship it");
+    expect(o.leadSection?.slug).toBe("goal");
+    expect(o.sections.map((s) => s.slug)).toEqual(["context"]);
+  });
+
+  it("folds a first section that is not a goal", () => {
+    const o = briefOutline(splitBrief("## Context\nA\n## Goal\nB"));
+    expect(o.lead).toBe("");
+    expect(o.sections).toHaveLength(2);
+  });
+});
+
+describe("filledLines", () => {
+  it("counts the lines with text", () => {
+    expect(filledLines("a\n\n  \nb\r\nc")).toBe(3);
+    expect(filledLines("")).toBe(0);
   });
 });

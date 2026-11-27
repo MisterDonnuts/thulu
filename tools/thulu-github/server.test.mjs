@@ -264,11 +264,30 @@ test("a task run merges with its own token", async () => {
     assert.ok(!r.isError, r.content[0].text);
     assert.equal(daemonCalls.length, 1);
     assert.equal(daemonCalls[0].path, "/internal/tasks/t9/github-token");
+    // A run's default token reads contents; merging needs contents:write, asked for by name.
+    assert.equal(daemonCalls[0].query.get("permissions"), "contents:write");
     assert.equal(githubCalls.length, 1);
     assert.equal(githubCalls[0].method, "PUT");
     assert.equal(githubCalls[0].path, "/repos/acme/widgets/pulls/7/merge");
     assert.equal(githubCalls[0].headers.authorization, "token ghs_task");
     assert.equal(JSON.parse(githubCalls[0].body).merge_method, "rebase");
+  });
+});
+
+test("a task run sees why the daemon refused run_dispatch's token and dispatches nothing", async () => {
+  const refusal = { error: 'its stage grants run_dispatch, which needs a person to approve the "deploy_prod" approval' };
+  const answer = (res, call) =>
+    call.path === "/internal/tasks/t9/github-token" ? reply(res, 403, refusal) : reply(res, 200, { token: "ghs_project" });
+  await inSession("task=t9&project=p9&tools=run_dispatch", answer, async (c) => {
+    const r = await c.callTool({
+      name: "run_dispatch",
+      arguments: { repo: "acme/widgets", workflow_id: "deploy.yml", ref: "main" },
+    });
+    assert.ok(r.isError, "run_dispatch must fail without the approval");
+    assert.match(r.content[0].text, /deploy_prod/);
+    assert.equal(daemonCalls.length, 1, "a refusal on the task route must not retry on the project route");
+    assert.equal(daemonCalls[0].query.get("permissions"), "actions:write");
+    assert.equal(githubCalls.length, 0);
   });
 });
 

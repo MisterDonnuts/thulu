@@ -1,0 +1,8 @@
+{
+  "size": {
+    "kb": "{n} KB",
+    "mb": "{n} MB"
+  },
+  "hint": "Evidencia, reportes y logs que adjuntaron los agentes",
+  "empty": "Todavía no hay archivos. Soltá archivos en la tarea o usá Agregar archivos."
+}

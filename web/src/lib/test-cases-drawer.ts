@@ -4,15 +4,12 @@ import { slugifySection } from "./markdown";
 import { attachmentIDFromURL, mediaKind } from "./media";
 import { fmtDate } from "./time";
 import {
-  STATUS_ORDER,
-  casePriorityTagHTML,
-  caseProgressHTML,
+  SETTABLE_STATUS,
   priorityLabel,
   runAgoLabel,
   statusLabel,
   statusPillClasses,
   statusPillHTML,
-  summarize,
   type TestCase,
   type TestCasePriority,
   type TestCaseRun,
@@ -26,7 +23,6 @@ import {
   checkGroupHTML,
   checkHTML,
   disclosureHTML,
-  emptyStateHTML,
   esc,
   fieldControlAttrs,
   fieldErrorHTML,
@@ -34,9 +30,6 @@ import {
   formErrorHTML,
   icoSvg,
   mdHTML,
-  panelHTML,
-  sectionHeadHTML,
-  tagHTML,
   type Attrs,
 } from "./ui";
 
@@ -63,7 +56,6 @@ export interface TestCasesInput {
 export interface TestCasesDeps {
   md: (src: string) => string;
   attachmentURL: (id: string) => string;
-  openKeys: ReadonlySet<string>;
   openReports: ReadonlySet<string>;
   runCases?: { block: RunCasesBlock; reason: string };
   viewer?: Viewer | null;
@@ -91,11 +83,6 @@ export function offersRemoveSection(input: Pick<TestCasesInput, "cases" | "body"
   return input.cases.length > 0 && hasTestCasesSection(input.body);
 }
 
-export function setByHand(c: Pick<TestCase, "status" | "runs">): boolean {
-  const latest = newestFirst(c.runs ?? []).at(0);
-  return latest ? latest.verdict !== c.status : c.status !== "pending";
-}
-
 export function testCasesSignature(input: TestCasesInput): string {
   const atts = new Set(input.attachments.map((a) => a.id));
   const comments = new Set(input.comments.map((c) => c.id));
@@ -119,6 +106,8 @@ export function testCasesSignature(input: TestCasesInput): string {
       c.description,
       c.steps,
       c.expected,
+      c.covers ?? [],
+      c.preconditions ?? "",
       c.priority,
       c.status,
       c.covered,
@@ -134,47 +123,34 @@ export function plainReportTitle(title: string): string {
 
 const STATUS_ICON: Record<TestCaseStatus, string> = {
   pass: "i-check-circle",
+  waived: "i-circle-half",
   fail: "i-x-circle",
   blocked: "i-alert",
+  queued: "i-refresh",
   skipped: "i-minus",
   pending: "i-circle",
 };
 
-const TALLY = {
-  pending: "lib.test_cases.progress.pending",
-  pass: "lib.test_cases.progress.pass",
-  fail: "lib.test_cases.progress.fail",
-  blocked: "lib.test_cases.progress.blocked",
-  skipped: "lib.test_cases.progress.skipped",
-} as const satisfies Record<TestCaseStatus, string>;
-
-function statusIconHTML(s: TestCaseStatus): string {
-  const known = s in STATUS_ICON;
-  const status = known ? s : "pending";
-  return `<span class="tc-status tc-${status}" role="img" aria-label="${esc(statusLabel(status))}" title="${esc(statusLabel(status))}">${icoSvg(STATUS_ICON[status])}</span>`;
-}
-
-function newestFirst(runs: TestCaseRun[]): TestCaseRun[] {
-  return [...runs].sort((a, b) => (a.ran_at < b.ran_at ? 1 : a.ran_at > b.ran_at ? -1 : 0));
-}
-
-export function testCasesBlockHTML(input: TestCasesInput, deps: TestCasesDeps): string {
+// The tools of the Tests tab's list: import from the brief, run with an agent, add a case, and
+// the notices that go with them.
+export function testCasesToolsHTML(
+  input: TestCasesInput,
+  deps: Pick<TestCasesDeps, "runCases" | "readOnly">,
+): { actions: string; notes: string } {
   const { cases } = input;
-  const sum = summarize(cases);
-  const ro = !!deps.readOnly;
-  const importBtn =
-    !ro && offersImport(input)
-      ? buttonHTML({
-          label: t("lib.test_cases_drawer.buttons.import"),
-          variant: "ghost",
-          size: "sm",
-          title: t("lib.test_cases_drawer.hints.import"),
-          attrs: { "data-tc-act": "import" },
-        })
-      : "";
+  if (deps.readOnly) return { actions: "", notes: "" };
+  const importBtn = offersImport(input)
+    ? buttonHTML({
+        label: t("lib.test_cases_drawer.buttons.import"),
+        variant: "ghost",
+        size: "sm",
+        title: t("lib.test_cases_drawer.hints.import"),
+        attrs: { "data-tc-act": "import" },
+      })
+    : "";
   const run = deps.runCases;
   const runBtn =
-    !ro && run && cases.length
+    run && cases.length
       ? buttonHTML({
           label: t("lib.test_cases_drawer.buttons.run"),
           size: "sm",
@@ -186,7 +162,7 @@ export function testCasesBlockHTML(input: TestCasesInput, deps: TestCasesDeps): 
       : "";
   // Tooltips never show on a phone, so a blocked "Run cases" also explains itself in the block.
   const runNote =
-    !ro && run?.block && cases.length
+    run?.block && cases.length
       ? calloutHTML({
           tone: "warn",
           icon: "warn",
@@ -201,108 +177,29 @@ export function testCasesBlockHTML(input: TestCasesInput, deps: TestCasesDeps): 
           attrs: { role: "status" },
         })
       : "";
-  const removeNote =
-    !ro && offersRemoveSection(input)
-      ? calloutHTML({
-          tone: "warn",
-          body: t("lib.test_cases_drawer.notices.section_left"),
-          actionsHTML: buttonHTML({
-            label: t("lib.test_cases_drawer.buttons.remove_section"),
-            variant: "ghost",
-            size: "sm",
-            attrs: { "data-tc-act": "remove-section" },
-          }),
-          attrs: { role: "status" },
-        })
-      : "";
-  const tally = STATUS_ORDER.filter((s) => sum.byStatus[s] > 0)
-    .map(
-      (s) =>
-        `<span class="tc-tally-item tc-${s}">${icoSvg(STATUS_ICON[s])}${esc(t(TALLY[s], { count: sum.byStatus[s] }))}</span>`,
-    )
-    .join("");
-  const list =
-    cases.length === 0
-      ? emptyStateHTML({
-          size: "inline",
-          dashed: true,
-          body: t("lib.test_cases_drawer.empty.cases"),
-        })
-      : panelHTML({
-          tag: "div",
+  const removeNote = offersRemoveSection(input)
+    ? calloutHTML({
+        tone: "warn",
+        body: t("lib.test_cases_drawer.notices.section_left"),
+        actionsHTML: buttonHTML({
+          label: t("lib.test_cases_drawer.buttons.remove_section"),
+          variant: "ghost",
           size: "sm",
-          flush: true,
-          cls: "tc-list",
-          bodyCls: "row-list",
-          bodyHTML: cases.map((c, i) => caseHTML(c, i, cases.length, input, deps)).join(""),
-        });
-  const actions =
-    importBtn +
-    runBtn +
-    (ro
-      ? ""
-      : buttonHTML({
-          label: t("lib.test_cases_drawer.buttons.add"),
-          size: "sm",
-          icon: "plus",
-          attrs: { "data-tc-act": "add" },
-        }));
-  return `${sectionHeadHTML({
-    title: t("lib.test_cases_drawer.labels.title"),
-    count: cases.length || undefined,
-    asideHTML: tally ? `<div class="tc-tally">${tally}</div>` : "",
-    actionsHTML: actions,
-  })}
-      ${cases.length ? caseProgressHTML(sum, { size: "xs" }) : ""}
-      ${runNote}
-      ${removeNote}
-      <div class="tc-add-slot"></div>
-      ${list}`;
-}
-
-function rowPriorityHTML(p: TestCasePriority): string {
-  if (p !== "critical" && p !== "high") return "";
-  return casePriorityTagHTML(p, { title: t("lib.test_cases_drawer.labels.priority") });
-}
-
-function caseHTML(
-  c: TestCase,
-  index: number,
-  count: number,
-  input: TestCasesInput,
-  deps: TestCasesDeps,
-): string {
-  const key = esc(c.key);
-  const runs = newestFirst(c.runs ?? []);
-  const last = runs.at(0);
-  const lastLabel = last
-    ? t("lib.test_cases_drawer.labels.last_run", {
-        runs: t("lib.test_cases_drawer.labels.runs_count", { count: runs.length }),
-        ago: runAgoLabel(last.ran_at),
+          attrs: { "data-tc-act": "remove-section" },
+        }),
+        attrs: { role: "status" },
       })
-    : t("lib.test_cases_drawer.labels.not_run");
-  const meta = `<span class="tc-meta">
-            ${setByHand(c) ? tagHTML(t("lib.test_cases_drawer.labels.by_hand"), { tone: "muted", dashed: true, size: "sm", title: t("lib.test_cases_drawer.hints.by_hand"), cls: "tc-by-hand" }) : ""}
-            ${rowPriorityHTML(c.priority)}
-            <span class="tc-last"${last ? ` title="${esc(fmtDate(last.ran_at))}"` : ""}>${esc(lastLabel)}</span>
-          </span>`;
-  return disclosureHTML({
-    variant: "row",
-    cls: `tc-case tc-case-${c.status}`,
-    id: `tc-${c.key}`,
-    open: deps.openKeys.has(c.key),
-    attrs: { "data-key": c.key },
-    summaryHTML: `<span class="tc-row">${statusIconHTML(c.status)}<span class="tc-main"><span class="tc-key">${key}</span><span class="tc-title disclosure-title">${esc(c.title)}</span></span>${meta}</span>`,
-    bodyHTML: `<div class="tc-detail">
-          ${deps.readOnly ? readOnlyBarHTML(c) : caseBarHTML(c, index, count)}
-          <div class="tc-edit-slot"></div>
-          ${specHTML(c, deps)}
-          ${runsHTML(runs, input, deps)}
-        </div>`,
+    : "";
+  const add = buttonHTML({
+    label: t("lib.test_cases_drawer.buttons.add"),
+    size: "sm",
+    icon: "plus",
+    attrs: { "data-tc-act": "add" },
   });
+  return { actions: importBtn + runBtn + add, notes: runNote + removeNote };
 }
 
-function caseBarHTML(c: TestCase, index: number, count: number): string {
+export function caseBarHTML(c: TestCase, index: number, count: number): string {
   return `<div class="tc-bar">
             <label class="tc-bar-field"><span>${esc(t("lib.test_cases_drawer.labels.status"))}</span>${statusSelectHTML(c)}</label>
             <span class="tc-bar-field"><span>${esc(t("lib.test_cases_drawer.labels.priority"))}</span><span class="tc-bar-value">${esc(priorityLabel(c.priority))}</span></span>
@@ -324,7 +221,7 @@ function caseBarHTML(c: TestCase, index: number, count: number): string {
           </div>`;
 }
 
-function readOnlyBarHTML(c: TestCase): string {
+export function readOnlyBarHTML(c: TestCase): string {
   const covered = c.covered
     ? `<span class="tc-bar-field"><span>${esc(t("lib.test_cases_drawer.labels.covered"))}</span></span>`
     : "";
@@ -336,52 +233,15 @@ function readOnlyBarHTML(c: TestCase): string {
 }
 
 function statusSelectHTML(c: TestCase): string {
-  const opts = STATUS_ORDER.map(
-    (s) => `<option value="${s}"${s === c.status ? " selected" : ""}>${statusLabel(s)}</option>`,
-  ).join("");
+  const choices = SETTABLE_STATUS.includes(c.status)
+    ? SETTABLE_STATUS
+    : [c.status, ...SETTABLE_STATUS];
+  const opts = choices
+    .map(
+      (s) => `<option value="${s}"${s === c.status ? " selected" : ""}>${statusLabel(s)}</option>`,
+    )
+    .join("");
   return `<select class="${statusPillClasses(c.status, "tc-status-select")}" data-tc-act="status" aria-label="${esc(t("lib.test_cases_drawer.labels.status_of", { key: c.key }))}">${opts}</select>`;
-}
-
-function subHeadHTML(title: string): string {
-  return sectionHeadHTML({ title, level: 4 });
-}
-
-function specHTML(c: TestCase, deps: TestCasesDeps): string {
-  const block = (label: string, src: string, cls: string) =>
-    src.trim()
-      ? `<section class="tc-spec-part ${cls}">${subHeadHTML(label)}${mdHTML(deps.md(src), { compact: true, cls: "tc-md" })}</section>`
-      : "";
-  const desc = block(t("lib.test_cases_drawer.fields.description"), c.description, "tc-spec-desc");
-  const steps = block(t("lib.test_cases_drawer.fields.steps"), c.steps, "tc-spec-steps");
-  const expected = block(
-    t("lib.test_cases_drawer.fields.expected"),
-    c.expected,
-    "tc-spec-expected",
-  );
-  if (!desc && !steps && !expected) {
-    return emptyStateHTML({ size: "inline", body: t("lib.test_cases_drawer.empty.details") });
-  }
-  return `<div class="tc-spec">${desc}${steps || expected ? `<div class="tc-spec-pair">${steps}${expected}</div>` : ""}</div>`;
-}
-
-function runsHTML(runs: TestCaseRun[], input: TestCasesInput, deps: TestCasesDeps): string {
-  if (!runs.length) {
-    return `<section class="tc-runs">${subHeadHTML(t("lib.test_cases_drawer.labels.latest_run"))}${emptyStateHTML({ size: "inline", body: t("lib.test_cases_drawer.empty.runs") })}</section>`;
-  }
-  const [latest, ...older] = runs;
-  const olderHTML = older.length
-    ? disclosureHTML({
-        variant: "code",
-        cls: "tc-older",
-        summary: t("lib.test_cases_drawer.labels.older_runs", { count: older.length }),
-        bodyHTML: `<div class="tc-older-runs">${older.map((r) => runHTML(r, input, deps)).join("")}</div>`,
-      })
-    : "";
-  return `<section class="tc-runs">
-        ${subHeadHTML(t("lib.test_cases_drawer.labels.latest_run"))}
-        ${runHTML(latest, input, deps)}
-        ${olderHTML}
-      </section>`;
 }
 
 export function runHTML(r: TestCaseRun, input: TestCasesInput, deps: TestCasesDeps): string {
@@ -427,7 +287,11 @@ export function runHTML(r: TestCaseRun, input: TestCasesInput, deps: TestCasesDe
         </article>`;
 }
 
-function evidenceHTML(r: TestCaseRun, input: TestCasesInput, deps: TestCasesDeps): string {
+export function evidenceHTML(
+  r: TestCaseRun,
+  input: Pick<TestCasesInput, "attachments">,
+  deps: Pick<TestCasesDeps, "attachmentURL">,
+): string {
   const att = (id: string) => (id ? input.attachments.find((a) => a.id === id) : undefined);
   const ids = [r.video_attachment_id, ...r.capture_attachment_ids].filter((id) => id && att(id));
   const set = esc(ids.join(","));
@@ -461,7 +325,7 @@ function evidenceHTML(r: TestCaseRun, input: TestCasesInput, deps: TestCasesDeps
   return thumbs.length ? `<div class="tc-evidence">${thumbs.join("")}</div>` : "";
 }
 
-function fileChipHTML(a: TcAttachment, deps: TestCasesDeps): string {
+function fileChipHTML(a: TcAttachment, deps: Pick<TestCasesDeps, "attachmentURL">): string {
   return `<a class="tc-file" href="${esc(deps.attachmentURL(a.id))}" target="_blank" rel="noopener noreferrer" title="${esc(a.filename)}">${icoSvg("i-file")}<span>${esc(a.filename)}</span></a>`;
 }
 

@@ -91,6 +91,9 @@ func TestAuditorRunsInItsOwnContainer(t *testing.T) {
 	if done.Status != StatusBlocked {
 		t.Errorf("status = %q, want blocked by the verdict", done.Status)
 	}
+	if b := done.Block; b == nil || b.Cause != BlockAuditor || b.Agent == "" || b.Stage != string(types.StageInProgress) {
+		t.Errorf("block = %+v, want the auditor of the audited agent in in_progress", b)
+	}
 	if !store.HasAuditFinishEventForInstance(ctx, audit["INSTANCE_ID"]) {
 		t.Error("no auditor_run_finished event")
 	}

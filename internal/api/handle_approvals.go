@@ -8,6 +8,7 @@ import (
 
 	"github.com/MisterDonnuts/thulu/internal/apperr"
 	"github.com/MisterDonnuts/thulu/internal/audit"
+	"github.com/MisterDonnuts/thulu/internal/auth"
 	"github.com/MisterDonnuts/thulu/internal/i18n"
 	"github.com/MisterDonnuts/thulu/internal/logx"
 	"github.com/MisterDonnuts/thulu/internal/task"
@@ -19,6 +20,8 @@ type approvalRequest struct {
 	Label   string          `json:"label"`
 	Reason  string          `json:"reason,omitempty"`
 	Payload json.RawMessage `json:"payload,omitempty"`
+	// Optional: a later stage of the board whose exit the approval holds instead of the current one.
+	Stage string `json:"stage,omitempty"`
 }
 
 // Each approval fires a webhook, holds the stage and sits in the inbox; caps stop a looping run
@@ -62,9 +65,14 @@ func (s *Server) handleRequestApproval(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	stage, err := s.approvalStage(t, task.Stage(strings.TrimSpace(in.Stage)))
+	if err != nil {
+		writeError(w, r, apperr.Status(err), err)
+		return
+	}
 	a := &task.Approval{
 		TaskID: t.ID, Key: strings.TrimSpace(in.Key), Label: strings.TrimSpace(in.Label),
-		Reason: strings.TrimSpace(in.Reason), Payload: in.Payload, Stage: t.Stage,
+		Reason: strings.TrimSpace(in.Reason), Payload: in.Payload, Stage: stage,
 		Source: source, Status: task.ApprovalPending, CreatedBy: author.Label(),
 	}
 	if err := s.taskStore.AddApproval(r.Context(), a); err != nil {
@@ -74,6 +82,25 @@ func (s *Server) handleRequestApproval(w http.ResponseWriter, r *http.Request) {
 	// Don't emit approval.requested here: the store hook (wireApprovals) sends it for every
 	// approval.
 	writeJSON(w, http.StatusCreated, a)
+}
+
+// The stage an approval holds: the task's current one, or a later stage of its board that the
+// caller named, so a person decides it there without holding the stages in between. Never an
+// earlier, terminal or virtual stage: those have no exit for the approval to hold.
+func (s *Server) approvalStage(t *task.Task, want task.Stage) (task.Stage, error) {
+	if want == "" || want == t.Stage {
+		return t.Stage, nil
+	}
+	stages := s.stagesFor(t)
+	to, ok := stages.Get(want)
+	if !ok || to.Virtual {
+		return "", apperr.Invalid("api.approvals.errors.unknown_stage", "stage", want)
+	}
+	from, fromOK := stages.Get(t.Stage)
+	if to.Terminal || fromOK && to.Position <= from.Position {
+		return "", apperr.Invalid("api.approvals.errors.stage_not_ahead", "stage", want, "current", t.Stage)
+	}
+	return want, nil
 }
 
 func (s *Server) underAgentApprovalLimit(w http.ResponseWriter, r *http.Request, taskID string) bool {
@@ -121,11 +148,18 @@ func (s *Server) handleDecideApproval(w http.ResponseWriter, r *http.Request) {
 		writeErrKey(w, r, http.StatusServiceUnavailable, "api.approvals.errors.no_dispatcher")
 		return
 	}
+	block, waiting := s.decisionChecks(r.Context(), t, r.PathValue("aid"), in.Decision)
+	if block != nil {
+		writeJSON(w, block.status(), block.body(r.Context()))
+		return
+	}
 	a, err := s.taskDispatcher.DecideApproval(launchCtx(r.Context()), t, r.PathValue("aid"), in.Decision, author.Name, note)
 	if err != nil {
 		writeError(w, r, apperr.Status(err), err)
 		return
 	}
+	s.noteApprovedAheadOfChecks(r.Context(), t, a, waiting)
+	s.postApprovalDecision(r, a, author)
 	kind := audit.KindApprovalDecided
 	if a.Status == task.ApprovalWaived {
 		kind = audit.KindApprovalWaived
@@ -156,9 +190,17 @@ func (s *Server) decideThroughFlag(r *http.Request, t *task.Task, flagID string,
 	if p.ResolvedNote != nil {
 		note = *p.ResolvedNote
 	}
+	block, waiting := s.checksDecision(r.Context(), t, existing, task.ApprovalStatusOf(*p.Status))
+	if block != nil {
+		return nil, block.err(r.Context())
+	}
 	a, err := s.taskDispatcher.DecideFlag(launchCtx(r.Context()), t, flagID, task.ApprovalStatusOf(*p.Status), by, note)
 	if err != nil {
 		return nil, err
+	}
+	s.noteApprovedAheadOfChecks(r.Context(), t, a, waiting)
+	if author, authErr := auth.AuthorFromRequest(r); authErr == nil {
+		s.postApprovalDecision(r, a, author)
 	}
 	kind := audit.KindApprovalDecided
 	if a.Status == task.ApprovalWaived {
@@ -168,6 +210,12 @@ func (s *Server) decideThroughFlag(r *http.Request, t *task.Task, flagID string,
 		i18n.Text("api.approvals.audit.decided", "task", t.ID, "approval", a.Label, "decision", a.Status),
 		approvalHookData(t, a))
 	return s.taskStore.GetFlag(r.Context(), flagID)
+}
+
+// postApprovalDecision answers the approval's thread with the decision, as whoever decided it.
+func (s *Server) postApprovalDecision(r *http.Request, a *task.Approval, author auth.Author) {
+	_, err := s.taskStore.PostApprovalDecision(r.Context(), a, commentSource(author), author.Name)
+	logx.Warn(err, "api.approvals.log.post_decision", "task", a.TaskID, "approval", a.ID)
 }
 
 type decidedApproval struct {
@@ -228,6 +276,7 @@ func (s *Server) wireApprovals() {
 		}
 		webhook.EmitBackground(ctx, s.webhookDisp, t.WorkspaceID, webhook.EventApprovalRequested, approvalHookData(t, &a))
 	})
+	s.taskStore.WithChecksGate(s.requiredChecksHolds)
 	s.taskStore.WithQuestionCancelHook(func(ctx context.Context, q task.Question) {
 		t, err := s.taskStore.GetRow(ctx, q.TaskID)
 		if err != nil {
@@ -247,17 +296,29 @@ func (s *Server) approvalGate(ctx context.Context, t *task.Task, from, to task.S
 		return 0, nil, true
 	}
 	info, _ := s.stagesFor(t).Get(from)
+	stage := stageLabelIn(info, i18n.FromContext(ctx))
+	fields := map[string]any{
+		"blocking_approvals": v.Blocking,
+		"blocking_flags":     task.FlagsOf(v.Blocking),
+	}
+	if v.OnlyChecks() {
+		fields["required_checks"] = v.Checks
+		return http.StatusConflict, keyedRefusal(ctx, fields, "api.approvals.errors.gate_checks",
+			"stage", stage, "approvals", v.Labels(), "checks", task.ChecksText(ctx, v.Checks)), false
+	}
 	key := "api.approvals.errors.gate_closed"
 	if cause == task.GateCreate {
 		key = "api.approvals.errors.gate_closed_create"
 	}
-	return http.StatusConflict, keyedRefusal(ctx, map[string]any{
-		"blocking_approvals": v.Blocking,
-		"blocking_flags":     task.FlagsOf(v.Blocking),
-	}, key, "stage", stageLabelIn(info, i18n.FromContext(ctx)), "approvals", v.Labels()), false
+	return http.StatusConflict, keyedRefusal(ctx, fields, key, "stage", stage, "approvals", v.Labels()), false
 }
 
 func (s *Server) recordSkippedApprovals(ctx context.Context, t *task.Task, from, to task.Stage, cause task.GateCause, by string) {
+	s.recordSkippedApprovalsNote(ctx, t, from, to, cause, by, "")
+}
+
+// An empty note uses the generic one naming the cause.
+func (s *Server) recordSkippedApprovalsNote(ctx context.Context, t *task.Task, from, to task.Stage, cause task.GateCause, by, note string) {
 	v, err := s.taskStore.StageExitCheck(ctx, t, from, to, cause)
 	if err != nil {
 		logx.Warn(err, "api.approvals.log.skipped", "task", t.ID)
@@ -266,7 +327,9 @@ func (s *Server) recordSkippedApprovals(ctx context.Context, t *task.Task, from,
 	if len(v.Blocking) == 0 {
 		return
 	}
-	note := i18n.Text("api.approvals.events.waived_note", "cause", string(cause))
+	if note == "" {
+		note = i18n.Text("api.approvals.events.waived_note", "cause", string(cause))
+	}
 	for i := range v.Blocking {
 		a := &v.Blocking[i]
 		if a.ID == "" || a.Stage == "" {

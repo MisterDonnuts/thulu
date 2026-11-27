@@ -30,6 +30,10 @@ import Tabs from "../components/Tabs.astro";
 import { SLOT, t, tParts } from "../i18n";
 import type { TabItem } from "../lib/ui/tabs";
 import { dimColumns, topTaskColumns } from "../lib/project-tables";
+import { deployWatchColumns } from "../lib/deploy-watches";
+
+// i18n-ignore JSON sample of a gate profile, not a message
+const GATES_PROFILE_SAMPLE = '{"timeouts": {"tests": 2400}, "accept_unverified": {"tests": "…"}}';
 
 const SAMPLE = {
   repo: "git@github.com:org/repo.git",
@@ -261,6 +265,29 @@ const [credBefore, , credAfter] = tParts("project.credentials.intro", { link: SL
             >
               <select id="s-board" aria-describedby="s-board-help"></select>
             </Field>
+            <Field
+              label={t("project.settings.release_mode")}
+              for="s-release-mode"
+              help={t("project.settings.release_mode_hint")}
+            >
+              <select id="s-release-mode" aria-describedby="s-release-mode-help">
+                <option value="">{t("project.settings.release_mode_unset")}</option>
+                <option value="auto">{t("project.settings.release_mode_auto")}</option>
+                <option value="batch">{t("project.settings.release_mode_batch")}</option>
+              </select>
+            </Field>
+            <Field
+              label={t("project.settings.release_environment")}
+              for="s-release-env"
+              help={t("project.settings.release_environment_hint")}
+            >
+              <input
+                id="s-release-env"
+                maxlength="64"
+                placeholder={t("project.settings.release_environment_placeholder")}
+                aria-describedby="s-release-env-help"
+              />
+            </Field>
           </div>
           <div class="form-col form-stack">
             <Field
@@ -272,6 +299,22 @@ const [credBefore, , credAfter] = tParts("project.credentials.intro", { link: SL
                 id="s-desc"
                 rows="4"
                 placeholder={t("project.settings.description_placeholder")}></textarea>
+            </Field>
+            <Field
+              label={t("project.settings.gates_profile")}
+              for="s-gates-profile"
+              optional
+              help={t("project.settings.gates_profile_hint")}
+              errorId="s-gates-profile-error"
+            >
+              <textarea
+                id="s-gates-profile"
+                class="mono"
+                rows="5"
+                spellcheck="false"
+                autocomplete="off"
+                aria-describedby="s-gates-profile-help"
+                placeholder={GATES_PROFILE_SAMPLE}></textarea>
             </Field>
             <Field
               label={t("project.settings.template")}
@@ -313,6 +356,11 @@ const [credBefore, , credAfter] = tParts("project.credentials.intro", { link: SL
             </Field>
             <div id="r-note"></div>
           </div>
+        </Panel>
+
+        <Panel icon="eye" title={t("project.deploy_watches.title")} id="dw-panel">
+          <p class="panel-lede">{t("project.deploy_watches.intro")}</p>
+          <Table compact stack bodyId="dw-body" cols={deployWatchColumns()} />
         </Panel>
 
         <Panel icon="warn" title={t("project.danger.title")} tone="danger">
@@ -1064,6 +1112,7 @@ const [credBefore, , credAfter] = tParts("project.credentials.intro", { link: SL
       calloutHTML,
       clearFormErrors,
       confirmDialog,
+      emptyRowHTML,
       emptyStateHTML,
       esc,
       fieldHTML,
@@ -1171,6 +1220,7 @@ const [credBefore, , credAfter] = tParts("project.credentials.intro", { link: SL
       parseSelectors,
     } from "../lib/env-form";
     import { webRepoURL } from "../lib/repo-url";
+    import { deployWatchRowsHTML, type DeployWatch } from "../lib/deploy-watches";
     import { apiBase } from "../lib/auth";
     import {
       buildTarGz,
@@ -1222,6 +1272,9 @@ const [credBefore, , credAfter] = tParts("project.credentials.intro", { link: SL
         description: string;
         default_branch: string;
         default_board_id?: string;
+        release_mode?: string;
+        release_environment?: string;
+        gates_profile?: Record<string, unknown>;
         stage_template: Record<string, string>;
         github_installation_id?: number;
         source?: string;
@@ -1404,6 +1457,7 @@ const [credBefore, , credAfter] = tParts("project.credentials.intro", { link: SL
         });
         if (codeReady) void loadWorktrees();
         void loadEnvironments();
+        void loadDeployWatches();
         startEnvAutoRefresh();
         await loadMetrics();
       }
@@ -1768,6 +1822,11 @@ const [credBefore, , credAfter] = tParts("project.credentials.intro", { link: SL
         ($("s-desc") as HTMLTextAreaElement).value = project.description || "";
         ($("s-branch") as HTMLInputElement).value = project.default_branch || "main";
         renderBoardOptions(project.default_board_id || "");
+        ($("s-release-mode") as HTMLSelectElement).value = project.release_mode || "";
+        ($("s-release-env") as HTMLInputElement).value = project.release_environment || "";
+        ($("s-gates-profile") as HTMLTextAreaElement).value = project.gates_profile
+          ? JSON.stringify(project.gates_profile, null, 2)
+          : "";
         renderTemplate(project.stage_template || {});
         renderGhAppRow();
         void place.render(project).then(renderHeader);
@@ -1806,14 +1865,33 @@ const [credBefore, , credAfter] = tParts("project.credentials.intro", { link: SL
         void templateTable.render(template);
       }
 
+      // The gate profile is JSON a person pastes; an empty box clears it ({}), and the daemon checks
+      // the keys and reasons.
+      function readGatesProfile(): Record<string, unknown> | null {
+        const raw = ($("s-gates-profile") as HTMLTextAreaElement).value.trim();
+        if (!raw) return {};
+        try {
+          const v: unknown = JSON.parse(raw);
+          return v && typeof v === "object" && !Array.isArray(v)
+            ? (v as Record<string, unknown>)
+            : null;
+        } catch {
+          return null;
+        }
+      }
+
       async function saveSettings() {
         if (!project) return;
+        const gatesProfile = readGatesProfile();
         const body = {
           name: ($("s-name") as HTMLInputElement).value.trim(),
           repo_url: ($("s-repo") as HTMLInputElement).value.trim(),
           description: ($("s-desc") as HTMLTextAreaElement).value.trim(),
           default_branch: ($("s-branch") as HTMLInputElement).value.trim() || "main",
           default_board_id: ($("s-board") as HTMLSelectElement).value,
+          release_mode: ($("s-release-mode") as HTMLSelectElement).value,
+          release_environment: ($("s-release-env") as HTMLInputElement).value.trim(),
+          gates_profile: gatesProfile ?? {},
           stage_template: readStageTemplate(
             $("s-template").querySelectorAll<HTMLSelectElement>("[data-stage]"),
           ),
@@ -1822,6 +1900,8 @@ const [credBefore, , credAfter] = tParts("project.credentials.intro", { link: SL
         if (!body.name) missing.push(["s-name", t("projects.errors.name_required")]);
         if (!body.repo_url && project.source !== "upload")
           missing.push(["s-repo", t("projects.errors.repo_required")]);
+        if (gatesProfile === null)
+          missing.push(["s-gates-profile", t("project.settings.gates_profile_invalid")]);
         clearFormErrors($("panel-settings"));
         missing.forEach(([id, msg], i) => setFieldError($(id), msg, { focus: i === 0 }));
         if (missing.length) return;
@@ -2921,6 +3001,48 @@ const [credBefore, , credAfter] = tParts("project.credentials.intro", { link: SL
         } finally {
           btn.disabled = false;
         }
+      }
+
+      let deployWatches: DeployWatch[] = [];
+
+      async function loadDeployWatches() {
+        try {
+          const res = await api.get<{ watches: DeployWatch[] }>(
+            `/projects/${projectID}/deploy-watches`,
+          );
+          deployWatches = res?.watches ?? [];
+        } catch {
+          $("dw-body").innerHTML = emptyRowHTML(t("project.deploy_watches.load_failed"), {
+            cols: 5,
+            tone: "danger",
+          });
+          return;
+        }
+        $("dw-body").innerHTML = deployWatchRowsHTML(deployWatches);
+        wireIn("dw-body", "[data-dw-del]", (b) => void deleteDeployWatch(b.dataset.dwDel!));
+      }
+
+      async function deleteDeployWatch(id: string) {
+        const w = deployWatches.find((x) => x.id === id);
+        if (!w) return;
+        const ok = await confirmDialog({
+          title: t("project.deploy_watches.delete_title", { target: w.target }),
+          message: t("project.deploy_watches.delete_message"),
+          confirmLabel: t("project.confirm.delete_watch"),
+          danger: true,
+        });
+        if (!ok) return;
+        try {
+          await api.del(`/projects/${projectID}/deploy-watches/${id}`);
+        } catch (err) {
+          toast(
+            err instanceof ApiError ? err.message : t("project.deploy_watches.delete_failed"),
+            "err",
+          );
+          return;
+        }
+        toast(t("project.deploy_watches.deleted"), "ok");
+        await loadDeployWatches();
       }
 
       async function deleteEnvironment(id: string) {

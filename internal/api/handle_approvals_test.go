@@ -76,8 +76,9 @@ func TestApprovals_GateOnPatch(t *testing.T) {
 		t.Errorf("refusal = %s", w.Body.String())
 	}
 
-	if w := moveTask(t, h, token, id, "refinement"); w.Code != http.StatusOK {
-		t.Fatalf("backward = %d, want 200: %s", w.Code, w.Body.String())
+	back := patchJSONAuth(t, h, "/tasks/"+id, token, map[string]string{"stage": "refinement", "reason": "the copy changed"})
+	if back.Code != http.StatusOK {
+		t.Fatalf("backward = %d, want 200: %s", back.Code, back.Body.String())
 	}
 	if w := moveTask(t, h, token, id, "review"); w.Code != http.StatusOK {
 		t.Fatalf("back into review = %d: %s", w.Code, w.Body.String())
@@ -428,5 +429,104 @@ func TestApprovals_StageDeletionWaivesWhatItSkips(t *testing.T) {
 	list := listApprovals(t, h, token, id)
 	if len(list) != 1 || list[0].Status != task.ApprovalWaived || list[0].DecidedBy != "octopus" || list[0].DecidedNote == "" {
 		t.Errorf("after the stage went: %+v, want qa waived by octopus with a note", list)
+	}
+}
+
+// An agent in one stage asks for a decision a person takes in a later one (the tester's UX review,
+// decided in human review): the approval holds that later stage, not the one asking.
+func TestApprovals_RequestForALaterStage(t *testing.T) {
+	t.Parallel()
+	_, h := newIntegrationServer(t)
+	token := registerUser(t, h, "later@test.com", "Later", "SecurePassword1")
+	id := createTaskViaAPI(t, h, token, "ux")
+	if w := moveTask(t, h, token, id, "refinement"); w.Code != http.StatusOK {
+		t.Fatalf("into refinement = %d: %s", w.Code, w.Body.String())
+	}
+	path := "/tasks/" + id + "/approvals"
+	w := postJSONAuth(t, h, path, token, map[string]any{"label": "UX review", "key": "ux_review", "stage": "review"})
+	if w.Code != http.StatusCreated {
+		t.Fatalf("ask for review = %d: %s", w.Code, w.Body.String())
+	}
+	var a task.Approval
+	if err := json.Unmarshal(w.Body.Bytes(), &a); err != nil {
+		t.Fatal(err)
+	}
+	if a.Stage != "review" {
+		t.Fatalf("approval holds %q, want review", a.Stage)
+	}
+	// The stage that asked is not held; the named one is.
+	if w := moveTask(t, h, token, id, "review"); w.Code != http.StatusOK {
+		t.Fatalf("refinement → review with the approval pending = %d: %s", w.Code, w.Body.String())
+	}
+	if w := moveTask(t, h, token, id, "handoff"); w.Code != http.StatusConflict {
+		t.Errorf("leaving review with the approval pending = %d, want 409: %s", w.Code, w.Body.String())
+	}
+
+	for stage, code := range map[string]string{
+		"refinement": "api.approvals.errors.stage_not_ahead",
+		"done":       "api.approvals.errors.stage_not_ahead",
+		"nope":       "api.approvals.errors.unknown_stage",
+	} {
+		w := postJSONAuth(t, h, path, token, map[string]any{"label": "x", "stage": stage})
+		var refusal struct {
+			Code string `json:"code"`
+		}
+		_ = json.Unmarshal(w.Body.Bytes(), &refusal)
+		if w.Code != http.StatusBadRequest || refusal.Code != code {
+			t.Errorf("ask for %q = %d %s, want 400 %s", stage, w.Code, w.Body.String(), code)
+		}
+	}
+	if w := postJSONAuth(t, h, path, token, map[string]any{"label": "here", "stage": "review"}); w.Code != http.StatusCreated {
+		t.Errorf("naming the current stage = %d: %s", w.Code, w.Body.String())
+	}
+}
+
+// Changes requested on an approval of a stage the task has not reached would do nothing, and
+// entering that stage would reopen it with the note gone: the API refuses them. Approving ahead
+// is fine, and once the task is there changes can be requested.
+func TestApprovals_ChangesOnALaterStageWaitForIt(t *testing.T) {
+	t.Parallel()
+	_, h := newIntegrationServer(t)
+	token := registerUser(t, h, "ahead@test.com", "Ahead", "SecurePassword1")
+	id := createTaskViaAPI(t, h, token, "ux ahead")
+	if w := moveTask(t, h, token, id, "refinement"); w.Code != http.StatusOK {
+		t.Fatalf("into refinement = %d: %s", w.Code, w.Body.String())
+	}
+	request := func(label string) task.Approval {
+		t.Helper()
+		w := postJSONAuth(t, h, "/tasks/"+id+"/approvals", token, map[string]any{"label": label, "stage": "review"})
+		if w.Code != http.StatusCreated {
+			t.Fatalf("ask for review = %d: %s", w.Code, w.Body.String())
+		}
+		var a task.Approval
+		if err := json.Unmarshal(w.Body.Bytes(), &a); err != nil {
+			t.Fatal(err)
+		}
+		return a
+	}
+	ux, design := request("UX review"), request("Design")
+
+	w := decide(t, h, token, id, ux.ID, map[string]string{"decision": "changes_requested", "note": "move the button"})
+	var refusal struct {
+		Code string `json:"code"`
+	}
+	_ = json.Unmarshal(w.Body.Bytes(), &refusal)
+	if w.Code != http.StatusConflict || refusal.Code != "task.approvals.errors.changes_ahead" {
+		t.Fatalf("changes requested ahead of the stage = %d %s, want 409 changes_ahead", w.Code, w.Body.String())
+	}
+	if w := decide(t, h, token, id, design.ID, map[string]string{"decision": "approved"}); w.Code != http.StatusOK {
+		t.Fatalf("approving ahead of the stage = %d: %s", w.Code, w.Body.String())
+	}
+
+	if w := moveTask(t, h, token, id, "review"); w.Code != http.StatusOK {
+		t.Fatalf("refinement → review = %d: %s", w.Code, w.Body.String())
+	}
+	if w := decide(t, h, token, id, ux.ID, map[string]string{"decision": "changes_requested", "note": "move the button"}); w.Code != http.StatusOK {
+		t.Errorf("changes requested in the approval's stage = %d: %s", w.Code, w.Body.String())
+	}
+	for _, a := range listApprovals(t, h, token, id) {
+		if a.ID == design.ID && a.Status != task.ApprovalApproved {
+			t.Errorf("approved ahead, then %q after entering review", a.Status)
+		}
 	}
 }

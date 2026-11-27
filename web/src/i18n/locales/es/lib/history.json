@@ -3,7 +3,8 @@
   "via": {
     "kick_back": "(la devolvió el auditor)",
     "changes_requested": "(pidieron cambios)",
-    "stage_deleted": "(se borró su etapa)"
+    "stage_deleted": "(se borró su etapa)",
+    "skip_removed": "(se quitó un salteo)"
   },
   "run_in": "{agent} en {stage}",
   "cloned_from": "Copia de la tarea {task}",
@@ -43,5 +44,35 @@
     "octopus": "Thulu",
     "auditor": "Auditor",
     "agent": "Un agente"
+  },
+  "outlived": "{agent} terminó en {stage} después de que la tarea pasara a {now}; su resultado no se aplicó",
+  "deferred": "{agent} espera al agente de {busy} para arrancar en {stage}",
+  "skip": {
+    "added": "{who} saltea {stage}: {reason}",
+    "removed": "{who} hizo que {stage} vuelva a correr: {reason}",
+    "removed_back": "{who} hizo que {stage} vuelva a correr, así que la tarea vuelve ahí: {reason}",
+    "removed_later": "{who} hizo que {stage} vuelva a correr; la tarea vuelve ahí cuando termine la corrida actual: {reason}",
+    "entered": "{stage} corre: {who} movió la tarea ahí",
+    "ui_diff": "{stage} corre igual: la rama cambia archivos de UI",
+    "diff_unreadable": "{stage} corre igual: no se pudo leer el diff de la rama",
+    "refinement_dropped": "{stage} vuelve a correr: el refinamiento ya no la saltea",
+    "board_changed": "La tarea ya no saltea {stage}: pasó a otro tablero",
+    "passed_over": "Pasó de largo {stage}, que esta tarea saltea: {reason}",
+    "passed_over_surface": "Pasó de largo {stage}, que espera {required}"
+  },
+  "auditor_skipped": "Sin auditoría de {agent} en {stage}: ninguna señal ({checks})",
+  "audit_check_unread": "{check} (no se pudo leer)",
+  "audit_checks": {
+    "exit": "código de salida",
+    "out_of_turns": "turnos",
+    "verdict": "veredicto",
+    "locked_tests": "tests bloqueados",
+    "scope": "config de gates y supresiones",
+    "diff_size": "tamaño del diff",
+    "skips": "saltos de columna",
+    "flags": "flags",
+    "no_output": "reporte",
+    "person_relaunch": "relanzamiento con motivo",
+    "risk_high": "riesgo"
   }
 }

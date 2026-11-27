@@ -68,6 +68,8 @@ type Approval struct {
 	ApprovedAtRef string          `json:"approved_at_ref,omitempty"`
 	CreatedAt     time.Time       `json:"created_at"`
 	DecidedAt     *time.Time      `json:"decided_at,omitempty"`
+	// The comment thread the approval opened (kind approval); set by the store's Get.
+	ThreadID string `json:"thread_id,omitempty"`
 }
 
 // 43 creates the table and unique index in one step so the index lands on an empty table.
@@ -226,6 +228,7 @@ func (s *Store) insertApproval(ctx context.Context, a *Approval) error {
 }
 
 func (s *Store) approvalOpened(ctx context.Context, a Approval) {
+	s.openApprovalThread(ctx, a)
 	if s.onApproval != nil {
 		s.onApproval(ctx, a)
 	}
@@ -335,6 +338,26 @@ func (s *Store) SetApprovalLabel(ctx context.Context, id, label string) error {
 	return nil
 }
 
+// A system approval keeps one row while what it asks about changes (the test files a stage touched),
+// so the person decides on the latest list.
+func (s *Store) SetApprovalPayload(ctx context.Context, id string, payload json.RawMessage) error {
+	raw := string(payload)
+	if raw == "" {
+		raw = "{}"
+	}
+	var taskID string
+	err := s.db.QueryRowContext(ctx, s.rb(`UPDATE task_approvals SET payload = ? WHERE id = ? RETURNING task_id`), raw, id).Scan(&taskID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return apperr.NotFound("task.approvals.errors.not_found")
+	}
+	if err != nil {
+		return apperr.Wrap(err, "task.approvals.errors.update", "id", id)
+	}
+	s.mirrorFlagByID(ctx, id)
+	s.notifyTask(ctx, taskID)
+	return nil
+}
+
 func (s *Store) DeleteApproval(ctx context.Context, id string) error {
 	var taskID string
 	err := s.db.QueryRowContext(ctx, s.rb(`DELETE FROM task_approvals WHERE id = ? RETURNING task_id`), id).Scan(&taskID)
@@ -345,6 +368,7 @@ func (s *Store) DeleteApproval(ctx context.Context, id string) error {
 		return apperr.Wrap(err, "task.approvals.errors.delete", "id", id)
 	}
 	s.unmirrorFlag(ctx, id)
+	s.resolveApprovalThread(ctx, taskID, id, "octopus")
 	s.notifyTask(ctx, taskID)
 	return nil
 }
@@ -365,7 +389,12 @@ func (s *Store) reopenWhere(ctx context.Context, where string, args ...any) ([]A
 		}
 		out = append(out, *a)
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil {
+		return out, err
+	}
+	rows.Close()
+	s.reopenApprovalThreads(ctx, out)
+	return out, nil
 }
 
 func (s *Store) ReopenChangesRequested(ctx context.Context, taskID string, stage Stage, decidedBefore time.Time) ([]Approval, error) {
@@ -412,6 +441,11 @@ func (s *Store) ResetStaleApprovals(
 }
 
 func resetsOnChange(a Approval, reqs []types.ApprovalRequirement) bool {
+	// Approving it moved the locked baseline; the check after each run opens a new one if the tests
+	// change again.
+	if a.Source == ApprovalFromSystem && a.Key == ApprovalKeyTestChange {
+		return false
+	}
 	if a.Source != ApprovalFromStage {
 		return true
 	}
@@ -509,7 +543,10 @@ func (s *Store) insertForkApprovals(ctx context.Context, tx *sql.Tx, dstID strin
 		if payload == "" {
 			payload = "{}"
 		}
-		a.ID, a.TaskID = mustGenerateID(), dstID
+		a.TaskID = dstID
+		if a.ID == "" {
+			a.ID = mustGenerateID()
+		}
 		if _, err := tx.ExecContext(ctx, s.rb(`INSERT INTO task_approvals (`+approvalCols+`)
 			VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`),
 			a.ID, a.TaskID, a.Key, a.Label, string(a.Stage), string(a.Source), string(a.Status), a.Reason,
@@ -537,11 +574,10 @@ func (s *Store) ImportApproval(ctx context.Context, a Approval) error {
 	}
 	if a.Source == ApprovalFromStage {
 		// Importing the task already opened its stage approvals; the bundle's row must replace that
-		// one or it collides on the stage unique key.
-		if _, err := s.db.ExecContext(ctx, s.rb(`DELETE FROM task_approvals
-			WHERE task_id = ? AND stage = ? AND key = ? AND source = ? AND id <> ?`),
-			a.TaskID, string(a.Stage), a.Key, string(ApprovalFromStage), a.ID); err != nil {
-			return apperr.Wrap(err, "task.approvals.errors.import", "id", a.ID)
+		// one or it collides on the stage unique key. The thread it opened goes with it: the
+		// bundle brings the original's.
+		if err := s.dropImportedStageApproval(ctx, a); err != nil {
+			return err
 		}
 	}
 	res, err := s.db.ExecContext(ctx, s.rb(`INSERT INTO task_approvals (`+approvalCols+`)

@@ -189,6 +189,69 @@ func TestOrphanChatTurnsAreCanceledAtStart(t *testing.T) {
 	}
 }
 
+// A daemon restart must not cost a run that lives on a machine: the runner keeps the process and
+// keeps calling, so the new daemon adopts the job instead of calling it lost on its first settle.
+func TestRunnerRunSurvivesADaemonRestart(t *testing.T) {
+	f := liveFixture(t)
+	ctx := t.Context()
+	j := f.launch(t, &task.Task{ID: "t1", WorkspaceID: "ws"}, map[string]string{
+		"INSTANCE_ID": "dev-task-t1-in_progress-1", "ENGINE": "claude-code"})
+	// Claimed with a lease that runs out at once, as one does while the daemon is down.
+	if spec, err := f.store.Claim(ctx, f.reg.RunnerID, runner.ProtocolVersion, nil, time.Millisecond); err != nil || spec == nil || spec.ID != j.ID {
+		t.Fatalf("claim = %+v, %v", spec, err)
+	}
+	time.Sleep(10 * time.Millisecond)
+	f.launcher.started = time.Now()
+
+	f.launcher.adoptRunning(ctx)
+	f.launcher.settle(ctx)
+
+	if got, err := f.store.GetJob(ctx, j.ID); err != nil || got.State != runner.StateRunning {
+		t.Fatalf("job after the restart = %+v, %v; want it still running", got, err)
+	}
+	if _, err := f.store.Heartbeat(ctx, f.reg.RunnerID, j.ID, runner.DefaultLease); err != nil {
+		t.Errorf("the runner's heartbeat to the new daemon: %v", err)
+	}
+}
+
+// A stage run carries what the dispatcher wants read of the locked tests, an audit does not, and the
+// blobs the runner sends back reach the dispatcher with the run's report.
+func TestRunnerJobCarriesTheTestLockBothWays(t *testing.T) {
+	f := liveFixture(t)
+	ctx := t.Context()
+	want := &runner.TestLock{Check: map[string][]string{"p1": {"a_test.go"}}}
+	f.launcher.testLock = func(context.Context, *task.Task, task.Stage) *runner.TestLock { return want }
+	var reports []task.RunnerReport
+	f.launcher.report = func(_ context.Context, _ string, rep task.RunnerReport) { reports = append(reports, rep) }
+
+	tk := &task.Task{ID: "t1", WorkspaceID: "ws"}
+	env := map[string]string{"INSTANCE_ID": "dev-task-t1-in_progress-1", "ENGINE": "claude-code", runner.RunnerIDEnv: f.reg.RunnerID}
+	cid, _, _, err := f.launcher.LaunchForStage(ctx, tk, types.StageInProgress, &types.AgentType{Name: "dev", Type: "dev"}, env, nil, nil, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	spec := waitClaim(t, f)
+	if spec.TestLock == nil || spec.TestLock.Check["p1"][0] != "a_test.go" {
+		t.Fatalf("claimed spec TestLock = %+v; want the dispatcher's", spec.TestLock)
+	}
+	audit := f.launch(t, &task.Task{ID: "t2", WorkspaceID: "ws"}, map[string]string{
+		"INSTANCE_ID": "rev-audit-t2-in_progress-1", "ENGINE": "claude-code"})
+	if audit.Spec.TestLock != nil {
+		t.Errorf("a read-only run carries %+v; want nothing to lock or check", audit.Spec.TestLock)
+	}
+
+	files := []runner.TestFiles{{ProjectID: "p1", Head: "abc", Checked: []string{"a_test.go"}, Blobs: map[string]string{"a_test.go": "b1"}}}
+	f.launcher.OnExit(ctx, cid, func(int, string, string) {})
+	if err := f.store.Finish(ctx, f.reg.RunnerID, runner.JobIDFromRun(cid), runner.FinishRequest{ExitCode: 0, TestFiles: files}); err != nil {
+		t.Fatal(err)
+	}
+	f.launcher.settle(ctx)
+	if len(reports) != 1 || len(reports[0].TestFiles) != 1 || reports[0].TestFiles[0].Blobs["a_test.go"] != "b1" ||
+		reports[0].Instance != "dev-task-t1-in_progress-1" {
+		t.Errorf("reports = %+v; want the runner's blobs with the run's instance", reports)
+	}
+}
+
 // A chat outlives its deleted task: its turn still runs on the machine, without the task's code.
 func TestChatOfADeletedTaskReadsNoCode(t *testing.T) {
 	l := &runnerLauncher{task: func(_ context.Context, id string) (*task.Task, error) {

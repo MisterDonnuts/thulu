@@ -5,7 +5,7 @@
 Thulu is a daemon (`Go`) + web dashboard (`Astro`) that:
 
 1. **Watches Docker** — monitors containers labeled `thulu.agent=true` and manages their lifecycle as "agents"
-2. **Runs kanban boards** — user-customizable workflows (one board with 3 stages by default: Backlog, In progress, Done); each task carries the board it runs, flowing from that board's initial stage to a terminal one
+2. **Runs kanban boards** — user-customizable workflows (one board with 4 stages by default: Backlog, In progress, Review, Done); each task carries the board it runs, flowing from that board's initial stage to a terminal one
 3. **Manages projects** — persistent git repos with per-task worktrees mounted inside agent containers at `/workspace/projects/<name>/`
 4. **Provides a sandbox MCP server** — agents call `exec` and `preview_url` tools over SSE to run code in isolated containers
 5. **Handles authorization** — sign-in is delegated to an OIDC identity provider; Thulu keeps users, workspaces, roles, sessions and API keys scoped to a workspace (the dispatcher mints one per run)

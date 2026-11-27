@@ -2,11 +2,11 @@
   "none": "Sin agente en ningún proyecto",
   "one": "Corre {agent}",
   "some": "Corre {agents} en {with} de {count} proyectos",
-  "picker": "Agente por defecto",
+  "picker": "Distinto por proyecto",
   "picker_desc": "Lo copian las tareas nuevas de los proyectos que arrancan en este tablero. Una tarea corre en esta columna el agente que tiene asignado para ella.",
   "picker_none": "Ninguno",
   "picker_mixed": "Distinto en cada proyecto",
-  "no_projects": "Ningún proyecto arranca en este tablero todavía: el agente se elige en la plantilla de cada proyecto.",
+  "no_projects": "Ningún proyecto arranca en este tablero todavía. Un proyecto que necesite otro agente acá lo elige en su plantilla.",
   "projects": {
     "one": "Se guarda en la plantilla de {count} proyecto.",
     "other": "Se guarda en la plantilla de {count} proyectos."
@@ -18,5 +18,7 @@
   },
   "cleared": "{column} ya no tiene agente por defecto",
   "save_failed": "No se pudo guardar en {project}: {error}",
-  "start_end": "Las columnas de inicio y de fin no corren agentes."
+  "start_end": "Las columnas de inicio y de fin no corren agentes.",
+  "board_picker": "Agente de esta columna",
+  "board_picker_desc": "Lo recibe cada tarea nueva de este tablero, salvo que la plantilla de su proyecto o su tipo de tarea nombre otro."
 }

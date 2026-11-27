@@ -19,6 +19,12 @@ import (
 
 type githubProvider struct{}
 
+const GitHubProviderID = "github"
+
+// A GitHub credential (a PAT) cannot be narrowed to what a run may do, so the internal resolve
+// route never hands it to a run key: thulu-github reaches GitHub through the daemon's proxy.
+func IsGitHub(provider string) bool { return strings.TrimSpace(provider) == GitHubProviderID }
+
 var githubAPI = ""
 
 func githubAPIBase() string {
@@ -32,7 +38,7 @@ func (p *githubProvider) Spec() ProviderSpec { return p.SpecIn(context.Backgroun
 
 func (p *githubProvider) SpecIn(ctx context.Context) ProviderSpec {
 	return ProviderSpec{
-		ID:    "github",
+		ID:    GitHubProviderID,
 		Label: i18n.TCtx(ctx, "credentials.labels.provider_github"),
 		Help:  i18n.TCtx(ctx, "credentials.hints.provider_github"),
 		Kinds: []KindSpec{{

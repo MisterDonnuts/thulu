@@ -23,8 +23,11 @@ type TaskTypeInfo struct {
 	Position    int    `json:"position"`
 	Default     bool   `json:"default,omitempty"`
 	// Stored as skips, not an enabled list, so a stage added to the board later joins every type.
-	Skips     []types.Stage `json:"skips"`
-	TaskCount int           `json:"task_count,omitempty"`
+	Skips []types.Stage `json:"skips"`
+	// Per-stage agent for tasks of this type, over the column's default_agent. An empty name clears
+	// the column's agent for the type.
+	Agents    map[types.Stage]string `json:"agents,omitempty"`
+	TaskCount int                    `json:"task_count,omitempty"`
 }
 
 func ValidTaskTypeID(s string) bool { return boardIDRe.MatchString(s) }
@@ -73,6 +76,9 @@ func ValidateBoardTypes(board []types.StageInfo, tt []TaskTypeInfo) error {
 		if err := validateTypeSkips(onBoard, *t); err != nil {
 			return err
 		}
+		if err := validateTypeAgents(onBoard, *t); err != nil {
+			return err
+		}
 	}
 	if defaults > 1 {
 		return apperr.Invalid("stage.errors.multiple_default_task_types", "count", defaults)
@@ -96,6 +102,28 @@ func validateTypeSkips(onBoard map[types.Stage]types.StageInfo, t TaskTypeInfo) 
 		}
 		if st.Terminal {
 			return apperr.Invalid("stage.errors.skip_terminal", "id", t.ID, "stage", sk)
+		}
+	}
+	return nil
+}
+
+func validateTypeAgents(onBoard map[types.Stage]types.StageInfo, t TaskTypeInfo) error {
+	skipped := make(map[types.Stage]bool, len(t.Skips))
+	for _, sk := range t.Skips {
+		skipped[sk] = true
+	}
+	for _, sk := range sortedAgentStages(t.Agents) {
+		st, ok := onBoard[sk]
+		switch {
+		case !ok:
+			return apperr.Invalid("stage.errors.type_agent_unknown_stage", "id", t.ID, "stage", sk)
+		case skipped[sk]:
+			return apperr.Invalid("stage.errors.type_agent_skipped_stage", "id", t.ID, "stage", sk)
+		case st.Initial || st.Terminal:
+			return apperr.Invalid("stage.errors.type_agent_edge_stage", "id", t.ID, "stage", sk)
+		}
+		if name := t.Agents[sk]; name != "" && !ValidAgentName(name) {
+			return apperr.Invalid("stage.errors.type_agent_invalid", "id", t.ID, "stage", sk, "agent", name)
 		}
 	}
 	return nil

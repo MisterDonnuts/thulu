@@ -46,6 +46,23 @@ grant them is to **name them**.
 }
 ```
 
+Two release tools sit outside the ladder too, with scope `release`. They stay
+on the run's board but move other tasks or queue a batch against production,
+and the daemon itself refuses their routes to a run whose grant does not name
+them (`internal/api/run_scope.go`), so a scope here would only list a tool that
+fails:
+
+| Tool | Reach |
+|---|---|
+| `tasks_move_batch` | moves up to 50 tasks of my board forward with a note, through each stage's gate, never jumping an approval |
+| `evidence_batch_run` | queues an Evidence batch; against production only cases a person marked safe run. While it waits it sends `notifications/progress` when the call carries a `progressToken`; without one the wait stops at 45 s (`EVIDENCE_WAIT_SILENT_SECONDS`) and returns `batch_id`, `timed_out` and `wait_capped_seconds` |
+
+| `deploy_watch_set` | registers or updates a deploy watch on a project of my task: `github_workflow`, `github_deployment`, `cloud` or `http`, a target and, for the polled two, an interval from 5m to 24h. The daemon generates the automation that opens a release task on each change |
+| `deploy_watch_list` | the watches of my task's projects, with the last state and version each saw |
+| `deploy_watch_delete` | deletes a watch and its automation |
+
+`stage_tasks_list` and `evidence_batch_get` are plain `read`.
+
 `in_progress` gets all of its own board and no access outside it, which is what
 `@write` does. `planning` is an agent that legitimately crosses flows: that has
 to be written out.
@@ -112,6 +129,20 @@ to end its turn, and that is what parks the run.
 Answering, approving, skipping or deleting have no tool: those routes are for
 people only.
 
+## Column skips
+
+`task_skip_add` and `task_skip_remove` take the task `id`, the column's
+`stage` and a `reason`; both are scope `write`. A blank reason fails before
+calling the daemon. The daemon decides who may add a skip: the run of the
+board's refinement stage (`ingest_flags`) while the task sits there, or a
+person. Any other agent gets the daemon's 403 `skip_add_refiner_only` back as
+the tool error, and nothing changes. Removing is open to every run of the task.
+The result's `note` says what happened: a column ahead runs when the task
+reaches it, a passed one sends the task back there (`moved_back`), or, when the
+caller is the run of the task's current stage, at the end of that run
+(`deferred`). The refiner normally skips through `skip:` in `flags.yaml`; the
+tool covers a skip decided outside that file.
+
 ## Tests
 
 ```bash
@@ -144,23 +175,35 @@ curl http://localhost:3013/health
 Tasks (my board): list, get, create, update, delete, clone, relaunch,
 add_comment, add_report, subtask_create.
 Sections: task_sections_get, task_section_set, task_checklist_check.
+Acceptance criteria: task_criteria_get, task_criteria_set. The list is the
+source; the daemon writes the `acceptance-criteria` section from it.
 Attachments: task_attach, task_attachments, task_attachment_delete.
 Dependencies: task_list_dependencies, task_add_dependency,
 task_remove_dependency.
 Questions and approvals: task_ask, task_request_approval.
+Column skips: task_skip_add, task_skip_remove.
 Test cases: task_test_cases, task_test_case_add, task_test_case_update,
 task_test_case_delete, task_test_case_run. `case` accepts the key (`TC-3`) or
 the id. A run with a verdict leaves the case in that status and covered. The
 verifies of `evidence_publish` (thulu-browser) whose `case` is a key of the
 task are recorded as runs on their own: no need to repeat them with
 `task_test_case_run`. Test cases live in their own rows, not in a `## Test Cases` section
-(`docs/test-cases.md`).
+(`docs/test-cases.md`). `covers` and `preconditions` are fields of the case.
+`task_test_case_run` refuses an `observed` over 280 characters before calling
+the daemon (same limit as `task.MaxObservedRunes`). A blocked run can carry
+`needs`, `tried`, `tried_result` and `writes_data`. The `needs.kind`
+description lists the kinds of the daemon's catalog
+(`GET /test-cases/need-kinds`), fetched at `tools/list` and kept for ten
+minutes; this server has no list of its own, and the daemon refuses an unknown
+kind.
 Boards: board_current, boards_list, board_tasks_list, task_create_on_board,
 task_move_to_board.
 Agent instances: list, get, stop.
 Agent types: list, get_settings, list_prompts, list_files, read_file,
 update_settings, write_file, create, delete.
 Projects: list, get, create, update, delete.
+Release: stage_tasks_list, deploy_contents, tasks_move_batch, evidence_batch_run,
+evidence_batch_get, deploy_watch_set, deploy_watch_list, deploy_watch_delete. A wait polls the batch every 10 s (`EVIDENCE_POLL_MS`), at most 600 s.
 Catalog: skills_list, tools_list, stages_list.
 Environments: environment_list, environment_mapping_list,
 environment_mapping_propose.

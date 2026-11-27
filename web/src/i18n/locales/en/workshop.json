@@ -6,7 +6,8 @@
   "export_failed": "Could not export: {error}",
   "tabs": {
     "agents": "Agents",
-    "skills": "Skills"
+    "skills": "Skills",
+    "flows": "Flows"
   },
   "search": {
     "label": "Search the Workshop",
@@ -24,7 +25,8 @@
     "installed": "Installed",
     "update": "Update",
     "changed": "You have another",
-    "reserved": "Reserved name"
+    "reserved": "Reserved name",
+    "flow_changed": "Board edited"
   },
   "list": {
     "no_match": "Nothing matches the search.",
@@ -39,7 +41,8 @@
     "install_picked": {
       "one": "Review and install {count}",
       "other": "Review and install {count}"
-    }
+    },
+    "empty_flow": "This Thulu version ships no flows in the Workshop."
   },
   "detail": {
     "pick": "Pick an item to see what it does and what it brings.",
@@ -69,7 +72,32 @@
     },
     "stage_missing": "No board has this stage",
     "disabled": "You deleted it from the workspace. Installing it enables it again.",
-    "none_f": "none"
+    "none_f": "none",
+    "agents": "Agents",
+    "boards": "Installed as",
+    "kick_backs": "Send-backs",
+    "kick_backs_value": {
+      "one": "At most {count}, then the task waits for a person",
+      "other": "At most {count}, then the task waits for a person"
+    },
+    "no_agent": "No agent",
+    "approval": "Approval a person gives here",
+    "type_skips": "Skips {stages}",
+    "type_walks_all": "Goes through every column",
+    "type_agent": "{stage}: {agent}",
+    "type_no_agent": "{stage}: no agent",
+    "columns": {
+      "one": "{count} column",
+      "other": "{count} columns"
+    },
+    "types": {
+      "one": "{count} task type",
+      "other": "{count} task types"
+    },
+    "flow_brings": {
+      "one": "Brings {count} agent and the skills it uses.",
+      "other": "Brings {count} agents and the skills they use."
+    }
   },
   "buttons": {
     "install": "Install",
@@ -131,6 +159,40 @@
         "one": "Apply {count} change",
         "other": "Apply {count} changes"
       }
+    },
+    "board_id": "Board id",
+    "stage_change": {
+      "add": "New column",
+      "change": "Its settings change",
+      "same": "No change",
+      "remove": "The column is deleted"
+    },
+    "flow": {
+      "install": "Creates the board {board}",
+      "copy": "Creates another board, {board}",
+      "rewrite": "Rewrites the columns and task types of {board}; names and colors stay",
+      "conflict": "You edited the board {board} after installing it",
+      "keep": "The board {board} stays as it is",
+      "skip": "No board is created",
+      "creates": {
+        "one": "Creates {count} column:",
+        "other": "Creates {count} columns:"
+      },
+      "adds": {
+        "one": "adds {count} column",
+        "other": "adds {count} columns"
+      },
+      "changes": {
+        "one": "changes {count} column",
+        "other": "changes {count} columns"
+      },
+      "removes": {
+        "one": "deletes {count} column",
+        "other": "deletes {count} columns"
+      },
+      "same_columns": "Columns stay the same; task types or agents change",
+      "make_default": "Make it the default board",
+      "make_default_hint": "New tasks and projects without a board of their own land on it."
     }
   },
   "notice": {
@@ -144,7 +206,11 @@
     "reserved": "{name} uses a name reserved for Thulu skills and is left out. To import it, pick \"Install as a copy\" and give it another name.",
     "kept_skill": "{name} will use your {refs}, not the Workshop one. To use the Workshop one, install it as a copy.",
     "kept_skill_import": "{name} will use your {refs}, not the one in the file. To use the one in the file, install it as a copy.",
-    "secret": "{kind} {name} is not imported: {refs} looks like it contains a secret. The rest of the file still installs."
+    "secret": "{kind} {name} is not imported: {refs} looks like it contains a secret. The rest of the file still installs.",
+    "flow_stage_has_tasks": "{name} would delete columns that still hold tasks: {refs}. Move those tasks first.",
+    "flow_type_has_tasks": "{name} would leave tasks without their type or in a column their type skips: {refs}. Move or re-type those tasks first.",
+    "flow_missing_agent": "{name} assigns agents you chose not to install: {refs}. Their columns get no agent.",
+    "flow_board_renamed": "Another board already uses the id of {name}, so it installs as {refs}."
   },
   "errors": {
     "generic": "Something failed. Try again."
@@ -161,9 +227,12 @@
   },
   "update_badge": "Update",
   "update_badge_hint": "The Workshop has a newer revision and you have not edited it",
+  "conflict_badge": "Conflict",
+  "conflict_badge_hint": "The Workshop has a newer revision, and this board changed since it was installed. Updating asks you what to keep.",
   "kind": {
     "agent": "Agent",
-    "skill": "Skill"
+    "skill": "Skill",
+    "flow": "Flow"
   },
   "result": {
     "title": "Done",
@@ -190,12 +259,16 @@
     },
     "nothing": "Nothing was written.",
     "agent_hint": "Installing an agent does not put it to work: pick it in the project stage template or in the task Agent field.",
-    "back": "Back to the catalog"
+    "back": "Back to the catalog",
+    "flow_hint": "The flow is installed.",
+    "open_board": "Open {board}"
   },
   "tags": {
     "code": "code",
     "docs": "docs",
     "example": "example",
-    "release": "release"
+    "release": "release",
+    "flow": "flow",
+    "default": "default"
   }
 }

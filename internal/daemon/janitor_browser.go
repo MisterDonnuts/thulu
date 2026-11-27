@@ -13,14 +13,14 @@ import (
 	"github.com/MisterDonnuts/thulu/internal/i18n"
 )
 
-func (j *Janitor) reapOrphanBrowsers(ctx context.Context) int {
+func (j *Janitor) reapOrphanBrowsers(ctx context.Context) {
 	list, err := j.docker.ContainerList(ctx, container.ListOptions{
 		All:     true,
 		Filters: filters.NewArgs(filters.Arg("label", browserrun.LabelBrowser+"=true")),
 	})
 	if err != nil {
 		log.Printf("[janitor] %s", i18n.Log("daemon.log.list_exited_failed", "kind", "browser", "err", err))
-		return 0
+		return
 	}
 	alive := func(id string) bool {
 		info, err := j.docker.ContainerInspect(ctx, id)
@@ -28,7 +28,6 @@ func (j *Janitor) reapOrphanBrowsers(ctx context.Context) int {
 		// permanent one would keep the browser forever.
 		return err == nil && info.State != nil && info.State.Running
 	}
-	reaped := 0
 	orphans := orphanBrowsers(list, alive)
 	for i := range orphans {
 		c := &orphans[i]
@@ -38,9 +37,7 @@ func (j *Janitor) reapOrphanBrowsers(ctx context.Context) int {
 		}
 		log.Printf("[janitor] %s", i18n.Log("daemon.log.reaped_orphan_browser",
 			"id", shortID(c.ID), "agent", c.Labels[browserrun.LabelOwner]))
-		reaped++
 	}
-	return reaped
 }
 
 func orphanBrowsers(list []dtypes.Container, alive func(id string) bool) []dtypes.Container {

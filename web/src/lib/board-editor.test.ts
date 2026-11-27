@@ -181,6 +181,46 @@ describe("flags", () => {
     expect(flagState(list[1], "open_pr", list).disabled).toBe(false);
   });
 
+  it("lets a skippable column be marked never skipped, and says why the others already are", () => {
+    const list = [
+      col("backlog", { initial: true }),
+      col("spec", { ingest_flags: true }),
+      col("dev"),
+      col("qa", { skip_unless: ["ui"] }),
+      col("review", { open_pr: true }),
+      col("gate", { required_approvals: [{ key: "ok", label: "OK" }] }),
+      col("done", { terminal: true }),
+    ];
+    const state = (id: string) => {
+      const st = list.find((s) => s.id === id);
+      if (!st) throw new Error(`no column ${id}`);
+      return flagState(st, "no_skip", list);
+    };
+    expect(state("dev")).toEqual({ checked: false, disabled: false, reason: "" });
+    expect(state("backlog").reason).toBe("The first column is never skipped.");
+    expect(state("done").reason).toBe("A finishing column is never skipped.");
+    expect(state("spec").reason).toContain("decides the skips");
+    expect(state("review").reason).toContain("pull request");
+    expect(state("gate").reason).toContain("approval");
+    expect(state("qa").reason).toBe(
+      "This column already runs only for marked tasks. Clear that list first.",
+    );
+    expect(flagPatch(list[2], "no_skip", true)).toEqual({ no_skip: true });
+  });
+
+  it("keeps a column marked never skipped free to turn the mark off", () => {
+    const list = [
+      col("backlog", { initial: true }),
+      col("dev", { no_skip: true }),
+      col("done", { terminal: true }),
+    ];
+    expect(flagState(list[1], "no_skip", list)).toEqual({
+      checked: true,
+      disabled: false,
+      reason: "",
+    });
+  });
+
   it("turns off auto-advance when a column becomes a finish", () => {
     expect(flagPatch(board()[1], "terminal", true)).toEqual({
       terminal: true,

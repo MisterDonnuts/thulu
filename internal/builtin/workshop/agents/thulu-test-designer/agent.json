@@ -1,0 +1,26 @@
+{
+  "revision": 9,
+  "tags": ["flow", "testing"],
+  "descriptions": {
+    "es": "Diseña las pruebas de una tarea del flujo Thulu antes de que exista el código: clasifica el cambio en feature, bug o refactor, escribe tests desde la spec que fallan por la assertion correcta (o caracterización en verde para un refactor), los casos TC-n y las tareas de usuario. Thulu bloquea los tests que deja para que Desarrollo no los toque."
+  },
+  "definition": {
+    "name": "thulu-test-designer",
+    "type": "thulu-test-designer",
+    "description": "Designs the tests of a Thulu flow task before the code exists: classifies the change as feature, bug or refactor, writes tests from the spec that fail on the right assertion (or green characterization tests for a refactor), the TC-n cases and the user tasks. Thulu locks the tests it leaves so development cannot change them.",
+    "valid_stages": ["test_design"],
+    "engine": "claude-code",
+    "effort": "high",
+    "turns_by_stage": {"test_design": "80"},
+    "skills_by_stage": {"test_design": ["test-design"]},
+    "mcp_by_stage": {
+      "test_design": [
+        "octopus-api@read+task_test_case_add+task_test_case_update+task_section_set+task_ask+task_add_comment+task_add_report+task_skip_remove",
+        "thulu-sandbox"
+      ]
+    },
+    "system_skills_off": {
+      "test_design": ["octopus-refinement", "octopus-observability"]
+    }
+  }
+}

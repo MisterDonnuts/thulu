@@ -24,3 +24,10 @@ test("the example takes compile against the example library", { skip }, () => {
     assert.ok(JSON.stringify(steps).indexOf('"@') === -1, `${f} still has @targets after compiling`);
   }
 });
+
+test("the perf example keeps its profile and its perf checks after parsing", { skip }, () => {
+  const take = parseTake(json("takes", "shop-142-checkout-perf.json"));
+  assert.deepEqual([take.network, take.cpu_throttle], ["slow-4g", 4]);
+  const perf = take.steps.filter((s) => s.check === "perf");
+  assert.deepEqual(perf.map((s) => [s.metric, s.expected]), [["lcp", "4000"], ["response", "1500"], ["cls", "0.1"]]);
+});

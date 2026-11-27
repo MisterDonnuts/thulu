@@ -15,6 +15,7 @@ const (
 type Entry struct {
 	Kind        string   `json:"kind"`
 	Name        string   `json:"name"`
+	Label       string   `json:"label,omitempty"`
 	Description string   `json:"description,omitempty"`
 	Tags        []string `json:"tags"`
 	Revision    int      `json:"revision"`
@@ -30,15 +31,29 @@ type Entry struct {
 	Image       string   `json:"image,omitempty"`
 	Engine      string   `json:"engine,omitempty"`
 	Model       string   `json:"model,omitempty"`
+	// Flows: the agents the flow assigns and the boards installed from it.
+	Agents []string `json:"agents,omitempty"`
+	Boards []string `json:"boards,omitempty"`
 }
 
 type Detail struct {
 	Entry
 	Files []File `json:"files"`
+	// Flows: the board as it installs, in the reader's locale.
+	Flow *FlowView `json:"flow,omitempty"`
 }
 
-func List(ctx context.Context, st State, c *Catalog, locale string) ([]Entry, error) {
+// boards may be nil: flows then list as available.
+func List(ctx context.Context, st State, boards BoardState, c *Catalog, locale string) ([]Entry, error) {
 	out := []Entry{}
+	flows := c.Flows()
+	for i := range flows {
+		e, err := flowEntry(ctx, boards, &flows[i], locale)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, e)
+	}
 	agents := c.Agents()
 	for i := range agents {
 		a := &agents[i]
@@ -60,8 +75,15 @@ func List(ctx context.Context, st State, c *Catalog, locale string) ([]Entry, er
 	return out, nil
 }
 
-func Describe(ctx context.Context, st State, c *Catalog, kind, name, locale string) (Detail, bool, error) {
+func Describe(ctx context.Context, st State, boards BoardState, c *Catalog, kind, name, locale string) (Detail, bool, error) {
 	switch kind {
+	case KindFlow:
+		f, ok := c.Flow(name)
+		if !ok {
+			return Detail{}, false, nil
+		}
+		e, err := flowEntry(ctx, boards, &f, locale)
+		return Detail{Entry: e, Files: encodeFiles(map[string][]byte{flowFile: f.Raw}), Flow: f.View(locale)}, true, err
 	case KindAgent:
 		a, ok := c.Agent(name)
 		if !ok {

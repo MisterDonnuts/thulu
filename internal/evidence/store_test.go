@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -170,14 +171,14 @@ func TestTakeMovesStatus(t *testing.T) {
 	s := newStore(t)
 	ctx := context.Background()
 	c, _ := s.CreateCase(ctx, "ws", "ana", evidence.Case{Title: "x"})
-	c, err := s.SetTake(ctx, "ws", c.Key, "ana", mustTake(t), evidence.SourceUpload)
+	c, err := s.SetTake(ctx, "ws", c.Key, "ana", mustTake(t), evidence.SourceUpload, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if c.Status != evidence.CaseReady || !c.HasTake || c.TakeSource != evidence.SourceUpload || len(c.Take) == 0 {
 		t.Fatalf("after take: %+v", c)
 	}
-	c, err = s.SetTake(ctx, "ws", c.ID, "ana", nil, "")
+	c, err = s.SetTake(ctx, "ws", c.ID, "ana", nil, "", true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -196,10 +197,10 @@ func TestTakeSavedAgainIsNotDraft(t *testing.T) {
 	if _, err := s.DB().Exec(`UPDATE evidence_cases SET last_run_at = now(), status = 'pass' WHERE id = $1`, c.ID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.SetTake(ctx, "ws", c.ID, "ana", nil, ""); err != nil {
+	if _, err := s.SetTake(ctx, "ws", c.ID, "ana", nil, "", true); err != nil {
 		t.Fatal(err)
 	}
-	c, err := s.SetTake(ctx, "ws", c.ID, "ana", mustTake(t), evidence.SourceAgent)
+	c, err := s.SetTake(ctx, "ws", c.ID, "ana", mustTake(t), evidence.SourceAgent, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -376,6 +377,183 @@ func TestRunnerFlow(t *testing.T) {
 	_, paths, err := s.DeleteCase(ctx, "ws", cases[0].Key)
 	if err != nil || len(paths) != 1 || paths[0] != "/tmp/x.mp4" {
 		t.Fatalf("delete: %v %v", paths, err)
+	}
+}
+
+func TestRunKeepsMetricsAndFindings(t *testing.T) {
+	s := newStore(t)
+	ctx := context.Background()
+	e := mustEnv(t, s, "ws", "Staging")
+	recorded(t, s, "ws", 3)
+	b, _ := s.CreateBatch(ctx, "ws", "ana", evidence.BatchSpec{EnvironmentID: e.ID})
+	if ok, err := s.StartBatch(ctx, b.ID, "pod-1"); !ok || err != nil {
+		t.Fatalf("start: %v %v", ok, err)
+	}
+	if !evidence.ValidArtifactKind(evidence.ArtifactMetrics) {
+		t.Fatal("the metrics file is a known artifact kind")
+	}
+
+	run, _ := s.ClaimNextRun(ctx, "ws", b.ID)
+	lcp := 1830.5
+	metrics := `{"profile":{"network":"slow-4g"},"steps":[{"step":0,"response_ms":420}],"waits":{"cut":true,"gaps":[]}}`
+	done, err := s.FinishRun(ctx, "ws", b.ID, run.ID, evidence.RunResult{Status: evidence.RunFail,
+		Checks:   []evidence.Check{{Label: "Paints fast", Expected: "1500", Observed: "1.8 s", Measured: true, Metric: "lcp", Value: &lcp}},
+		Findings: []evidence.Finding{{Step: 2, Kind: "http", Status: 500, Method: "POST", URL: "https://app.example.com/api/pay", Count: 2}},
+		Metrics:  json.RawMessage(metrics)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c := done.Checks[0]; c.Metric != "lcp" || c.Value == nil || *c.Value != lcp {
+		t.Fatalf("perf check: %+v", c)
+	}
+	if len(done.Findings) != 1 || done.Findings[0].Status != 500 || done.Findings[0].Count != 2 {
+		t.Fatalf("findings: %+v", done.Findings)
+	}
+	var got map[string]any
+	if err := json.Unmarshal(done.Metrics, &got); err != nil || got["profile"].(map[string]any)["network"] != "slow-4g" {
+		t.Fatalf("metrics: %s %v", done.Metrics, err)
+	}
+
+	// A runner from before these fields sends neither: the run reads as empty, not null.
+	old, _ := s.ClaimNextRun(ctx, "ws", b.ID)
+	if done, err = s.FinishRun(ctx, "ws", b.ID, old.ID, evidence.RunResult{Status: evidence.RunPass}); err != nil {
+		t.Fatal(err)
+	}
+	if string(done.Metrics) != "{}" || done.Findings == nil || len(done.Findings) != 0 {
+		t.Fatalf("old runner: metrics %s findings %+v", done.Metrics, done.Findings)
+	}
+
+	// Too many findings are cut to the cap; oversized metrics lose their steps, never the run.
+	big, _ := s.ClaimNextRun(ctx, "ws", b.ID)
+	if _, err = s.FinishRun(ctx, "ws", b.ID, big.ID, evidence.RunResult{Status: evidence.RunPass,
+		Metrics: json.RawMessage(`[1,2]`)}); apperr.KindOf(err) != apperr.KindInvalid {
+		t.Fatalf("metrics that are not an object: %v", err)
+	}
+	many := make([]evidence.Finding, 250)
+	for i := range many {
+		many[i] = evidence.Finding{Step: i, Kind: "console", Text: "boom", Count: 1}
+	}
+	steps := `[` + strings.TrimSuffix(strings.Repeat(`{"step":0,"label":"`+strings.Repeat("x", 1000)+`"},`, 300), ",") + `]`
+	done, err = s.FinishRun(ctx, "ws", b.ID, big.ID, evidence.RunResult{Status: evidence.RunPass, Findings: many,
+		Metrics: json.RawMessage(`{"profile":{"cpu_throttle":4},"steps":` + steps + `}`)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(done.Findings) != 200 {
+		t.Fatalf("findings kept: %d", len(done.Findings))
+	}
+	var cut map[string]any
+	if err := json.Unmarshal(done.Metrics, &cut); err != nil || cut["steps"] != nil || cut["steps_dropped"] != true || cut["profile"] == nil {
+		t.Fatalf("oversized metrics: %.200s %v", done.Metrics, err)
+	}
+	if runs, _ := s.ListRuns(ctx, evidence.RunFilter{WorkspaceID: "ws", BatchID: b.ID}); len(runs[0].Findings) != 0 || runs[0].Metrics != nil {
+		t.Fatalf("a run list stays light: %+v", runs[0])
+	}
+}
+
+func TestSafeForProdNarrowsABatch(t *testing.T) {
+	s := newStore(t)
+	ctx := context.Background()
+	e := mustEnv(t, s, "ws", "Production")
+	cases := recorded(t, s, "ws", 2)
+	if cases[0].SafeForProd {
+		t.Fatal("a new case is not safe for production")
+	}
+	if _, err := s.CreateBatch(ctx, "ws", "ana", evidence.BatchSpec{EnvironmentID: e.ID, SafeOnly: true}); apperr.KindOf(err) != apperr.KindPrecondition ||
+		apperr.Code(err) != "evidence.errors.only_unsafe" {
+		t.Fatalf("no safe case, nothing to run, and it says why: %v", err)
+	}
+	safe := true
+	c, err := s.UpdateCase(ctx, "ws", cases[1].Key, "ana", evidence.CasePatch{SafeForProd: &safe})
+	if err != nil || !c.SafeForProd {
+		t.Fatalf("mark safe: %+v %v", c, err)
+	}
+	if again, _ := s.GetCase(ctx, "ws", cases[1].ID, false); !again.SafeForProd {
+		t.Fatal("safe_for_prod was not stored")
+	}
+	b, err := s.CreateBatch(ctx, "ws", "ana", evidence.BatchSpec{EnvironmentID: e.ID, SafeOnly: true, TaskID: "task-7"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if b.Total != 1 || b.Runs[0].CaseID != cases[1].ID || !b.SafeOnly || b.TaskID != "task-7" {
+		t.Fatalf("safe batch: total %d safe_only %v task %q", b.Total, b.SafeOnly, b.TaskID)
+	}
+	if len(b.SkippedUnsafe) != 1 || b.SkippedUnsafe[0] != cases[0].Key {
+		t.Fatalf("the batch names the case it left out: %v", b.SkippedUnsafe)
+	}
+	all, _ := s.CreateBatch(ctx, "ws", "ana", evidence.BatchSpec{EnvironmentID: e.ID})
+	if all.Total != 2 || all.SafeOnly || all.TaskID != "" || all.SkippedUnsafe != nil {
+		t.Fatalf("a plain batch runs every case: %+v", all)
+	}
+}
+
+// A release agent looks for the batch a deploy already queued, by trigger and a piece of its ref,
+// or for the batches its own task queued.
+func TestFindBatchesByTriggerRefAndTask(t *testing.T) {
+	s := newStore(t)
+	ctx := context.Background()
+	e := mustEnv(t, s, "ws", "Production")
+	recorded(t, s, "ws", 1)
+	deploy, err := s.CreateBatch(ctx, "ws", "deploy", evidence.BatchSpec{EnvironmentID: e.ID, Trigger: evidence.TriggerDeploy,
+		TriggerRef: "acme/shop@9f2c1e7 · production"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	agent, err := s.CreateBatch(ctx, "ws", "agent", evidence.BatchSpec{EnvironmentID: e.ID, Trigger: evidence.TriggerAgent,
+		TriggerRef: "task-7", TaskID: "task-7"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ids := func(f evidence.BatchFilter) []string {
+		t.Helper()
+		bs, err := s.FindBatches(ctx, "ws", f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var out []string
+		for i := range bs {
+			out = append(out, bs[i].ID)
+		}
+		return out
+	}
+	for name, c := range map[string]struct {
+		f    evidence.BatchFilter
+		want []string
+	}{
+		"deploy by sha":       {evidence.BatchFilter{Trigger: evidence.TriggerDeploy, Ref: "@9f2c1e7"}, []string{deploy.ID}},
+		"other sha":           {evidence.BatchFilter{Trigger: evidence.TriggerDeploy, Ref: "@aaaaaaa"}, nil},
+		"by task":             {evidence.BatchFilter{TaskID: "task-7"}, []string{agent.ID}},
+		"wildcards are plain": {evidence.BatchFilter{Ref: "%"}, nil},
+		"everything":          {evidence.BatchFilter{EnvironmentID: e.ID}, []string{agent.ID, deploy.ID}},
+	} {
+		if got := ids(c.f); !slices.Equal(got, c.want) {
+			t.Errorf("%s: %v, want %v", name, got, c.want)
+		}
+	}
+	if bs, _ := s.FindBatches(ctx, "intruder", evidence.BatchFilter{Ref: "9f2c1e7"}); len(bs) != 0 {
+		t.Fatal("another workspace found the batch")
+	}
+}
+
+// safe_for_prod judged one take. A take an agent writes afterwards must not ride on that judgment into
+// a safe_only batch against production; a take a person writes keeps it.
+func TestNewTakeFromAnAgentClearsSafeForProd(t *testing.T) {
+	s := newStore(t)
+	ctx := context.Background()
+	e := mustEnv(t, s, "ws", "Production")
+	c, err := s.CreateCase(ctx, "ws", "ana", evidence.Case{Title: "Home loads", Take: mustTake(t),
+		TakeSource: evidence.SourceUpload, SafeForProd: true})
+	if err != nil || !c.SafeForProd {
+		t.Fatalf("created safe: %+v %v", c, err)
+	}
+	if c, err = s.SetTake(ctx, "ws", c.ID, "ana", mustTake(t), evidence.SourceUpload, true); err != nil || !c.SafeForProd {
+		t.Fatalf("a person's new take keeps the mark: %+v %v", c, err)
+	}
+	if c, err = s.SetTake(ctx, "ws", c.ID, "agent", mustTake(t), evidence.SourceAgent, false); err != nil || c.SafeForProd {
+		t.Fatalf("an agent's new take clears the mark: %+v %v", c, err)
+	}
+	if _, err = s.CreateBatch(ctx, "ws", "ana", evidence.BatchSpec{EnvironmentID: e.ID, SafeOnly: true}); apperr.KindOf(err) != apperr.KindPrecondition {
+		t.Fatalf("the agent's take reached a safe batch: %v", err)
 	}
 }
 
@@ -626,7 +804,7 @@ func TestOnDeployFiresProjectEnvironmentsOfTheRepoAndWorkspace(t *testing.T) {
 	recorded(t, s, "ws", 1)
 	recorded(t, s, "intruder", 1)
 	svc := &evidence.Service{Store: s}
-	n := svc.OnDeploy(ctx, evidence.Deploy{Repo: "Acme/Shop", Environment: "Production", SHA: "0123456789abcdef", Workspaces: []string{"ws"}})
+	n := len(svc.OnDeploy(ctx, evidence.Deploy{Repo: "Acme/Shop", Environment: "Production", SHA: "0123456789abcdef", Workspaces: []string{"ws"}}))
 	if n != 1 {
 		t.Fatalf("a production deploy fired %d environments", n)
 	}
@@ -635,7 +813,7 @@ func TestOnDeployFiresProjectEnvironmentsOfTheRepoAndWorkspace(t *testing.T) {
 		bs[0].BaseURL != "https://shop.example.com" {
 		t.Fatalf("deploy batch: %+v", bs)
 	}
-	if n := svc.OnDeploy(ctx, evidence.Deploy{Repo: "acme/shop", Environment: "qa stage", Workspaces: []string{"ws"}}); n != 1 {
+	if n := len(svc.OnDeploy(ctx, evidence.Deploy{Repo: "acme/shop", Environment: "qa stage", Workspaces: []string{"ws"}})); n != 1 {
 		t.Fatalf("display name match fired %d", n)
 	}
 	if got := evidence.DeploySlug(" QA_Stage two "); got != "qa-stage-two" {

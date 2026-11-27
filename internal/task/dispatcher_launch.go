@@ -46,7 +46,7 @@ func ParseLaunchKind(s string) LaunchKind {
 
 func (k LaunchKind) postRunOpts() postRunOpts {
 	if k == LaunchContinuation {
-		return postRunOpts{NoAdvance: true, NoAudit: true}
+		return postRunOpts{NoAdvance: true, NoAudit: true, Reply: true}
 	}
 	return postRunOpts{}
 }
@@ -130,6 +130,10 @@ func (d *Dispatcher) runNotStarted(ctx context.Context, t *Task, stage Stage, ag
 	if ok {
 		d.setStatus(ctx, t.ID, next)
 	}
+	if kind == LaunchStage {
+		// A relaunch after a person gave access that never started leaves its cases unrun.
+		d.store.ReleaseQueuedTestCases(ctx, t.ID, "octopus")
+	}
 	return &NotStartedError{Cause: cause, Err: reason}
 }
 
@@ -190,7 +194,21 @@ func launchCause(err error) string {
 }
 
 func (d *Dispatcher) stageNotLaunched(ctx context.Context, t *Task, stage Stage, agent string, opts launchOpts, parked bool, err error) error {
-	if errors.Is(err, errRoomDropped) {
+	if busy, ok := asRunBusy(err); ok {
+		if parked && !d.room.waitingTask(t.ID) {
+			d.store.casStatus(ctx, t.ID, StatusQueued, StatusIdle)
+		}
+		// A stage's agent waits for the run a move left on the task; a continuation or a resume
+		// asked for that run's stage cannot.
+		if opts.kind() == LaunchStage {
+			d.deferStageLaunch(ctx, t, stage, agent, busy)
+			return nil
+		}
+		refused := apperr.Conflict("task.errors.run_busy", "stage", d.stageNote(t, busy.Stage))
+		return d.runNotStarted(ctx, t, stage, agent, opts, CauseRuntime,
+			NoteOf("task.comments.launch_failed", "err", refused), refused)
+	}
+	if errors.Is(err, errRoomDropped) || errors.Is(err, errLaunchStale) {
 		if parked && !d.room.waitingTask(t.ID) {
 			d.store.casStatus(ctx, t.ID, StatusQueued, StatusIdle)
 		}
@@ -221,7 +239,10 @@ func (d *Dispatcher) launchStage(
 		}
 		settled = true
 	}
+	// Set by the try whose container started; released once the run reads running.
+	unclaim := func() {}
 	defer func() {
+		unclaim()
 		if !started && opts.onAbort != nil {
 			opts.onAbort()
 		}
@@ -252,13 +273,27 @@ func (d *Dispatcher) launchStage(
 	}
 	d.applyPlacedStageEnv(ctx, env, t, stage, opts)
 	d.applyTokenOptimizer(ctx, env, t.WorkspaceID, agentType, string(stage))
-	wtMounts, stageMounts := d.buildStageMounts(ctx, t)
+	wtMounts, stageMounts := d.buildStageMounts(ctx, t, stage)
 
 	run, err := d.launchWithRoom(ctx, roomRun{
 		ws: slotWS, taskID: t.ID, gate: d.slots,
 		launch: func(lctx context.Context) (launched, error) {
+			// The task may have moved while the launch waited (a merge, a person): the claim
+			// re-checks its stage and keeps fenced movers off it until the run reads running.
+			release, cerr := d.claimLaunch(lctx, t)
+			if cerr != nil {
+				return launched{}, cerr
+			}
+			// Read before the container exists: a commit the agent makes in its first seconds must
+			// fall inside the run's diff.
+			heads := d.lockStageHeads(ctx, t, stage)
 			cid, iid, out, lerr := d.launcher.LaunchForStage(lctx, t, stage, agentType, env, wtMounts, stageMounts, false)
-			return launched{cid, iid, out}, lerr
+			if lerr != nil {
+				release()
+			} else {
+				unclaim = release
+			}
+			return launched{containerID: cid, instanceID: iid, outputDir: out, heads: heads}, lerr
 		},
 		parked: func(why error) {
 			if !parked {
@@ -284,11 +319,14 @@ func (d *Dispatcher) launchStage(
 	})
 
 	d.recordRunStarted(ctx, t, stage, agentName, opts, run, env)
+	unclaim()
 	d.rememberRun(containerID, env)
 
 	go d.recordPromptEvent(ctx, t.ID, instID, containerID, agentName, string(stage), outputDir)
 
 	stageAtLaunch := stage
+	// The claim checked the task still sat here; a continuation runs another stage's agent.
+	taskStageAtLaunch := t.Stage
 	d.launcher.OnExit(ctx, containerID, func(exitCode int, finalOutputDir, _ string) {
 		stopDeadline()
 		d.slots.release(slotWS)
@@ -298,8 +336,11 @@ func (d *Dispatcher) launchStage(
 		if finalOutputDir == "" {
 			finalOutputDir = outputDir
 		}
-		d.postStageRun(ctx, t.ID, stageAtLaunch, agentName, containerID, instID, finalOutputDir, exitCode,
-			opts.postRunOpts())
+		d.reapRunSandbox(ctx, t.ID, instID)
+		d.freeAfterRun(ctx, t.ID, instID)
+		post := opts.postRunOpts()
+		post.TaskStage = taskStageAtLaunch
+		d.postStageRun(ctx, t.ID, stageAtLaunch, agentName, containerID, instID, finalOutputDir, exitCode, post)
 		d.runEngines.Delete(containerID)
 		d.runProfiles.Delete(containerID)
 	})
@@ -329,11 +370,8 @@ func (d *Dispatcher) recordRunStarted(ctx context.Context, t *Task, stage Stage,
 		Status:          &runStatus,
 	})
 	logx.Warn(updErr, "task.log.update_run_state", "task", t.ID)
-	launchNote := NoteOf("task.comments.launched", "stage", d.stageNote(t, stage), "agent", agentName, "instance", instID)
-	if opts.Session != "" {
-		launchNote = NoteOf("task.comments.launched_resumed", "stage", d.stageNote(t, stage), "agent", agentName, "instance", instID)
-	}
-	d.systemComment(ctx, t.ID, launchNote)
+	// The launch is this event alone: a comment for it would repeat the run card in the discussion
+	// and in every later brief.
 	runData := map[string]string{
 		"container_id": containerID,
 		"instance_id":  instID,
@@ -343,6 +381,12 @@ func (d *Dispatcher) recordRunStarted(ctx context.Context, t *Task, stage Stage,
 		"resumed":      strconv.FormatBool(opts.Session != ""),
 		"launch_kind":  string(opts.kind()),
 		"max_turns":    env["MAX_TURNS"],
+		// The task's stage at launch: a replay after a restart tells from it whether the task
+		// left while the run worked (runOutlived).
+		"task_stage": string(t.Stage),
+	}
+	if run.heads != "" {
+		runData["heads"] = run.heads
 	}
 	if env[engine.LLMSourceEnv] == engine.LLMSourcePersonal {
 		// Record which credential, never whose: the person stays in the triggered_by column, which
@@ -473,9 +517,14 @@ func faultNames(faults []credentials.Fault) string {
 	return strings.Join(names, ",")
 }
 
-func (d *Dispatcher) buildStageMounts(ctx context.Context, t *Task) (wtMounts, stageMounts map[string]string) {
+// A stage with release_resources runs without the code: its worktrees are gone, and under
+// Kubernetes no mounts also means no worktree claim for the pod.
+func (d *Dispatcher) buildStageMounts(ctx context.Context, t *Task, stage Stage) (wtMounts, stageMounts map[string]string) {
 	wtMounts = map[string]string{}
 	stageMounts = map[string]string{}
+	if info, _ := d.stagesFor(t).Get(stage); info.ReleaseResources {
+		return wtMounts, stageMounts
+	}
 	for _, projectID := range t.ProjectIDs {
 		path := t.WorktreePaths[projectID]
 		if path == "" {
@@ -640,7 +689,7 @@ func (d *Dispatcher) launchMention(ctx context.Context, t *Task, agentType *type
 		ws: slotWS, gate: d.convSlots,
 		launch: func(lctx context.Context) (launched, error) {
 			cid, iid, out, lerr := d.launcher.LaunchForStage(lctx, t, types.StageMention, agentType, env, code, nil, true)
-			return launched{cid, iid, out}, lerr
+			return launched{containerID: cid, instanceID: iid, outputDir: out}, lerr
 		},
 		parked: func(why error) {
 			d.threadNotice(ctx, t.ID, thread, NoteOf("task.comments.mention_queued",
@@ -688,6 +737,8 @@ func (d *Dispatcher) launchMention(ctx context.Context, t *Task, agentType *type
 			finalOutputDir = outputDir
 		}
 		d.takeStopped(containerID)
+		d.reapRunSandbox(ctx, t.ID, instID)
+		d.freeAfterRun(ctx, t.ID, instID)
 		d.postMentionRun(ctx, t.ID, thread, agentName, containerID, instID, finalOutputDir, exitCode)
 		d.mentionDone(ctx, t.ID, agentType, key)
 	})

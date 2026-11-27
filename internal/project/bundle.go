@@ -40,21 +40,30 @@ func (s *Store) ImportProject(ctx context.Context, p Project) error {
 	if source != SourceGit && source != SourceUpload {
 		return apperr.Invalid("project.errors.import_bad_source", "id", p.ID, "source", source)
 	}
+	if rerr := validateRelease(p.ReleaseMode, p.ReleaseEnvironment); rerr != nil {
+		return apperr.Wrap(rerr, "project.errors.import_failed", "id", p.ID)
+	}
+	gates, gerr := NormalizeGatesProfile(p.GatesProfile)
+	if gerr != nil {
+		return apperr.Wrap(gerr, "project.errors.import_failed", "id", p.ID)
+	}
 	_, err = s.db.ExecContext(ctx, s.rb(
 		`INSERT INTO projects (id, name, path, repo_url, default_branch,
 		    description, stage_template, default_board_id, workspace_id,
-		    github_installation_id, source, created_at)
-		 VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+		    github_installation_id, source, created_at, release_mode, release_environment, gates_profile)
+		 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
 		 ON CONFLICT (id) DO UPDATE SET
 		    name = excluded.name, path = excluded.path, repo_url = excluded.repo_url,
 		    default_branch = excluded.default_branch, description = excluded.description,
 		    stage_template = excluded.stage_template, default_board_id = excluded.default_board_id,
 		    workspace_id = excluded.workspace_id,
 		    github_installation_id = excluded.github_installation_id,
-		    source = excluded.source`),
+		    source = excluded.source, release_mode = excluded.release_mode,
+		    release_environment = excluded.release_environment,
+		    gates_profile = excluded.gates_profile`),
 		p.ID, p.Name, p.Path, p.RepoURL, p.DefaultBranch,
 		p.Description, string(tplJSON), p.DefaultBoardID, p.WorkspaceID,
-		p.GithubInstallationID, source, p.CreatedAt)
+		p.GithubInstallationID, source, p.CreatedAt, p.ReleaseMode, p.ReleaseEnvironment, gates)
 	if err != nil {
 		return apperr.Wrap(err, "project.errors.import_failed", "id", p.ID)
 	}

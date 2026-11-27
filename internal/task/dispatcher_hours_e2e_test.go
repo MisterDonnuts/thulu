@@ -39,13 +39,11 @@ func TestHoursEndToEnd_NoticesAndCutsOnTheTask(t *testing.T) {
 		}
 		return after
 	}
-	// keys lists the hour notices and cuts on the task, leaving out the "launched" comment.
+	// keys lists the hour notices and cuts on the task; a launch itself leaves no comment.
 	keys := func(tk *Task) []string {
 		var out []string
 		for _, c := range tk.Comments {
-			if c.Key != "task.comments.launched" {
-				out = append(out, c.Key)
-			}
+			out = append(out, c.Key)
 		}
 		return out
 	}

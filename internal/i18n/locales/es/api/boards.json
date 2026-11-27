@@ -22,7 +22,9 @@
     "type_holds_tasks": "el tipo de tarea {type:%q} todavía tiene {count} tarea(s): pasá ?move_to=<type> para cambiarles el tipo (vacío para sin tipo)",
     "type_list_unchanged": "{cause}: la lista de tipos quedó igual",
     "types_save_after_move_failed": "{cause} ({count} tarea(s) ya movidas)",
-    "unknown_board": "no existe el tablero {board:%q}"
+    "unknown_board": "no existe el tablero {board:%q}",
+    "agent_unknown": "etapa {stage:%q}: este workspace no tiene un agente {agent:%q}",
+    "agent_wrong_stage": "el agente {agent:%q} no corre en la etapa {stage:%q}; agregá esa etapa a las etapas válidas del agente"
   },
   "log": {
     "count_by_type": "contar tareas por tipo del tablero {board}",

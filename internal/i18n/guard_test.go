@@ -3,6 +3,7 @@ package i18n_test
 // A string that is not a message carries `//i18n:ignore <why>` on its line or the line above.
 
 import (
+	"encoding/json"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -84,9 +85,52 @@ func TestCatalogGuard(t *testing.T) {
 	for _, f := range g.files {
 		g.checkFile(f)
 	}
+	g.checkDataKeys()
 	g.checkUnused()
 	g.checkLocales()
 	g.report(t)
+}
+
+// dataKeyFiles are embedded JSON files whose "*_key" fields name catalog keys: the code reads the
+// key from the file, so no Go literal names it.
+var dataKeyFiles = []string{
+	"internal/task/needs_catalog.json",
+}
+
+func (g *guard) checkDataKeys() {
+	for _, rel := range dataKeyFiles {
+		raw, err := os.ReadFile(filepath.Join(g.root, rel))
+		if err != nil {
+			g.errs[rel] = append(g.errs[rel], err.Error())
+			continue
+		}
+		var doc any
+		if err := json.Unmarshal(raw, &doc); err != nil {
+			g.errs[rel] = append(g.errs[rel], err.Error())
+			continue
+		}
+		g.walkDataKeys(rel, doc)
+	}
+}
+
+func (g *guard) walkDataKeys(rel string, v any) {
+	switch x := v.(type) {
+	case map[string]any:
+		for field, val := range x {
+			if key, ok := val.(string); ok && strings.HasSuffix(field, "_key") {
+				g.used[key] = true
+				if !g.cat.Has(i18n.SourceLocale, key) {
+					g.errs[rel] = append(g.errs[rel], "key "+key+" is not in the "+i18n.SourceLocale+" catalog")
+				}
+				continue
+			}
+			g.walkDataKeys(rel, val)
+		}
+	case []any:
+		for _, val := range x {
+			g.walkDataKeys(rel, val)
+		}
+	}
 }
 
 func newGuard(t *testing.T) *guard {

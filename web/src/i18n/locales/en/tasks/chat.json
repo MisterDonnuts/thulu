@@ -1,10 +1,5 @@
 {
   "no_task": "Open a task to see its conversation.",
-  "placeholder": "Write to the agent… (Enter sends, Shift+Enter adds a line, @agent opens a separate chat)",
-  "input_label": "Message to the agent",
-  "interrupt_title": "Stops what it is doing now instead of waiting for the turn to end",
-  "interrupt": "interrupt",
-  "send": "Send",
   "load_failed": "Could not read the conversation.",
   "empty_html": "Nothing here yet.<br/>Write to the agent and the conversation starts.",
   "agent_fallback": "agent",
@@ -18,23 +13,18 @@
     "one": "{count} turn",
     "other": "{count} turns"
   },
-  "status": {
-    "live": "live",
-    "reading": "reading",
-    "reconnecting": "reconnecting",
-    "finished": "finished",
-    "no_transcript": "no transcript",
-    "waiting_runner": "waiting for the runner"
-  },
   "send_failed": "Could not send the message",
-  "session_start": "session start",
-  "session_start_model": "session start · {model}",
-  "thinking": "thinking",
-  "turn_finished": "Turn finished · {turns}",
-  "turn_failed": "Turn ended with an error · {turns}",
-  "turn_out_of_turns": "Out of turns · {turns}",
-  "stop": {
-    "max_tokens": "the answer hit the token limit",
-    "refusal": "the model declined to answer"
-  }
+  "agent_running": "{agent} · running",
+  "convbar": {
+    "aria": "Task conversations",
+    "chat": "Chat · {agent}",
+    "new": "@ agent",
+    "past": "Earlier runs · {count}"
+  },
+  "placeholder_live": "Message {agent} · @ for another agent",
+  "placeholder_none": "Message the stage's agent · @ to open a chat",
+  "placeholder_resume": "Write to resume {agent}'s session",
+  "stop_gone": "The run had already finished.",
+  "stop_message": "The agent stops what it's doing. What it already did stays on the task.",
+  "stop_title": "Stop the run?"
 }

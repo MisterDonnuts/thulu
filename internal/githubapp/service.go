@@ -199,6 +199,10 @@ var (
 	PermsPush         = Permissions{"metadata": "read", "contents": "write", "pull_requests": "write"}
 	PermsAgentTools   = Permissions{"metadata": "read", "contents": "write", "pull_requests": "write", "actions": "read"}
 	PermsActionsWrite = Permissions{"metadata": "read", "contents": "write", "pull_requests": "write", "actions": "write"}
+	// What a run's token gets when it asks for nothing more. GitHub files merging under "Contents:
+	// write", and the daemon pushes the task branch with its own token, so a run's token reads
+	// contents: it opens and reviews PRs but cannot merge one past the Human review approval.
+	PermsRunTools = Permissions{"metadata": "read", "contents": "read", "pull_requests": "write", "actions": "read"}
 	// GitHub files merging under "Contents: write"; without it the chat's token cannot merge around
 	// the person's confirmation.
 	PermsDelegatedChat    = Permissions{"metadata": "read", "contents": "read", "pull_requests": "write", "actions": "read"}

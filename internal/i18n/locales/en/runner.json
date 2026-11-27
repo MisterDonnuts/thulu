@@ -30,7 +30,8 @@
     "outputs_too_large": "the run's output is over {max} bytes",
     "decode_job": "read the stored run {id}",
     "stat_output": "read {path} in the run's output",
-    "inventory": "store the runner's folders"
+    "inventory": "store the runner's folders",
+    "adopt": "give the runs still running a fresh lease"
   },
   "log": {
     "seen_failed": "record when runner {runner} was last seen"

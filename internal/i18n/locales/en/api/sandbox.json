@@ -8,7 +8,8 @@
     "run_key_refused": "an agent run's key cannot use this endpoint",
     "task_id_required": "task id required",
     "manager_unavailable": "sandbox manager not configured",
-    "not_queued": "the task is not in the sandbox line"
+    "not_queued": "the task is not in the sandbox line",
+    "task_finished": "task {task} is in {stage}, a finished stage: it gave its sandbox up and gets no new one"
   },
   "timeline": {
     "preview_url": "The app on port {port} opens at {url}"

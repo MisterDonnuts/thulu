@@ -169,7 +169,7 @@ func (f *flowLabels) board(id string) (stagepkg.BoardInfo, bool) {
 
 func (f *flowLabels) boardLabel(locale, id string) string {
 	if b, ok := f.board(id); ok {
-		if label := stagepkg.LocalizeSeededBoard(b, locale).Label; label != "" {
+		if label := localizeBoard(b, locale).Label; label != "" {
 			return label
 		}
 		return id

@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -217,9 +218,7 @@ echo "done" > "$OCTOPUS_ROOT/runs/$INSTANCE_ID/comment.md"
 	var report task.RunnerReport
 	f.launcher.report = func(_ context.Context, _ string, rep task.RunnerReport) { report = rep }
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	go func() { _ = hostrun.New(cfg, "test").Run(ctx) }()
+	runHostRunner(t, cfg)
 	deadline := time.After(30 * time.Second)
 	var code int
 wait:
@@ -300,7 +299,7 @@ func TestRunnerJobCarriesAThuluProjectFromTheDaemon(t *testing.T) {
 	want := runner.JobProject{ID: web.ID, Name: filepath.Base(web.Path), DefaultBranch: web.DefaultBranch,
 		Branch: project.TaskBranchName("root"), Source: runner.SourceDaemon}
 	got, err := f.launcher.runnerFor(ctx, sub, f.reg.RunnerID, false)
-	if err != nil || len(got) != 1 || got[0] != want {
+	if err != nil || len(got) != 1 || !reflect.DeepEqual(got[0], want) {
 		t.Fatalf("runnerFor = %+v, %v; want %+v", got, err, want)
 	}
 	if spec := (runner.JobSpec{Projects: got}); !spec.SelfContained() || spec.MinProtocol() != runner.ProtocolDaemonCode {
@@ -320,6 +319,7 @@ func TestRunnerJobCarriesAThuluProjectFromTheDaemon(t *testing.T) {
 	if _, err := f.store.Authenticate(ctx, f.reg.Credential, "test", runner.ProtocolVersion); err != nil {
 		t.Fatal(err)
 	}
+	f.launcher.runDeadline = func(string) time.Duration { return 90 * time.Minute }
 	cid, _, _, err := f.launcher.LaunchForStage(ctx, sub, types.StageInProgress, at, env, nil, nil, false)
 	if err != nil {
 		t.Fatal(err)
@@ -327,5 +327,9 @@ func TestRunnerJobCarriesAThuluProjectFromTheDaemon(t *testing.T) {
 	job, err := f.store.GetJob(ctx, runner.JobIDFromRun(cid))
 	if err != nil || job.Spec.ResultRef != project.ResultBranchName("root") {
 		t.Errorf("job = %+v, %v; want the root's result branch", job, err)
+	}
+	// The machine enforces the workspace's run limit too, so a run outlives no daemon by long.
+	if job != nil && job.Spec.DeadlineSeconds != 90*60 {
+		t.Errorf("job deadline = %d s, want %d", job.Spec.DeadlineSeconds, 90*60)
 	}
 }

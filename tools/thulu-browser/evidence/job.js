@@ -5,6 +5,8 @@ import { pathToFileURL } from "node:url";
 import { t, tLog } from "../i18n.js";
 import { closeBrowser } from "../lib/browser.js";
 import { OctopusHttpError } from "../lib/octopus.js";
+import { bareUrl } from "../lib/page-findings.js";
+import { scrubber } from "../lib/scrub.js";
 import { runVerdict } from "./cases.js";
 import { extractFrame } from "./ffmpeg.js";
 import { slug, uploadBundle } from "./publish.js";
@@ -113,13 +115,36 @@ export async function waitReachable(url, { fetch: f = globalThis.fetch, windowMs
   }
 }
 
-export function scrubber(values) {
-  // Values under 4 chars are not scrubbed: they would cut ordinary words out of the report.
-  const cut = [...new Set(values.filter((v) => typeof v === "string" && v.length >= 4))].sort((a, b) => b.length - a.length);
-  return (text) => {
-    let out = String(text ?? "");
-    for (const v of cut) out = out.split(v).join("•••");
-    return out;
+export { scrubber };
+
+/** A JSON file with scrub applied to every string in it, keys included. */
+export function scrubJson(body, scrub) {
+  const walk = (v) => {
+    if (typeof v === "string") return scrub(v);
+    if (Array.isArray(v)) return v.map(walk);
+    if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [scrub(k), walk(x)]));
+    return v;
+  };
+  let data;
+  try {
+    data = JSON.parse(body.toString("utf8"));
+  } catch {
+    return Buffer.from(scrub(body.toString("utf8")));
+  }
+  return Buffer.from(JSON.stringify(walk(data), null, 2));
+}
+
+function runMetrics(run, scrub) {
+  return {
+    profile: run.profile ?? {},
+    steps: (run.metrics ?? []).map(({ vitals, label, ...m }) => ({
+      ...m, label: scrub(label || ""), ...(vitals ? { vitals: { ...vitals, url: scrub(bareUrl(vitals.url ?? "")) } } : {}),
+    })),
+    waits: { cut: run.cutWaits !== false, gaps: run.gaps ?? [] },
+    a11y: run.verdicts.filter((v) => v.a11y).map((v) => ({
+      step: v.step, fail_on: v.a11y.fail_on, counts: v.a11y.counts, failing: v.a11y.failing_ids,
+      incomplete: v.a11y.incomplete,
+    })),
   };
 }
 
@@ -174,6 +199,9 @@ export async function replayRun(job, { upload, pace = 1, scrub, log }) {
 
   try {
     const keep = async (file) => {
+      // The metrics file carries page text (console messages, labels): it goes through the scrub
+      // like the result does, string by string, since JSON escapes a secret holding " or \.
+      if (file.kind === "metrics") file = { ...file, body: scrubJson(file.body, scrub) };
       try {
         const r = await upload(file);
         return r?.id ? { id: r.id, filename: file.filename } : undefined;
@@ -194,10 +222,16 @@ export async function replayRun(job, { upload, pace = 1, scrub, log }) {
       checks: judged.verdicts.map((v) => ({
         label: scrub(v.named ? v.label : v.case || v.label), expected: scrub(v.expected), observed: scrub(v.observed ?? ""),
         pass: Boolean(v.pass), measured: Boolean(v.measured),
+        ...(v.metric ? { metric: v.metric, value: v.value } : {}),
       })),
       failures: bundle.runs.flatMap((r) => r.failures).map((x) => ({
         step: x.step, kind: x.kind, label: scrub(x.label || ""), error: scrub(x.error),
       })),
+      // Page errors and timing of the judged run. A daemon that does not store them yet ignores them;
+      // the report carries both either way.
+      findings: (judged.findings ?? []).map((f) => ({ ...f, ...(f.text ? { text: scrub(f.text) } : {}),
+        ...(f.url ? { url: scrub(f.url) } : {}) })),
+      metrics: runMetrics(judged, scrub),
       duration_ms: durationMs,
       report_md: scrub(report.body),
       error: "",

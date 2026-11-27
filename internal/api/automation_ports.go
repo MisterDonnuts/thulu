@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"sort"
 	"strings"
@@ -28,6 +27,7 @@ func (s *Server) AutomationDeps() automation.Deps {
 		Metrics: &automationMetrics{s: s},
 		Creds:   &automationCreds{s: s},
 		Keys:    &automationKeys{s: s},
+		Watches: newDeployWatchObserver(s),
 	}
 }
 
@@ -60,22 +60,19 @@ func (a *automationTasks) resolveNewTask(ctx context.Context, req automation.New
 	if b, ok := a.s.boardInfo(boardID); !ok || !workspaceVisible(b.WorkspaceID, req.WorkspaceID, false) {
 		return "", nil, apperr.NotFound("api.automations.errors.unknown_board", "board", boardID)
 	}
-	assigns := map[task.Stage]string{}
+	templates := map[task.Stage]string{}
 	for _, pid := range req.ProjectIDs {
 		proj, err := a.s.projectStore.Get(ctx, pid)
 		if err != nil || !workspaceVisible(proj.WorkspaceID, req.WorkspaceID, false) {
 			return "", nil, apperr.NotFound("api.automations.errors.project_not_found", "id", pid)
 		}
-		for k, v := range proj.StageTemplate {
-			if _, ok := assigns[task.Stage(k)]; !ok {
-				assigns[task.Stage(k)] = v
-			}
-		}
+		addTemplate(templates, proj.StageTemplate)
 	}
+	request := make(map[task.Stage]string, len(req.StageAssignments))
 	for stage, agent := range req.StageAssignments {
-		assigns[task.Stage(stage)] = agent
+		request[task.Stage(stage)] = agent
 	}
-	return boardID, assigns, nil
+	return boardID, resolveAssignments(a.s.boards, boardID, req.TypeID, templates, request), nil
 }
 
 // Must agree with the agent createTask returns: the engine checks the recipe's budget with it
@@ -126,23 +123,15 @@ func (a *automationTasks) createTask(ctx context.Context, req automation.NewTask
 	if req.Stage == "" || task.Stage(req.Stage) == t.Stage {
 		return t.ID, "", nil
 	}
-	from := t.Stage
-	stage := task.Stage(req.Stage)
-	gate, err := a.s.taskStore.StageExitGate(ctx, t, from, stage, task.GateAutomation)
+	updated, gate, err := a.s.moveTaskStage(ctx, t, stageMove{
+		To: task.Stage(req.Stage), Cause: task.GateAutomation, Via: task.ViaAutomation, Actor: "automation", Placement: true,
+	})
 	if err != nil {
-		return t.ID, "", err
+		return t.ID, "", apperr.Wrap(err, "api.automations.errors.enter_stage_failed", "stage", req.Stage)
 	}
 	if !gate.Passed {
 		return t.ID, "", apperr.Conflict("api.automations.errors.stage_gated", "stage", req.Stage, "approvals", gate.Labels())
 	}
-	updated, err := a.s.taskStore.Update(ctx, t.ID, task.Patch{Stage: &stage})
-	if err != nil {
-		return t.ID, "", apperr.Wrap(err, "api.automations.errors.enter_stage_failed", "stage", req.Stage)
-	}
-	a.s.recordEvent(ctx, t.ID, task.EventStageEntered, "", "automation",
-		fmt.Sprintf("%s → %s", from, updated.Stage),
-		map[string]string{"from": string(from), "to": string(updated.Stage)})
-	a.s.taskDispatcher.HandleStageEntered(context.WithoutCancel(ctx), updated, from)
 	if info, _ := a.s.stagesFor(updated).Get(updated.Stage); info.Terminal {
 		return t.ID, "", nil
 	}

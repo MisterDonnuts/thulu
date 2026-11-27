@@ -1,4 +1,4 @@
-FROM node:22-trixie-slim@sha256:c5849ff9c9ebcd66615412f0b548ca5b8ecaef84003dc9ac2e077ebe46aaa3f6
+FROM node:22-trixie-slim@sha256:68c76cfad89921b927eae28ba21407475e29d0ce450afcdbe70c1532db042b64
 
 RUN echo 'Acquire::Retries "5";' > /etc/apt/apt.conf.d/80-retries
 
@@ -64,6 +64,16 @@ RUN printf '%s\n' \
       > /etc/profile.d/octopus-cache.sh \
  && mkdir -p /cache/npm /cache/go/mod /cache/go/build /cache/pip /cache/mise /cache/snapshots \
  && chown -R 1000:1000 /cache
+
+# thulu-gates: the quality gates CLI (images/runtime/thulu-gates/README.md). Node built-ins only,
+# so nothing to install; images/sandbox copies the same files.
+COPY thulu-gates/package.json /opt/thulu-gates/package.json
+COPY thulu-gates/bin /opt/thulu-gates/bin
+COPY thulu-gates/lib /opt/thulu-gates/lib
+COPY thulu-gates/locales /opt/thulu-gates/locales
+RUN chmod 0755 /opt/thulu-gates/bin/thulu-gates.js \
+ && ln -s /opt/thulu-gates/bin/thulu-gates.js /usr/local/bin/thulu-gates \
+ && thulu-gates --version
 
 RUN mkdir -p /workspace
 WORKDIR /workspace

@@ -1,0 +1,84 @@
+
+⠋ Generating mutants
+⠙ Generating mutants
+⠹ Generating mutants
+⠸ Generating mutants
+⠼ Generating mutants
+⠴ Generating mutants
+⠦ Generating mutants
+⠧ Generating mutants
+⠇ Generating mutants
+⠏ Generating mutants
+⠋ Generating mutants
+⠙ Generating mutants
+⠹ Generating mutants
+⠸ Generating mutants
+⠼ Generating mutants
+⠴ Generating mutants
+⠦ Generating mutants
+⠧ Generating mutants
+⠇ Generating mutants
+⠏ Generating mutants
+⠋ Generating mutants
+⠙ Generating mutants
+⠹ Generating mutants
+⠸ Generating mutants
+⠼ Generating mutants
+⠴ Generating mutants
+⠦ Generating mutants
+⠧ Generating mutants
+⠇ Generating mutants
+⠏ Generating mutants
+⠋ Generating mutants
+⠙ Generating mutants
+⠹ Generating mutants
+⠸ Generating mutants
+⠸ Generating mutants
+⠸ Generating mutants
+⠼ Generating mutants
+⠼ Generating mutants
+⠼ Generating mutants
+    done in 20ms (0 files mutated, 0 ignored, 3 unmodified)
+    Warning: 14 non-Python file(s) changed since the last full run: mutants/calc/__init__.py.meta, mutants/calc/__init__.py.spans, mutants/calc/__pycache__/__init__.cpython-313.pyc, mutants/calc/__pycache__/core.cpython-313.pyc, mutants/calc/__pycache__/stats.cpython-313.pyc, mutants/calc/core.py.meta, mutants/calc/core.py.spans, mutants/calc/stats.py.meta, mutants/calc/stats.py.spans, mutants/mutmut-stats.json, mutants/pyproject.toml, mutants/tests/__pycache__/__init__.cpython-313.pyc, mutants/tests/__pycache__/test_core.cpython-313-pytest-9.2.0.pyc, mutants/tests/__pycache__/test_stats.cpython-313-pytest-9.2.0.pyc
+    These cannot be tracked for behavioral changes, so cached results were kept.
+    If the changes affect your tests, delete the mutants/ directory or set on_dependency_change = "rerun".
+
+⠸ Listing all tests 
+⠼ Listing all tests
+⠴ Listing all tests
+⠦ Listing all tests
+⠧ Listing all tests
+⠇ Listing all tests
+⠏ Listing all tests
+⠋ Listing all tests
+⠙ Listing all tests
+⠹ Listing all tests
+Traceback (most recent call last):
+  File "/work/venv/bin/mutmut", line 12, in <module>
+    sys.exit(cli())
+             ~~~^^
+  File "/work/venv/lib/python3.13/site-packages/click/core.py", line 1653, in __call__
+    return self.main(*args, **kwargs)
+           ~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/work/venv/lib/python3.13/site-packages/click/core.py", line 1560, in main
+    rv = self.invoke(ctx)
+  File "/work/venv/lib/python3.13/site-packages/click/core.py", line 2054, in invoke
+    return _process_result(sub_ctx.command.invoke(sub_ctx))
+                           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/work/venv/lib/python3.13/site-packages/click/core.py", line 1414, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+           ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/venv/lib/python3.13/site-packages/click/core.py", line 911, in invoke
+    return callback(*args, **kwargs)
+  File "/work/venv/lib/python3.13/site-packages/mutmut/__main__.py", line 941, in run
+    _run(mutant_names, max_children)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/venv/lib/python3.13/site-packages/mutmut/__main__.py", line 983, in _run
+    mutants, source_file_mutation_data_by_path = collect_source_file_mutation_data(mutant_names=mutant_names)
+                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/venv/lib/python3.13/site-packages/mutmut/__main__.py", line 815, in collect_source_file_mutation_data
+    assert filtered_mutants, f"Filtered for specific mutants, but nothing matches\n\nFilter: {mutant_names}"
+           ^^^^^^^^^^^^^^^^
+AssertionError: Filtered for specific mutants, but nothing matches
+
+Filter: ('calc.nothing.x_*',)

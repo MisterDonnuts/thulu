@@ -199,32 +199,40 @@ func (s *Server) evidenceAugment(ctx context.Context, chatID string, at *types.A
 type githubDeployEvent struct {
 	githubEventPayload
 	DeploymentStatus struct {
-		State       string `json:"state"`
-		Environment string `json:"environment"`
+		State          string `json:"state"`
+		Environment    string `json:"environment"`
+		TargetURL      string `json:"target_url"`
+		EnvironmentURL string `json:"environment_url"`
 	} `json:"deployment_status"`
 	Deployment struct {
+		ID          int64  `json:"id"`
 		SHA         string `json:"sha"`
+		Ref         string `json:"ref"`
 		Environment string `json:"environment"`
 	} `json:"deployment"`
 }
 
-func (s *Server) evidenceDeployHook(ctx context.Context, event string, payload []byte) {
+func (ev githubDeployEvent) environment() string {
+	if ev.DeploymentStatus.Environment != "" {
+		return ev.DeploymentStatus.Environment
+	}
+	return ev.Deployment.Environment
+}
+
+// evidenceDeployHook queues the smoke batches a successful deploy fires and returns their ids; the
+// github.deployment_status automation event carries them, so a recipe never queues a second one.
+func (s *Server) evidenceDeployHook(ctx context.Context, event string, payload []byte) []string {
 	if s.evidenceSvc == nil || event != "deployment_status" {
-		return
+		return nil
 	}
 	var ev githubDeployEvent
 	if json.Unmarshal(payload, &ev) != nil || ev.DeploymentStatus.State != "success" {
-		return
-	}
-	d := evidence.Deploy{Repo: ev.Repository.FullName, Environment: ev.DeploymentStatus.Environment,
-		SHA: ev.Deployment.SHA}
-	if d.Environment == "" {
-		d.Environment = ev.Deployment.Environment
+		return nil
 	}
 	ws := s.githubEventWorkspace(ctx, ev.githubEventPayload)
 	if ws == "" {
-		return
+		return nil
 	}
-	d.Workspaces = []string{ws}
-	s.evidenceSvc.OnDeploy(ctx, d)
+	return s.evidenceSvc.OnDeploy(ctx, evidence.Deploy{Repo: ev.Repository.FullName, Environment: ev.environment(),
+		SHA: ev.Deployment.SHA, Workspaces: []string{ws}})
 }

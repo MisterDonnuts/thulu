@@ -1,0 +1,57 @@
+{
+  "revision": 5,
+  "tags": ["flow", "default"],
+  "label": "Thulu flow",
+  "labels": {"es": "Flujo Thulu"},
+  "description": "Backlog to production: spec, locked tests, development, quality gates, AI review, agentic testing, a production readiness check, human review and a verified release.",
+  "descriptions": {
+    "es": "Del backlog a producción: spec, tests bloqueados, desarrollo, gates de calidad, revisión IA, agentic testing, un control de production readiness, revisión humana y un release verificado."
+  },
+  "board": {"id": "thulu", "max_kick_backs": 2},
+  "stages": [
+    {"id": "backlog", "color": "#5d6477", "initial": true},
+    {"id": "refinement", "color": "#56ccf2", "default_agent": "thulu-refiner",
+     "auto_advance": true, "ingest_flags": true,
+     "required_approvals": [
+       {"key": "definition_ready", "label": "Definition ready", "labels": {"es": "Definición lista"},
+        "task_types": ["feature"]}
+     ]},
+    {"id": "test_design", "color": "#9b51e0", "default_agent": "thulu-test-designer",
+     "labels": {"en": "Test design", "es": "Diseño de pruebas"},
+     "auto_advance": true, "push_branch": true, "lock_tests": true},
+    {"id": "in_progress", "color": "#f2994a", "default_agent": "thulu-developer",
+     "labels": {"en": "Development", "es": "Desarrollo"},
+     "auto_advance": true, "push_branch": true, "wip_group": "work", "agent_verdict": true},
+    {"id": "verification", "color": "#2d9cdb", "default_agent": "thulu-verifier",
+     "labels": {"en": "Verification", "es": "Verificación"},
+     "auto_advance": true, "agent_verdict": true, "pr_draft": true, "wip_group": "work"},
+    {"id": "ai_review", "color": "#f2c94c", "default_agent": "thulu-reviewer",
+     "auto_advance": true, "agent_verdict": true, "wip_group": "work", "no_skip": true},
+    {"id": "testing", "color": "#27ae60", "default_agent": "thulu-agentic-tester",
+     "labels": {"en": "Agentic testing", "es": "Agentic Testing"},
+     "auto_advance": true, "agent_verdict": true, "wip_group": "work"},
+    {"id": "readiness", "color": "#eb5757", "default_agent": "thulu-readiness",
+     "labels": {"en": "Production readiness", "es": "Production Readiness"},
+     "auto_advance": true, "agent_verdict": true, "wip_group": "work"},
+    {"id": "review", "color": "#bb86fc",
+     "labels": {"en": "Human review", "es": "Revisión humana"},
+     "pr_ready": true, "wip_group": "review", "no_skip": true,
+     "required_approvals": [
+       {"key": "merge", "label": "Merge", "labels": {"es": "Merge"}, "required_checks": true}
+     ],
+     "on_changes_requested": "kick_back", "changes_kick_back_to": "in_progress"},
+    {"id": "release", "color": "#6fcf97", "merge_target": true, "release_resources": true,
+     "auto_advance": true, "agent_verdict": true},
+    {"id": "done", "color": "#3aa667", "terminal": true}
+  ],
+  "task_types": [
+    {"id": "feature", "label": "Feature", "labels": {"es": "Funcionalidad"}, "icon": "feature",
+     "default": true, "skips": []},
+    {"id": "bug", "label": "Bug", "labels": {"es": "Bug"}, "icon": "bug", "skips": []},
+    {"id": "chore", "label": "Chore", "labels": {"es": "Mantenimiento"}, "icon": "chore",
+     "skips": ["test_design", "testing"]},
+    {"id": "release", "label": "Release", "labels": {"es": "Release"}, "icon": "rocket",
+     "skips": ["refinement", "test_design", "in_progress", "verification", "ai_review", "testing", "readiness", "review"],
+     "agents": {"release": "thulu-release"}}
+  ]
+}

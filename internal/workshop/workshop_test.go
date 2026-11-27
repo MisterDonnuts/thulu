@@ -148,7 +148,7 @@ func TestInstallBringsSkillsAndIsIdempotent(t *testing.T) {
 			t.Errorf("%s: action %s after a clean install, want same", it.Key(), it.Action)
 		}
 	}
-	entries, err := List(ctx, st, c, "en")
+	entries, err := List(ctx, st, nil, c, "en")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -524,7 +524,7 @@ func TestDisabledAgentIsAvailableAndReinstallEnables(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	entries, err := List(ctx, st, c, "en")
+	entries, err := List(ctx, st, nil, c, "en")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -719,7 +719,7 @@ func TestCatalogDescriptionByLocale(t *testing.T) {
 	fsys["skills/tone/skill.yaml"] = &fstest.MapFile{Data: []byte("name: tone\nversion: 1\ndescription: be plain\ndescriptions:\n  es: escribí simple\n")}
 	c := mustCatalog(t, fsys)
 	for locale, want := range map[string]string{"es": "escribí simple", "en": "be plain", "fr": "be plain"} {
-		entries, err := List(ctx, st, c, locale)
+		entries, err := List(ctx, st, nil, c, locale)
 		if err != nil {
 			t.Fatal(err)
 		}

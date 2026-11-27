@@ -40,7 +40,9 @@
     "turn_cancel_failed": "cancel chat turn job {job}",
     "turn_cleanup_failed": "remove chat turn files {path}",
     "turn_output_missing": "the machine finished the chat turn, but its answer never reached the daemon",
-    "orphan_turns_failed": "find the chat turns a previous daemon left on the machines: {err}"
+    "orphan_turns_failed": "find the chat turns a previous daemon left on the machines: {err}",
+    "adopted": "{count} runner runs were running when the daemon started; their runners have {grace} to report back before the runs are marked failed",
+    "adopt_failed": "give the runner runs a previous daemon left running a fresh lease: {err}"
   },
   "audit": {
     "token_created": "Registration token for runner {name} created",

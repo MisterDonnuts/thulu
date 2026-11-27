@@ -51,7 +51,11 @@ func (w *run) summary() {
 func (w *run) nextSteps() {
 	w.printf("")
 	w.say("  ", "initwizard.summary.next_header")
-	steps := []string{i18n.Text("initwizard.summary.next_open"), i18n.Text("initwizard.summary.next_agent")}
+	steps := []string{i18n.Text("initwizard.summary.next_open")}
+	// Both flows bring their agents; only an install that never took one starts without any.
+	if w.cfg.Board == "" {
+		steps = append(steps, i18n.Text("initwizard.summary.next_agent"))
+	}
 	switch {
 	case w.cfg.Runner.Enabled && len(w.cfg.Runner.Folders) > 0:
 		steps = append(steps, i18n.Text("initwizard.summary.next_runner_projects"))

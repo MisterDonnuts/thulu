@@ -652,3 +652,88 @@ steps:
 		t.Errorf("provenance = (%q, %d), want (%q, 2)", got.AutomationID, got.ChainDepth, a.ID)
 	}
 }
+
+// A deploy event moves the task its payload names. A move a pending approval holds is reported as
+// gated and does not fail the run; it emits no item.
+func TestEngine_MoveStepMovesOrReportsTheGate(t *testing.T) {
+	h := newHarness(t)
+	h.tasks.held["task-9"] = "Deploy to production"
+	a := h.create(t, `
+name: cerrar al deployar
+trigger: {manual: true}
+vars: {task: task-7}
+steps:
+  - id: mover
+    move: {task_id: "{{ vars.task }}", stage: done, board: rel, note: "deploy {{ vars.task }} ok"}
+  - id: frenada
+    move: {task_id: task-9, stage: done}
+`)
+	run := h.run(t, a)
+	if run.Status != automation.RunSuccess {
+		t.Fatalf("status = %s (%s)", run.Status, run.Error)
+	}
+	if len(h.tasks.moves) != 2 {
+		t.Fatalf("moves = %+v, want 2", h.tasks.moves)
+	}
+	m := h.tasks.moves[0]
+	if m.TaskID != "task-7" || m.Stage != "done" || m.BoardID != "rel" || m.Note != "deploy task-7 ok" ||
+		m.WorkspaceID != a.WorkspaceID || m.AutomationID != a.ID || m.ChainDepth != 1 {
+		t.Errorf("move request = %+v", m)
+	}
+	if run.ItemsEmitted != 1 {
+		t.Errorf("items_emitted = %d, want 1: the gated move emits nothing", run.ItemsEmitted)
+	}
+	full, err := h.store.GetRun(context.Background(), run.ID, automation.InWorkspace(a.WorkspaceID))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, st := range full.Steps {
+		gated := strings.Contains(st.Output, `"gated":true`) && strings.Contains(st.Output, `"Deploy to production"`)
+		if gated != (st.StepID == "frenada") {
+			t.Errorf("step %s output %s: gated = %v", st.StepID, st.Output, gated)
+		}
+	}
+}
+
+func TestEngine_MoveStepNeedsATask(t *testing.T) {
+	h := newHarness(t)
+	a := h.create(t, `
+name: sin tarea
+trigger: {manual: true}
+steps:
+  - id: mover
+    move: {task_id: "{{ trigger.payload.task_id }}", stage: done}
+`)
+	run := h.run(t, a)
+	if run.Status != automation.RunFailed || len(h.tasks.moves) != 0 {
+		t.Fatalf("status = %s, moves %d: an empty task id must fail before reaching the board", run.Status, len(h.tasks.moves))
+	}
+}
+
+// A move into a stage with an agent wakes it, so it spends the daily agent budget like a task or a
+// mention does; once spent, the next such move is refused and the run stops as skipped.
+func TestEngine_MoveStepSpendsTheAgentBudget(t *testing.T) {
+	h := newHarness(t)
+	h.tasks.moveAgents["task-1"] = "reviewer"
+	h.tasks.moveAgents["task-2"] = "reviewer"
+	a := h.create(t, `
+name: mover con agente
+trigger: {manual: true}
+policy: {max_agent_runs_per_day: 1}
+steps:
+  - id: uno
+    move: {task_id: task-1, stage: review}
+  - id: dos
+    move: {task_id: task-2, stage: review}
+`)
+	run := h.run(t, a)
+	if len(h.tasks.moves) != 1 || h.tasks.moves[0].TaskID != "task-1" {
+		t.Fatalf("moves = %+v, want only task-1: the budget allows one wake-up", h.tasks.moves)
+	}
+	if run.Status != automation.RunSkipped || !strings.Contains(run.Reason, "budget") {
+		t.Errorf("status = %s reason %q, want skipped on the budget", run.Status, run.Reason)
+	}
+	if run.AgentRuns != 1 {
+		t.Errorf("agent_runs = %d, want 1", run.AgentRuns)
+	}
+}

@@ -182,7 +182,14 @@
     "plan_database_external": "Database  external, restored by you (-restore external)",
     "stopping_for_restore": "   stopping {service} so nothing writes during the restore",
     "plan_back_to_chart": "Back to   {version} (chart {ref}@{digest})",
-    "restoring": "   restoring {path}"
+    "restoring": "   restoring {path}",
+    "cli_replaced": "Replaced the CLI at {path}: {from} → {to}",
+    "cli_blocked": "\n!! The CLI at {path} is still {from} (this update installed {to}): {dir} is not writable by this user.\n!! Typing thulu there runs the old version. Replace it with:\n!!   {command}\n",
+    "cli_replace_failed": "\n!! Could not replace the CLI at {path}: {err}\n!! Replace it by hand:\n!!   {command}\n",
+    "cli_dev_left": "Left {path} alone: it is a development build.",
+    "cli_fetch_failed": "Could not get the {version} CLI to replace the ones on PATH: {err}",
+    "runner_restart": "The runner service runs {path}, now {version}. Restart it so it picks up the new binary (running jobs stop): {command}",
+    "runner_outdated": "The runner service runs {path}, still {version} (this update installed {target}). Point it at the new CLI: {command}"
   },
   "labels": {
     "daemon_not_answering": "daemon not answering — it may be stopped",
@@ -203,5 +210,11 @@
     "snapshot_placeholder": "<snapshot>",
     "unknown": "unknown",
     "mirror_note": "Unsigned. Where this mirror put each artifact of {manifest}; the digests are the signed manifest's, and apply reads that, not this file."
+  },
+  "drift": {
+    "cli": "warning: {path} is {version}, this CLI is {self}",
+    "runner": "warning: the runner service runs {path}, which is {version}; this CLI is {self}",
+    "stack": "warning: the stack at {url} runs {version}; this CLI is {self}",
+    "fix": "`thulu update` brings the CLIs and the stack to one version; `thulu runner service install` points the service at the CLI on PATH."
   }
 }

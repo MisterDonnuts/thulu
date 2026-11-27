@@ -8,6 +8,7 @@ Base image for Thulu **task sandboxes**: a bare container where the manager runs
 - Python 3 + pip
 - git, build-essential, curl, jq, less, iproute2, netcat
 - procps (`ps`, `pkill`, `top`...)
+- `thulu-gates`, the quality gates CLI ([thulu-gates/README.md](thulu-gates/README.md)), also installed in `images/sandbox`
 
 If a task needs a more specific stack (Go, Rust, deno, etc.), the agent can install it through `exec` with `apt-get install` or the language's package manager. The sandbox lasts as long as the task, so keep the image light.
 

@@ -38,7 +38,7 @@ func (d *Dispatcher) resumeStage(ctx context.Context, t *Task, message string, k
 	if agentType == nil {
 		return apperr.NotFound("task.errors.agent_not_found", "agent", agentName)
 	}
-	if info, _ := d.stagesFor(t).Get(t.Stage); len(t.ProjectIDs) > 0 && !info.Initial {
+	if d.needsWorktree(t, t.Stage) {
 		t = d.ensureWorktrees(ctx, t)
 	}
 	go d.launchStage(ctx, t, t.Stage, agentName, agentType, launchOpts{

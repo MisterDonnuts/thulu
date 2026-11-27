@@ -14,3 +14,14 @@ import "embed"
 //
 //go:embed entrypoint-base.sh kube-agent-entrypoint.sh snippets
 var Runtime embed.FS
+
+// ThuluGates is the quality gates CLI the agent images install at /opt/thulu-gates (tests and
+// README left out). A runner writes it into each job and puts it first on the job's PATH, so a
+// machine runs the gates of the runner binary it has, never a copy installed by hand that no update
+// reaches.
+//
+//go:embed runtime/thulu-gates/package.json runtime/thulu-gates/bin runtime/thulu-gates/lib runtime/thulu-gates/locales
+var ThuluGates embed.FS
+
+// ThuluGatesRoot is the folder ThuluGates keeps the CLI under.
+const ThuluGatesRoot = "runtime/thulu-gates"

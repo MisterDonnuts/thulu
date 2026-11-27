@@ -6,6 +6,8 @@ export interface RequiredApproval {
   label: string;
   task_types?: string[];
   reset_on_change?: boolean;
+  // Approving waits for the pull request's required checks on GitHub.
+  required_checks?: boolean;
 }
 
 export const ON_CHANGES = ["resume", "kick_back", "stay"] as const;
@@ -64,12 +66,14 @@ export function normalizeRequiredApprovals(rows: RequiredApproval[]): {
     if (seen.has(key))
       return { rows: out, problem: t("lib.required_approvals.errors.duplicate", { key }) };
     seen.add(key);
-    out.push({
+    const row: RequiredApproval = {
       key,
       label,
       task_types: [...new Set(r.task_types ?? [])].sort(),
       reset_on_change: r.reset_on_change !== false,
-    });
+    };
+    if (r.required_checks) row.required_checks = true;
+    out.push(row);
   }
   return { rows: out, problem: null };
 }
@@ -112,6 +116,10 @@ export function approvalRowHTML(r: RequiredApproval, types: Named[]): string {
           <input type="checkbox" data-ra="reset"${r.reset_on_change !== false ? " checked" : ""} />
           ${esc(t("lib.required_approvals.reset"))}
         </label>
+        <label class="st-flag" title="${esc(t("lib.required_approvals.checks_title"))}">
+          <input type="checkbox" data-ra="checks"${r.required_checks ? " checked" : ""} />
+          ${esc(t("lib.required_approvals.checks"))}
+        </label>
         <span class="st-spacer"></span>
         <button type="button" class="btn btn-ghost btn-sm" data-ra-remove>${esc(t("common.buttons.remove"))}</button>
       </div>
@@ -131,7 +139,13 @@ export function approvalRowEl(r: RequiredApproval, types: Named[]): HTMLElement 
   return tpl.content.firstElementChild as HTMLElement;
 }
 
-export function approvalsEditorHTML(st: StageApprovals, types: Named[], earlier: Named[]): string {
+// addLock: why no approval can be added to the column (it may be skipped); "" when one can.
+export function approvalsEditorHTML(
+  st: StageApprovals,
+  types: Named[],
+  earlier: Named[],
+  addLock = "",
+): string {
   const rows = (st.required_approvals ?? []).map((r) => approvalRowHTML(r, types)).join("");
   const mode = onChangesOf(st);
   const modeOpts = ON_CHANGES.map(
@@ -149,7 +163,8 @@ export function approvalsEditorHTML(st: StageApprovals, types: Named[], earlier:
       .join("");
   return `<p class="ra-intro">${esc(t("lib.required_approvals.intro"))}</p>
     <div class="ra-rows" data-ra-rows>${rows}</div>
-    <button type="button" class="btn btn-ghost btn-sm" data-ra-add>${esc(t("lib.required_approvals.add"))}</button>
+    <button type="button" class="btn btn-ghost btn-sm" data-ra-add aria-describedby="ra-add-lock"${addLock ? " disabled" : ""}>${esc(t("lib.required_approvals.add"))}</button>
+    <p class="field-help" id="ra-add-lock" data-ra-add-lock${addLock ? "" : " hidden"}>${esc(addLock)}</p>
     <div class="ra-changes">
       <label class="st-flag" title="${esc(t("lib.required_approvals.on_changes_title"))}">
         ${esc(t("lib.required_approvals.on_changes_label"))}
@@ -171,6 +186,7 @@ export function readApprovalsEditor(root: ParentNode): {
     key: row.querySelector<HTMLInputElement>('[data-ra="key"]')?.value ?? "",
     label: row.querySelector<HTMLInputElement>('[data-ra="label"]')?.value ?? "",
     reset_on_change: row.querySelector<HTMLInputElement>('[data-ra="reset"]')?.checked ?? true,
+    required_checks: row.querySelector<HTMLInputElement>('[data-ra="checks"]')?.checked ?? false,
     task_types: [...row.querySelectorAll<HTMLInputElement>("[data-ra-type]")]
       .filter((cb) => cb.checked)
       .map((cb) => cb.dataset.raType ?? ""),

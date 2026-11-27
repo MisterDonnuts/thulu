@@ -85,6 +85,22 @@ export function fmtDateMinute(iso: string): string {
   }
 }
 
+// A 24-hour clock, "23:24".
+export function fmtClock(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${hh}:${mm}`;
+}
+
+// The day and a 24-hour clock, "Nov 20, 23:24": the stamp a comment carries.
+export function fmtDayClock(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return `${fmtDay(iso)}, ${fmtClock(iso)}`;
+}
+
 // Zero prints an em dash on purpose: in averages, "no duration recorded" and "instant" are the
 // same.
 export function fmtMs(ms: number): string {

@@ -2,6 +2,7 @@ package sandbox
 
 import (
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/docker/go-connections/nat"
@@ -55,6 +56,22 @@ func TestSandboxHostConfigIsBounded(t *testing.T) {
 	if !slices.Contains(hc.SecurityOpt, "no-new-privileges:true") {
 		t.Error("no-new-privileges missing")
 	}
+	// The default /tmp is a quarter of the 1 GiB cap: a tmpfs is memory.
+	if got := hc.Tmpfs["/tmp"]; !strings.HasSuffix(got, ",size=256m") || !strings.Contains(got, "mode=1777") {
+		t.Errorf("/tmp must be a sized tmpfs, got %q", got)
+	}
+	explicit := &Docker{limits: limitsFromEnv(func(k string) string {
+		return map[string]string{EnvSandboxTmpSize: "2g"}[k]
+	})}
+	if got := explicit.sandboxHostConfig(nil, nil, "", false, 1<<30).Tmpfs["/tmp"]; !strings.HasSuffix(got, ",size=2g") {
+		t.Errorf("%s=2g is used as given, got %q", EnvSandboxTmpSize, got)
+	}
+	off := &Docker{limits: limitsFromEnv(func(k string) string {
+		return map[string]string{EnvSandboxTmpSize: "off"}[k]
+	})}
+	if tmp := off.sandboxHostConfig(nil, nil, "", false, 0).Tmpfs; len(tmp) != 0 {
+		t.Errorf("%s=off keeps the disk-backed /tmp, got %v", EnvSandboxTmpSize, tmp)
+	}
 
 	rootless := d.sandboxHostConfig(nil, nil, "", true, 0)
 	if len(rootless.CapAdd) != 0 {
@@ -100,5 +117,31 @@ func TestSandboxEnvForwardsProxyAndCA(t *testing.T) {
 	}
 	if slices.Contains(sandboxEnv(nil, false), "NODE_EXTRA_CA_CERTS=/etc/octopus/ca.crt") {
 		t.Error("no CA, no NODE_EXTRA_CA_CERTS")
+	}
+}
+
+// A 3 GB Colima VM under the 6 GB default cap: the cap would never stop a /tmp of 2 GB from taking
+// two thirds of the VM's memory, so the default follows the host too.
+func TestDefaultTmpfsFitsTheDockerHost(t *testing.T) {
+	cases := []struct {
+		mem, host int64
+		want      string
+	}{
+		{6 << 30, 3 << 30, "384m"},
+		{6 << 30, 64 << 30, "1536m"},
+		{16 << 30, 64 << 30, "2048m"},
+		{0, 0, "2048m"},
+		{-1, 0, "2048m"},
+		{6 << 30, 256 << 20, "64m"},
+	}
+	for _, c := range cases {
+		if got := defaultTmpfsSize(c.mem, c.host); got != c.want {
+			t.Errorf("cap %d, host %d: %s, want %s", c.mem, c.host, got, c.want)
+		}
+	}
+	d := &Docker{limits: limitsFromEnv(func(string) string { return "" })}
+	d.hostMem.Store(3 << 30)
+	if got := d.sandboxHostConfig(nil, nil, "", false, 6<<30).Tmpfs["/tmp"]; !strings.HasSuffix(got, ",size=384m") {
+		t.Errorf("default /tmp on a 3 GB host: %q", got)
 	}
 }

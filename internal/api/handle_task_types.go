@@ -25,11 +25,14 @@ func (s *Server) handleListTaskTypes(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleListBoardTypes(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	if _, ok := s.boardForCaller(w, r, id); !ok {
+	board, ok := s.boardForCaller(w, r, id)
+	if !ok {
 		return
 	}
+	tt := s.boardTypesWithCounts(r.Context(), id)
+	localizeTypes(board, tt, i18n.RequestLocale(r))
 	writeJSON(w, http.StatusOK, map[string]any{
-		"task_types": s.boardTypesWithCounts(r.Context(), id),
+		"task_types": tt,
 		"untyped":    s.taskCountsByType(r.Context(), id)[""],
 	})
 }
@@ -91,6 +94,10 @@ func (s *Server) handleSetBoardTypes(w http.ResponseWriter, r *http.Request) {
 	// Validate before any relocation runs; the store's later validation would come after tasks were
 	// already re-typed.
 	if err := stagepkg.ValidateBoardTypes(s.boards.Board(id).List(), req.Types); err != nil {
+		writeError(w, r, http.StatusBadRequest, err)
+		return
+	}
+	if err := s.checkTypeAgents(board.WorkspaceID, req.Types, s.boards.BoardTypes(id)); err != nil {
 		writeError(w, r, http.StatusBadRequest, err)
 		return
 	}

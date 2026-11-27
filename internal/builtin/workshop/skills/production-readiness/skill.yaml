@@ -1,0 +1,9 @@
+name: production-readiness
+description: How to decide whether a task that passed every agent stage is ready for a person to approve the push. Branch freshness and conflicts with git fetch and git merge-tree, commit rules (count, author, trailers, format), debug, evidence and secret files in the diff, the spec and the person's answers row by row, Thulu test cases run on the current head with evidence, the written authorization a skipped case needs and the waived cases a person accepted as known gaps, consistency of the Verification, AI review and Agentic testing reports, nits that should not ship, the verdict table with each send-back target, and the repeated send-back guard. Use it when it is your turn to check a task's production readiness.
+descriptions:
+  es: Cómo decidir si una tarea que pasó todas las etapas de agentes está lista para que una persona apruebe el push. Rama al día y sin conflictos con git fetch y git merge-tree, reglas de commits (cantidad, autor, trailers, formato), archivos de debug, evidencia y secretos en el diff, la spec y las respuestas de la persona fila por fila, casos de prueba de Thulu corridos sobre el head actual con evidencia, la autorización escrita que necesita un caso sin correr y los casos que una persona salteó como huecos conocidos, coherencia de los reportes de Verificación, Revisión IA y Agentic Testing, detalles que no deberían salir, la tabla de veredictos con cada destino de devolución y el freno a devolver dos veces por lo mismo. Usala cuando te toca revisar si una tarea está lista para producción.
+type: knowledge
+enforcement: on_demand
+version: 4
+tags: [quality, release, review, flow]
+requires: []

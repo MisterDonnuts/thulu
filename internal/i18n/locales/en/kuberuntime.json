@@ -97,7 +97,8 @@
     "cache_claim_terminating": "kuberuntime: cache claim {ns}/{name} still terminating after {timeout}",
     "quota_line_cpu": "the workspace has {used} of {hard} CPU reserved and needs {requested} more",
     "quota_line_memory": "the workspace has {used} of {hard} GiB of memory reserved and needs {requested} GiB more",
-    "quota_line_pods": "the workspace runs {used} of {hard} pods"
+    "quota_line_pods": "the workspace runs {used} of {hard} pods",
+    "list_secrets": "kuberuntime: list secrets in {ns}"
   },
   "image_build": {
     "auth_secret": "could not read the registry credentials {ns}/{name}",
@@ -142,6 +143,10 @@
     "reconcile_namespace_failed": "bring namespace {ns} to the current labels: {err}",
     "label_claim_failed": "label claim {ns}/{name}: {err}",
     "sweep_unlabeled_failed": "sweep pods without current labels in {ns}: {err}",
-    "unlabeled_pod_removed": "removed pod {ns}/{name} ({phase}): it carries no current label, an older release made it"
+    "unlabeled_pod_removed": "removed pod {ns}/{name} ({phase}): it carries no current label, an older release made it",
+    "task_pod_deleted": "task teardown: deleted pod {ns}/{pod} of task {task} (instance {instance}, {phase})",
+    "orphan_agent_pod_deleted": "sweep: deleted agent pod {ns}/{pod} (instance {instance}, {age} old): its task no longer exists",
+    "unscheduled_pod_deleted": "sweep: deleted agent pod {ns}/{pod} (instance {instance}): no node took it in {age}, past its run deadline",
+    "orphan_env_secret_deleted": "sweep: deleted env secret {ns}/{secret} ({age} old): its pod is gone"
   }
 }

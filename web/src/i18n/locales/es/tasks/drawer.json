@@ -42,14 +42,23 @@
       "one": "También elimina su subtarea. No se puede deshacer.",
       "other": "También elimina sus {count} subtareas. No se puede deshacer."
     },
-    "delete_admin_only": "Sólo un administrador puede eliminar tareas. Archivala para sacarla del tablero."
+    "delete_admin_only": "Sólo un administrador puede eliminar tareas. Archivala para sacarla del tablero.",
+    "rerun": "Volver a correr la etapa…",
+    "rerun_stage": "Volver a correr {stage}…",
+    "rerun_sub": "El agente arranca la etapa de nuevo; vos decís por qué.",
+    "send_back": "Devolver…",
+    "send_back_sub": "A una etapa anterior, con una nota para su agente.",
+    "move": "Mover a…",
+    "move_sub": "Cualquier etapa del tablero, con el motivo."
   },
   "tabs": {
     "approvals": "Aprobaciones",
     "reports": "Reportes",
     "chat": "Chat",
-    "timeline": "Historial",
-    "task": "Tarea"
+    "timeline": "Actividad",
+    "tests": "Pruebas",
+    "task": "Resumen",
+    "files": "Archivos"
   },
   "body": {
     "unsaved": "sin guardar",
@@ -112,7 +121,11 @@
     "summary_orphans": {
       "one": "{count} contenedor huérfano",
       "other": "{count} contenedores huérfanos"
-    }
+    },
+    "details": "Detalles",
+    "skips": "Salteos",
+    "no_skips": "Ninguno",
+    "edit_skips": "Editar las columnas que saltea esta tarea"
   },
   "priority": {
     "none": "Ninguna",
@@ -130,7 +143,6 @@
     "origin_upload": "subida",
     "delete_title": "Eliminar este adjunto",
     "delete_label": "Eliminar el adjunto",
-    "added_from": "Agregado desde: {origin}",
     "delete_confirm_title": "¿Eliminar el adjunto?",
     "delete_confirm_message": "\"{file}\" se quita de la tarea y se borra el archivo. Donde esté embebido (la descripción, un comentario) va a quedar un enlace roto.",
     "delete_failed": "No se pudo eliminar el adjunto"
@@ -253,7 +265,6 @@
     "archived": "Archivada",
     "archived_title": "Está fuera del tablero y no se mueve de etapa. Restaurala desde el menú ⋯ para volver a trabajarla.",
     "open_parent_key": "Abrir la tarea madre (U)",
-    "copy_link": "Copiar un enlace a esta tarea",
     "sibling_pos": "{index} de {total}",
     "stage_label": "Etapa {stage}, cambiarla",
     "stage_key": "Cambiar de etapa (S)",
@@ -265,7 +276,12 @@
     "review_retry": "Revisar y reintentar",
     "relaunch_stage": "Relanzar etapa",
     "credentials": "Abrir Credenciales",
-    "pick_agent": "Elegir agente"
+    "pick_agent": "Elegir agente",
+    "path_label": "Columnas por las que pasa esta tarea",
+    "path_step": "{stage}, {agent}",
+    "path_lock": "Necesita tu aprobación: {label}",
+    "path_skipped": "{stage} se saltea (lo decidió {by}): {reason}",
+    "path_skipped_label": "(salteada)"
   },
   "move_failed": "No se pudo mover la tarea",
   "move_network_error": "Error de red, la tarea no se movió",
@@ -279,8 +295,6 @@
     "empty": "Todavía no tiene descripción.",
     "write": "Escribir la descripción",
     "written_by": "De {agent}, {ago}",
-    "show_all": "Ver todo",
-    "show_less": "Ver menos",
     "open_subtask": "Abrir la subtarea {title}, en {stage}",
     "make_subtask": "Hacerla subtarea",
     "saved": "Guardado",
@@ -297,7 +311,16 @@
     "discard_message": "La descripción vuelve a como estaba cuando empezaste a editar.",
     "hint_html": "{paste} pega una imagen, {save} guarda, {esc} guarda y cierra",
     "add_sections": "Agregar secciones",
-    "add_sections_title": "Agrega al final las secciones que leen los agentes y faltan: Goal, Context, Definition of Done y Out of Scope. Los títulos van en inglés porque son la dirección de cada sección."
+    "add_sections_title": "Agrega al final las secciones que leen los agentes y faltan: Goal, Context, Definition of Done y Out of Scope. Los títulos van en inglés porque son la dirección de cada sección.",
+    "sections": {
+      "one": "{count} sección",
+      "other": "{count} secciones"
+    },
+    "sections_by": "{sections} · escrita por {names}",
+    "lines": {
+      "one": "{count} línea",
+      "other": "{count} líneas"
+    }
   },
   "files": {
     "title": "Archivos",
@@ -306,24 +329,6 @@
     "uploaded": {
       "one": "{count} archivo subido",
       "other": "{count} archivos subidos"
-    },
-    "kinds": {
-      "video": {
-        "one": "{count} video",
-        "other": "{count} videos"
-      },
-      "image": {
-        "one": "{count} imagen",
-        "other": "{count} imágenes"
-      },
-      "other": {
-        "one": "{count} archivo más",
-        "other": "{count} archivos más"
-      }
-    },
-    "group_count": {
-      "one": "{count} archivo",
-      "other": "{count} archivos"
     }
   },
   "attention_more": {

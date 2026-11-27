@@ -47,5 +47,10 @@
   },
   "asked": "Preguntó",
   "asked_title": "El agente hizo una pregunta y sigue trabajando. Abrí la tarea para contestarla.",
-  "on_machine": "En {name}"
+  "on_machine": "En {name}",
+  "skips": {
+    "one": "Saltea {count} columna",
+    "other": "Saltea {count} columnas"
+  },
+  "skips_title": "Saltea {stages}"
 }

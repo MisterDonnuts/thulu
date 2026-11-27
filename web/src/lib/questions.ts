@@ -70,6 +70,7 @@ const DELIVERY_KEY: Record<string, string> = {
   steered: "lib.questions.delivery.steered",
   resumed: "lib.questions.delivery.resumed",
   thread: "lib.questions.delivery.thread",
+  default: "lib.questions.delivery.default",
 };
 
 export function deliveryText(

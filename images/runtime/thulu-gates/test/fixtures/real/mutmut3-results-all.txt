@@ -1,0 +1,72 @@
+    calc.core.x_clamp__mutmut_1: not checked
+    calc.core.x_clamp__mutmut_2: not checked
+    calc.core.x_average__mutmut_1: not checked
+    calc.core.x_average__mutmut_2: not checked
+    calc.core.x_average__mutmut_3: not checked
+    calc.core.x_average__mutmut_4: not checked
+    calc.core.x_average__mutmut_5: not checked
+    calc.core.x_average__mutmut_6: not checked
+    calc.core.x_average__mutmut_7: not checked
+    calc.core.x_average__mutmut_8: not checked
+    calc.core.x_average__mutmut_9: not checked
+    calc.core.x_average__mutmut_10: not checked
+    calc.core.x_average__mutmut_11: not checked
+    calc.core.x_average__mutmut_12: not checked
+    calc.core.x_average__mutmut_13: not checked
+    calc.core.x_average__mutmut_14: not checked
+    calc.core.x_average__mutmut_15: not checked
+    calc.core.x_average__mutmut_16: not checked
+    calc.stats.x_median__mutmut_1: killed
+    calc.stats.x_median__mutmut_2: killed
+    calc.stats.x_median__mutmut_3: killed
+    calc.stats.x_median__mutmut_4: killed
+    calc.stats.x_median__mutmut_5: survived
+    calc.stats.x_median__mutmut_6: survived
+    calc.stats.x_median__mutmut_7: survived
+    calc.stats.x_median__mutmut_8: survived
+    calc.stats.x_median__mutmut_9: survived
+    calc.stats.x_median__mutmut_10: survived
+    calc.stats.x_median__mutmut_11: survived
+    calc.stats.x_median__mutmut_12: survived
+    calc.stats.x_median__mutmut_13: survived
+    calc.stats.x_median__mutmut_14: survived
+    calc.stats.x_mean__mutmut_1: no tests
+    calc.stats.x_mean__mutmut_2: no tests
+    calc.stats.x_mean__mutmut_3: no tests
+    calc.stats.x_mean__mutmut_4: no tests
+    calc.stats.x_mean__mutmut_5: no tests
+    calc.stats.x_mean__mutmut_6: no tests
+    calc.stats.x_mean__mutmut_7: no tests
+    calc.stats.x_mean__mutmut_8: no tests
+    calc.stats.x_mean__mutmut_9: no tests
+    calc.stats.x_mean__mutmut_10: no tests
+    calc.stats.x_mean__mutmut_11: no tests
+    calc.stats.x_mean__mutmut_12: no tests
+    calc.stats.x_mean__mutmut_13: no tests
+    calc.stats.x_mean__mutmut_14: no tests
+    calc.stats.x_mean__mutmut_15: no tests
+    calc.stats.x_mean__mutmut_16: no tests
+    calc.stats.x_normalize__mutmut_1: no tests
+    calc.stats.x_normalize__mutmut_2: no tests
+    calc.stats.x_normalize__mutmut_3: no tests
+    calc.stats.x_normalize__mutmut_4: no tests
+    calc.stats.x_normalize__mutmut_5: no tests
+    calc.stats.x_normalize__mutmut_6: no tests
+    calc.stats.x_normalize__mutmut_7: no tests
+    calc.stats.x_normalize__mutmut_8: no tests
+    calc.stats.x_normalize__mutmut_9: no tests
+    calc.stats.x_normalize__mutmut_10: no tests
+    calc.stats.x_normalize__mutmut_11: no tests
+    calc.stats.x_normalize__mutmut_12: no tests
+    calc.stats.x_normalize__mutmut_13: no tests
+    calc.stats.x_normalize__mutmut_14: no tests
+    calc.stats.x_normalize__mutmut_15: no tests
+    calc.stats.x_run__mutmut_1: no tests
+    calc.stats.x_run__mutmut_2: no tests
+    calc.stats.x_run__mutmut_3: no tests
+    calc.stats.x_run__mutmut_4: no tests
+    calc.stats.x_run__mutmut_5: no tests
+    calc.stats.x_half__mutmut_1: no tests
+    calc.stats.x_half__mutmut_2: no tests
+    calc.stats.xǁWindowǁ__init____mutmut_1: killed
+    calc.stats.xǁWindowǁfits__mutmut_1: survived

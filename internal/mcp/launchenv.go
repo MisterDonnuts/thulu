@@ -17,6 +17,10 @@ const ForwardKeyEnv = "MCP_FORWARD_KEY"
 // Not proxied: the daemon serves it and checks the run key itself.
 const sandboxServer = "thulu-sandbox"
 
+// SandboxServer has no container or registration: the daemon serves it per task whenever it has a
+// sandbox manager.
+const SandboxServer = sandboxServer
+
 // Callers must set MCP_TOOLS, OCTOPUS_API, AGENT_NAME, STAGE, TASK_ID or CHAT_ID and OCTOPUS_LOCALE
 // first.
 // Except OCTOPUS_MCP_SERVERS, existing keys in env are never overwritten.

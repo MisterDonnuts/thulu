@@ -329,3 +329,68 @@ func TestIntegration_CloneCopiesTestCases(t *testing.T) {
 		t.Errorf("cloned case not reset: %+v", c)
 	}
 }
+
+// A person skips cases with a reason; each gets a waived run in their name, counted apart from pass.
+func TestIntegration_WaiveTestCases(t *testing.T) {
+	t.Parallel()
+	_, h := newIntegrationServer(t)
+	const email = "tc-waive@test.com"
+	token := registerUser(t, h, email, "TW", "SecurePassword1")
+	id := createTaskViaAPI(t, h, token, "checkout")
+	addCases(t, h, token, id, map[string]any{"cases": []map[string]any{{"title": "Pays with a real card"}, {"title": "Pays on an iPhone"}}})
+
+	waive := "/tasks/" + id + "/test-cases/waive"
+	if w := postJSONAuth(t, h, waive, token, map[string]any{"cases": []string{"TC-1"}, "reason": "  "}); w.Code != http.StatusBadRequest {
+		t.Errorf("waiver without a reason = %d, want 400: %s", w.Code, w.Body.String())
+	}
+	if w := postJSONAuth(t, h, waive, token, map[string]any{"cases": []string{"TC-1", "TC-9"}, "reason": "no card"}); w.Code != http.StatusNotFound {
+		t.Errorf("waiver of a missing case = %d, want 404: %s", w.Code, w.Body.String())
+	}
+	w := postJSONAuth(t, h, waive, token, map[string]any{"cases": []string{"TC-1", "TC-2"}, "reason": "No real card in staging"})
+	if w.Code != http.StatusOK {
+		t.Fatalf("waive = %d: %s", w.Code, w.Body.String())
+	}
+	var res task.WaiveResult
+	json.Unmarshal(w.Body.Bytes(), &res)
+	if res.Waived != 2 || res.Advanced {
+		t.Errorf("waive = %+v, want 2 waived, no advance (the task is not blocked)", res)
+	}
+	got := listCases(t, h, token, id)
+	if got[0].Status != task.TestCaseWaived || got[0].Covered || len(got[0].Runs) != 1 ||
+		got[0].Runs[0].Author != email || got[0].Runs[0].Note != "No real card in staging" {
+		t.Errorf("TC-1 after the waiver = %+v", got[0])
+	}
+	if w := getJSON(t, h, "/test-cases?status=waived", token); w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `"waived":2`) {
+		t.Errorf("QA view tally = %d: %s", w.Code, w.Body.String())
+	}
+	if w := patchJSONAuth(t, h, "/tasks/"+id+"/test-cases/TC-1", token, map[string]any{"status": "waived"}); w.Code != http.StatusOK {
+		t.Errorf("a PATCH keeping the status waived = %d: %s", w.Code, w.Body.String())
+	}
+
+	w = getJSON(t, h, "/tasks/"+id, token)
+	var detail map[string]json.RawMessage
+	json.Unmarshal(w.Body.Bytes(), &detail)
+	if string(detail["attention"]) != "null" || string(detail["upcoming_approvals"]) == "" {
+		t.Errorf("GET /tasks/{id}: attention %s, upcoming_approvals %s", detail["attention"], detail["upcoming_approvals"])
+	}
+	if got := string(detail["waiting"]); got != `{"approvals":[],"questions":[]}` {
+		t.Errorf("GET /tasks/{id}: waiting = %s, want empty lists, never null", got)
+	}
+}
+
+// An agent never records a waiver: it would skip the cases it was asked to test.
+func TestRunKey_CannotWaive(t *testing.T) {
+	t.Parallel()
+	rig := newRunScopeRig(t)
+	if w := keyDo(t, rig.h, http.MethodPost, "/tasks/"+rig.a+"/test-cases", rig.keyA, map[string]any{"title": "by the run"}); w.Code != http.StatusCreated {
+		t.Fatalf("add case = %d: %s", w.Code, w.Body.String())
+	}
+	if w := keyDo(t, rig.h, http.MethodPost, "/tasks/"+rig.a+"/test-cases/waive", rig.keyA,
+		map[string]any{"cases": []string{"TC-1"}, "reason": "too hard"}); w.Code != http.StatusForbidden {
+		t.Errorf("run waiving = %d, want 403: %s", w.Code, w.Body.String())
+	}
+	if w := keyDo(t, rig.h, http.MethodPost, "/tasks/"+rig.a+"/test-cases/TC-1/runs", rig.keyA,
+		map[string]any{"verdict": "waived", "note": "too hard"}); w.Code != http.StatusForbidden {
+		t.Errorf("run recording a waived run = %d, want 403: %s", w.Code, w.Body.String())
+	}
+}

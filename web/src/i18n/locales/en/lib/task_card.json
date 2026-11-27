@@ -47,5 +47,10 @@
   },
   "asked": "Asked a question",
   "asked_title": "The agent asked a question and keeps working. Open the task to answer it.",
-  "on_machine": "On {name}"
+  "on_machine": "On {name}",
+  "skips": {
+    "one": "Skips {count} column",
+    "other": "Skips {count} columns"
+  },
+  "skips_title": "Skips {stages}"
 }

@@ -8,8 +8,16 @@ import (
 	"os"
 	"path/filepath"
 
+	dtypes "github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/errdefs"
+
+	"github.com/MisterDonnuts/thulu/internal/agent"
 	"github.com/MisterDonnuts/thulu/internal/apperr"
+	"github.com/MisterDonnuts/thulu/internal/dockerx"
 	"github.com/MisterDonnuts/thulu/internal/i18n"
+	"github.com/MisterDonnuts/thulu/internal/kubeapi"
 	"github.com/MisterDonnuts/thulu/internal/logx"
 	"github.com/MisterDonnuts/thulu/internal/safepath"
 	"github.com/MisterDonnuts/thulu/internal/task"
@@ -21,7 +29,12 @@ import (
 // A subtask shares its parent's sandbox and worktree, so the parent's teardown removes them.
 func (s *Server) teardownTask(ctx context.Context, t *task.Task) error {
 	id := t.ID
-	if !t.IsSubtask() {
+	s.tornDown.Store(id, struct{}{})
+	// First: the agents mount the worktree and the sandbox about to go, and keep spending tokens.
+	stopped := s.stopTaskAgents(ctx, t)
+	if t.IsSubtask() {
+		s.reapSubtaskSandbox(ctx, t, stopped)
+	} else {
 		logx.Warn(s.destroySandbox(ctx, id), "api.tasks.log.destroy_sandbox", "task", id)
 		for _, pid := range t.ProjectIDs {
 			logx.Warn(s.projectStore.RemoveTaskWorktree(ctx, pid, id),
@@ -50,6 +63,111 @@ func (s *Server) teardownTask(ctx context.Context, t *task.Task) error {
 		}
 	}
 	return s.taskStore.Delete(ctx, id)
+}
+
+// Every container that carries the task's label except its chats, which EvictTaskChats owns: stage
+// agents, mentions, auditors and their browsers. Each run is marked stopped before it dies, so its
+// exit reads as a stop.
+type taskContainerDocker interface {
+	ContainerList(ctx context.Context, options container.ListOptions) ([]dtypes.Container, error)
+	ContainerRemove(ctx context.Context, containerID string, options container.RemoveOptions) error
+}
+
+// stopTaskAgents returns the instances of the runs it stopped.
+func (s *Server) stopTaskAgents(ctx context.Context, t *task.Task) []string {
+	var instances []string
+	mark := func(runID, instance string) {
+		if instance != "" {
+			instances = append(instances, instance)
+		}
+		if s.taskDispatcher != nil {
+			s.taskDispatcher.MarkStopped(runID, "octopus")
+		}
+	}
+	switch {
+	case s.kube != nil:
+		removeTaskPods(ctx, s.kube, t, mark)
+	case s.docker != nil:
+		removeTaskContainers(ctx, s.docker, t.ID, mark)
+	}
+	return instances
+}
+
+type subtaskReaper interface {
+	ReapTask(ctx context.Context, ownerID, taskID string) error
+	ReapRun(ctx context.Context, ownerID, instanceID string) error
+}
+
+// reapSubtaskSandbox kills what the subtask's runs left in its parent's sandbox, which stays. The
+// exit callback of a run stopped here finds the task row gone and reaps nothing, and the janitor
+// never knew the parent. The task marker finds every run's leftovers; the instance marker also
+// finds those of runs started before execs carried the task.
+func (s *Server) reapSubtaskSandbox(ctx context.Context, t *task.Task, instances []string) {
+	if s.sandbox.mgr == nil {
+		return
+	}
+	reapSubtaskIn(ctx, s.sandbox.mgr, t, instances)
+}
+
+func reapSubtaskIn(ctx context.Context, r subtaskReaper, t *task.Task, instances []string) {
+	owner := t.SandboxRootID()
+	logx.Warn(r.ReapTask(ctx, owner, t.ID), "api.tasks.log.reap_subtask_sandbox", "task", t.ID, "owner", owner)
+	for _, inst := range instances {
+		logx.Warn(r.ReapRun(ctx, owner, inst), "api.tasks.log.reap_subtask_run", "task", t.ID, "owner", owner, "instance", inst)
+	}
+}
+
+type taskPodDeleter interface {
+	DeleteTaskPods(ctx context.Context, workspaceID, taskID string, stop func(kubeapi.RunningPod) bool) (int, error)
+}
+
+// removeTaskPods deletes the task's pods by their label in its tenant namespace, so it finds the
+// runs a restarted daemon no longer tracks. A pod whose instance names another task (the label is a
+// sanitized id) is left alone.
+func removeTaskPods(ctx context.Context, k taskPodDeleter, t *task.Task, markStopped func(runID, instance string)) int {
+	n, err := k.DeleteTaskPods(ctx, t.WorkspaceID, t.ID, func(p kubeapi.RunningPod) bool {
+		if owner, ok := task.InstanceTaskID(p.InstanceID); ok && owner != t.ID {
+			return false
+		}
+		markStopped(p.Name, p.InstanceID)
+		return true
+	})
+	if err != nil {
+		log.Printf("[api] %s", i18n.Log("api.tasks.log.list_task_containers_failed", "task", t.ID, "err", err))
+	}
+	return n
+}
+
+func removeTaskContainers(ctx context.Context, d taskContainerDocker, taskID string, markStopped func(runID, instance string)) int {
+	if taskID == "" {
+		return 0
+	}
+	list, err := d.ContainerList(ctx, container.ListOptions{All: true, Filters: filters.NewArgs(
+		filters.Arg("label", agent.LabelTask+"="+taskID),
+	)})
+	if err != nil {
+		log.Printf("[api] %s", i18n.Log("api.tasks.log.list_task_containers_failed", "task", taskID, "err", err))
+		return 0
+	}
+	removed := 0
+	for i := range list {
+		c := &list[i]
+		if dockerx.ForeignInstall(c.Labels) || c.Labels[agent.LabelChat] == "true" {
+			continue
+		}
+		short := shortContainerID(c.ID)
+		if c.Labels[agent.LabelManaged] == "true" {
+			markStopped(short, agentInstanceOf(c.Labels, c.Names))
+		}
+		if rmErr := d.ContainerRemove(ctx, c.ID, container.RemoveOptions{Force: true}); rmErr != nil && !errdefs.IsNotFound(rmErr) {
+			log.Printf("[api] %s", i18n.Log("api.tasks.log.remove_task_container_failed", "task", taskID, "id", short, "err", rmErr))
+			continue
+		}
+		log.Printf("[api] %s", i18n.Log("api.tasks.log.removed_task_container",
+			"task", taskID, "id", short, "instance", c.Labels[agent.LabelInstance], "image", c.Image, "state", c.State))
+		removed++
+	}
+	return removed
 }
 
 func (s *Server) destroySandbox(ctx context.Context, ownerID string) error {

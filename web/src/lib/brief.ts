@@ -52,6 +52,29 @@ export function splitBrief(body: string): Brief {
   return { preamble: pre.join("\n").trim(), sections };
 }
 
+export interface BriefOutline {
+  // Shown open at the top: the text before the first heading, or a leading Goal section.
+  lead: string;
+  leadSection: BriefSection | null;
+  // The rest, each a section that opens and closes.
+  sections: BriefSection[];
+}
+
+const LEAD_SLUGS = new Set(["goal", "objective", "objetivo", "meta"]);
+
+export function briefOutline(b: Brief): BriefOutline {
+  if (b.preamble) return { lead: b.preamble, leadSection: null, sections: b.sections };
+  const [first, ...rest] = b.sections;
+  if (b.sections.length && LEAD_SLUGS.has(first.slug))
+    return { lead: first.source, leadSection: first, sections: rest };
+  return { lead: "", leadSection: null, sections: b.sections };
+}
+
+// The lines with text in them, which is what a closed section counts.
+export function filledLines(source: string): number {
+  return source.split(/\r?\n/).filter((l) => l.trim()).length;
+}
+
 export function checklistCount(source: string): { done: number; total: number } {
   let done = 0;
   let total = 0;
@@ -68,13 +91,6 @@ export function checklistCount(source: string): { done: number; total: number } 
     if (m[1] !== " ") done++;
   }
   return { done, total };
-}
-
-export const FOLD_OVER_LINES = 30;
-export const FOLD_TO_LINES = 12;
-
-export function shouldFold(s: Pick<BriefSection, "lines">): boolean {
-  return s.lines > FOLD_OVER_LINES;
 }
 
 // i18n-ignore stop words for matching, not text

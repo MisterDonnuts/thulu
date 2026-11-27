@@ -13,11 +13,11 @@
     }
     return null;
   }
-  // Same rule as apiBase()/isDaemonURL() in lib/auth.ts. Behind a proxy the daemon's URLs have no
-  // :8585, so don't match on that substring.
+  // Same rule as apiBase()/isDaemonURL() in lib/auth.ts: only the Astro dev server (:4321) talks
+  // to the daemon on :8585; on any other port the daemon serves the page itself.
   var daemonOrigin = (function () {
     var l = window.location;
-    if (l.port === "" || l.port === "8585") return l.origin;
+    if (l.port !== "4321") return l.origin;
     return l.protocol + "//" + l.hostname + ":8585";
   })();
   function isDaemonURL(u) {

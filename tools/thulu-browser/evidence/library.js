@@ -23,7 +23,7 @@ function resolveStrings(node, visit, key = "") {
 
 // Only selector-holding fields from schema.js resolve @names; add new selector fields here. An @ in
 // a label or value is text.
-const TARGET_FIELDS = new Set(["target", "redact", "wait_for"]);
+const TARGET_FIELDS = new Set(["target", "redact", "wait_for", "include", "exclude"]);
 
 function resolveTarget(value, key, targets, where, problems) {
   if (!TARGET_FIELDS.has(key) || !value.startsWith("@")) return value;

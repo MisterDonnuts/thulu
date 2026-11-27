@@ -4,6 +4,15 @@ import astro from "eslint-plugin-astro";
 import astroParser from "astro-eslint-parser";
 import tsParser from "@typescript-eslint/parser";
 
+// eslint-plugin-astro 2 ships "recommended" as a flat-config array, not one object
+// with rules; take the astro/* rules from it. The prettier/prettier entries it also
+// carries belong to a plugin this config does not load.
+const astroRecommendedRules = Object.fromEntries(
+  astro.configs.recommended
+    .flatMap((c) => Object.entries(c.rules ?? {}))
+    .filter(([name]) => name.startsWith("astro/")),
+);
+
 export default tseslint.config(
   js.configs.recommended,
 
@@ -85,7 +94,7 @@ export default tseslint.config(
       globals: { Fragment: "readonly" },
     },
     rules: {
-      ...astro.configs.recommended.rules,
+      ...astroRecommendedRules,
 
       "astro/no-unused-define-vars-in-style": "error",
       "astro/no-set-html-directive": "error",

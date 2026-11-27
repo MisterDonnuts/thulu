@@ -40,6 +40,8 @@ type Spec struct {
 	Config string
 	Log    string
 	Path   string
+	// Variables besides PATH, written in key order.
+	Env map[string]string
 }
 
 type Status struct {
@@ -80,19 +82,23 @@ func SpecFor(config string) (Spec, error) {
 // Prefer the PATH name (e.g. a package manager symlink): the resolved versioned target is deleted
 // on upgrade.
 func stableBinary(exe string) string {
-	found, err := exec.LookPath("octopus")
-	if err != nil {
-		return exe
-	}
-	if abs, aerr := filepath.Abs(found); aerr == nil {
-		found = abs
-	}
-	a, aerr := os.Stat(found)
 	b, berr := os.Stat(exe)
-	if aerr != nil || berr != nil || !os.SameFile(a, b) {
+	if berr != nil {
 		return exe
 	}
-	return found
+	for _, name := range []string{"thulu", "octopus"} {
+		found, err := exec.LookPath(name)
+		if err != nil {
+			continue
+		}
+		if abs, aerr := filepath.Abs(found); aerr == nil {
+			found = abs
+		}
+		if a, aerr := os.Stat(found); aerr == nil && os.SameFile(a, b) {
+			return found
+		}
+	}
+	return exe
 }
 
 // launchd starts a job a moment after `bootstrap` returns; querying at once reports a runner about
@@ -179,6 +185,8 @@ func Query(ctx context.Context) (Status, error) {
 
 // Restart only on failure: a clean exit means the runner was told to stop.
 // ThrottleInterval caps restarts of a runner the daemon refuses at twice a minute.
+// ExitTimeOut gives a stopping runner time to kill its runs' processes and report them; launchd's
+// default sends SIGKILL after 20 s, and a runner killed mid-way leaves its runs running.
 //
 //i18n:ignore a launchd property list, not a message
 var launchdPlist = template.Must(template.New("plist").Parse(`<?xml version="1.0" encoding="UTF-8"?>
@@ -199,6 +207,9 @@ var launchdPlist = template.Must(template.New("plist").Parse(`<?xml version="1.0
   <key>EnvironmentVariables</key>
   <dict>
     <key>PATH</key><string>{{.Path}}</string>
+{{- range $k, $v := .Env}}
+    <key>{{$k}}</key><string>{{$v}}</string>
+{{- end}}
   </dict>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key>
@@ -206,6 +217,7 @@ var launchdPlist = template.Must(template.New("plist").Parse(`<?xml version="1.0
     <key>SuccessfulExit</key><false/>
   </dict>
   <key>ThrottleInterval</key><integer>30</integer>
+  <key>ExitTimeOut</key><integer>60</integer>
 </dict>
 </plist>
 `))
@@ -293,8 +305,13 @@ Description=Thulu runner
 [Service]
 ExecStart="{{.Binary}}" runner run -config "{{.Config}}" -log "{{.Log}}"
 Environment="PATH={{.Path}}"
+{{- range $k, $v := .Env}}
+Environment="{{$k}}={{$v}}"
+{{- end}}
 Restart=on-failure
 RestartSec=30
+TimeoutStopSec=60
+KillMode=control-group
 
 [Install]
 WantedBy=default.target
@@ -363,7 +380,19 @@ func systemdProps(out []byte) map[string]string {
 
 func escaped(s Spec) Spec {
 	r := strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;")
-	return Spec{Binary: r.Replace(s.Binary), Config: r.Replace(s.Config), Log: r.Replace(s.Log), Path: r.Replace(s.Path)}
+	return Spec{Binary: r.Replace(s.Binary), Config: r.Replace(s.Config), Log: r.Replace(s.Log), Path: r.Replace(s.Path),
+		Env: replaceEnv(s.Env, r, r)}
+}
+
+func replaceEnv(env map[string]string, key, value *strings.Replacer) map[string]string {
+	if len(env) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(env))
+	for k, v := range env {
+		out[key.Replace(k)] = value.Replace(v)
+	}
+	return out
 }
 
 // systemd expands % specifiers in every setting and $VARS in ExecStart, and treats \ and " as
@@ -372,7 +401,7 @@ func unitEscaped(s Spec) Spec {
 	quoted := strings.NewReplacer(`\`, `\\`, `"`, `\"`, "%", "%%")
 	word := strings.NewReplacer(`\`, `\\`, `"`, `\"`, "%", "%%", "$", "$$")
 	return Spec{Binary: word.Replace(s.Binary), Config: word.Replace(s.Config),
-		Log: word.Replace(s.Log), Path: quoted.Replace(s.Path)}
+		Log: word.Replace(s.Log), Path: quoted.Replace(s.Path), Env: replaceEnv(s.Env, quoted, quoted)}
 }
 
 func writeFile(path string, b []byte) error {

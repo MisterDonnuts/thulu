@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { t } from "../i18n";
 import {
+  activityTabName,
   agentHint,
   approvalsTabName,
   attentionItems,
@@ -9,6 +10,8 @@ import {
   cancelWaitQuestion,
   causeLink,
   causePicksAgent,
+  filesTabName,
+  overviewTabName,
   waitCanceled,
   foldIndex,
   orphanAgentsHTML,
@@ -44,7 +47,56 @@ describe("runWord", () => {
     expect(runWord("failed", false)).toMatchObject({ id: "failed", tone: "danger" });
     expect(runWord("needs_more_turns", false)?.id).toBe("out_of_turns");
     expect(runWord("out_of_turns", false)?.id).toBe("out_of_turns");
-    expect(runWord("blocked", false)?.id).toBe("blocked_auditor");
+    expect(runWord("blocked", false)).toMatchObject({ id: "blocked", label: "Blocked" });
+  });
+
+  it("names the agent that blocked the task, not the column", () => {
+    const by = (block: Parameters<typeof runWord>[2]) => runWord("blocked", false, block)?.label;
+    expect(
+      by({
+        cause: "verdict",
+        agent: "thulu-verifier",
+        stage: "verification",
+        reason: "gates_failed",
+      }),
+    ).toBe("Blocked by @thulu-verifier: gates fail");
+    expect(by({ cause: "verdict", agent: "thulu-release", reason: "other" })).toBe(
+      "Blocked by @thulu-release",
+    );
+    expect(by({ cause: "verdict", agent: "qa", reason: "made_up" })).toBe("Blocked by @qa");
+    expect(by({ cause: "auditor", agent: "thulu-developer", stage: "in_progress" })).toBe(
+      "Blocked by the auditor (@thulu-developer)",
+    );
+    expect(by({ cause: "auditor" })).toBe("Blocked by the auditor");
+    expect(by({ cause: "kick_back_limit", agent: "thulu-verifier" })).toBe(
+      "Blocked: send-back limit reached",
+    );
+    expect(by({ cause: "released", agent: "thulu-release" })).toBe(
+      "Blocked: the branch is already merged",
+    );
+    expect(by({ cause: "no_target" })).toBe("Blocked: no earlier column to send it back to");
+    expect(by({ cause: "auditor_failed" })).toBe("Blocked: the auditor did not start");
+    expect(by({ cause: "auditor_no_verdict" })).toBe("Blocked: the auditor left no verdict");
+    expect(by({ cause: "verdict_missing", agent: "thulu-agentic-tester" })).toBe(
+      "Blocked: @thulu-agentic-tester did not write its verdict",
+    );
+    expect(by({ cause: "verdict_missing" })).toBe("Blocked: the agent did not write its verdict");
+    expect(by({ cause: "verdict_undelivered", agent: "thulu-agentic-tester" })).toBe(
+      "Blocked: @thulu-agentic-tester's verdict did not reach Thulu",
+    );
+    expect(by({ cause: "verdict_undelivered" })).toBe(
+      "Blocked: the agent's verdict did not reach Thulu",
+    );
+    expect(
+      by({ cause: "kick_back_repeated", agent: "thulu-readiness", reason: "branch_behind" }),
+    ).toBe(
+      "Blocked: @thulu-readiness sent it back twice for the same reason (the branch is behind or conflicts)",
+    );
+    expect(by({ cause: "verdict", agent: "thulu-readiness", reason: "needs_decision" })).toBe(
+      "Blocked by @thulu-readiness: needs a person's decision",
+    );
+    expect(by({ cause: "something_new" })).toBe("Blocked");
+    expect(by(null)).toBe("Blocked");
   });
 
   it("tells a run that never started, a lost credential and a stop apart from a failure", () => {
@@ -392,6 +444,13 @@ describe("tab names and the runs line", () => {
     expect(approvalsTabName(2)).toBe("Approvals, 2 pending");
     expect(reportsTabName(0)).toBe("Reports");
     expect(reportsTabName(1)).toBe("Reports, 1 report");
+    expect(overviewTabName({ n: 0, warn: false })).toBe("Overview");
+    expect(overviewTabName({ n: 1, warn: true })).toBe("Overview, 1 waits for you");
+    expect(overviewTabName({ n: 21, warn: false })).toBe("Overview, 21 threads");
+    expect(activityTabName(0)).toBe("Activity");
+    expect(activityTabName(8)).toBe("Activity, 8 rounds");
+    expect(filesTabName(0)).toBe("Files");
+    expect(filesTabName(30)).toBe("Files, 30 files");
   });
 
   it("says runs and compact tokens, and nothing before the first run", () => {

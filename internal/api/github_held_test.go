@@ -129,10 +129,14 @@ func TestDelegatedChatGithub_MergeWaitsForThePerson(t *testing.T) {
 	if a.Status != chat.ActionConfirmed || a.ResultCode != http.StatusOK {
 		t.Fatalf("confirmed merge = %+v", a)
 	}
+	// Before the merge the daemon reads the PR's required checks (this fake has no PR, so the read
+	// fails and the merge goes on: GitHub enforces its own protection). After it, the daemon reads
+	// the PR back for its base and merge commit (tasks.merge_shas).
 	calls := gh.seen()
-	if len(calls) != 1 || !strings.HasPrefix(calls[0], "PUT /repos/acme/widgets/pulls/7/merge ") ||
-		!strings.Contains(calls[0], `"merge_method":"squash"`) {
-		t.Errorf("GitHub saw %v, want one squash merge of #7", calls)
+	if len(calls) != 3 || !strings.HasPrefix(calls[0], "GET /repos/acme/widgets/pulls/7 ") ||
+		!strings.HasPrefix(calls[1], "PUT /repos/acme/widgets/pulls/7/merge ") ||
+		!strings.Contains(calls[1], `"merge_method":"squash"`) || !strings.HasPrefix(calls[2], "GET /repos/acme/widgets/pulls/7 ") {
+		t.Errorf("GitHub saw %v, want the checks read, one squash merge of #7 and its read-back", calls)
 	}
 	if got := rig.tokens.last(); !samePerms(got, githubapp.PermsMerge) {
 		t.Errorf("merge token minted with %v, want %v", got, githubapp.PermsMerge)

@@ -297,13 +297,19 @@ func TestForkData(t *testing.T) {
 		t.Fatalf("ForkData: %v", err)
 	}
 
+	// The comment and the thread the flag's approval opened; the copied thread names the fork's
+	// approval, not the source's.
 	cs, _ := s.ListComments(t.Context(), dst.ID)
-	if len(cs) != 1 {
-		t.Errorf("fork: want 1 comment, got %d", len(cs))
+	if len(cs) != 2 {
+		t.Errorf("fork: want 2 comments, got %d", len(cs))
 	}
 	fs, _ := s.ListFlags(t.Context(), dst.ID)
 	if len(fs) != 1 {
 		t.Errorf("fork: want 1 flag, got %d", len(fs))
+	}
+	forked, _ := s.ListApprovals(t.Context(), dst.ID)
+	if len(forked) != 1 || ApprovalThreadOf(cs, forked[0].ID) == "" {
+		t.Errorf("fork: the approval thread does not name the fork's approval %+v", forked)
 	}
 	evs, _ := s.ListEvents(t.Context(), dst.ID)
 	if len(evs) != 1 {
@@ -332,12 +338,12 @@ func TestSanitizeFilename(t *testing.T) {
 	}
 }
 
-func TestCountRunsForStage(t *testing.T) {
+func TestCountRunsSinceStageEntry(t *testing.T) {
 	s := newTestStore(t)
 	tk := &Task{WorkspaceID: testWS, Title: "t"}
 	s.Create(t.Context(), tk)
 
-	if n := s.CountRunsForStage(t.Context(), tk.ID, types.StageRefinement); n != 0 {
+	if n := s.CountRunsSinceStageEntry(t.Context(), tk.ID, types.StageRefinement); n != 0 {
 		t.Errorf("want 0, got %d", n)
 	}
 
@@ -345,11 +351,27 @@ func TestCountRunsForStage(t *testing.T) {
 	s.RecordEvent(t.Context(), tk.ID, EventAgentRunStarted, "inst-1", "probe", "summary", payload)
 	s.RecordEvent(t.Context(), tk.ID, EventAgentRunStarted, "inst-2", "probe", "summary", payload)
 
-	if n := s.CountRunsForStage(t.Context(), tk.ID, types.StageRefinement); n != 2 {
-		t.Errorf("want 2, got %d", n)
+	if n := s.CountRunsSinceStageEntry(t.Context(), tk.ID, types.StageRefinement); n != 2 {
+		t.Errorf("no entry recorded: want every run (2), got %d", n)
 	}
-	if n := s.CountRunsForStage(t.Context(), tk.ID, types.StageInProgress); n != 0 {
+	if n := s.CountRunsSinceStageEntry(t.Context(), tk.ID, types.StageInProgress); n != 0 {
 		t.Errorf("want 0 for in_progress, got %d", n)
+	}
+
+	// Entering another stage does not reset refinement; coming back to it does.
+	s.RecordEvent(t.Context(), tk.ID, EventStageEntered, "", "octopus", "",
+		map[string]string{"from": "refinement", "to": "in_progress"})
+	if n := s.CountRunsSinceStageEntry(t.Context(), tk.ID, types.StageRefinement); n != 2 {
+		t.Errorf("after leaving: want 2, got %d", n)
+	}
+	s.RecordEvent(t.Context(), tk.ID, EventStageEntered, "", "auditor", "",
+		map[string]string{"from": "in_progress", "to": "refinement", "via": ViaKickBack})
+	if n := s.CountRunsSinceStageEntry(t.Context(), tk.ID, types.StageRefinement); n != 0 {
+		t.Errorf("after coming back: want 0, got %d", n)
+	}
+	s.RecordEvent(t.Context(), tk.ID, EventAgentRunStarted, "inst-3", "probe", "summary", payload)
+	if n := s.CountRunsSinceStageEntry(t.Context(), tk.ID, types.StageRefinement); n != 1 {
+		t.Errorf("one run after coming back: want 1, got %d", n)
 	}
 }
 
@@ -380,8 +402,9 @@ func TestGet_IncludesSubCollections(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
-	if len(got.Comments) != 1 {
-		t.Errorf("Get: want 1 comment, got %d", len(got.Comments))
+	// The comment and the thread the flag's approval opened.
+	if len(got.Comments) != 2 {
+		t.Errorf("Get: want 2 comments, got %d", len(got.Comments))
 	}
 	if len(got.Flags) != 1 {
 		t.Errorf("Get: want 1 flag, got %d", len(got.Flags))

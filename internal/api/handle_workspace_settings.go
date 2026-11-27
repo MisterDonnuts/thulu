@@ -19,6 +19,37 @@ func (s *Server) gatedSettings(h http.HandlerFunc) http.HandlerFunc {
 
 type workspaceSettingsView map[string]settings.RunLimit
 
+// workspaceSetting is one value a workspace admin may set: how to read its current view and the
+// error a value out of 1..ceiling answers.
+type workspaceSetting struct {
+	read     func(s *Server, r *http.Request, wid string) (settings.RunLimit, error)
+	rangeKey string
+	// The audit entries for a value set and cleared, and how they spell the value in effect.
+	auditSet, auditCleared string
+	text                   func(n int) string
+}
+
+var workspaceSettingsTable = map[string]workspaceSetting{
+	settings.AgentMaxRunMinutesKey: {
+		read: func(s *Server, r *http.Request, wid string) (settings.RunLimit, error) {
+			return s.settingsStore.WorkspaceRunLimit(r.Context(), wid, entitlements.SaaSMode())
+		},
+		rangeKey:     "api.workspace_settings.errors.run_minutes_range",
+		auditSet:     "api.workspace_settings.audit.set",
+		auditCleared: "api.workspace_settings.audit.cleared",
+		text:         minutesText,
+	},
+	settings.AgentTurnsPerThreadKey: {
+		read: func(s *Server, r *http.Request, wid string) (settings.RunLimit, error) {
+			return s.settingsStore.WorkspaceAgentTurns(r.Context(), wid)
+		},
+		rangeKey:     "api.workspace_settings.errors.agent_turns_range",
+		auditSet:     "api.workspace_settings.audit.agent_turns_set",
+		auditCleared: "api.workspace_settings.audit.agent_turns_cleared",
+		text:         repliesText,
+	},
+}
+
 func (s *Server) handleGetWorkspaceSettings(w http.ResponseWriter, r *http.Request) {
 	wid, ok := s.workspaceIDFromRequest(w, r)
 	if !ok {
@@ -33,16 +64,21 @@ func (s *Server) handleGetWorkspaceSettings(w http.ResponseWriter, r *http.Reque
 }
 
 func (s *Server) workspaceSettingsView(r *http.Request, wid string) (workspaceSettingsView, error) {
-	limit, err := s.settingsStore.WorkspaceRunLimit(r.Context(), wid, entitlements.SaaSMode())
-	if err != nil {
-		return nil, err
+	view := workspaceSettingsView{}
+	for key, def := range workspaceSettingsTable {
+		limit, err := def.read(s, r, wid)
+		if err != nil {
+			return nil, err
+		}
+		view[key] = limit
 	}
-	return workspaceSettingsView{settings.AgentMaxRunMinutesKey: limit}, nil
+	return view, nil
 }
 
 func (s *Server) handlePutWorkspaceSetting(w http.ResponseWriter, r *http.Request) {
 	key := r.PathValue("key")
-	if !settings.KnownWorkspaceKey(key) {
+	def, known := workspaceSettingsTable[key]
+	if !settings.KnownWorkspaceKey(key) || !known {
 		writeError(w, r, http.StatusBadRequest, apperr.Invalid("api.settings.errors.unknown_setting", "setting", key))
 		return
 	}
@@ -54,7 +90,7 @@ func (s *Server) handlePutWorkspaceSetting(w http.ResponseWriter, r *http.Reques
 	if !decodeBody(w, r, &raw) {
 		return
 	}
-	before, err := s.settingsStore.WorkspaceRunLimit(r.Context(), wid, entitlements.SaaSMode())
+	before, err := def.read(s, r, wid)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, err)
 		return
@@ -64,7 +100,7 @@ func (s *Server) handlePutWorkspaceSetting(w http.ResponseWriter, r *http.Reques
 		err = s.settingsStore.DeleteWorkspaceSetting(r.Context(), wid, key)
 	} else {
 		var n int64
-		n, err = runMinutesValue(raw, before.Ceiling)
+		n, err = settingValue(raw, before.Ceiling, def.rangeKey)
 		if err != nil {
 			writeError(w, r, http.StatusBadRequest, err)
 			return
@@ -81,19 +117,21 @@ func (s *Server) handlePutWorkspaceSetting(w http.ResponseWriter, r *http.Reques
 		writeError(w, r, http.StatusInternalServerError, err)
 		return
 	}
-	s.auditWorkspaceSetting(r, wid, key, before.Value, value, view[key].Effective)
+	s.auditWorkspaceSetting(r, wid, key, before.Value, value, view[key].Effective, def)
 	writeJSON(w, http.StatusOK, view)
 }
 
-func runMinutesValue(raw json.RawMessage, ceiling int) (int64, error) {
+func settingValue(raw json.RawMessage, ceiling int, rangeKey string) (int64, error) {
 	var n int64
 	if json.Unmarshal(raw, &n) != nil || n < 1 || n > int64(ceiling) {
-		return 0, apperr.Invalid("api.workspace_settings.errors.run_minutes_range", "min", 1, "max", ceiling)
+		return 0, apperr.Invalid(rangeKey, "min", 1, "max", ceiling)
 	}
 	return n, nil
 }
 
-func (s *Server) auditWorkspaceSetting(r *http.Request, wid, key string, before *int, after string, effective int) {
+func (s *Server) auditWorkspaceSetting(r *http.Request, wid, key string, before *int, after string, effective int,
+	def workspaceSetting,
+) {
 	if s.auditStore == nil {
 		return
 	}
@@ -101,9 +139,9 @@ func (s *Server) auditWorkspaceSetting(r *http.Request, wid, key string, before 
 	if before != nil {
 		prev = strconv.Itoa(*before)
 	}
-	summary := i18n.Text("api.workspace_settings.audit.cleared", "setting", key, "effective", minutesText(effective))
+	summary := i18n.Text(def.auditCleared, "setting", key, "effective", def.text(effective))
 	if after != "" {
-		summary = i18n.Text("api.workspace_settings.audit.set", "setting", key, "value", after, "effective", minutesText(effective))
+		summary = i18n.Text(def.auditSet, "setting", key, "value", after, "effective", def.text(effective))
 	}
 	s.auditStore.LogRequestIn(r, wid, audit.KindWorkspaceSettingChanged, wid, "workspace", summary, map[string]string{
 		"setting":   key,
@@ -118,4 +156,8 @@ func minutesText(n int) string {
 		return i18n.Text("api.workspace_settings.audit.no_limit")
 	}
 	return i18n.Text("api.workspace_settings.audit.minutes", "n", n)
+}
+
+func repliesText(n int) string {
+	return i18n.Text("api.workspace_settings.audit.replies", "n", n)
 }

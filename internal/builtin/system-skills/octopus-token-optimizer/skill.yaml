@@ -6,5 +6,5 @@ requires: []
 # Bump on every change: the daemon syncs this skill at boot only when version exceeds the stored
 # one.
 # when: token_optimizer limits it to runs whose Token optimizer is not off.
-version: 3
+version: 4
 when: token_optimizer

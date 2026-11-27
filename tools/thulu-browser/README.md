@@ -4,7 +4,7 @@ MCP server that exposes Chromium (through Playwright) as a tool agents can use.
 
 ## Exposed tools
 
-29 tools, declared in `server.js` (the `browser_*` ones and the two without a session) and `evidence/tools.js` (the `evidence_*` ones). The catalog for the picker is in `tool.yaml`.
+33 tools, declared in `server.js` (the `browser_*` ones and the two without a session) and `evidence/tools.js` (the `evidence_*` ones). The catalog for the picker is in `tool.yaml`.
 
 | Group | Tools | What they do |
 |------|-------|-----------|

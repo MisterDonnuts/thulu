@@ -1,9 +1,12 @@
-// Same origin as the page in production, including behind a proxy on 443 where :8585 is absent.
-// Only the Astro dev server (:4321) needs the daemon's :8585.
+// server.port in astro.config.mjs, which is strict. On any other port the daemon serves the
+// dashboard itself: `thulu serve -addr`, a remapped publish, a port-forward, a proxy on 443.
+export const DEV_SERVER_PORT = "4321";
+
+// Same origin as the page in production. Only the Astro dev server needs the daemon's :8585.
 export function apiBase(): string {
   if (typeof window === "undefined") return "http://localhost:8585";
   const { protocol, hostname, port, origin } = window.location;
-  if (port === "" || port === "8585") return origin;
+  if (port !== DEV_SERVER_PORT) return origin;
   return `${protocol}//${hostname}:8585`;
 }
 

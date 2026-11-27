@@ -114,7 +114,8 @@ func TestSweepEndsLeftoverRuns(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("process groups are unix")
 	}
-	runs := t.TempDir()
+	work := t.TempDir()
+	runs := filepath.Join(work, "runs")
 	root := filepath.Join(runs, "job1")
 	if err := os.MkdirAll(root, 0o700); err != nil {
 		t.Fatal(err)
@@ -142,7 +143,7 @@ func TestSweepEndsLeftoverRuns(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	sweepLeftovers(context.Background(), runs)
+	(&Runner{cfg: &Config{WorkDir: work}}).sweepAll(context.Background())
 
 	select {
 	case <-exited:
@@ -158,7 +159,8 @@ func TestSweepEndsAGroupWhoseLeaderDied(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("process groups are unix")
 	}
-	runs := t.TempDir()
+	work := t.TempDir()
+	runs := filepath.Join(work, "runs")
 	root := filepath.Join(runs, "job1")
 	if err := os.MkdirAll(root, 0o700); err != nil {
 		t.Fatal(err)
@@ -196,7 +198,7 @@ func TestSweepEndsAGroupWhoseLeaderDied(t *testing.T) {
 		t.Fatal("the leader exited cleanly; it was meant to be killed")
 	}
 
-	sweepLeftovers(context.Background(), runs)
+	(&Runner{cfg: &Config{WorkDir: work}}).sweepAll(context.Background())
 
 	for i := 0; i < 100; i++ {
 		if syscall.Kill(child, 0) != nil {

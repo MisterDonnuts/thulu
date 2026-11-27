@@ -231,6 +231,13 @@ func exportTask(ctx context.Context, s Stores, t task.Task, attachments map[stri
 	if ts.Approvals, err = s.Tasks.ListApprovals(ctx, t.ID); err != nil {
 		return ts, apperr.Wrap(err, "exportbundle.errors.export_approvals", "task", t.ID)
 	}
+	if ts.LockedFiles, err = s.Tasks.ListLockedFiles(ctx, t.ID); err != nil {
+		return ts, apperr.Wrap(err, "exportbundle.errors.export_locked_files", "task", t.ID)
+	}
+	if ts.Criteria, err = s.Tasks.ListCriteria(ctx, t.ID); err != nil {
+		return ts, apperr.Wrap(err, "exportbundle.errors.export_criteria", "task", t.ID)
+	}
+	ts.Task.Criteria, ts.Task.Round = nil, 0
 	// Derived fields: the sections and comments carry the source rows, so the task row must not
 	// duplicate them.
 	ts.Task.Approvals, ts.Task.Flags, ts.Task.PendingApprovals = nil, nil, 0

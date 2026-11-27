@@ -59,7 +59,8 @@ describe("page-head.css, a one-line trail", () => {
     const { steps } = trail(true);
     for (const step of steps.slice(0, -1)) {
       expect(css(step, "flex-shrink")).toBe("1");
-      expect(css(step, "min-width")).toBe("4em");
+      // jsdom computes the em floor against the step's own font size.
+      expect(css(step, "min-width")).toBe(`${4 * parseFloat(css(step, "font-size"))}px`);
       expect(css(step, "white-space")).toBe("nowrap");
     }
     const last = steps.at(-1);

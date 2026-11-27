@@ -2,6 +2,7 @@ package chatruntime
 
 import (
 	"context"
+	"io"
 
 	"github.com/MisterDonnuts/thulu/internal/apperr"
 	"github.com/MisterDonnuts/thulu/internal/chat"
@@ -56,6 +57,9 @@ type ExecSpec struct {
 	ContainerID string
 	Env         []string
 	Stdin       string
+	// Stdout, when set, gets the engine's output as it is printed; a backend that cannot stream
+	// leaves it alone and returns it all in ExecOutput.Stdout.
+	Stdout io.Writer
 }
 
 type ExecOutput struct {

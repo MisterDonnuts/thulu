@@ -384,9 +384,7 @@ exit 7
 	outDir := runOutputDir(f.runsDir, "dev-task-t1-1")
 	exits := make(chan int, 1)
 	route.OnExit(t.Context(), cid, func(code int, _, _ string) { exits <- code })
-	ctx, cancel := context.WithCancel(t.Context())
-	defer cancel()
-	go func() { _ = hostrun.New(cfg, "test").Run(ctx) }()
+	runHostRunner(t, cfg)
 
 	line := `{"id":"m1","kind":"message","text":"also add tests"}` + "\n"
 	deadline := time.Now().Add(20 * time.Second)

@@ -8,39 +8,25 @@
   },
   "new": {
     "title": "Nuevo chat",
-    "agent": "Agente",
-    "linked_task": "Tarea vinculada (opcional)",
-    "no_task": "— sin tarea —",
-    "title_label": "Título (opcional)",
-    "title_placeholder": "p. ej. Plan del sprint",
-    "create": "Crear chat",
-    "no_agents": "— ningún agente tiene la etapa Chat —",
     "option_lacks_prompt": "{agent} (sin prompt de chat)",
     "option_lacks_llm": "{agent} (sin credencial de modelo)",
     "option_lacks_both": "{agent} (sin prompt ni credencial)",
     "hint_no_agents": "Ningún agente tiene la etapa Chat. Agregásela a uno en su configuración.",
     "hint_no_agents_link": "Ir a Agentes",
     "hint_no_prompt": "{agent} no tiene prompt para la etapa Chat: el chat se crea, pero el primer mensaje falla.",
-    "hint_no_prompt_link": "Cargar el prompt",
     "hint_no_llm": "Este workspace no tiene una credencial de modelo para {agent}.",
-    "hint_no_llm_link": "Abrir Motores de IA",
     "reused": "@{agent} ya tenía un chat sobre «{task}». Seguís en ese."
   },
   "conversation": {
-    "default_title": "Chat",
     "rename_hint": "Hacé clic para renombrar",
-    "rename_prompt": "Título del chat:",
-    "replying": "Respondiendo"
+    "rename_prompt": "Título del chat:"
   },
   "subtitle": {
-    "agent_task": "@{agent} · {task}",
-    "context": "contexto {tokens} de 200k",
-    "open_task": "Abrir la tarea"
+    "agent_task": "@{agent} · {task}"
   },
   "menu": {
     "aria": "Opciones del chat",
     "title": "Opciones",
-    "delegate": "Actuar por mí",
     "reset": "Resetear conversación",
     "reset_sub": "Borra el historial y la sesión del agente",
     "archive": "Archivar",
@@ -48,11 +34,6 @@
     "unarchive": "Desarchivar"
   },
   "delegate": {
-    "pill": "Actúa por vos",
-    "pill_until": "Actúa por vos hasta {time}",
-    "sub_off": "Maneja las tareas de los tableros en tu nombre",
-    "sub_on": "Actúa por {person}. Tocá para apagarlo",
-    "sub_linked": "Sólo en un chat que no está ligado a una tarea",
     "disabled_by_owner": "Un owner apagó los chats delegados en este workspace.",
     "confirm_title": "¿Dejar que @{agent} actúe por vos?",
     "confirm_message": {
@@ -88,26 +69,35 @@
     "archive_ok": "Archivar"
   },
   "composer": {
-    "aria": "Enviar un mensaje",
     "label": "Mensaje",
-    "placeholder": "Escribile al agente…",
     "send": "Enviar",
     "archived_note": "Chat archivado. Desarchivalo para escribir.",
     "thread_note": "Lo que escribas acá queda en este chat; no vuelve al hilo de la tarea.",
-    "open_task": "Abrir la tarea"
+    "open_task": "Abrir la tarea",
+    "agent_pick": "Elegir agente",
+    "hash": "Nombrar una tarea",
+    "hint_task": "tarea",
+    "hint_agent": "agente",
+    "hint_commands": "comandos",
+    "hint_steer": "frenar y enviar",
+    "placeholder_agent": "Escribile a {agent}",
+    "placeholder_live": "Se envía al terminar el turno",
+    "placeholder_new": "Preguntá o pedí algo",
+    "queue": "Encolar",
+    "queue_sub": "Sale cuando termine el turno. Enter",
+    "send_options": "Opciones de envío",
+    "steer": "Frenar y enviar",
+    "steer_sub": "Corta el turno y manda esto ya. {keys}"
   },
   "empty": {
     "no_chats": "Sin conversaciones todavía. Creá un chat con un agente para discutir una tarea o una implementación sin llenar los comentarios."
   },
   "errors": {
-    "http_status": "HTTP {status}",
-    "http_daemon": "Error — HTTP {status} del daemon.",
     "offline_decide": "Daemon offline — no se pudo decidir.",
     "offline_create": "Daemon offline — no se pudo crear el chat.",
     "offline_delegation": "Daemon offline — no se pudo cambiar.",
     "offline_send": "Daemon offline — el mensaje no se envió.",
     "busy_reset": "El agente está respondiendo — esperá a que termine.",
-    "busy_send": "El agente sigue respondiendo el mensaje anterior.",
     "offline_archive": "Daemon offline: no se pudo archivar.",
     "no_prompt_link": "Cargar el prompt de chat",
     "no_prompt": "{agent} no tiene prompt para la etapa Chat: hasta que lo cargues, cada mensaje falla."
@@ -119,24 +109,215 @@
     "undo": "Deshacer"
   },
   "tools": {
-    "summary": {
-      "one": "Usó {count} herramienta",
-      "other": "Usó {count} herramientas"
-    },
-    "omitted": {
-      "one": "y {count} más",
-      "other": "y {count} más"
+    "subagent": "Subagente",
+    "thulu_label": "Thulu",
+    "thulu": {
+      "agent_settings": "leyó la config de un agente",
+      "board_current": "leyó el tablero",
+      "board_tasks_list": "listó tareas del tablero",
+      "project_list": "listó proyectos",
+      "skills_list": "listó skills",
+      "subtask_create": "creó una subtarea",
+      "task_add_comment": "comentó",
+      "task_add_dependency": "agregó una dependencia",
+      "task_attach": "adjuntó un archivo",
+      "task_attachments": "listó adjuntos",
+      "task_clone": "clonó una tarea",
+      "task_create": "creó una tarea",
+      "task_delete": "borró una tarea",
+      "task_get": "leyó la tarea",
+      "task_move_to_board": "movió de tablero",
+      "task_relaunch": "relanzó una tarea",
+      "task_sections_get": "leyó secciones",
+      "task_update": "actualizó la tarea",
+      "tasks_list": "listó tareas"
     }
   },
   "brief": {
     "evidence_recording": "Grabando {key} en {env}",
-    "show_instructions": "Ver las instrucciones para el agente",
     "summary": "Contexto que recibió el agente"
   },
-  "intro": {
-    "task": "@{agent} responde sobre «{task}»: recibe la tarea y su código, si tiene, y lee el resto con sus herramientas.",
-    "loose": "@{agent} arranca sin tarea ni código: sabe lo que le escribas y lo que lea con sus herramientas.",
-    "shared": "Todos los miembros del workspace ven este chat: con él @{agent} contesta las menciones en la tarea.",
-    "personal": "Sólo vos ves este chat."
+  "commands": {
+    "delegate": {
+      "word": "delegar",
+      "title": "Actuar por mí",
+      "sub": "El agente crea y mueve tareas en tu nombre por unas horas"
+    },
+    "task": {
+      "word": "tarea",
+      "title": "Crear una tarea con esto",
+      "sub": "Le pide al agente que arme una tarea con lo conversado",
+      "prompt": "Creá una tarea con lo que hablamos hasta acá."
+    },
+    "reset": {
+      "word": "reiniciar",
+      "title": "Empezar de cero",
+      "sub": "Borra los mensajes y la sesión del agente"
+    },
+    "archive": {
+      "word": "archivar",
+      "title": "Archivar el chat",
+      "sub": "Sale de la lista; lo podés recuperar"
+    }
+  },
+  "ctx": {
+    "delegate_off": "Actuar por mí",
+    "delegate_on": "Actúa por vos hasta las {time}",
+    "delegate_toast_on": "{agent} puede actuar por vos.",
+    "delegate_toast_off": "El agente dejó de actuar por vos.",
+    "link_task": "Vincular tarea",
+    "linked": "El chat quedó vinculado a «{task}».",
+    "remove_task": "Quitar tarea",
+    "unlinked": "El chat ya no tiene tarea."
+  },
+  "duration": {
+    "seconds": "{s} s",
+    "minutes": "{m} min {s} s"
+  },
+  "effects": {
+    "label": "En Thulu",
+    "created": "creó",
+    "updated": "actualizó",
+    "moved": "movió",
+    "moved_many": {
+      "one": "movió {count} tarea",
+      "other": "movió {count} tareas"
+    },
+    "moved_to": "movió a {stage}",
+    "commented": "comentó en",
+    "linked": "vinculó",
+    "with": "con",
+    "attached": "adjuntó en",
+    "deleted": "borró",
+    "relaunched": "relanzó",
+    "failed": "falló",
+    "failed_why": "falló: {detail}"
+  },
+  "fail": {
+    "head": "No respondió",
+    "canceled_head": "Frenaste el turno",
+    "retry": "Reintentar",
+    "transcript": "Ver la transcripción",
+    "no_steps": "El turno no llegó a usar herramientas.",
+    "no_transcript": "Este turno no guardó transcripción."
+  },
+  "foot": {
+    "context": "{tokens} de contexto",
+    "copied": "Copiado",
+    "copy": "Copiar",
+    "cost": "US$ {cost}",
+    "retry": "Reintentar"
+  },
+  "handoff": {
+    "toast": "Abrí un chat nuevo con {agent} y le paso un resumen de este."
+  },
+  "head": {
+    "close": "Cerrar",
+    "expand": "Expandir",
+    "shrink": "Volver a panel"
+  },
+  "live": {
+    "starting": "Arrancando",
+    "stop": "Frenar",
+    "stopped": "Frenaste el turno. Lo que ya hizo queda arriba.",
+    "thinking": "Pensando"
+  },
+  "mcp": {
+    "browser": "navegador",
+    "thulu_comment": "Thulu · comenta",
+    "thulu_read": "Thulu · lee",
+    "thulu_write": "Thulu · crea y mueve tareas"
+  },
+  "pop": {
+    "agents": "Agentes",
+    "agents_current": "En este chat",
+    "agents_none": "No hay agentes listos para chatear.",
+    "agents_query": "Agentes · «{q}»",
+    "agents_recent": "Recientes",
+    "agents_workspace": "En este workspace",
+    "commands": "Comandos",
+    "lacks_llm": "Le falta una credencial de modelo",
+    "lacks_prompt": "Le falta el prompt de chat",
+    "new_chat": "chat nuevo",
+    "switch_note": "Elegir otro agente abre un chat nuevo con un resumen; el de {agent} queda como está.",
+    "task_failed": "Falló",
+    "task_running": "Corriendo",
+    "tasks": "Tareas",
+    "tasks_none": "Ninguna tarea coincide.",
+    "tasks_query": "Tareas · «{q}»"
+  },
+  "rows": {
+    "archived": "Archivados",
+    "error": "Error",
+    "idle": "Al día",
+    "needs_you": "Te necesita",
+    "older": "Anteriores",
+    "preview_error": "El último turno falló",
+    "preview_needs_you": "Espera que confirmes una acción",
+    "preview_running": "Trabajando…",
+    "running": "Trabajando",
+    "search": "Buscar chats",
+    "search_empty": "Ningún chat coincide",
+    "search_placeholder": "Buscar por título o mensaje",
+    "today": "Hoy",
+    "week": "Esta semana"
+  },
+  "run": {
+    "cache": "{tokens} leídos de caché",
+    "failed": "Falló",
+    "ok": "Terminó bien",
+    "out_of_turns": "Se quedó sin turnos",
+    "output": "{tokens} tokens de salida"
+  },
+  "start": {
+    "handoff": "Seguís lo que hablaste en «{title}». {agent} recibe un resumen con tu primer mensaje.",
+    "sugg_boards": "¿Qué está trabado en mis tableros?",
+    "sugg_needs": "¿Qué necesita {task} para seguir?",
+    "sugg_next": "¿Cómo sigue {task}?",
+    "title": "¿En qué te ayudo?"
+  },
+  "steps": {
+    "count": {
+      "one": "{count} paso",
+      "other": "{count} pasos"
+    },
+    "kinds": {
+      "cmd": {
+        "one": "{count} comando",
+        "other": "{count} comandos"
+      },
+      "edit": {
+        "one": "{count} edición",
+        "other": "{count} ediciones"
+      },
+      "mcp": {
+        "one": "{count} herramienta",
+        "other": "{count} herramientas"
+      },
+      "read": {
+        "one": "{count} lectura",
+        "other": "{count} lecturas"
+      },
+      "sub": {
+        "one": "{count} subagente",
+        "other": "{count} subagentes"
+      },
+      "thulu": {
+        "one": "{count} acción en Thulu",
+        "other": "{count} acciones en Thulu"
+      }
+    },
+    "omitted": {
+      "one": "y {count} paso más",
+      "other": "y {count} pasos más"
+    },
+    "worked": "Trabajó {duration} · {steps}",
+    "working": "Trabajando · {steps}"
+  },
+  "user": {
+    "handoff_note": "Viene de otro chat, con resumen",
+    "queued": "En cola",
+    "sending": "Enviando",
+    "unqueue": "Sacar de la cola"
   }
 }

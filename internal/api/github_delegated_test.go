@@ -255,8 +255,8 @@ func TestDelegatedChatGithubToken_RefusesAStoredCredential(t *testing.T) {
 	rig.tokens.source = githubapp.SourceStored
 
 	w := keyDo(t, rig.h, http.MethodGet, "/internal/projects/"+rig.own+"/github-token", rig.key, nil)
-	if w.Code != http.StatusForbidden {
-		t.Errorf("delegated key, stored credential = %d, want 403: %s", w.Code, w.Body.String())
+	if w.Code != http.StatusConflict || !strings.Contains(w.Body.String(), `"code":"api.github.errors.use_proxy"`) {
+		t.Errorf("delegated key, stored credential = %d, want 409 use_proxy: %s", w.Code, w.Body.String())
 	}
 	if strings.Contains(w.Body.String(), "ghs_test") {
 		t.Error("the refusal carried the token")

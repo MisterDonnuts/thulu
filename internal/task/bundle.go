@@ -47,14 +47,22 @@ func (s *Store) ImportComment(ctx context.Context, c Comment) error {
 	}
 	_, err := s.db.ExecContext(ctx, s.rb(
 		`INSERT INTO task_comments (id, task_id, parent_id, source, author, body, stage, created_at, resolved_at, resolved_by,
-		                           note_key, body_i18n)
-		 VALUES (?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT (id) DO NOTHING`),
+		                           note_key, body_i18n, kind, meta)
+		 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT (id) DO NOTHING`),
 		c.ID, c.TaskID, c.ParentID, c.Source, c.Author, c.Body, c.Stage, c.CreatedAt, c.ResolvedAt, c.ResolvedBy,
-		c.Key, encodeTexts(c.BodyI18n))
+		c.Key, encodeTexts(c.BodyI18n), string(importedKind(c.Kind)), encodeMeta(c.Meta))
 	if err != nil {
 		return apperr.Wrap(err, "task.errors.import_comment", "id", c.ID)
 	}
 	return nil
+}
+
+// A bundle from a newer install may carry a kind this one does not know: it lands as conversation.
+func importedKind(k CommentKind) CommentKind {
+	if k = commentKindOr(k); ValidCommentKind(k) {
+		return k
+	}
+	return CommentPlain
 }
 
 func (s *Store) ImportReport(ctx context.Context, r Report) error {
@@ -80,9 +88,9 @@ func (s *Store) ImportEvent(ctx context.Context, e WorkflowEvent) error {
 		raw = "{}"
 	}
 	_, err := s.db.ExecContext(ctx, s.rb(
-		`INSERT INTO workflow_events (id, task_id, kind, ref_id, actor, summary, payload, created_at)
-		 VALUES (?,?,?,?,?,?,?,?) ON CONFLICT (id) DO NOTHING`),
-		e.ID, e.TaskID, e.Kind, e.RefID, e.Actor, e.Summary, raw, e.CreatedAt)
+		`INSERT INTO workflow_events (id, task_id, kind, ref_id, actor, summary, payload, round, created_at)
+		 VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT (id) DO NOTHING`),
+		e.ID, e.TaskID, e.Kind, e.RefID, e.Actor, e.Summary, raw, e.Round, e.CreatedAt)
 	if err != nil {
 		return apperr.Wrap(err, "task.errors.import_event", "id", e.ID)
 	}

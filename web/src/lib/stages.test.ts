@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { stagePillHTML } from "./stages";
+import { movesBack, stagePillHTML, type Stage } from "./stages";
 
 describe("stagePillHTML", () => {
   it("tints the tag with the board's colour for the stage and adds the dot", () => {
@@ -28,5 +28,22 @@ describe("stagePillHTML", () => {
     expect(html).toMatch(
       /^<button id="dr-stage" class="tag tag-tint" style="--tag-color:#a78bfa" type="button" aria-haspopup="listbox">/,
     );
+  });
+});
+
+describe("movesBack", () => {
+  const col = (id: string, position: number, virtual = false) =>
+    ({ id, position, virtual }) as Stage;
+  const board = [col("backlog", 10), col("build", 20), col("review", 30), col("archive", 5, true)];
+
+  it("is back only toward an earlier column of the board", () => {
+    expect(movesBack(board, "review", "build")).toBe(true);
+    expect(movesBack(board, "build", "review")).toBe(false);
+    expect(movesBack(board, "build", "build")).toBe(false);
+  });
+
+  it("never counts a virtual or unknown column as back", () => {
+    expect(movesBack(board, "review", "archive")).toBe(false);
+    expect(movesBack(board, "review", "gone")).toBe(false);
   });
 });

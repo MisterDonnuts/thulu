@@ -75,7 +75,7 @@ workspace. With two or more and none named it gets `400`.
 | `PUT` | `/types/{name}/files/{path...}` | admin | Write one of the agent's files (body is the text) |
 | `DELETE` | `/types/{name}/files/{path...}` | admin | Delete one of the agent's files |
 | `GET` | `/types/{name}/settings` | viewer | Read agent-level settings (env overrides). `unknown_stages` lists per-stage config pointing at stages the board no longer has. `system_skills` lists the install's system skills (`name`, `description`, `mcp`, `enforcement`); `system_skills_by_stage` gives, for each valid stage, every system skill with `wired` (the stage has its MCP, or it needs none) and `enabled` (not turned off for this agent). A stage receives a system skill when both are true; a skill with a `when` (`token_optimizer`) also waits for that condition. `token_optimizer` is the agent's policy: `{level, engine, model}`, `level` `off` when it has none (see [Token optimizer](#token-optimizer)) |
-| `PUT` | `/types/{name}/settings` | admin | Write agent-level settings. `system_skills_off` (`{stage: [skill, …]}`) turns system skills off for this agent on those stages, `octopus-run` included. Leaving it out or sending `null` keeps the stored value; `{}` clears it. Unknown names are kept and ignored. `token_optimizer` follows the same rule: left out or `null` keeps the stored policy. `level` must be `off`, `suggest` or `enforce`; `off` (or `""`) stores nothing, whatever `engine` and `model` say. On, it needs a registered `engine` and a `model`; otherwise 400 (`tokenopt.errors.invalid_level`, `engine_required`, `unknown_engine`, `model_required`). `system_skills` and `system_skills_by_stage` are read-only. The response is the settings as stored |
+| `PUT` | `/types/{name}/settings` | admin | Write agent-level settings. The body is merged over what is stored: a field left out keeps its stored value, and a field sent (even `{}`, `[]`, `""` or `null`) replaces it whole, so a body with only `mcp_by_stage` changes nothing else. `system_skills_off` (`{stage: [skill, …]}`) turns system skills off for this agent on those stages, `octopus-run` included. Leaving it out or sending `null` keeps the stored value; `{}` clears it. Unknown names are kept and ignored. `token_optimizer` follows the same rule: left out or `null` keeps the stored policy. `level` must be `off`, `suggest` or `enforce`; `off` (or `""`) stores nothing, whatever `engine` and `model` say. On, it needs a registered `engine` and a `model`; otherwise 400 (`tokenopt.errors.invalid_level`, `engine_required`, `unknown_engine`, `model_required`). `auditor_mode` is `always` (the auditor runs after every run of its stages) or `signals` (it runs only when the finished run shows a signal: non-zero exit, out of turns, a verdict other than continue, locked tests changed or unchecked, gate config or suppressions in the branch diff, more production lines added than `auditor_max_diff_lines`, or more files with added lines than `auditor_max_diff_files` (0 = 400 lines, 20 files; deleted lines and tests do not count), column skips the run's own agent set, flags raised, no report, the first run after a person relaunched the stage with a reason, or risk high; otherwise the stage goes on and the timeline gets an `auditor_skipped` event listing every check). An agent without an auditor reads `signals`, the mode a newly enabled auditor gets; one stored before modes existed reads `always`. Another value is 400 (`api.agents.errors.invalid_auditor_mode`), a budget below 0 or over 1000000 too (`invalid_auditor_budget`). `system_skills` and `system_skills_by_stage` are read-only. The response is the settings as stored |
 | `POST` | `/types/{name}/settings/prune-stages` | admin | Drop every reference to a deleted stage: labels + `prompts/<stage>.md` + `auditor/<stage>.md`. Returns `{stages, files}` removed |
 | `GET` | `/types/{name}/prompts` | viewer | List stage prompt files for the agent |
 | `GET` | `/types/{name}/usage` | viewer | Where the agent is assigned in the caller's workspace: `tasks` (how many tasks name it for some stage) and `projects` (`id`, `name`, `stages` of each project whose stage template names it) |
@@ -102,8 +102,8 @@ are shared, the flags are not.
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | `GET` | `/boards` | viewer | `{boards, default}` — the caller's workspace's flows with `stage_count` and `task_count`; `default` is that workspace's default board, seeded on the first call if it has none |
-| `POST` | `/boards` | admin | Create a flow. Columns come from `stages` (explicit), `clone_from` (copy another board), or the built-in three (Backlog, In progress, Done). `default: true` also promotes it |
-| `PATCH` | `/boards/{id}` | admin | Edit label/description (id is immutable). `default: true` moves the workspace's default marker |
+| `POST` | `/boards` | admin | Create a flow. Columns come from `stages` (explicit), `clone_from` (copy another board), or the built-in four (Backlog, In progress, Review, Done). `default: true` also promotes it |
+| `PATCH` | `/boards/{id}` | admin | Edit label/description (id is immutable). `default: true` moves the workspace's default marker. `max_kick_backs` (0 to 20, 0 = no cap) is how many send-backs a task takes before it is blocked for a person. `flow`, `flow_revision` and `flow_hash` (the Workshop flow the board came from) are read-only here |
 | `DELETE` | `/boards/{id}` | admin | Delete a flow. 409 with `task_count` if it holds tasks — retry with `?move_to=<board>` (each task keeps its stage if the destination has it, else lands on that board's initial stage; optional `&stage=` overrides the fallback). A workspace's default board is protected. A board of another workspace answers 404 |
 | `GET` | `/boards/{id}/stages` | viewer | One board's columns in flow order (`?include_virtual=1` appends mention/chat) |
 
@@ -123,7 +123,7 @@ another workspace's flow answers 404.
 |--------|------|------|-------------|
 | `GET` | `/stages` | viewer | The catalog (`?include_virtual=1` appends mention/chat; `?board=<id>` narrows to one board) |
 | `POST` | `/stages?board=` | admin | Add a stage to the board. Body: StageInfo + optional `index` (slot; default: before the first terminal). Reusing an existing id adds that stage to this board. Returns the new board |
-| `PATCH` | `/stages/{id}?board=` | admin | Edit flags on this board; label/colour edits are global. Setting `initial: true` moves the initial pointer atomically |
+| `PATCH` | `/stages/{id}?board=` | admin | Edit flags on this board; label/colour edits are global. Setting `initial: true` moves the initial pointer atomically. Besides the older flags it takes `agent_verdict`, `lock_tests`, `skip_unless` (list), `pr_draft`, `pr_ready`, `merge_target`, `release_resources`, `no_skip` (a task may never skip this column) and `default_agent` (an agent of the board's workspace whose valid stages include this one; `""` clears it). What each does: [tasks-and-board.md](tasks-and-board.md#stage-capability-flags) |
 | `PUT` | `/stages/order?board=` | admin | Reorder: `{"ids": [...]}` must be an exact permutation of that board |
 | `DELETE` | `/stages/{id}?board=` | admin | Remove a stage from the board. 409 with `task_count` if it holds tasks — retry with `&move_to=<stage>` to relocate them (no agents dispatched). The initial stage and the last terminal are protected. A stage removed from its last board leaves the catalog |
 
@@ -150,7 +150,7 @@ first-class value — every task is untyped until somebody defines a type.
 | `GET` | `/task-types` | viewer | The catalog — every type any board offers |
 | `GET` | `/task-types/icons` | viewer | The icon allowlist (`{icons: [...]}`); a type's `icon` must be one of these |
 | `GET` | `/boards/{id}/types` | viewer | One board's types in display order, with `skips`, `default` and `task_count`, plus the board's `untyped` count |
-| `PUT` | `/boards/{id}/types` | admin | Replace the whole list: `{"types": [...]}`. Creating, renaming, reordering, re-defaulting and changing skips are all this one call |
+| `PUT` | `/boards/{id}/types` | admin | Replace the whole list: `{"types": [...]}`. Creating, renaming, reordering, re-defaulting and changing skips are all this one call. A type's `agents` (`{stage: agent}`) overrides the column's default agent for tasks of that type; `""` leaves the column without an agent for it |
 | `GET` | `/boards/{id}/stages?type=<id>` | viewer | The columns that type actually walks — "where can this task go", as opposed to what the board renders |
 
 `PUT` refuses any edit that would strand tasks, with the destination it needs:
@@ -388,10 +388,11 @@ Kubernetes alike.
 | `GET` | `/projects/{id}/branches` | viewer | Branches of an uploaded project |
 | `GET` | `/projects/{id}/archive` | viewer | Zip of a branch of an uploaded project (`?branch=`) |
 | `GET` | `/projects/{id}` | viewer | Get project details |
-| `PATCH` | `/projects/{id}` | admin | Update project metadata |
+| `PATCH` | `/projects/{id}` | admin | Update project metadata. `release_mode` (`auto`, `batch` or `""`) tells the release agent how merged work reaches production; `release_environment` names the GitHub or Evidence environment that is production (an agent's Evidence batch there runs only cases marked `safe_for_prod`); `gates_profile` is the project's thulu-gates profile, a JSON object (`{}` clears it; unknown keys, unknown check ids and `accept_unverified` entries without a reason get 400) that every run receives in `$THULU_GATES_PROFILE`. An agent run's key gets 403 on `gates_profile` |
 | `DELETE` | `/projects/{id}` | admin | Delete project (removes clone + worktrees) |
 | `GET` | `/projects/{id}/worktrees` | viewer | List active worktrees for a project |
 | `GET` | `/projects/{id}/metrics` | viewer | Flow + agent-spend metrics for one project. Accepts `?from=&to=` (RFC3339, default: last 30 days). See below |
+| `GET` | `/projects/{id}/deploy-contents` | viewer | Which tasks in the board's merge_target stage (or `?stage=`) a deployed commit carries. `?sha=` (required), `?prev=` (the previous deploy: adds `already_deployed` and every revert in the range). A task is included when its `merge_sha` for this project is an ancestor of `sha`, read through GitHub's compare API or the daemon's clone (`source`). `included` is `true`, `false` or `"unknown"`; at most 50 tasks (`truncated`). Scope `projects:read` |
 | `GET` | `/projects/{id}/stage-files` | viewer | List per-stage sidecar files (prompts, hooks); `orphans` lists files whose stage is gone |
 | `POST` | `/projects/{id}/stage-files/prune` | admin | Delete those orphaned files. Returns `{stages, files}` removed |
 | `GET` | `/projects/{id}/stage-files/{kind}/{stage}` | viewer | Read a stage file |
@@ -564,10 +565,11 @@ Notes on the numbers themselves:
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| `GET` | `/tasks` | viewer | List all tasks (supports `?stage=` and `?board=` filters). Top-level tasks only unless `?include_subtasks=true`; `?parent_id=` lists one parent's subtasks. A subtask row carries `sort_order`, its place in the parent's reading order (0 until someone reorders) |
+| `GET` | `/tasks` | viewer | List all tasks. `?board=`, `?stage=` and `?project=` (tasks that touch that project) narrow it and combine. Top-level tasks only unless `?include_subtasks=true`; `?parent_id=` lists one parent's subtasks. A subtask row carries `sort_order`, its place in the parent's reading order (0 until someone reorders) |
+| `POST` | `/tasks/batch-move` | developer | Move up to 50 tasks of one board forward in one request: `{board_id, task_ids, from_stage, to_stage, note, deployed_sha?, project_id?, require_included?}`. `note` is required and lands on each moved task as a comment and in its stage event (`via: release_batch`). Each task goes through the stage's exit gate: a pending approval leaves it in `gated` with the labels. A task is `skipped` with a reason when it is elsewhere (`wrong_stage`, `other_board`, `not_found`), archived, running, is the caller's own run task (`own_task`), its type skips the stage, or the move would jump a stage that asks for an approval (`jumps_approvals`). With `require_included` (needs `deployed_sha` and `project_id`) only tasks whose merge commit the deployed commit carries move (`not_in_deploy`, `no_merge_sha`, `reverted`, `inclusion_unknown`, `other_projects`). A backward or same-stage target is 400 `not_forward`. An agent run reaches it only when its octopus-api grant names `tasks_move_batch` (403 `run_tool_not_named`) and only on its own task's board (403 `run_own_board_only`), from the board's `merge_target` stage or a later one (403 `run_before_merge_target`; a board without `merge_target` takes no batch from a run). Answers `{moved, gated, skipped}` |
 | `POST` | `/tasks` | developer | Create task. Body: `title` (required), `body`, `project_ids`, `stage`, `board_id`, `type_id`, `stage_assignments`, `tags`, `priority`. Unknown fields are ignored: a misspelled `project_ids` creates a task with no project |
-| `GET` | `/tasks/{id}` | viewer | Get task with comments, attachments, approvals (also as `flags`), test cases, questions and subtasks |
-| `PATCH` | `/tasks/{id}` | developer | Update task (move stage, edit title/body, reassign agents) |
+| `GET` | `/tasks/{id}` | viewer | Get task with comments, attachments, approvals (also as `flags`), test cases, questions and subtasks. `stage_skips` lists the columns the task skips: `{stage, reason, by, at}` |
+| `PATCH` | `/tasks/{id}` | developer | Update task (move stage, edit title/body, reassign agents). `flow_flags` (list of short ids such as `ui`, `api`, at most 8; `[]` skips every `skip_unless` stage) only from a person: an agent key gets 403 and sets them through `flags.yaml`. `stage_skips` is refused (400 `stage_skips_patch`): use the two `stage-skips` routes. Moving a task into a column it skips drops that skip; changing its board drops them all. An agent run never changes the `stage`, `type_id` or `board_id` of the task it works on or of its parent (403 `run_moves_own_task`): Thulu moves it when the run ends; a delegated chat acts for its person |
 | `DELETE` | `/tasks/{id}` | admin | Delete task and all its data |
 | `POST` | `/tasks/{id}/clone` | developer | Clone task (same stage, fresh worktrees) |
 | `POST` | `/tasks/{id}/fork` | developer | Fork task (copies all sub-collections + files) |
@@ -581,14 +583,15 @@ Notes on the numbers themselves:
 | `POST` | `/tasks/{id}/attachments` | developer | Upload a file attachment |
 | `GET` | `/tasks/{id}/brief` | viewer | Get the AI-generated task brief. Comments come grouped by thread, each showing its latest 6 replies (a resolved one only its last); `?thread=<root id>` shows that thread whole. `?audit=<instance>` appends what that run reported, for the auditor judging it |
 | `POST` | `/tasks/{id}/auditor-feedback` | developer | Raw `feedback.md` (verdict frontmatter) for `?instance=<auditor run>`. Only the auditor's own run key, for its task and stage; anything else is 403/400 |
+| `POST` | `/tasks/{id}/stage-verdict` | developer | Raw `verdict.md` (`verdict: continue\|kick_back\|block`) for `?instance=<stage run>`. Only the stage agent's own run key, for its task and stage; the auditor's key and people get 403, another run 400 |
 | `GET` | `/tasks/{id}/reports` | viewer | List long-form reports (agent index, auditor feedback, test evidence). Bodies are markdown |
 | `POST` | `/tasks/{id}/reports` | developer | JSON `{kind, title?, body, instance_id?}` → 201 with the report. `kind` is `evidence` (anyone who can write the task) or `agent_index` (an agent run only, else 403). Body ≤ 256 KB (413), title ≤ 200 characters, `instance_id` must be a run of this task. A report notifies no one and launches no agent |
 | `POST` | `/tasks/{id}/questions` | developer | `task_ask`: `{kind, blocking, context, questions: [{header, question, options: [{label, description}], multi_select, allow_other}], default}`. Only the key of the task's live stage run, on its own task and stage (403/409 otherwise); a continuation run (a chat message to a finished run) gets 409. At most 3 questions per run and 5 open per task (429). Posts the question as a comment and answers `{question, comment_id, instruction}` |
 | `POST` | `/tasks/{id}/questions/{qid}/answer` | developer | `{answers: [...], note}`. A blocking question's answer reaches the live run, or resumes the stage when the run already ended. Not with a run's key |
-| `POST` | `/tasks/{id}/questions/{qid}/cancel` | developer | Close an open question unanswered. Cancelling the last blocking one of a parked task sets it idle. Not with a run's key. Moving the task to another stage cancels its blocking questions on its own |
+| `POST` | `/tasks/{id}/questions/{qid}/cancel` | developer | Close an open question unanswered. Cancelling the last blocking one of a parked task sets it idle. Not with a run's key. Moving the task to another stage cancels its blocking questions on its own, and closes its non-blocking ones as `answered` by `octopus` with the agent's `default` as the note and `delivery: "default"` |
 | `GET` | `/tasks/{id}/approvals` | viewer | List the task's approvals: the ones its stages require, the ones agents or people asked for, and approvals with no stage (`stage: ""`) |
-| `POST` | `/tasks/{id}/approvals` | developer | Ask for an approval: `{label, key?, reason?, payload?}`, body ≤ 64 KiB. A run's key may ask on its own task, its group (parent, siblings, subtasks) or a task it created; agents may hold 10 pending per task (429 past that) |
-| `POST` | `/tasks/{id}/approvals/{aid}/decide` | developer | `{decision, note}`: `approved`, `changes_requested` or `waived` (the last two need a note). Changes requested resumes the stage's agent, sends the task back, or leaves it, per the stage's `on_changes_requested`; during a live run they wait for its end. Not with a run's key |
+| `POST` | `/tasks/{id}/approvals` | developer | Ask for an approval: `{label, key?, reason?, payload?, stage?}`, body ≤ 64 KiB. `stage` names a later, non-terminal stage of the board whose exit the approval holds instead of the current one (400 `stage_not_ahead` otherwise); the stages in between are not held. A run's key may ask on its own task, its group (parent, siblings, subtasks) or a task it created; agents may hold 10 pending per task (429 past that) |
+| `POST` | `/tasks/{id}/approvals/{aid}/decide` | developer | `{decision, note}`: `approved`, `changes_requested` or `waived` (the last two need a note). Changes requested resumes the stage's agent, sends the task back, or leaves it, per the stage's `on_changes_requested`; during a live run they wait for its end. On an approval held by a stage the task has not reached yet, `changes_requested` is refused (approving or waiving ahead works). Not with a run's key |
 | `DELETE` | `/tasks/{id}/approvals/{aid}` | developer | Remove an approval a person or agent opened. One a stage requires is 409: waive it instead. Not with a run's key |
 | `GET` | `/inbox` | viewer | Pending questions and approvals of the caller's workspace, oldest first, at most 500 of each: `{questions, approvals}` |
 | `PUT` | `/tasks/{id}/session-snapshot` | developer | `?sid=`: the engine's session as a tar.gz, ≤ 50 MiB (`OCTOPUS_SESSION_SNAPSHOT_MAX_BYTES`, 413 past it). Only with the key of the run it belongs to |
@@ -596,7 +599,11 @@ Notes on the numbers themselves:
 | `GET` | `/tasks/{id}/conversation-transcript` | viewer | Markdown of the agent's earlier runs on the task (tools called, results) and what people told it, newest part kept within `OCTOPUS_TRANSCRIPT_MAX_BYTES` (200 KiB). A run reads its own agent's; a person names `?agent=`. An operator key needs `runs:read`. 404 when there is nothing |
 | `GET` | `/tasks/{id}/flags` | viewer | Deprecated alias over approvals: lists them as flags |
 | `POST` | `/tasks/{id}/flags` | developer | Deprecated: opens an approval of no stage |
-| `POST` | `/tasks/{id}/flags/import` | developer | Raw `flags.yaml` body → one approval of no stage per entry, signed by the caller's credential. How agents raise flags when the runs dir isn't shared (Kubernetes) |
+| `POST` | `/tasks/{id}/flags/import` | developer | Raw `flags.yaml` body → one approval of no stage per entry, signed by the caller's credential. How agents raise flags when the runs dir isn't shared (Kubernetes). `surface: [ui, perf, migration, auth, api]` sets the task's `flow_flags` (`risk` and `size` go only in the `flow_flags_set` event). An agent key may call it only from a stage with `ingest_flags` (else 403); the response adds `flow_flags`, `risk`, `size`, `invalid_surface`, `stage_skips` and `skips_refused` (`{stage, why}` per `skip:` entry the daemon refused). A `skip:` list from the refinement run replaces the skips that run's agent wrote before and keeps the ones a person added; without the key the skips stay |
+| `POST` | `/tasks/{id}/stage-skips` | developer | `{stage, reason}`: the task skips that later column. A person or operator key may call it; of the agents, only the run of the `ingest_flags` stage while the task is there (else 403 `skip_add_refiner_only`). 400 without a reason (max 500 characters) or over 16 skips; 409 for a column that is initial, terminal, virtual, `no_skip`, `ingest_flags`, has approvals or a PR/release flag, or is not ahead of the task. Naming a skipped column again replaces its reason, except that an agent leaves a person's skip as it is (the response then returns the person's). Returns `{task_id, skip, stage_skips}` |
+| `POST` | `/tasks/{id}/stage-skips/{stage}/remove` | developer | `{reason}`: the column runs again. A person or a run key of this very task may call it; a run of its parent, a subtask or a sibling gets 403 `skip_remove_own_task`. A column ahead runs when the task reaches it. One the task already passed sends it back there (event `stage_entered` via `skip_removed`, not counted against `max_kick_backs`); when the caller is the agent running the current stage, the move waits until its run ends with exit 0. 404 if the column is not skipped, 409 if the task is done or past `release_resources`. Returns `{task_id, removed, passed, moved_back, deferred, stage_skips}` |
+| `POST` | `/tasks/{id}/locked-tests` | developer | Raw `locked-tests.txt` (one repo-relative path per line) for `?instance=<stage run>`, from a `lock_tests` stage under Kubernetes. Same key rules as `stage-verdict` |
+| `GET` | `/tasks/{id}/locked-files` | viewer | `{"files": [{project_id, path, blob_sha, stage, locked_ref, locked_at}]}`: the tests a `lock_tests` stage locked. `blob_sha` empty means it locked a deletion. A later run that changes one opens a system approval `test_change` |
 | `PATCH` | `/tasks/{id}/flags/{flagId}` | developer | Deprecated: `approved` and `rejected` are recorded like `/decide` (`rejected` is `changes_requested`, but resumes or moves nothing). Approving a mapping's review flag also activates the proposals behind it (`mappings_activated` in the response) |
 | `DELETE` | `/tasks/{id}/flags/{flagId}` | developer | Deprecated: same rules as `DELETE /approvals/{aid}` |
 | `GET` | `/tasks/{id}/test-cases` | viewer | List the task's test cases in order, each with its `runs` newest first |
@@ -676,16 +683,20 @@ not per-workspace preferences — one table shared by the whole install.
 ### Workspace settings
 
 The few install settings a workspace may choose for itself, inside bounds the
-operator sets. Today only `agent.max_run_minutes`, the wall-clock limit on one
-agent run, capped by the install's `agent.max_run_minutes_ceiling`.
+operator sets: `agent.max_run_minutes`, the wall-clock limit on one agent run,
+capped by the install's `agent.max_run_minutes_ceiling`, and
+`agent_turns_per_thread`, how many replies agents give each other in one
+comment thread before they wait for a person (1 to 20, 5 by default; a
+person's reply starts the count again).
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| `GET` | `/workspace-settings` | viewer | The caller's workspace's run limit, in minutes |
-| `PUT` | `/workspace-settings/agent.max_run_minutes` | admin | Body: whole minutes from 1 to `ceiling`, or `null` to go back to the install default. Answers the GET's shape. Out of range or not a whole number is a `400` naming the bounds; any other key is the same `400` `/settings` gives an unknown key. Each change leaves an audit entry `workspace.setting_changed` |
+| `GET` | `/workspace-settings` | viewer | The caller's workspace's settings: the run limit in minutes and the agent turns per thread |
+| `PUT` | `/workspace-settings/{key}` | admin | `agent.max_run_minutes` or `agent_turns_per_thread`. Body: a whole number from 1 to `ceiling` (minutes, or replies), or `null` to go back to the default. Answers the GET's shape. Out of range or not a whole number is a `400` naming the bounds; any other key is the same `400` `/settings` gives an unknown key. Each change leaves an audit entry `workspace.setting_changed` |
 
 ```json
-{"agent.max_run_minutes": {"value": 180, "default": 60, "ceiling": 240, "effective": 180}}
+{"agent.max_run_minutes": {"value": 180, "default": 60, "ceiling": 240, "effective": 180},
+ "agent_turns_per_thread": {"value": null, "default": 5, "ceiling": 20, "effective": 5}}
 ```
 
 `value` is the workspace's own choice (`null` when it has none), `default` the
@@ -908,8 +919,10 @@ workspace admin can turn it off. While it is on:
   `deployments:write`; it carries `actions:write` only when the agent's `chat`
   stage grants `run_dispatch`, `run_rerun` or `run_cancel`, and `checks:read`
   only when it grants `pr_checks`. A project that
-  reaches GitHub only through a stored credential (a PAT) answers `403`: a PAT
-  cannot be narrowed. Each token handed out is audited
+  reaches GitHub only through a stored credential (a PAT) answers `409` with
+  `"code": "api.github.errors.use_proxy"`: a PAT cannot be narrowed, so it
+  never reaches a run, and thulu-github sends the chat's calls through
+  `/internal/github-proxy/…` instead (see below). Each token handed out is audited
   (`chat.github_granted`) with the person the chat acts for.
 - Merging a pull request (`pr_merge`) and approving or rejecting a deployment
   (`deployment_approve`) wait for the person, like deletions: thulu-github
@@ -931,8 +944,9 @@ These require an API key. They are called by agent containers via `thulu-github`
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/internal/projects/{id}/github-token` | Fetch GitHub token for a project |
-| `GET` | `/internal/tasks/{id}/github-token` | Fetch GitHub token for the task's primary project |
+| `GET` | `/internal/projects/{id}/github-token` | Fetch GitHub token for a project. Without `?permissions=` an App token reads contents and writes pull requests (it cannot merge). `?permissions=` adds `actions:write`, `contents:write`, `deployments:write` or `checks:read`, each only when the run's stage grants a thulu-github tool that needs it; `actions:write` for a stage granting `run_dispatch` also needs an approved `deploy_prod` approval on the run's task (403 otherwise) |
+| `GET` | `/internal/tasks/{id}/github-token` | Fetch GitHub token for the task's primary project. Same `?permissions=` rules |
+| `*` | `/internal/github-proxy/{path}` | Forward one of thulu-github's GitHub calls with the project's stored credential. Run keys only (see below) |
 | `POST` | `/internal/github/{owner}/{repo}/pulls/{number}/merge` | A delegated chat's merge (`merge_method`, `commit_title`, `commit_message`, `sha`). Held for the person's confirmation; runs only as that confirmation |
 | `POST` | `/internal/github/{owner}/{repo}/runs/{runId}/deployment-review` | A delegated chat's deployment review (`state`: `approved`\|`rejected`, `environment_ids`, `comment`). Same rules |
 | `GET` | `/internal/github-token?repo=owner/name` | Fetch the GitHub token of the caller's project whose repository is `repo` (also takes `https://…`, `.git`, `git@github.com:owner/name`; case-insensitive). How `thulu-github` gets a token in a chat with no task |
@@ -941,10 +955,38 @@ These require an API key. They are called by agent containers via `thulu-github`
 | `POST` | `/internal/tasks/{id}/commit` | Commit staged changes in the task's worktree |
 | `GET` | `/internal/environments/{envId}/credential` | Decrypted cloud credential — **only** for environments of the calling task's own projects |
 | `GET` | `/internal/credentials/available` | What this session may do: reachable credentials + per-tool verdicts (never a payload) |
-| `GET` | `/internal/credentials/resolve` | Authorize one tool call and, on an allow, return the payload. Params: `server`, `tool`, and one of `credential_id` / `environment_id` / `project_id` |
+| `GET` | `/internal/credentials/resolve` | Authorize one tool call and, on an allow, return the payload. Params: `server`, `tool`, and one of `credential_id` / `environment_id` / `project_id`. A GitHub credential is never returned to a run key (`403`) |
 | `POST` | `/internal/token-optimizer/delegate` | One token optimizer delegation, answered by the agent's worker model. Run keys only (see below) |
 | `POST` | `/internal/token-optimizer/prepare` | Open a delegation the run's pod makes itself (a `cli` worker): instructions and model. Run keys only |
 | `POST` | `/internal/token-optimizer/finish` | Record how a prepared delegation ended. Run keys only |
+
+The three `github-token` routes hand a run key only a GitHub App
+installation token. When the project's credential is a stored token (a PAT,
+including the fallback after a failed App mint) they answer `409` with
+`"code": "api.github.errors.use_proxy"`: a PAT cannot be narrowed to the stage's
+grant, so it never reaches the agent's container. People's keys and the daemon's
+own pushes, PR status reads and webhooks are unchanged.
+
+`/internal/github-proxy/{path}` is where thulu-github sends the calls instead:
+`GET`, `POST`, `PUT`, `PATCH` and `DELETE` on a GitHub REST path
+(`/internal/github-proxy/repos/acme/widgets/pulls/7`), and `POST
+/internal/github-proxy/graphql` with `{query, variables}`. The daemon forwards
+the call with the PAT only when it is in `tools/thulu-github/github-proxy.json`
+(a GraphQL document must match one listed there, whitespace collapsed, and take
+only string, number, boolean or null variables), a tool that makes it is granted
+in the run's stage, that tool's approval is approved (`run_dispatch` waits for
+`deploy_prod`), and the repository belongs to a project the run reaches (on the
+GitHub host, for a project with an http(s) remote). For GraphQL the daemon sends
+the listed document and the decoded variables, never the caller's body. A GraphQL document that acts on a node id names its
+repository in `X-Thulu-Repo`, and the daemon checks the node belongs to it. In a
+delegated chat `pr_merge` and `deployment_approve` are refused there (they stay
+held for the person). Refusals are `403` with a `code`: `proxy_route_unknown`,
+`proxy_document_unknown`, `proxy_tool_not_granted`, `proxy_approval_required`,
+`proxy_repo_not_in_task`, `proxy_held_in_chat` (all under
+`api.github.errors.`); a repository outside the workspace is `404`. Caller
+headers other than `Accept`, `Content-Type` and `X-GitHub-Api-Version` are
+dropped, the body is capped at 1 MiB and the answer at 16 MiB, and redirects
+are refused except a log download's, which the daemon follows without the token.
 
 The session's identity comes from the task-scoped API key, never from a query
 parameter: a `?task=` that disagrees with the key is refused outright. Both

@@ -265,6 +265,11 @@ describe("deliveryText", () => {
     expect(deliveryText({ status: "answered", delivery: "thread" })).toContain("next run");
     expect(deliveryText({ status: "answered", delivery: "" })).toContain("Not delivered yet");
   });
+  it("says the default stood when the stage ended without an answer", () => {
+    const text = deliveryText({ status: "answered", delivery: "default" });
+    expect(text).toContain("went on with its default");
+    expect(text).not.toContain("Not delivered yet");
+  });
   it("says the answer is saved when the resume failed, instead of promising a delivery", () => {
     const text = deliveryText({ status: "answered", delivery: "" }, true);
     expect(text).toContain("could not be resumed");

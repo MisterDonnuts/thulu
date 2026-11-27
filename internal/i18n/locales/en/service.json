@@ -7,7 +7,9 @@
     "render": "build the service definition",
     "command": "{command}: {output}",
     "write": "write {path}",
-    "unsupported_os": "there is no service for {os}: run `thulu runner run` in a terminal"
+    "unsupported_os": "there is no service for {os}: run `thulu runner run` in a terminal",
+    "read": "read the service file {path}",
+    "parse": "read the service plist"
   },
   "cli": {
     "no_linger": "Linux stops it when you log out. To keep it running without a session: loginctl enable-linger"

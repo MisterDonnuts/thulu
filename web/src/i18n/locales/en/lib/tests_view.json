@@ -1,0 +1,201 @@
+{
+  "summary": {
+    "pass": "{pass} of {total} pass",
+    "proven": "{proven} of {total} acceptance criteria proven",
+    "last_run": "last run {when} by {who}"
+  },
+  "criteria": {
+    "title": "Acceptance criteria",
+    "read": "Read the criteria",
+    "written_by": "· written by {who} in the brief",
+    "filter": "{key}: {state}. Show only its cases",
+    "state": {
+      "ok": "Proven",
+      "waived": "Proven, some skipped",
+      "part": "Partly proven",
+      "wait": "Waiting",
+      "fail": "Failing",
+      "untested": "Not run",
+      "none": "No case covers it"
+    },
+    "key": {
+      "ok": "proven",
+      "part": "partly",
+      "wait": "waiting for a person"
+    }
+  },
+  "needs": {
+    "title": "To finish testing, a person needs",
+    "sub": {
+      "one": "{count} case the agent could not run",
+      "other": "{count} cases the agent could not run"
+    },
+    "sub_queued": {
+      "one": "{count} case the agent could not run · {queued} running again",
+      "other": "{count} cases the agent could not run · {queued} running again"
+    },
+    "running_again": {
+      "one": "{count} case is running again with what you gave the agent.",
+      "other": "{count} cases are running again with what you gave the agent."
+    },
+    "untitled": "Something else",
+    "access": "Give the agent access",
+    "test_by_hand": "Test by hand",
+    "by_hand": "By hand",
+    "review_video": "Watch the video",
+    "fixed_rerun": "Fixed it (re-run)",
+    "skip": "Skip…",
+    "tried": {
+      "one": "The agent tried {count} case with what it had",
+      "other": "The agent tried {count} cases with what it had"
+    },
+    "tried_result": "The agent tried: {result}",
+    "writes_all": "Testing writes real data",
+    "writes_some": {
+      "one": "{count} case writes real data",
+      "other": "{count} cases write real data"
+    },
+    "code_wrong": "Is something wrong with the code instead?",
+    "send_back": "Send it back…",
+    "rerun": "Re-run {stage}…",
+    "see_stop": "See the stop in Comments"
+  },
+  "access": {
+    "lead": "The agent runs {cases} again once you confirm it has access.",
+    "lead_secrets": "The agent runs {cases} again with these values. They are kept in the environment, never in the task.",
+    "environment": "Keep them in",
+    "environment_help": "The environment's secrets. The agent reads them by name.",
+    "no_environment": "This project has no environment you can add secrets to. Create one in Evidence first.",
+    "environments_loading": "Loading the environments…",
+    "reason": "Note for the agent",
+    "writes_data": "Some of these cases write real data where they run.",
+    "submit": {
+      "one": "Give access and re-run {count} case",
+      "other": "Give access and re-run {count} cases"
+    },
+    "need_secret": "Write a value for {name}.",
+    "need_environment": "Pick the environment to keep the values in.",
+    "done": {
+      "one": "Access given. {count} case runs again.",
+      "other": "Access given. {count} cases run again."
+    },
+    "failed": "Could not give access: {error}"
+  },
+  "skip": {
+    "reason": "Why skip {cases}?",
+    "help": "Required. It goes to Comments and to the readiness report as a known gap.",
+    "submit": {
+      "one": "Skip {count} case",
+      "other": "Skip {count} cases"
+    }
+  },
+  "hand": {
+    "title": "Testing by hand",
+    "close": "Stop testing by hand",
+    "case_n": "case {n} of {total}",
+    "previous": "← Previous",
+    "next": "Next →",
+    "done": "All cases have a result: {tally}.",
+    "n_pass": {
+      "one": "{count} passes",
+      "other": "{count} pass"
+    },
+    "n_fail": {
+      "one": "{count} fails",
+      "other": "{count} fail"
+    },
+    "n_skipped": {
+      "one": "{count} skipped",
+      "other": "{count} skipped"
+    },
+    "review": "Review",
+    "summary": "Back to the results",
+    "save": "Save results",
+    "saved": {
+      "one": "Saved {count} result.",
+      "other": "Saved {count} results."
+    },
+    "save_failed": "Could not save {key}: {error}"
+  },
+  "verdict": {
+    "pass": "Pass",
+    "fail": "Fail",
+    "skip": "Skip",
+    "note": "What you saw (required to fail or skip)",
+    "note_label": "What you saw testing {key}",
+    "need_note": "Write what you saw: a failed or skipped case needs it.",
+    "saved": "Saved your result for {key}."
+  },
+  "list": {
+    "heading": "Cases",
+    "empty": "No test cases yet.",
+    "case": "Case",
+    "title": "Title",
+    "covers": "Covers",
+    "group": "{group} · {count}",
+    "round_short": "R{n}",
+    "more": "+{count}",
+    "more_rounds": {
+      "one": "{count} earlier round not shown",
+      "other": "{count} earlier rounds not shown"
+    },
+    "cell": "Round {round}: {verdicts}",
+    "cell_none": "Round {round}: not run",
+    "has_video": "Has a video",
+    "show_all": "Show all cases",
+    "covering": "Covering {key}"
+  },
+  "groups": {
+    "blocked": "Need a person",
+    "queued": "Running again",
+    "fail": "Failing",
+    "pass": "Passing",
+    "waived": "Skipped",
+    "untested": "Not run"
+  },
+  "legend": {
+    "pass": "pass",
+    "fail": "fail",
+    "blocked": "needs a person",
+    "none": "not run",
+    "mixed": "changed within the round",
+    "columns": {
+      "one": "Columns: the last round in which Testing ran. The full history is inside each case.",
+      "other": "Columns: the last {count} rounds in which Testing ran. The full history is inside each case."
+    }
+  },
+  "detail": {
+    "how": "How to test",
+    "saw": "What the agent saw",
+    "pass_if": "Pass if",
+    "no_steps": "No steps written yet.",
+    "not_run": "Not run yet.",
+    "no_observed": "The run left no note.",
+    "full_note": "Full note",
+    "evidence": "Evidence",
+    "evidence_of": "round {round}, {verdict}",
+    "subtitles": "Steps",
+    "history": "History by round",
+    "all_runs": {
+      "one": "{count} run in full",
+      "other": "All {count} runs in full"
+    },
+    "tried_simulated": "Tried with stand-in data",
+    "tried_partial": "Tried part of it",
+    "tried_none": "Could not try it",
+    "writes_data": "Writes real data",
+    "skipped_by": "Skipped by {who}",
+    "no_reason": "No reason given."
+  },
+  "tab": {
+    "plain": "Tests",
+    "blocked": {
+      "one": "Tests, {count} case needs a person",
+      "other": "Tests, {count} cases need a person"
+    },
+    "cases": {
+      "one": "Tests, {count} case",
+      "other": "Tests, {count} cases"
+    }
+  }
+}

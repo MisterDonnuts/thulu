@@ -56,6 +56,19 @@ func TestCleanInventory(t *testing.T) {
 	}
 }
 
+func TestCleanInventoryKeepsAdmission(t *testing.T) {
+	since := time.Date(2026, 11, 25, 9, 0, 0, 0, time.UTC)
+	got := cleanInventory(runner.Inventory{Admission: &runner.AdmissionState{
+		State: runner.AdmissionPausedLowMemory, AvailableMB: 1229, MinFreeMB: 2048, Since: since}}, since)
+	want := runner.AdmissionState{State: runner.AdmissionPausedLowMemory, AvailableMB: 1229, MinFreeMB: 2048, Since: since}
+	if got.Admission == nil || *got.Admission != want {
+		t.Errorf("admission = %+v, want %+v", got.Admission, want)
+	}
+	if got := cleanInventory(runner.Inventory{Admission: &runner.AdmissionState{State: "sleeping"}}, since); got.Admission != nil {
+		t.Errorf("an unknown state was kept: %+v", got.Admission)
+	}
+}
+
 func TestCheckRunnerFolder(t *testing.T) {
 	f := newRunnerFixture(t, "ws1")
 	srv := &Server{projectStore: f.projects, runnerStore: f.store}
@@ -96,6 +109,23 @@ func TestCheckRunnerFolder(t *testing.T) {
 	}
 }
 
+func TestCleanLocalTools(t *testing.T) {
+	if cleanLocalTools(nil) != nil || cleanLocalTools(&runner.LocalToolsState{Mode: "everything"}) != nil {
+		t.Fatal("an unknown mode is dropped, not shown")
+	}
+	names := []string{" pg ", "pg", "", "claude.ai Slack", strings.Repeat("x", 300)}
+	for i := range 150 {
+		names = append(names, "n"+strconv.Itoa(i))
+	}
+	got := cleanLocalTools(&runner.LocalToolsState{Mode: runner.LocalToolsSelected, MCP: names, BypassDisabled: true, AllowedTools: -3})
+	if got.Mode != runner.LocalToolsSelected || !got.BypassDisabled || got.AllowedTools != 0 {
+		t.Fatalf("state = %+v", got)
+	}
+	if len(got.MCP) != maxLocalMCP || got.MCP[0] != "pg" || got.MCP[1] != "claude.ai Slack" || len(got.MCP[2]) > 200 {
+		t.Fatalf("mcp = %d names, first %q", len(got.MCP), got.MCP[:3])
+	}
+}
+
 func TestRunnerReposMarksUsedFolders(t *testing.T) {
 	f := newRunnerFixture(t, "ws1")
 	srv := &Server{projectStore: f.projects, runnerStore: f.store, runnerRoute: &routedLauncher{runner: f.launcher}}
@@ -119,7 +149,8 @@ func TestRunnerReposMarksUsedFolders(t *testing.T) {
 	}
 	ctx := t.Context()
 	if err := f.store.SaveInventory(ctx, f.reg.RunnerID, runner.Inventory{Roots: []string{"/c"},
-		Repos: []runner.InventoryRepo{{Path: "/c/a", Name: "a"}, {Path: "/c/b", Name: "b"}}, ScannedAt: time.Now().UTC()}); err != nil {
+		Repos: []runner.InventoryRepo{{Path: "/c/a", Name: "a"}, {Path: "/c/b", Name: "b"}}, ScannedAt: time.Now().UTC(),
+		LocalTools: &runner.LocalToolsState{Mode: runner.LocalToolsSelected, MCP: []string{"pg"}}}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := f.projects.Update(ctx, f.project.ID, projectPatchPath("/c/b")); err != nil {
@@ -131,6 +162,9 @@ func TestRunnerReposMarksUsedFolders(t *testing.T) {
 	}
 	if v.Repos[0].ProjectID != "" || v.Repos[1].ProjectID != f.project.ID || v.Repos[1].ProjectName != f.project.Name {
 		t.Errorf("used marks = %+v", v.Repos)
+	}
+	if v.LocalTools == nil || v.LocalTools.Mode != runner.LocalToolsSelected || len(v.LocalTools.MCP) != 1 {
+		t.Errorf("the runner page shows the machine's local_tools: %+v", v.LocalTools)
 	}
 }
 

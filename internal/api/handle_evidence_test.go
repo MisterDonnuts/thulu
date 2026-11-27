@@ -130,9 +130,23 @@ func TestEvidenceLibraryAndRunnerFlow(t *testing.T) {
 		t.Fatalf("upload: %d %s", w.Code, w.Body)
 	}
 	video := decode[map[string]string](t, w)["id"]
+	buf.Reset()
+	mw = multipart.NewWriter(&buf)
+	_ = mw.WriteField("kind", "metrics")
+	fw, _ = mw.CreateFormFile("file", "login.metrics.json")
+	_, _ = fw.Write([]byte(`{"schema":1,"runs":[]}`))
+	_ = mw.Close()
+	w = keyRequest(t, h, http.MethodPost, "/evidence/jobs/"+batch.ID+"/runs/"+job.Run.ID+"/artifacts", runnerKey, buf.Bytes(), mw.FormDataContentType())
+	if w.Code != http.StatusCreated {
+		t.Fatalf("metrics upload: %d %s", w.Code, w.Body)
+	}
 
+	ttfb := 120.0
 	result, _ := json.Marshal(evidence.RunResult{Status: evidence.RunPass, VideoID: video, DurationMS: 3000,
-		Checks: []evidence.Check{{Label: "Dashboard shows", Pass: true, Measured: true}}})
+		Checks: []evidence.Check{{Label: "Dashboard shows", Pass: true, Measured: true},
+			{Label: "Answers fast", Expected: "800", Observed: "120 ms", Pass: true, Measured: true, Metric: "ttfb", Value: &ttfb}},
+		Findings: []evidence.Finding{{Step: 1, Kind: "console", Text: "deprecated API", Count: 3}},
+		Metrics:  json.RawMessage(`{"profile":{"network":"fast-4g"},"steps":[]}`)})
 	if w = keyRequest(t, h, http.MethodPost, "/evidence/jobs/"+batch.ID+"/runs/"+job.Run.ID+"/result", runnerKey, result, "application/json"); w.Code != http.StatusOK {
 		t.Fatalf("result: %d %s", w.Code, w.Body)
 	}
@@ -142,8 +156,48 @@ func TestEvidenceLibraryAndRunnerFlow(t *testing.T) {
 
 	w = getJSON(t, h, "/evidence/runs/"+job.Run.ID, token)
 	run := decode[evidence.Run](t, w)
-	if run.Status != evidence.RunPass || len(run.Artifacts) != 1 {
+	if run.Status != evidence.RunPass || len(run.Artifacts) != 2 || run.Artifacts[1].Kind != evidence.ArtifactMetrics {
 		t.Fatalf("run: %+v", run)
+	}
+	if len(run.Findings) != 1 || run.Findings[0].Count != 3 || run.Checks[1].Metric != "ttfb" || *run.Checks[1].Value != ttfb ||
+		!strings.Contains(string(run.Metrics), `"fast-4g"`) {
+		t.Fatalf("the run's findings, perf check and metrics: %s", w.Body)
+	}
+
+	// Safe for production is set by a person; an API key with every permission still cannot.
+	key := mintKey(t, srv, ws, auth.RoleOwner, auth.PermAll)
+	w = keyRequest(t, h, http.MethodPatch, "/evidence/cases/EV-1", key, []byte(`{"safe_for_prod":true}`), "application/json")
+	if w.Code != http.StatusForbidden || errCode(t, w) != "api.chats.errors.person_required" {
+		t.Fatalf("a key marked the case safe: %d %s", w.Code, w.Body)
+	}
+	if w = keyRequest(t, h, http.MethodPatch, "/evidence/cases/EV-1", key, []byte(`{"title":"Login still works"}`), "application/json"); w.Code != http.StatusOK {
+		t.Fatalf("a key edits the rest of the case: %d %s", w.Code, w.Body)
+	}
+	w = patchJSONAuth(t, h, "/evidence/cases/EV-1", token, map[string]any{"safe_for_prod": true})
+	if w.Code != http.StatusOK || !decode[evidence.Case](t, w).SafeForProd {
+		t.Fatalf("a person marks the case safe: %d %s", w.Code, w.Body)
+	}
+	// The mark judged that take: a take the key uploads afterwards clears it, a person's keeps it.
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest(http.MethodPut, "/evidence/cases/EV-1/take", strings.NewReader(evidenceTake))
+	r.Header.Set("Content-Type", "application/json")
+	r.Header.Set("Authorization", "Bearer "+token)
+	h.ServeHTTP(w, r)
+	if w.Code != http.StatusOK || !decode[evidence.Case](t, w).SafeForProd {
+		t.Fatalf("a person's new take keeps the mark: %d %s", w.Code, w.Body)
+	}
+	w = keyRequest(t, h, http.MethodPut, "/evidence/cases/EV-1/take", key, []byte(evidenceTake), "application/json")
+	if w.Code != http.StatusOK || decode[evidence.Case](t, w).SafeForProd {
+		t.Fatalf("a key's new take kept the mark: %d %s", w.Code, w.Body)
+	}
+	// Creating a case already marked follows the same rule.
+	w = keyRequest(t, h, http.MethodPost, "/evidence/cases", key, []byte(`{"title":"Agent case","safe_for_prod":true}`), "application/json")
+	if w.Code != http.StatusForbidden || errCode(t, w) != "api.chats.errors.person_required" {
+		t.Fatalf("a key created a safe case: %d %s", w.Code, w.Body)
+	}
+	w = postJSONAuth(t, h, "/evidence/cases", token, map[string]any{"title": "Person case", "safe_for_prod": true})
+	if w.Code != http.StatusCreated || !decode[evidence.Case](t, w).SafeForProd {
+		t.Fatalf("a person creates a safe case: %d %s", w.Code, w.Body)
 	}
 	w = getJSON(t, h, "/evidence/artifacts/"+video, token)
 	if w.Code != http.StatusOK || w.Body.String() != "fake video bytes" || w.Header().Get("Accept-Ranges") != "bytes" {

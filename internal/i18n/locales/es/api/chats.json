@@ -20,7 +20,13 @@
     "decide_forbidden": "sólo la persona por la que actúa este chat puede decidir sobre lo que pidió",
     "action_not_found": "no se encontró la acción",
     "already_decided": "esto ya se decidió",
-    "policy_off_partial": "se apagó, pero algunas delegaciones no terminaron"
+    "policy_off_partial": "se apagó, pero algunas delegaciones no terminaron",
+    "task_fixed": "la tarea de este chat no se puede cambiar: lo abrió Thulu para una mención o un hilo",
+    "task_while_delegated": "con «Actuar por mí» activo el chat no puede tener tarea; cortalo antes de vincular una",
+    "task_other_workspace": "la tarea es de otro workspace",
+    "bad_mode": "mode tiene que ser queue, steer o vacío",
+    "queued_not_found": "ese mensaje ya salió o no estaba en la cola",
+    "no_transcript": "este turno no tiene transcripción"
   },
   "audit": {
     "created": "Chat creado con {agent}",
@@ -61,7 +67,12 @@
     "mention_stage": "**Etapa actual:** {stage}\n",
     "mention_description": "\n**Descripción de la tarea:**\n\n{body}\n",
     "mention_unseen": "\n---\n\n**En el hilo, desde tu última respuesta:**\n\n{transcript}",
-    "mention_comment": "\n---\n\n**Comentario de {speaker}:**\n\n{body}"
+    "mention_comment": "\n---\n\n**Comentario de {speaker}:**\n\n{body}",
+    "context_start": "[Contexto de Thulu para este mensaje]\n",
+    "context_end": "[Fin del contexto]\n\n",
+    "handoff_header": "Esta conversación sigue la que la persona tuvo con {agent} en el chat «{title}». Lo último de esa conversación:\n",
+    "refs_header": "Tareas que menciona el mensaje (usá tus herramientas para leer más):\n",
+    "ref_line": "- `{id}` {title} — etapa {stage}, estado {status}\n"
   },
   "log": {
     "post_notice_failed": "publicar el aviso de @{agent} en la tarea {task}",
@@ -69,6 +80,7 @@
     "record_mention_finished_failed": "registrar el evento mention-finished de la tarea {task}",
     "add_reply_failed": "agregar la respuesta de @{agent} a la tarea {task}",
     "list_comments_failed": "listar los comentarios de la tarea {task}",
-    "record_action_result_failed": "[chat] registrar el resultado de {action}"
+    "record_action_result_failed": "[chat] registrar el resultado de {action}",
+    "evict_relinked_chat": "chat {chat}: no se pudo soltar el contenedor tras cambiar la tarea"
   }
 }

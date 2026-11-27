@@ -121,6 +121,14 @@ steps:
 trigger: {manual: true}
 steps: [{id: a, script: {run: "sleep 1", timeout: 30m}}]`, "script.timeout above 10m"},
 
+		{"move without a stage", `name: n
+trigger: {manual: true}
+steps: [{id: a, move: {task_id: t1}}]`, "move.task_id and move.stage"},
+
+		{"move and mention in one step", `name: n
+trigger: {manual: true}
+steps: [{id: a, move: {task_id: t1, stage: done}, mention: {task_id: t1, body: x}}]`, "actions"},
+
 		{"per-step sandbox image", `name: n
 trigger: {manual: true}
 steps: [{id: a, script: {run: "echo hi", image: "python:3.12-slim"}}]`, `key "image"`},

@@ -30,7 +30,8 @@
     "outputs_too_large": "la salida de la corrida pasa de {max} bytes",
     "decode_job": "leer la corrida guardada {id}",
     "stat_output": "leer {path} en la salida de la corrida",
-    "inventory": "guardar las carpetas del runner"
+    "inventory": "guardar las carpetas del runner",
+    "adopt": "darles un lease nuevo a las corridas que siguen andando"
   },
   "log": {
     "seen_failed": "registrar cuándo se vio por última vez al runner {runner}"

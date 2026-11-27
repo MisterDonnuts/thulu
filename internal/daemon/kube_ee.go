@@ -6,6 +6,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"time"
 
 	"github.com/MisterDonnuts/thulu/ee/kuberuntime"
 	"github.com/MisterDonnuts/thulu/internal/api"
@@ -80,14 +81,48 @@ func kubeInfraSource(kubeRT *kubert.Runtime) *infra.KubeSource {
 // The daemon holds the singleton lease by now, so only one replica ever starts a build.
 func startImageBuild(ctx context.Context, kubeRT *kubert.Runtime) { kubeRT.StartImageBuild(ctx) }
 
+// A pod's end frees room and is reconciled within seconds: a run no exit watch follows (its daemon
+// restarted, or the watch was lost) is finished from its pod instead of at the janitor's next sweep.
 func startRoomWatch(ctx context.Context, kubeRT *kubert.Runtime, srv *api.Server) {
 	d := srv.Dispatcher()
 	if d == nil {
 		return
 	}
+	reconcile := coalesced(ctx, podEndReconcileGap, d.Reconcile)
 	go kubeRT.WatchPodEnds(ctx, func(namespace string) {
 		d.RoomFreed(func(workspaceID string) bool { return kubeRT.NamespaceFor(workspaceID) == namespace })
+		reconcile()
 	})
+}
+
+// podEndReconcileGap spaces the Reconciles pod ends ask for: a burst of ends runs one, then the next
+// waits this long.
+const podEndReconcileGap = 5 * time.Second
+
+// coalesced returns a trigger for fn: calls while fn runs or waits out gap fold into one more run.
+func coalesced(ctx context.Context, gap time.Duration, fn func(context.Context)) func() {
+	kick := make(chan struct{}, 1)
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-kick:
+			}
+			fn(ctx)
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(gap):
+			}
+		}
+	}()
+	return func() {
+		select {
+		case kick <- struct{}{}:
+		default:
+		}
+	}
 }
 
 func startKubeCleanup(ctx context.Context, kubeRT *kubert.Runtime, sandboxMgr *sandbox.Manager, st *stores, srv *api.Server) {

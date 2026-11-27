@@ -61,6 +61,13 @@ export function isPaletteKey(
   return (e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === "k";
 }
 
+// ⌘J opens a new chat from anywhere, even while typing: the chat panel listens for it.
+export function isNewChatKey(
+  e: Pick<KeyboardEvent, "key" | "metaKey" | "ctrlKey" | "altKey" | "shiftKey">,
+): boolean {
+  return (e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "j";
+}
+
 export function initGlobalKeyboard(opts: GlobalKeyboardOpts = {}): void {
   if (installed) return;
   installed = true;

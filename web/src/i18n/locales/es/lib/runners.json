@@ -22,7 +22,15 @@
     "no_folders": "Sin carpetas permitidas: corré thulu runner allow en esa máquina.",
     "not_reported": "Todavía no reportó sus carpetas: arrancalo con thulu runner run.",
     "revoke": "Revocar",
-    "no_projects": "sin proyectos"
+    "no_projects": "sin proyectos",
+    "local_tools_thulu": "Herramientas locales: sólo los MCP de Thulu.",
+    "local_tools_selected": "Herramientas locales: los MCP de Thulu más {mcp}.",
+    "local_tools_selected_none": "Herramientas locales: selected, todavía sin nada seleccionado.",
+    "local_tools_all": "Herramientas locales: todos los MCP de la máquina, conectores de claude.ai incluidos.",
+    "local_tools_hint": "Se configura en la máquina: thulu runner config local-tools.",
+    "bypass_off": "Una política de Claude Code en la máquina apaga el modo bypass: las corridas sólo pueden usar lo que lista allowed_tools.",
+    "bypass_off_empty": "Una política de Claude Code en la máquina apaga el modo bypass y allowed_tools está vacío: las corridas no pueden editar archivos ni correr comandos.",
+    "paused_low_memory": "No toma corridas: {available} libres, necesita {needs}."
   },
   "setup": {
     "register_title": "Registrá la máquina",

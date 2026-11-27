@@ -57,12 +57,67 @@ export interface RunnerRepo {
   project_name?: string;
 }
 
+// What the machine lets its runs reach of its own tooling. Decided on the machine
+// (runner.json); the dashboard only shows it.
+export interface RunnerLocalTools {
+  mode: "thulu" | "selected" | "all";
+  mcp?: string[];
+  bypass_disabled?: boolean;
+  allowed_tools?: number;
+}
+
+// Whether the machine takes new runs, or waits for memory to free up (min_free_memory_mb in its
+// runner.json).
+export interface RunnerAdmission {
+  state: "accepting" | "paused_low_memory";
+  available_mb?: number;
+  min_free_mb?: number;
+  since?: string;
+}
+
 export interface RunnerRepos {
   roots: string[];
   repos: RunnerRepo[];
   truncated?: boolean;
   reported: boolean;
   scanned_at?: string;
+  local_tools?: RunnerLocalTools;
+  admission?: RunnerAdmission;
+}
+
+// sizeText writes MB the way the runner's own log does: "768 MB", "1.2 GB", "2 GB".
+function sizeText(mb: number): string {
+  if (mb < 1024) return `${Math.round(mb)} MB`;
+  return `${Math.round((mb / 1024) * 10) / 10} GB`;
+}
+
+// admissionLines says, for an online runner's row, that it takes no runs while memory is short.
+export function admissionLines(a: RunnerAdmission | undefined): string[] {
+  if (a?.state !== "paused_low_memory") return [];
+  return [
+    t("lib.runners.row.paused_low_memory", {
+      available: sizeText(a.available_mb ?? 0),
+      needs: sizeText(a.min_free_mb ?? 0),
+    }),
+  ];
+}
+
+// localToolsLines describes a runner's local_tools for its row, one sentence per line.
+export function localToolsLines(lt: RunnerLocalTools | undefined): string[] {
+  if (!lt) return [];
+  let mode: string;
+  if (lt.mode === "all") mode = t("lib.runners.row.local_tools_all");
+  else if (lt.mode === "selected")
+    mode = lt.mcp?.length
+      ? t("lib.runners.row.local_tools_selected", { mcp: lt.mcp.join(", ") })
+      : t("lib.runners.row.local_tools_selected_none");
+  else mode = t("lib.runners.row.local_tools_thulu");
+  const lines = [`${mode} ${t("lib.runners.row.local_tools_hint")}`];
+  if (lt.bypass_disabled)
+    lines.push(
+      lt.allowed_tools ? t("lib.runners.row.bypass_off") : t("lib.runners.row.bypass_off_empty"),
+    );
+  return lines;
 }
 
 export interface RunnerToken {
@@ -224,18 +279,23 @@ function runnerRowHTML(r: Runner, repos: RunnerRepos | undefined, projects: numb
   ]
     .filter(Boolean)
     .join(" · ");
-  let folders = "";
+  const lines: string[] = [];
   if (!r.revoked_at) {
-    folders = repos?.reported
-      ? repos.roots.length
-        ? t("lib.runners.row.folders", { folders: repos.roots.join(", ") })
-        : t("lib.runners.row.no_folders")
-      : t("lib.runners.row.not_reported");
+    lines.push(
+      repos?.reported
+        ? repos.roots.length
+          ? t("lib.runners.row.folders", { folders: repos.roots.join(", ") })
+          : t("lib.runners.row.no_folders")
+        : t("lib.runners.row.not_reported"),
+      ...localToolsLines(repos?.local_tools),
+      // A runner that went offline last said this, and may say otherwise when it comes back.
+      ...(r.online ? admissionLines(repos?.admission) : []),
+    );
   }
   return listRowHTML({
     title: r.name,
     badgesHTML: badgeHTML(st.label, st.tone),
-    metaHTML: esc(meta) + (folders ? `<br>${esc(folders)}` : ""),
+    metaHTML: [meta, ...lines].map((l) => esc(l)).join("<br>"),
     dim: !!r.revoked_at,
     wrap: true,
     actions: r.revoked_at

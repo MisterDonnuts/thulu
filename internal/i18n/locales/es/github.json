@@ -13,13 +13,19 @@
     "review_fields_required": "faltan owner, repo, el id del run, algún id de environment o el estado (approved o rejected)",
     "read_response": "leer el cuerpo de la respuesta de GitHub",
     "decode_response": "interpretar la respuesta de GitHub",
-    "api": "GitHub respondió {status}: {message}"
+    "api": "GitHub respondió {status}: {message}",
+    "draft_unsupported": "este repositorio no acepta pull requests en borrador",
+    "pr_node_id_missing": "GitHub devolvió el pull request #{number} sin su node id",
+    "graphql": "GitHub GraphQL rechazó el pedido: {message}",
+    "pr_still_draft": "el pull request #{number} sigue en borrador después de marcarlo listo",
+    "compare_sha_invalid": "la comparación pide SHAs de commit (7 a 40 caracteres hex), no {base} y {head}"
   },
   "log": {
     "parse_pulls_error_failed": "API de pulls de GitHub: no se pudo interpretar la respuesta de error (HTTP {status})",
     "parse_error_failed": "API de GitHub: no se pudo interpretar la respuesta de error (HTTP {status})",
     "reviews_read_failed": "leer las revisiones de {repo}#{number}",
     "check_runs_read_failed": "leer los check runs de {repo}",
-    "actions_read_failed": "leer las corridas de GitHub Actions de {repo}"
+    "actions_read_failed": "leer las corridas de GitHub Actions de {repo}",
+    "required_checks_read_failed": "leer los checks que exige la rama base de {repo}"
   }
 }

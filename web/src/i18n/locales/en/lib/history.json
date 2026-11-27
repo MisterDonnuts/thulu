@@ -3,7 +3,8 @@
   "via": {
     "kick_back": "(the auditor sent it back)",
     "changes_requested": "(changes were requested)",
-    "stage_deleted": "(its stage was deleted)"
+    "stage_deleted": "(its stage was deleted)",
+    "skip_removed": "(a skip was removed)"
   },
   "run_in": "{agent} in {stage}",
   "cloned_from": "Copy of task {task}",
@@ -43,5 +44,35 @@
     "octopus": "Thulu",
     "auditor": "Auditor",
     "agent": "An agent"
+  },
+  "outlived": "{agent} finished in {stage} after the task moved to {now}; its result did not apply",
+  "deferred": "{agent} waits for the agent of {busy} before starting in {stage}",
+  "skip": {
+    "added": "{who} skips {stage}: {reason}",
+    "removed": "{who} made {stage} run again: {reason}",
+    "removed_back": "{who} made {stage} run again, so the task goes back there: {reason}",
+    "removed_later": "{who} made {stage} run again; the task goes back there when the current run ends: {reason}",
+    "entered": "{stage} runs: {who} moved the task there",
+    "ui_diff": "{stage} runs after all: the branch changes UI files",
+    "diff_unreadable": "{stage} runs after all: the branch diff could not be read",
+    "refinement_dropped": "{stage} runs again: the refinement no longer skips it",
+    "board_changed": "The task no longer skips {stage}: it moved to another board",
+    "passed_over": "Passed over {stage}, which this task skips: {reason}",
+    "passed_over_surface": "Passed over {stage}, which waits on {required}"
+  },
+  "auditor_skipped": "Audit of {agent} skipped in {stage}: no signals ({checks})",
+  "audit_check_unread": "{check} (not readable)",
+  "audit_checks": {
+    "exit": "exit code",
+    "out_of_turns": "turns",
+    "verdict": "verdict",
+    "locked_tests": "locked tests",
+    "scope": "gate config and suppressions",
+    "diff_size": "diff size",
+    "skips": "column skips",
+    "flags": "flags",
+    "no_output": "report",
+    "person_relaunch": "relaunch with a reason",
+    "risk_high": "risk"
   }
 }

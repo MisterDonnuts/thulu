@@ -37,6 +37,10 @@ func (*Runtime) FindPodNamespace(context.Context, string) (string, error) { retu
 
 func (*Runtime) DeletePod(context.Context, string, string) error { return errNotInBuild }
 
+func (*Runtime) DeleteTaskPods(context.Context, string, string, func(kubeapi.RunningPod) bool) (int, error) {
+	return 0, errNotInBuild
+}
+
 func (*Runtime) PodLogs(context.Context, string, string, bool) (io.ReadCloser, error) {
 	return nil, errNotInBuild
 }

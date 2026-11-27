@@ -97,3 +97,8 @@ export function fmtCount(n: number, loc: string = locale): string {
 export function fmtPct(n: number, loc: string = locale): string {
   return `${fmtDecimal(n * 100, 1, loc)}%`;
 }
+
+// "a, b and c" in the build's language.
+export function listOf(parts: readonly string[], loc: string = locale): string {
+  return new Intl.ListFormat(loc, { style: "long", type: "conjunction" }).format(parts);
+}

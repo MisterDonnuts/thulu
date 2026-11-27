@@ -20,6 +20,7 @@ import (
 	"github.com/MisterDonnuts/thulu/internal/browserrun"
 	"github.com/MisterDonnuts/thulu/internal/chat"
 	"github.com/MisterDonnuts/thulu/internal/i18n"
+	"github.com/MisterDonnuts/thulu/internal/procreap"
 	"github.com/MisterDonnuts/thulu/internal/sandbox/execagent"
 	"github.com/MisterDonnuts/thulu/internal/types"
 )
@@ -91,7 +92,8 @@ func (b *kubeBackend) Create(ctx context.Context, spec CreateSpec) (string, erro
 			kuberuntime.AnnotationInstanceID: c.ID,
 			kuberuntime.AnnotationAgentType:  at.Name,
 		},
-		Browser: browserrun.Startable(env),
+		Browser:               browserrun.Startable(env),
+		ActiveDeadlineSeconds: chatPodDeadlineSeconds,
 	})
 	if err != nil {
 		return "", err
@@ -115,6 +117,11 @@ func (b *kubeBackend) Create(ctx context.Context, spec CreateSpec) (string, erro
 // The git remote serves /git/<task>/<project> only to a key scoped to that task
 // (Manager.applyRunKey);
 // a chat with no task or no key gets no code.
+// chatPodDeadlineSeconds is the backstop on a chat pod's life (24 h): whatever a lost row or a
+// failed remove leaves behind, Kubernetes ends it. A chat still in use gets a new pod on its next
+// turn.
+const chatPodDeadlineSeconds = 24 * 60 * 60
+
 func (b *kubeBackend) codeMounts(c *chat.Chat, code map[string]types.CodeView, env map[string]string) []kuberuntime.WorktreeMount {
 	if b.gitBaseURL == "" || c.TaskID == "" || env[runKeyEnv] == "" || len(code) == 0 {
 		return nil
@@ -152,10 +159,19 @@ func (b *kubeBackend) Exec(ctx context.Context, spec ExecSpec) (ExecOutput, erro
 		return ExecOutput{}, errChatPodNeedsRecreate
 	}
 
-	url := fmt.Sprintf("http://%s.%s.svc:%d", spec.ContainerID, ns, chatExecPort)
+	url := chatExecURL(spec.ContainerID, ns)
+	// The exec agent kills the turn's process group only when the turn times out or is cancelled;
+	// what the turn started in the background, in its own session or not, carries the marker and
+	// dies after the turn, however it ended.
+	marker := newTurnMarker()
+	env := kvSliceToMap(spec.Env)
+	env[envChatTurn] = marker
+	defer func() {
+		go b.reapByEnv(context.WithoutCancel(ctx), url, token, spec.ContainerID, marker, procreap.Matching(envChatTurn, marker))
+	}()
 	res, err := execagent.Exec(ctx, b.httpc, url, token, execagent.ExecRequest{
 		Command:    []string{"/workspace/snippets/chat-turn.sh"},
-		Env:        kvSliceToMap(spec.Env),
+		Env:        env,
 		Stdin:      spec.Stdin,
 		InheritEnv: true,
 	})
@@ -167,6 +183,53 @@ func (b *kubeBackend) Exec(ctx context.Context, spec ExecSpec) (ExecOutput, erro
 		return out, apperr.Timeout("chatruntime.errors.kube_turn_timeout")
 	}
 	return out, nil
+}
+
+func chatExecURL(podName, ns string) string {
+	return fmt.Sprintf("http://%s.%s.svc:%d", podName, ns, chatExecPort)
+}
+
+// SweepStaleTurns runs at boot. Exec tokens live only in memory, so a pod this daemon holds no
+// token for cannot be driven or reaped: whatever a turn of the daemon before left running there
+// would live until the chat sat idle. Such a pod goes now, the way its next turn would remove it;
+// a pod with a token gets every turn's leftovers killed. It reports whether the pod stays.
+func (b *kubeBackend) SweepStaleTurns(ctx context.Context, podName string) bool {
+	ns, err := b.rt.FindPodNamespace(ctx, podName)
+	if err != nil || ns == "" {
+		return true
+	}
+	b.mu.Lock()
+	token := b.tokens[podName]
+	b.mu.Unlock()
+	if token == "" {
+		log.Printf("[chat] %s", i18n.Log("chatruntime.log.stale_pod_removed", "pod", podName, "ns", ns))
+		b.teardown(ctx, podName, ns)
+		return false
+	}
+	b.reapByEnv(ctx, chatExecURL(podName, ns), token, podName, "*", procreap.Carrying(envChatTurn))
+	return true
+}
+
+func (b *kubeBackend) reapByEnv(ctx context.Context, url, token, podName, turn string, env map[string]string) {
+	ctx, cancel := context.WithTimeout(ctx, turnCleanupTimeout)
+	defer cancel()
+	res, err := execagent.Exec(ctx, b.httpc, url, token, execagent.ExecRequest{
+		Command:    []string{"bash", "-c", procreap.Script()},
+		Env:        env,
+		InheritEnv: true,
+		TimeoutMs:  procreap.TimeoutMs,
+	})
+	if err != nil {
+		log.Printf("[chat] %s", i18n.Log("chatruntime.log.turn_reap_failed", "container", podName, "err", err))
+		return
+	}
+	for _, l := range procreap.Parse(res.Stdout) {
+		key := "chatruntime.log.turn_process_reaped"
+		if l.Survivor {
+			key = "chatruntime.log.turn_process_survived"
+		}
+		log.Printf("[chat] %s", i18n.Log(key, "container", podName, "turn", turn, "process", l.Process))
+	}
 }
 
 func (b *kubeBackend) Running(ctx context.Context, podName string) bool {

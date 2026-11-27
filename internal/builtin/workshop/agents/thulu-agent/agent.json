@@ -1,0 +1,24 @@
+{
+  "revision": 2,
+  "tags": ["flow", "code"],
+  "descriptions": {
+    "es": "Un agente de programación general para la columna En curso: entiende la tarea, hace el cambio en su rama, corre los tests y el lint del proyecto sobre lo que tocó y commitea. No pushea ni abre el PR: eso lo decide una persona en Revisión."
+  },
+  "definition": {
+    "name": "thulu-agent",
+    "type": "thulu-agent",
+    "description": "A general-purpose coding agent for the In progress column: understands the task, makes the change on its branch, runs the project's tests and lint on what it touched and commits. It neither pushes nor opens the PR: a person decides that in Review.",
+    "valid_stages": ["in_progress"],
+    "turns_by_stage": {"in_progress": "120"},
+    "mcp_by_stage": {
+      "in_progress": [
+        "octopus-api@read+task_ask+task_checklist_check+task_attach",
+        "thulu-sandbox",
+        "thulu-github@read+commit"
+      ]
+    },
+    "system_skills_off": {
+      "in_progress": ["octopus-refinement", "octopus-test-cases", "octopus-observability"]
+    }
+  }
+}

@@ -28,6 +28,7 @@ const VIA: Record<string, string> = {
   kick_back: "lib.history.via.kick_back",
   changes_requested: "lib.history.via.changes_requested",
   stage_deleted: "lib.history.via.stage_deleted",
+  skip_removed: "lib.history.via.skip_removed",
 };
 
 const VERDICT: Record<string, string> = {
@@ -59,6 +60,60 @@ function credentialBlockedText(faults: unknown): string {
     default:
       return t("lib.history.credential.unusable", { name });
   }
+}
+
+// A stage_skip_removed event in words, by its cause (internal/task/stage_skips.go SkipCause*). The
+// daemon writes the reason of a system cause in its own language, so those lines come from the
+// cause alone.
+function skipRemovedText(p: Record<string, unknown>, stage: string): string {
+  const who = historyActor(str(p.by));
+  const reason = str(p.reason);
+  switch (str(p.cause)) {
+    case "entered":
+      return t("lib.history.skip.entered", { stage, who });
+    case "ui_diff":
+      return t("lib.history.skip.ui_diff", { stage });
+    case "diff_unreadable":
+      return t("lib.history.skip.diff_unreadable", { stage });
+    case "refinement_dropped":
+      return t("lib.history.skip.refinement_dropped", { stage });
+    case "board_changed":
+      return t("lib.history.skip.board_changed", { stage });
+  }
+  if (p.deferred === true) return t("lib.history.skip.removed_later", { who, stage, reason });
+  if (p.passed === true) return t("lib.history.skip.removed_back", { who, stage, reason });
+  return t("lib.history.skip.removed", { who, stage, reason });
+}
+
+// The checks the daemon ran before it skipped an audit (internal/task/audit_signals.go); an id this
+// build does not know shows as itself.
+const AUDIT_CHECKS: Record<string, string> = {
+  exit: "lib.history.audit_checks.exit",
+  out_of_turns: "lib.history.audit_checks.out_of_turns",
+  verdict: "lib.history.audit_checks.verdict",
+  locked_tests: "lib.history.audit_checks.locked_tests",
+  scope: "lib.history.audit_checks.scope",
+  diff_size: "lib.history.audit_checks.diff_size",
+  skips: "lib.history.audit_checks.skips",
+  flags: "lib.history.audit_checks.flags",
+  no_output: "lib.history.audit_checks.no_output",
+  person_relaunch: "lib.history.audit_checks.person_relaunch",
+  risk_high: "lib.history.audit_checks.risk_high",
+};
+
+export function auditChecksText(checks: unknown): string {
+  if (!Array.isArray(checks)) return "";
+  return checks
+    .map((c) => {
+      const id = str((c as { check?: unknown } | null)?.check);
+      if (!id) return "";
+      const label = AUDIT_CHECKS[id] ? t(AUDIT_CHECKS[id]) : id;
+      return str((c as { state?: unknown }).state) === "unread"
+        ? t("lib.history.audit_check_unread", { check: label })
+        : label;
+    })
+    .filter(Boolean)
+    .join(", ");
 }
 
 export function historyText(
@@ -107,6 +162,13 @@ export function historyText(
           : t("lib.history.verdict.kick_back");
       return VERDICT[v] ? t(VERDICT[v]) : "";
     }
+    case "auditor_skipped":
+      if (!str(p.agent) || !str(p.stage)) return "";
+      return t("lib.history.auditor_skipped", {
+        agent: str(p.agent),
+        stage: stage(p.stage),
+        checks: auditChecksText(p.checks),
+      });
     case "task_created":
       return str(p.cloned_from)
         ? t("lib.history.cloned_from", { task: str(p.cloned_from).slice(0, 8) })
@@ -114,8 +176,41 @@ export function historyText(
     case "run_queued":
     case "run_not_started":
       return localized(p);
+    case "run_outlived":
+      if (!str(p.agent) || !str(p.stage) || !str(p.task_stage)) return "";
+      return t("lib.history.outlived", {
+        agent: str(p.agent),
+        stage: stage(p.stage),
+        now: stage(p.task_stage),
+      });
+    case "stage_launch_deferred":
+      if (!str(p.agent) || !str(p.stage)) return "";
+      return t("lib.history.deferred", {
+        agent: str(p.agent),
+        stage: stage(p.stage),
+        busy: stage(p.busy_stage),
+      });
     case "credential_blocked":
       return credentialBlockedText(p.faults);
+    case "stage_skip_added":
+      if (!str(p.stage)) return "";
+      return t("lib.history.skip.added", {
+        who: historyActor(str(p.by)),
+        stage: stage(p.stage),
+        reason: str(p.reason),
+      });
+    case "stage_skip_removed":
+      return str(p.stage) ? skipRemovedText(p, stage(p.stage)) : "";
+    case "stage_skipped":
+      if (!str(p.stage)) return "";
+      if (p.task_skip === true)
+        return t("lib.history.skip.passed_over", { stage: stage(p.stage), reason: str(p.reason) });
+      return Array.isArray(p.required) && p.required.length
+        ? t("lib.history.skip.passed_over_surface", {
+            stage: stage(p.stage),
+            required: p.required.map(String).join(", "),
+          })
+        : "";
     case "conversation_message": {
       const key = DELIVERY[str(p.delivery)];
       if (!key || !("line" in p)) return "";

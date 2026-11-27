@@ -1,0 +1,58 @@
+{
+  "title": "Journey",
+  "label": "Path of the task through the columns",
+  "hint": "Hover a column or an arrow",
+  "now": "Now",
+  "skipped": {
+    "one": "skipped ×{count}",
+    "other": "skipped ×{count}"
+  },
+  "minutes": "{m} min",
+  "hours": "{h} h {mm}",
+  "tip": {
+    "visited": {
+      "one": "Visited {count} time · {time} here",
+      "other": "Visited {count} times · {time} here"
+    },
+    "unseen": "Not reached yet",
+    "questions": {
+      "one": "{count} question ({waited} waited for a person)",
+      "other": "{count} questions ({waited} waited for a person)"
+    },
+    "stops": {
+      "one": "Stopped for a person {count} time",
+      "other": "Stopped for a person {count} times"
+    },
+    "fails": {
+      "one": "{count} run failed",
+      "other": "{count} runs failed"
+    },
+    "moved": {
+      "one": "A person moved it on {count} time",
+      "other": "A person moved it on {count} times"
+    },
+    "hop": {
+      "one": "{from} → {to} · {count} time ({rounds})",
+      "other": "{from} → {to} · {count} times ({rounds})"
+    },
+    "by_person": "moved by a person",
+    "skipped": "skipped {stages}",
+    "back_agent": {
+      "one": "{from} sent it back to {to} · {count} time",
+      "other": "{from} sent it back to {to} · {count} times"
+    },
+    "back_person": {
+      "one": "A person sent it back to {to} · {count} time",
+      "other": "A person sent it back to {to} · {count} times"
+    }
+  },
+  "legend": {
+    "times": "times in that column",
+    "agent_back": "an agent sent it back",
+    "person_back": "a person sent it back",
+    "questions": "questions",
+    "stops": "stopped for a person",
+    "fails": "run failed",
+    "round": "R8 = round 8"
+  }
+}

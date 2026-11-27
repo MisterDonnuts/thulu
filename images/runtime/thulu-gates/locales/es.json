@@ -1,0 +1,290 @@
+{
+  "cli": {
+    "usage": "Uso:\n  thulu-gates run [--base <ref>] [--out <dir>] [--only a,b] [--skip a,b] [--perf] [--mutation]\n                  [--critical <glob>]... [--coverage-min 80] [--dup-max 3] [--quiet]\n                  [--cache-dir <dir>] [--quarantine <file>] [--profile <file>] [--reuse]\n  thulu-gates doctor [--json]\n\nChequeos: tests, coverage_new, duplication, lint, typecheck, sast, secrets, deps, licenses,\nphantom_deps, suppressions, mutation (con --mutation), perf (con --perf).\nBase: git merge-base origin/<default> HEAD. Salida: $TMPDIR/thulu-gates/<timestamp>.\nExit: 0 pasa, 1 hay bloqueantes, 2 error de la herramienta.",
+    "missing_value": "{flag} necesita un valor",
+    "not_a_number": "{flag} toma un número, llegó \"{value}\"",
+    "unknown_flag": "flag desconocido {flag}",
+    "unknown_check": "chequeo desconocido \"{id}\" (chequeos: {ids})",
+    "unknown_command": "comando desconocido \"{command}\"",
+    "bad_base": "--base {ref} no nombra un commit",
+    "no_base": "este clon no tiene origin/{branch} ni {branch}, así que no hay base contra la cual comparar. Pasá --base <commit>: el brief de la tarea lo da como commit base",
+    "config_unparsable": "{path} no es JSON válido; se usan los valores por defecto",
+    "not_selected": "no seleccionado (--only)",
+    "skipped_by_flag": "salteado con --skip",
+    "start": "thulu-gates: base {base}, head {head}, {files} archivos cambiados, stack: {stacks}",
+    "running": "thulu-gates: {id}…",
+    "check_crashed": "thulu-gates falló adentro de este chequeo: {detail}",
+    "out_contains_repo": "--out {out} es el repo o un directorio que lo contiene; elegí un directorio propio",
+    "worktree_failed": "no se pudo sacar la base en un worktree: {detail}",
+    "wrote": "Reportes: {out}/report.json, {out}/report.md, {out}/sarif/",
+    "quarantine_unreadable": "el archivo de cuarentena {path} no es JSON válido; no se deja afuera ningún test y no se va a escribir",
+    "quarantine_not_saved": "no se pudo escribir el archivo de cuarentena {path}: {detail}",
+    "profile_missing": "el perfil de gates {path} no existe; se corre sin él",
+    "profile_unparsable": "el perfil de gates {path} no es un objeto JSON; se corre sin él",
+    "profile_no_entry": "el perfil de gates {path} no tiene entrada para {name} (tiene: {names}); se corre sin él",
+    "config_accept_ignored": "{path} define accept_unverified, que sólo puede definir el perfil del proyecto en Thulu; se ignora",
+    "accept_not_object": "accept_unverified en el perfil de gates {path} tiene que asociar ids de chequeo con motivos; se ignora",
+    "accept_unknown_check": "accept_unverified en el perfil de gates {path} nombra un chequeo desconocido {id} (chequeos: {ids}); se ignora",
+    "accept_no_reason": "accept_unverified en el perfil de gates {path} no da motivo para {id}; una persona tiene que escribir por qué, así que no se acepta",
+    "reuse_dirty": "no se reusa un reporte guardado: el árbol tiene archivos sin commitear o sin seguimiento",
+    "reuse_miss": "no hay reporte guardado para este head, base y config; se corren los chequeos"
+  },
+  "common": {
+    "missing_tool": "no está instalado: {tools}. Instalar: {install}",
+    "timeout": "cortado a los {seconds} s (presupuesto de tiempo)",
+    "tool_failed": "{tool} falló: {detail}",
+    "no_changes": "no hay archivos cambiados",
+    "no_findings": "sin hallazgos en líneas nuevas",
+    "blocking_findings": {
+      "one": "{count} hallazgo bloqueante en líneas nuevas",
+      "other": "{count} hallazgos bloqueantes en líneas nuevas"
+    },
+    "warning_findings": {
+      "one": "{count} advertencia",
+      "other": "{count} advertencias"
+    },
+    "preexisting": {
+      "one": "{count} preexistente en base (no bloquea)",
+      "other": "{count} preexistentes en base (no bloquean)"
+    },
+    "base_not_compared": "no se pudo revisar base, así que no se comparó nada contra ella"
+  },
+  "tests": {
+    "no_projects": "el diff no toca ningún proyecto con tests",
+    "no_runner": "no se encontró un runner de tests para los proyectos tocados",
+    "nothing_ran_missing": "no corrió nada; falta: {what}",
+    "failed": {
+      "one": "{count} test falla",
+      "other": "{count} tests fallan"
+    },
+    "passed": "pasan todos los tests",
+    "passed_partial": "pasan los tests; no corrieron para: {missing}",
+    "go_build_failed": "{pkg} no compila",
+    "base_incomplete": "la corrida en base no cubrió la suite, así que no sirve de referencia",
+    "base_unavailable": "no se pudo revisar base",
+    "fails_on_base": "también falla en base",
+    "hangs_on_base": "{name} no termina, tampoco en base: en cuarentena",
+    "hangs_head": "{name} no termina en esta rama; {where}",
+    "passes_on_base": "en base termina",
+    "cannot_exclude": "este runner no puede dejar afuera un solo test",
+    "rest_not_verified": "la corrida se cortó a los {seconds} s; el resto de la suite no está verificado",
+    "quarantined": {
+      "one": "{count} test en cuarentena sin correr",
+      "other": "{count} tests en cuarentena sin correr"
+    },
+    "quarantine_unsupported": "los tests en cuarentena corrieron igual ({runners} no puede dejar afuera un solo test)",
+    "no_report": "el runner salió sin su reporte de resultados",
+    "none_ran": "no corrió ningún test",
+    "incomplete": "sin verificar: {reason}",
+    "karma_disconnected": "Karma corrió {executed} de {total} tests y el navegador se desconectó",
+    "karma_error": "Karma corrió {executed} de {total} tests y terminó en ERROR",
+    "karma_none": "Karma corrió {executed} de {total} tests",
+    "karma_partial": "Karma corrió sólo {executed} de {total} tests"
+  },
+  "coverage": {
+    "no_report": "los tests corrieron pero no dejaron reporte de cobertura (instalá un proveedor, por ejemplo @vitest/coverage-v8 o pytest-cov)",
+    "no_tests_run": "sin cobertura: el chequeo de tests no corrió",
+    "no_data_for": "no hay datos de cobertura para los archivos cambiados: {files}",
+    "no_new_lines": "no hay líneas ejecutables nuevas",
+    "below": "{pct}% de las líneas nuevas cubiertas ({covered}/{total}), mínimo {min}%",
+    "below_ungated": "{pct}% de las líneas nuevas cubiertas ({covered}/{total}); con menos de {lines} líneas nuevas no bloquea",
+    "under_warn": "{pct}% de las líneas nuevas cubiertas ({covered}/{total}), menos de {warn}%",
+    "ok": "{pct}% de las líneas nuevas cubiertas ({covered}/{total})",
+    "file_no_data": "ningún reporte de cobertura menciona este archivo: ningún test lo cargó, o el runner sólo reporta los archivos que importan los tests",
+    "uncovered": "las líneas nuevas {lines} no se ejecutaron en los tests",
+    "tests_not_finished": "sin verificar: el chequeo tests no terminó, así que su cobertura es de una parte de la suite"
+  },
+  "duplication": {
+    "no_new_lines": "no hay líneas de código nuevas",
+    "clone": "las líneas {start}-{end} repiten {other}:{otherStart}-{otherEnd}",
+    "fail": "{pct}% de las líneas nuevas duplicadas ({dup}/{total}, máximo {max}%); {clones} clones",
+    "warn": "{pct}% de las líneas nuevas duplicadas ({dup}/{total}, máximo {max}%)",
+    "ok": "{pct}% de {total} líneas nuevas duplicadas (máximo {max}%)",
+    "clone_base": "las líneas {start}-{end} repiten {other}:{otherStart}-{otherEnd}, una copia que ya estaba en base"
+  },
+  "lint": {
+    "no_projects": "el diff no toca ningún proyecto para lintear",
+    "clean": "sin hallazgos de lint en líneas nuevas",
+    "clean_partial": "sin hallazgos de lint en líneas nuevas; no corrió: {missing}",
+    "not_formatted": "sin formatear ({tool})",
+    "complexity_new": "{fn} tiene complejidad {ccn}, más de {max}",
+    "complexity_grew": "{fn} pasó de complejidad {old} a {ccn} (límite {max})",
+    "not_configured": "no hay linter configurado para los archivos tocados (config de eslint o prettier, golangci-lint, ruff...)",
+    "not_formatted_base": "sin formatear ({tool}), ya estaba así en base",
+    "complexity_base": "{fn} tiene complejidad {ccn}, más de {max}; en base era {old}"
+  },
+  "typecheck": {
+    "no_projects": "el diff no toca ningún proyecto para chequear tipos",
+    "nothing_to_check": "no hay chequeo de tipos configurado en los proyectos tocados",
+    "errors": {
+      "one": "{count} error de tipos nuevo",
+      "other": "{count} errores de tipos nuevos"
+    },
+    "clean": "sin errores de tipos",
+    "clean_preexisting": "sin errores de tipos nuevos ({count} ya estaban en la base)"
+  },
+  "secrets": {
+    "builtin_match": "parece un secreto ({rule})",
+    "builtin_clean": "sin secretos en líneas nuevas (gitleaks no está instalado; sólo patrones propios)",
+    "builtin_found": {
+      "one": "{count} secreto en líneas nuevas (patrones propios; gitleaks no está instalado)",
+      "other": "{count} secretos en líneas nuevas (patrones propios; gitleaks no está instalado)"
+    },
+    "clean": "sin secretos en los commits de la rama ni en archivos sin commitear",
+    "found": {
+      "one": "{count} secreto en la rama",
+      "other": "{count} secretos en la rama"
+    }
+  },
+  "deps": {
+    "no_changes": "no se agregaron ni cambiaron dependencias",
+    "not_found": "{name} no existe en el registry de {ecosystem}",
+    "version_not_found": "{name}@{version} no existe en el registry",
+    "recent": "{name} se publicó por primera vez hace {days} días (menos de {min})",
+    "phantom_fail": {
+      "one": "{count} dependencia no resuelve en su registry",
+      "other": "{count} dependencias no resuelven en su registry"
+    },
+    "unreachable": {
+      "one": "registry inaccesible para {count} paquete; no se verificó que exista",
+      "other": "registry inaccesible para {count} paquetes; no se verificó que existan"
+    },
+    "all_exist": {
+      "one": "{count} dependencia cambiada existe en su registry",
+      "other": "{count} dependencias cambiadas existen en sus registries"
+    },
+    "vuln_fixable": "{pkg} {version}: {id} {summary} (hay arreglo; {tool})",
+    "vuln_nofix": "{pkg} {version}: {id} {summary} (todavía sin arreglo; {tool})",
+    "vuln_fail": {
+      "one": "{count} vulnerabilidad alta o crítica con arreglo en dependencias cambiadas",
+      "other": "{count} vulnerabilidades altas o críticas con arreglo en dependencias cambiadas"
+    },
+    "vuln_none": "sin vulnerabilidades conocidas",
+    "vuln_preexisting": "sin vulnerabilidades nuevas ({count} ya estaban en la base)"
+  },
+  "licenses": {
+    "unknown": "no se conoce la licencia de {name}",
+    "not_allowed": "{name} tiene licencia {license}, fuera de licenses_allow",
+    "not_in_default": "{name} tiene licencia {license}, fuera de la lista permisiva por defecto (definí licenses_allow para decidir)",
+    "fail": {
+      "one": "{count} dependencia con licencia fuera de licenses_allow",
+      "other": "{count} dependencias con licencia fuera de licenses_allow"
+    },
+    "ok": {
+      "one": "{count} dependencia cambiada con licencia permitida",
+      "other": "{count} dependencias cambiadas con licencias permitidas"
+    }
+  },
+  "suppressions": {
+    "gate_config": "{file} configura un gate; cambiarlo pide la aprobación de una persona",
+    "no_rule": "{kind} sin la regla que silencia",
+    "no_reason": "{kind} sin un motivo de al menos {min} palabras en la misma línea",
+    "file_level": "{kind} silencia el archivo entero",
+    "fail": {
+      "one": "{count} supresión o cambio de config de gates para revisar",
+      "other": "{count} supresiones o cambios de config de gates para revisar"
+    },
+    "none": "sin supresiones nuevas",
+    "valid_only": {
+      "one": "{count} supresión nueva, con regla y motivo",
+      "other": "{count} supresiones nuevas, cada una con regla y motivo"
+    }
+  },
+  "mutation": {
+    "not_requested": "no pedido (--mutation)",
+    "nothing_changed": "no hay líneas de código cambiadas para mutar",
+    "mutmut_config": "mutmut 3 lee los archivos de [tool.mutmut] source_paths (paths_to_mutate en las 3.x más viejas); agregalo a pyproject.toml",
+    "survived": "mutante vivo: {mutator}",
+    "not_covered": "ningún test llega a este mutante: {mutator}",
+    "critical_fail": "eficacia {efficacy}% en archivos críticos, mínimo {min}%",
+    "survivors": "{survived} de {total} mutantes sobrevivieron o ningún test los alcanzó (eficacia {efficacy}%)",
+    "all_killed": "los {total} mutantes murieron",
+    "no_mutants": "la herramienta no generó mutantes en las líneas cambiadas"
+  },
+  "perf": {
+    "not_requested": "no pedido (--perf)",
+    "nothing_to_run": "no hay benchmarks de Go en los paquetes cambiados ni perf.command en .thulu/gates.json",
+    "no_base_worktree": "no se pudo sacar la base para comparar",
+    "bench_failed": "los benchmarks fallaron en head: {detail}",
+    "hyperfine_no_times": "hyperfine terminó en {side} pero su JSON no trae tiempos de corrida ({file})",
+    "command_failed": "perf.command falló en {side} (exit {code}): {detail}",
+    "method": "Base y head intercaladas en la misma máquina, {rounds} rondas; Mann-Whitney U de dos colas, mediana con IC 95%.",
+    "row": "{name}: {delta}% más lento (p={p}, n={n})",
+    "regressions": {
+      "one": "{count} regresión significativa de más de {threshold}%",
+      "other": "{count} regresiones significativas de más de {threshold}%"
+    },
+    "minor": {
+      "one": "{count} regresión significativa de menos de {threshold}%",
+      "other": "{count} regresiones significativas de menos de {threshold}%"
+    },
+    "no_change": {
+      "one": "{count} benchmark, sin regresión detectable",
+      "other": "{count} benchmarks, sin regresión detectable"
+    }
+  },
+  "doctor": {
+    "header": "Stack: {stacks}",
+    "no_stack": "no se detectó ninguno (se listan todos)",
+    "missing": {
+      "one": "Falta {count} herramienta; los chequeos que la usan salen skip con el comando para instalarla.",
+      "other": "Faltan {count} herramientas; los chequeos que las usan salen skip con el comando para instalarlas."
+    },
+    "all_found": "Están todas las herramientas."
+  },
+  "report": {
+    "verdict_pass": "PASA",
+    "verdict_fail": "FALLA",
+    "dirty": "(+ cambios sin commitear)",
+    "header": "Base `{base}` · Head `{head}` · Stack: {stack} · {duration}",
+    "blocking_list": "Bloquean: {ids}",
+    "error_list": "No terminaron: {ids}",
+    "col": {
+      "check": "Chequeo",
+      "status": "Estado",
+      "blocks": "Bloquea",
+      "tool": "Herramienta",
+      "summary": "Resumen",
+      "time": "Tiempo",
+      "benchmark": "Benchmark",
+      "base": "Base (mediana [IC 95%])",
+      "head": "Head (mediana [IC 95%])",
+      "result": "Resultado"
+    },
+    "yes": "sí",
+    "status": {
+      "pass": "pasa",
+      "fail": "FALLA",
+      "warn": "aviso",
+      "skip": "skip",
+      "error": "ERROR",
+      "accepted": "aceptado"
+    },
+    "blocking_findings": "Hallazgos bloqueantes",
+    "warnings": "Advertencias",
+    "more": "- y {count} más en {sarif}",
+    "perf": "Performance",
+    "perf_verdict": {
+      "regression": "regresión",
+      "minor_regression": "regresión bajo el umbral",
+      "improvement": "más rápido",
+      "no_change": "sin cambio detectable",
+      "new": "nuevo, sin base",
+      "too_few": "pocas muestras"
+    },
+    "not_run": "No corrieron",
+    "reproduce": "Reproducir",
+    "preexisting": "Preexistente en base (no bloquea)",
+    "quarantine": "Tests en cuarentena sin correr",
+    "quarantine_added": "Puestos en cuarentena en esta corrida (también fallan o se cuelgan en base)",
+    "quarantine_file": "Archivo de cuarentena: `{path}`. Borrá una entrada para volver a correr ese test.",
+    "quarantine_changed": "(esta rama cambia su archivo)",
+    "not_verified": "Sin verificar",
+    "not_verified_skip": "salteado: {why}",
+    "not_verified_error": "no terminó: {why}",
+    "accepted": "Aceptados como no verificados (perfil del proyecto)",
+    "accepted_line": "aceptado: {reason}. Por qué no se verificó: {why}",
+    "reused": "Reusado de {time} (la corrida en `{out}`): no se volvió a correr ningún chequeo.",
+    "reused_partly": "Reusado de {time} (la corrida en `{out}`); se volvieron a correr: {ids}."
+  }
+}

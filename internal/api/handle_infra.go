@@ -184,12 +184,16 @@ func (s *Server) handleInfraStopContainer(w http.ResponseWriter, r *http.Request
 			writeError(w, r, http.StatusInternalServerError, lerr)
 			return
 		}
-		owner := sandboxOwnerOf(c, live)
-		if owner == "" {
-			writeErrKey(w, r, http.StatusNotFound, "api.infra.errors.sandbox_not_found", "id", id)
-			return
+		if owner := sandboxOwnerOf(c, live); owner != "" {
+			err = s.sandbox.mgr.Release(r.Context(), owner)
+			break
 		}
-		err = s.sandbox.mgr.Release(r.Context(), owner)
+		// No row owns it: a daemon died between creating it and recording it. Nothing releases it,
+		// so stopping removes it.
+		err = s.sandbox.mgr.RemoveContainer(r.Context(), infraRunID(c, s.kube != nil))
+		if err == nil {
+			s.infra.Forget(c.ID)
+		}
 	case infra.KindAgent, infra.KindChat:
 		err = s.stopAgentOrChat(r, c)
 	default:

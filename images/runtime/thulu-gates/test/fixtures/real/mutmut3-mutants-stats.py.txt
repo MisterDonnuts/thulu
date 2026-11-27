@@ -1,0 +1,630 @@
+import os
+import subprocess
+
+STRIPE_KEY = "not-a-key-in-this-fixture"
+
+
+from mutmut.mutation.trampoline import wrap_in_trampoline as _mutmut_mutated, MutantDict
+mutants_x_median__mutmut: MutantDict = {}  # type: ignore
+
+
+@_mutmut_mutated(mutants_x_median__mutmut)
+def median(values: list[float]) -> float:
+    ordered = sorted(values)
+    mid = len(ordered) // 2
+    if len(ordered) % 2 == 0:
+        return (ordered[mid - 1] + ordered[mid]) / 2
+    return ordered[mid]
+
+
+def x_median__mutmut_orig(values: list[float]) -> float:
+    ordered = sorted(values)
+    mid = len(ordered) // 2
+    if len(ordered) % 2 == 0:
+        return (ordered[mid - 1] + ordered[mid]) / 2
+    return ordered[mid]
+
+
+def x_median__mutmut_1(values: list[float]) -> float:
+    ordered = None
+    mid = len(ordered) // 2
+    if len(ordered) % 2 == 0:
+        return (ordered[mid - 1] + ordered[mid]) / 2
+    return ordered[mid]
+
+
+def x_median__mutmut_2(values: list[float]) -> float:
+    ordered = sorted(None)
+    mid = len(ordered) // 2
+    if len(ordered) % 2 == 0:
+        return (ordered[mid - 1] + ordered[mid]) / 2
+    return ordered[mid]
+
+
+def x_median__mutmut_3(values: list[float]) -> float:
+    ordered = sorted(values)
+    mid = None
+    if len(ordered) % 2 == 0:
+        return (ordered[mid - 1] + ordered[mid]) / 2
+    return ordered[mid]
+
+
+def x_median__mutmut_4(values: list[float]) -> float:
+    ordered = sorted(values)
+    mid = len(ordered) / 2
+    if len(ordered) % 2 == 0:
+        return (ordered[mid - 1] + ordered[mid]) / 2
+    return ordered[mid]
+
+
+def x_median__mutmut_5(values: list[float]) -> float:
+    ordered = sorted(values)
+    mid = len(ordered) // 3
+    if len(ordered) % 2 == 0:
+        return (ordered[mid - 1] + ordered[mid]) / 2
+    return ordered[mid]
+
+
+def x_median__mutmut_6(values: list[float]) -> float:
+    ordered = sorted(values)
+    mid = len(ordered) // 2
+    if len(ordered) / 2 == 0:
+        return (ordered[mid - 1] + ordered[mid]) / 2
+    return ordered[mid]
+
+
+def x_median__mutmut_7(values: list[float]) -> float:
+    ordered = sorted(values)
+    mid = len(ordered) // 2
+    if len(ordered) % 3 == 0:
+        return (ordered[mid - 1] + ordered[mid]) / 2
+    return ordered[mid]
+
+
+def x_median__mutmut_8(values: list[float]) -> float:
+    ordered = sorted(values)
+    mid = len(ordered) // 2
+    if len(ordered) % 2 != 0:
+        return (ordered[mid - 1] + ordered[mid]) / 2
+    return ordered[mid]
+
+
+def x_median__mutmut_9(values: list[float]) -> float:
+    ordered = sorted(values)
+    mid = len(ordered) // 2
+    if len(ordered) % 2 == 1:
+        return (ordered[mid - 1] + ordered[mid]) / 2
+    return ordered[mid]
+
+
+def x_median__mutmut_10(values: list[float]) -> float:
+    ordered = sorted(values)
+    mid = len(ordered) // 2
+    if len(ordered) % 2 == 0:
+        return (ordered[mid - 1] + ordered[mid]) * 2
+    return ordered[mid]
+
+
+def x_median__mutmut_11(values: list[float]) -> float:
+    ordered = sorted(values)
+    mid = len(ordered) // 2
+    if len(ordered) % 2 == 0:
+        return (ordered[mid - 1] - ordered[mid]) / 2
+    return ordered[mid]
+
+
+def x_median__mutmut_12(values: list[float]) -> float:
+    ordered = sorted(values)
+    mid = len(ordered) // 2
+    if len(ordered) % 2 == 0:
+        return (ordered[mid + 1] + ordered[mid]) / 2
+    return ordered[mid]
+
+
+def x_median__mutmut_13(values: list[float]) -> float:
+    ordered = sorted(values)
+    mid = len(ordered) // 2
+    if len(ordered) % 2 == 0:
+        return (ordered[mid - 2] + ordered[mid]) / 2
+    return ordered[mid]
+
+
+def x_median__mutmut_14(values: list[float]) -> float:
+    ordered = sorted(values)
+    mid = len(ordered) // 2
+    if len(ordered) % 2 == 0:
+        return (ordered[mid - 1] + ordered[mid]) / 3
+    return ordered[mid]
+
+mutants_x_median__mutmut['_mutmut_orig'] = x_median__mutmut_orig # type: ignore # mutmut generated
+mutants_x_median__mutmut['x_median__mutmut_1'] = x_median__mutmut_1 # type: ignore # mutmut generated
+mutants_x_median__mutmut['x_median__mutmut_2'] = x_median__mutmut_2 # type: ignore # mutmut generated
+mutants_x_median__mutmut['x_median__mutmut_3'] = x_median__mutmut_3 # type: ignore # mutmut generated
+mutants_x_median__mutmut['x_median__mutmut_4'] = x_median__mutmut_4 # type: ignore # mutmut generated
+mutants_x_median__mutmut['x_median__mutmut_5'] = x_median__mutmut_5 # type: ignore # mutmut generated
+mutants_x_median__mutmut['x_median__mutmut_6'] = x_median__mutmut_6 # type: ignore # mutmut generated
+mutants_x_median__mutmut['x_median__mutmut_7'] = x_median__mutmut_7 # type: ignore # mutmut generated
+mutants_x_median__mutmut['x_median__mutmut_8'] = x_median__mutmut_8 # type: ignore # mutmut generated
+mutants_x_median__mutmut['x_median__mutmut_9'] = x_median__mutmut_9 # type: ignore # mutmut generated
+mutants_x_median__mutmut['x_median__mutmut_10'] = x_median__mutmut_10 # type: ignore # mutmut generated
+mutants_x_median__mutmut['x_median__mutmut_11'] = x_median__mutmut_11 # type: ignore # mutmut generated
+mutants_x_median__mutmut['x_median__mutmut_12'] = x_median__mutmut_12 # type: ignore # mutmut generated
+mutants_x_median__mutmut['x_median__mutmut_13'] = x_median__mutmut_13 # type: ignore # mutmut generated
+mutants_x_median__mutmut['x_median__mutmut_14'] = x_median__mutmut_14 # type: ignore # mutmut generated
+mutants_x_mean__mutmut: MutantDict = {}  # type: ignore
+
+
+@_mutmut_mutated(mutants_x_mean__mutmut)
+def mean(values: list[float]) -> float:
+    if not values:
+        raise ValueError("average of an empty list")
+    total = 0.0
+    for v in values:
+        total += v
+    result = total / len(values)
+    rounded = round(result * 100) / 100
+    return rounded
+
+
+def x_mean__mutmut_orig(values: list[float]) -> float:
+    if not values:
+        raise ValueError("average of an empty list")
+    total = 0.0
+    for v in values:
+        total += v
+    result = total / len(values)
+    rounded = round(result * 100) / 100
+    return rounded
+
+
+def x_mean__mutmut_1(values: list[float]) -> float:
+    if values:
+        raise ValueError("average of an empty list")
+    total = 0.0
+    for v in values:
+        total += v
+    result = total / len(values)
+    rounded = round(result * 100) / 100
+    return rounded
+
+
+def x_mean__mutmut_2(values: list[float]) -> float:
+    if not values:
+        raise ValueError(None)
+    total = 0.0
+    for v in values:
+        total += v
+    result = total / len(values)
+    rounded = round(result * 100) / 100
+    return rounded
+
+
+def x_mean__mutmut_3(values: list[float]) -> float:
+    if not values:
+        raise ValueError("XXaverage of an empty listXX")
+    total = 0.0
+    for v in values:
+        total += v
+    result = total / len(values)
+    rounded = round(result * 100) / 100
+    return rounded
+
+
+def x_mean__mutmut_4(values: list[float]) -> float:
+    if not values:
+        raise ValueError("AVERAGE OF AN EMPTY LIST")
+    total = 0.0
+    for v in values:
+        total += v
+    result = total / len(values)
+    rounded = round(result * 100) / 100
+    return rounded
+
+
+def x_mean__mutmut_5(values: list[float]) -> float:
+    if not values:
+        raise ValueError("average of an empty list")
+    total = None
+    for v in values:
+        total += v
+    result = total / len(values)
+    rounded = round(result * 100) / 100
+    return rounded
+
+
+def x_mean__mutmut_6(values: list[float]) -> float:
+    if not values:
+        raise ValueError("average of an empty list")
+    total = 1.0
+    for v in values:
+        total += v
+    result = total / len(values)
+    rounded = round(result * 100) / 100
+    return rounded
+
+
+def x_mean__mutmut_7(values: list[float]) -> float:
+    if not values:
+        raise ValueError("average of an empty list")
+    total = 0.0
+    for v in values:
+        total = v
+    result = total / len(values)
+    rounded = round(result * 100) / 100
+    return rounded
+
+
+def x_mean__mutmut_8(values: list[float]) -> float:
+    if not values:
+        raise ValueError("average of an empty list")
+    total = 0.0
+    for v in values:
+        total -= v
+    result = total / len(values)
+    rounded = round(result * 100) / 100
+    return rounded
+
+
+def x_mean__mutmut_9(values: list[float]) -> float:
+    if not values:
+        raise ValueError("average of an empty list")
+    total = 0.0
+    for v in values:
+        total += v
+    result = None
+    rounded = round(result * 100) / 100
+    return rounded
+
+
+def x_mean__mutmut_10(values: list[float]) -> float:
+    if not values:
+        raise ValueError("average of an empty list")
+    total = 0.0
+    for v in values:
+        total += v
+    result = total * len(values)
+    rounded = round(result * 100) / 100
+    return rounded
+
+
+def x_mean__mutmut_11(values: list[float]) -> float:
+    if not values:
+        raise ValueError("average of an empty list")
+    total = 0.0
+    for v in values:
+        total += v
+    result = total / len(values)
+    rounded = None
+    return rounded
+
+
+def x_mean__mutmut_12(values: list[float]) -> float:
+    if not values:
+        raise ValueError("average of an empty list")
+    total = 0.0
+    for v in values:
+        total += v
+    result = total / len(values)
+    rounded = round(result * 100) * 100
+    return rounded
+
+
+def x_mean__mutmut_13(values: list[float]) -> float:
+    if not values:
+        raise ValueError("average of an empty list")
+    total = 0.0
+    for v in values:
+        total += v
+    result = total / len(values)
+    rounded = round(None) / 100
+    return rounded
+
+
+def x_mean__mutmut_14(values: list[float]) -> float:
+    if not values:
+        raise ValueError("average of an empty list")
+    total = 0.0
+    for v in values:
+        total += v
+    result = total / len(values)
+    rounded = round(result / 100) / 100
+    return rounded
+
+
+def x_mean__mutmut_15(values: list[float]) -> float:
+    if not values:
+        raise ValueError("average of an empty list")
+    total = 0.0
+    for v in values:
+        total += v
+    result = total / len(values)
+    rounded = round(result * 101) / 100
+    return rounded
+
+
+def x_mean__mutmut_16(values: list[float]) -> float:
+    if not values:
+        raise ValueError("average of an empty list")
+    total = 0.0
+    for v in values:
+        total += v
+    result = total / len(values)
+    rounded = round(result * 100) / 101
+    return rounded
+
+mutants_x_mean__mutmut['_mutmut_orig'] = x_mean__mutmut_orig # type: ignore # mutmut generated
+mutants_x_mean__mutmut['x_mean__mutmut_1'] = x_mean__mutmut_1 # type: ignore # mutmut generated
+mutants_x_mean__mutmut['x_mean__mutmut_2'] = x_mean__mutmut_2 # type: ignore # mutmut generated
+mutants_x_mean__mutmut['x_mean__mutmut_3'] = x_mean__mutmut_3 # type: ignore # mutmut generated
+mutants_x_mean__mutmut['x_mean__mutmut_4'] = x_mean__mutmut_4 # type: ignore # mutmut generated
+mutants_x_mean__mutmut['x_mean__mutmut_5'] = x_mean__mutmut_5 # type: ignore # mutmut generated
+mutants_x_mean__mutmut['x_mean__mutmut_6'] = x_mean__mutmut_6 # type: ignore # mutmut generated
+mutants_x_mean__mutmut['x_mean__mutmut_7'] = x_mean__mutmut_7 # type: ignore # mutmut generated
+mutants_x_mean__mutmut['x_mean__mutmut_8'] = x_mean__mutmut_8 # type: ignore # mutmut generated
+mutants_x_mean__mutmut['x_mean__mutmut_9'] = x_mean__mutmut_9 # type: ignore # mutmut generated
+mutants_x_mean__mutmut['x_mean__mutmut_10'] = x_mean__mutmut_10 # type: ignore # mutmut generated
+mutants_x_mean__mutmut['x_mean__mutmut_11'] = x_mean__mutmut_11 # type: ignore # mutmut generated
+mutants_x_mean__mutmut['x_mean__mutmut_12'] = x_mean__mutmut_12 # type: ignore # mutmut generated
+mutants_x_mean__mutmut['x_mean__mutmut_13'] = x_mean__mutmut_13 # type: ignore # mutmut generated
+mutants_x_mean__mutmut['x_mean__mutmut_14'] = x_mean__mutmut_14 # type: ignore # mutmut generated
+mutants_x_mean__mutmut['x_mean__mutmut_15'] = x_mean__mutmut_15 # type: ignore # mutmut generated
+mutants_x_mean__mutmut['x_mean__mutmut_16'] = x_mean__mutmut_16 # type: ignore # mutmut generated
+mutants_x_normalize__mutmut: MutantDict = {}  # type: ignore
+
+
+@_mutmut_mutated(mutants_x_normalize__mutmut)
+def normalize(values: list[float], top: float) -> list[float]:
+    out = []  # noqa
+    for v in values:
+        if v == None:  # type: ignore
+            continue
+        out.append(min(max(v / top, 0), 1))
+    return out
+
+
+def x_normalize__mutmut_orig(values: list[float], top: float) -> list[float]:
+    out = []  # noqa
+    for v in values:
+        if v == None:  # type: ignore
+            continue
+        out.append(min(max(v / top, 0), 1))
+    return out
+
+
+def x_normalize__mutmut_1(values: list[float], top: float) -> list[float]:
+    out = None  # noqa
+    for v in values:
+        if v == None:  # type: ignore
+            continue
+        out.append(min(max(v / top, 0), 1))
+    return out
+
+
+def x_normalize__mutmut_2(values: list[float], top: float) -> list[float]:
+    out = []  # noqa
+    for v in values:
+        if v != None:  # type: ignore
+            continue
+        out.append(min(max(v / top, 0), 1))
+    return out
+
+
+def x_normalize__mutmut_3(values: list[float], top: float) -> list[float]:
+    out = []  # noqa
+    for v in values:
+        if v == None:  # type: ignore
+            break
+        out.append(min(max(v / top, 0), 1))
+    return out
+
+
+def x_normalize__mutmut_4(values: list[float], top: float) -> list[float]:
+    out = []  # noqa
+    for v in values:
+        if v == None:  # type: ignore
+            continue
+        out.append(None)
+    return out
+
+
+def x_normalize__mutmut_5(values: list[float], top: float) -> list[float]:
+    out = []  # noqa
+    for v in values:
+        if v == None:  # type: ignore
+            continue
+        out.append(min(None, 1))
+    return out
+
+
+def x_normalize__mutmut_6(values: list[float], top: float) -> list[float]:
+    out = []  # noqa
+    for v in values:
+        if v == None:  # type: ignore
+            continue
+        out.append(min(max(v / top, 0), None))
+    return out
+
+
+def x_normalize__mutmut_7(values: list[float], top: float) -> list[float]:
+    out = []  # noqa
+    for v in values:
+        if v == None:  # type: ignore
+            continue
+        out.append(min(1))
+    return out
+
+
+def x_normalize__mutmut_8(values: list[float], top: float) -> list[float]:
+    out = []  # noqa
+    for v in values:
+        if v == None:  # type: ignore
+            continue
+        out.append(min(max(v / top, 0), ))
+    return out
+
+
+def x_normalize__mutmut_9(values: list[float], top: float) -> list[float]:
+    out = []  # noqa
+    for v in values:
+        if v == None:  # type: ignore
+            continue
+        out.append(min(max(None, 0), 1))
+    return out
+
+
+def x_normalize__mutmut_10(values: list[float], top: float) -> list[float]:
+    out = []  # noqa
+    for v in values:
+        if v == None:  # type: ignore
+            continue
+        out.append(min(max(v / top, None), 1))
+    return out
+
+
+def x_normalize__mutmut_11(values: list[float], top: float) -> list[float]:
+    out = []  # noqa
+    for v in values:
+        if v == None:  # type: ignore
+            continue
+        out.append(min(max(0), 1))
+    return out
+
+
+def x_normalize__mutmut_12(values: list[float], top: float) -> list[float]:
+    out = []  # noqa
+    for v in values:
+        if v == None:  # type: ignore
+            continue
+        out.append(min(max(v / top, ), 1))
+    return out
+
+
+def x_normalize__mutmut_13(values: list[float], top: float) -> list[float]:
+    out = []  # noqa
+    for v in values:
+        if v == None:  # type: ignore
+            continue
+        out.append(min(max(v * top, 0), 1))
+    return out
+
+
+def x_normalize__mutmut_14(values: list[float], top: float) -> list[float]:
+    out = []  # noqa
+    for v in values:
+        if v == None:  # type: ignore
+            continue
+        out.append(min(max(v / top, 1), 1))
+    return out
+
+
+def x_normalize__mutmut_15(values: list[float], top: float) -> list[float]:
+    out = []  # noqa
+    for v in values:
+        if v == None:  # type: ignore
+            continue
+        out.append(min(max(v / top, 0), 2))
+    return out
+
+mutants_x_normalize__mutmut['_mutmut_orig'] = x_normalize__mutmut_orig # type: ignore # mutmut generated
+mutants_x_normalize__mutmut['x_normalize__mutmut_1'] = x_normalize__mutmut_1 # type: ignore # mutmut generated
+mutants_x_normalize__mutmut['x_normalize__mutmut_2'] = x_normalize__mutmut_2 # type: ignore # mutmut generated
+mutants_x_normalize__mutmut['x_normalize__mutmut_3'] = x_normalize__mutmut_3 # type: ignore # mutmut generated
+mutants_x_normalize__mutmut['x_normalize__mutmut_4'] = x_normalize__mutmut_4 # type: ignore # mutmut generated
+mutants_x_normalize__mutmut['x_normalize__mutmut_5'] = x_normalize__mutmut_5 # type: ignore # mutmut generated
+mutants_x_normalize__mutmut['x_normalize__mutmut_6'] = x_normalize__mutmut_6 # type: ignore # mutmut generated
+mutants_x_normalize__mutmut['x_normalize__mutmut_7'] = x_normalize__mutmut_7 # type: ignore # mutmut generated
+mutants_x_normalize__mutmut['x_normalize__mutmut_8'] = x_normalize__mutmut_8 # type: ignore # mutmut generated
+mutants_x_normalize__mutmut['x_normalize__mutmut_9'] = x_normalize__mutmut_9 # type: ignore # mutmut generated
+mutants_x_normalize__mutmut['x_normalize__mutmut_10'] = x_normalize__mutmut_10 # type: ignore # mutmut generated
+mutants_x_normalize__mutmut['x_normalize__mutmut_11'] = x_normalize__mutmut_11 # type: ignore # mutmut generated
+mutants_x_normalize__mutmut['x_normalize__mutmut_12'] = x_normalize__mutmut_12 # type: ignore # mutmut generated
+mutants_x_normalize__mutmut['x_normalize__mutmut_13'] = x_normalize__mutmut_13 # type: ignore # mutmut generated
+mutants_x_normalize__mutmut['x_normalize__mutmut_14'] = x_normalize__mutmut_14 # type: ignore # mutmut generated
+mutants_x_normalize__mutmut['x_normalize__mutmut_15'] = x_normalize__mutmut_15 # type: ignore # mutmut generated
+mutants_x_run__mutmut: MutantDict = {}  # type: ignore
+
+
+@_mutmut_mutated(mutants_x_run__mutmut)
+def run(cmd: str) -> int:
+    return subprocess.call(cmd, shell=True)
+
+
+def x_run__mutmut_orig(cmd: str) -> int:
+    return subprocess.call(cmd, shell=True)
+
+
+def x_run__mutmut_1(cmd: str) -> int:
+    return subprocess.call(None, shell=True)
+
+
+def x_run__mutmut_2(cmd: str) -> int:
+    return subprocess.call(cmd, shell=None)
+
+
+def x_run__mutmut_3(cmd: str) -> int:
+    return subprocess.call(shell=True)
+
+
+def x_run__mutmut_4(cmd: str) -> int:
+    return subprocess.call(cmd, )
+
+
+def x_run__mutmut_5(cmd: str) -> int:
+    return subprocess.call(cmd, shell=False)
+
+mutants_x_run__mutmut['_mutmut_orig'] = x_run__mutmut_orig # type: ignore # mutmut generated
+mutants_x_run__mutmut['x_run__mutmut_1'] = x_run__mutmut_1 # type: ignore # mutmut generated
+mutants_x_run__mutmut['x_run__mutmut_2'] = x_run__mutmut_2 # type: ignore # mutmut generated
+mutants_x_run__mutmut['x_run__mutmut_3'] = x_run__mutmut_3 # type: ignore # mutmut generated
+mutants_x_run__mutmut['x_run__mutmut_4'] = x_run__mutmut_4 # type: ignore # mutmut generated
+mutants_x_run__mutmut['x_run__mutmut_5'] = x_run__mutmut_5 # type: ignore # mutmut generated
+mutants_x_half__mutmut: MutantDict = {}  # type: ignore
+
+
+@_mutmut_mutated(mutants_x_half__mutmut)
+def half(x: int) -> str:
+    return x / 2
+
+
+def x_half__mutmut_orig(x: int) -> str:
+    return x / 2
+
+
+def x_half__mutmut_1(x: int) -> str:
+    return x * 2
+
+
+def x_half__mutmut_2(x: int) -> str:
+    return x / 3
+
+mutants_x_half__mutmut['_mutmut_orig'] = x_half__mutmut_orig # type: ignore # mutmut generated
+mutants_x_half__mutmut['x_half__mutmut_1'] = x_half__mutmut_1 # type: ignore # mutmut generated
+mutants_x_half__mutmut['x_half__mutmut_2'] = x_half__mutmut_2 # type: ignore # mutmut generated
+mutants_xǁWindowǁ__init____mutmut: MutantDict = {}  # type: ignore
+mutants_xǁWindowǁfits__mutmut: MutantDict = {}  # type: ignore
+
+
+class Window:
+    @_mutmut_mutated(mutants_xǁWindowǁ__init____mutmut)
+    def __init__(self, size: int) -> None:
+        self.size = size
+    def xǁWindowǁ__init____mutmut_orig(self, size: int) -> None:
+        self.size = size
+    def xǁWindowǁ__init____mutmut_1(self, size: int) -> None:
+        self.size = None
+
+    @_mutmut_mutated(mutants_xǁWindowǁfits__mutmut)
+    def fits(self, n: int) -> bool:
+        return n <= self.size
+
+    def xǁWindowǁfits__mutmut_orig(self, n: int) -> bool:
+        return n <= self.size
+
+    def xǁWindowǁfits__mutmut_1(self, n: int) -> bool:
+        return n < self.size
+
+mutants_xǁWindowǁ__init____mutmut['_mutmut_orig'] = Window.xǁWindowǁ__init____mutmut_orig # type: ignore # mutmut generated
+mutants_xǁWindowǁ__init____mutmut['xǁWindowǁ__init____mutmut_1'] = Window.xǁWindowǁ__init____mutmut_1 # type: ignore # mutmut generated
+
+mutants_xǁWindowǁfits__mutmut['_mutmut_orig'] = Window.xǁWindowǁfits__mutmut_orig # type: ignore # mutmut generated
+mutants_xǁWindowǁfits__mutmut['xǁWindowǁfits__mutmut_1'] = Window.xǁWindowǁfits__mutmut_1 # type: ignore # mutmut generated

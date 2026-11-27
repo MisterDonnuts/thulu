@@ -134,15 +134,42 @@ func (d *Dispatcher) fetchToken(ctx context.Context, projectID string) string {
 // Sandbox and worktrees are owned by the root task and shared by its subtasks: tear down only once
 // the whole group is Done,
 // keyed by the root id, not the task that finished.
-func (d *Dispatcher) cleanupDoneTask(ctx context.Context, t *Task) {
+// True when it freed them.
+func (d *Dispatcher) cleanupDoneTask(ctx context.Context, t *Task) bool {
+	return d.freeGroupResources(ctx, t, d.store.AllInGroupDone, false)
+}
+
+// A stage with release_resources frees what a terminal stage would, once every task of the group
+// has reached one of the two. The branch stays on the remote; the worktree paths are cleared so a
+// person moving the task back gets a fresh worktree from that branch. True when it freed them.
+func (d *Dispatcher) releaseTaskResources(ctx context.Context, t *Task) bool {
+	return d.freeGroupResources(ctx, t, d.store.AllInGroupReleased, true)
+}
+
+// Whether a run in this stage works on the task's code. The initial stage never does, and a stage
+// with release_resources already gave the worktrees up.
+func (d *Dispatcher) needsWorktree(t *Task, stage Stage) bool {
+	if t == nil || len(t.ProjectIDs) == 0 {
+		return false
+	}
+	info, _ := d.stagesFor(t).Get(stage)
+	return !info.Initial && !info.ReleaseResources
+}
+
+func (d *Dispatcher) stageReleased(t *Task, stage Stage) bool {
+	info, _ := d.stagesFor(t).Get(stage)
+	return info.ReleaseResources
+}
+
+func (d *Dispatcher) freeGroupResources(ctx context.Context, t *Task, groupDone func(context.Context, string) (bool, error), forget bool) bool {
 	rootID := t.SandboxRootID()
-	allDone, err := d.store.AllInGroupDone(ctx, rootID)
+	allDone, err := groupDone(ctx, rootID)
 	if err != nil {
 		log.Printf("[task] %s", i18n.Log("task.log.done_cleanup_group_check", "group", rootID, "err", err))
-		return
+		return false
 	}
 	if !allDone {
-		return
+		return false
 	}
 	root := t
 	if rootID != t.ID {
@@ -164,10 +191,29 @@ func (d *Dispatcher) cleanupDoneTask(ctx context.Context, t *Task) {
 		}
 	}
 	logx.Warn(RemoveTaskSessions(d.sessionsDir, rootID, rootID), "task.sessions.log.remove_group", "group", rootID)
+	if forget {
+		d.forgetGroupWorktrees(ctx, rootID)
+	}
+	return true
+}
+
+func (d *Dispatcher) forgetGroupWorktrees(ctx context.Context, rootID string) {
+	children, err := d.store.ListChildren(ctx, rootID)
+	logx.Warn(err, "task.log.release_list_children", "task", rootID)
+	ids := make([]string, 0, 1+len(children))
+	ids = append(ids, rootID)
+	for i := range children {
+		ids = append(ids, children[i].ID)
+	}
+	for _, id := range ids {
+		_, err := d.store.Update(ctx, id, Patch{WorktreePaths: map[string]string{}})
+		logx.Warn(err, "task.log.release_forget_worktrees", "task", id)
+	}
 }
 
 func (d *Dispatcher) commitAndPushWorktrees(ctx context.Context, t *Task, taskID string, stage Stage, agentName string, exitCode int) {
-	if t == nil {
+	// A stage that freed the worktree has nothing to commit, and its run had no code mounted.
+	if t == nil || d.stageReleased(t, stage) {
 		return
 	}
 	// Commit and push under the root id the worktree was created with, so the whole group lands on

@@ -32,6 +32,7 @@
     "steered": "Le llegó a la corrida que preguntó, mientras trabajaba.",
     "resumed": "La etapa se retomó con esta respuesta.",
     "thread": "No había corrida escuchando: queda en el hilo y la lee la próxima corrida.",
+    "default": "Nadie contestó antes de que la tarea dejara la etapa: el agente siguió con su valor por defecto.",
     "pending": "Todavía no le llegó: va al agente cuando termine la corrida o se contesten las otras preguntas que la frenan.",
     "resume_failed": "Quedó guardada, pero no se pudo retomar al agente con ella. Relanzá la etapa y el agente la lee."
   },

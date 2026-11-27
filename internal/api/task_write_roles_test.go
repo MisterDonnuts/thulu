@@ -19,6 +19,7 @@ import (
 // the UI.
 var taskWriteRoles = map[string]auth.Role{
 	"POST /tasks":                                               auth.RoleDeveloper,
+	"POST /tasks/batch-move":                                    auth.RoleDeveloper,
 	"PATCH /tasks/{id}":                                         auth.RoleDeveloper,
 	"DELETE /tasks/{id}":                                        auth.RoleAdmin,
 	"DELETE /tasks/{id}/sandbox":                                auth.RoleAdmin,
@@ -43,7 +44,11 @@ var taskWriteRoles = map[string]auth.Role{
 	"POST /tasks/{id}/reports":                                  auth.RoleDeveloper,
 	"POST /tasks/{id}/flags":                                    auth.RoleDeveloper,
 	"POST /tasks/{id}/flags/import":                             auth.RoleDeveloper,
+	"POST /tasks/{id}/stage-skips":                              auth.RoleDeveloper,
+	"POST /tasks/{id}/stage-skips/{stage}/remove":               auth.RoleDeveloper,
 	"POST /tasks/{id}/auditor-feedback":                         auth.RoleDeveloper,
+	"POST /tasks/{id}/stage-verdict":                            auth.RoleDeveloper,
+	"POST /tasks/{id}/locked-tests":                             auth.RoleDeveloper,
 	"PATCH /tasks/{id}/flags/{flagId}":                          auth.RoleDeveloper,
 	"DELETE /tasks/{id}/flags/{flagId}":                         auth.RoleDeveloper,
 	"PUT /tasks/{id}/sections/{slug}":                           auth.RoleDeveloper,
@@ -61,9 +66,16 @@ var taskWriteRoles = map[string]auth.Role{
 	"POST /tasks/{id}/environments/{envId}/dashboard-proposals": auth.RoleDeveloper,
 	"POST /tasks/{id}/test-cases":                               auth.RoleDeveloper,
 	"POST /tasks/{id}/test-cases/import-body":                   auth.RoleDeveloper,
+	"POST /tasks/{id}/test-cases/waive":                         auth.RoleDeveloper,
+	"POST /tasks/{id}/test-cases/access":                        auth.RoleDeveloper,
+	"PUT /tasks/{id}/criteria":                                  auth.RoleDeveloper,
+	"POST /tasks/{id}/criteria/approve":                         auth.RoleDeveloper,
 	"PATCH /tasks/{id}/test-cases/{case}":                       auth.RoleDeveloper,
 	"DELETE /tasks/{id}/test-cases/{case}":                      auth.RoleDeveloper,
 	"POST /tasks/{id}/test-cases/{case}/runs":                   auth.RoleDeveloper,
+	// Developer lets a run key in; the handler holds a person to admin.
+	"PUT /tasks/{id}/deploy-watches":              auth.RoleDeveloper,
+	"DELETE /tasks/{id}/deploy-watches/{watchId}": auth.RoleDeveloper,
 }
 
 var taskWriteRoute = regexp.MustCompile(`HandleFunc\("((?:POST|PATCH|PUT|DELETE) /task(?:s|-attachments)(?:[/?][^"]*)?)",\s*rr\(auth\.(Role\w+)`)

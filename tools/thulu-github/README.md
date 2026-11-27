@@ -4,7 +4,7 @@ MCP service that exposes the GitHub API to Thulu agents, with token resolution *
 
 ## Why this and not the `gh` CLI
 
-- **Multi-project, multi-token.** Each project has its own credential: an installation token from the GitHub App or the credential stored in the credential manager. The agent never sees it; the MCP resolves it server-side from the `task_id`.
+- **Multi-project, multi-token.** Each project has its own credential: an installation token from the GitHub App or the credential stored in the credential manager. The MCP resolves it server-side from the `task_id`. A stored credential (a PAT) never leaves the daemon: on those projects the MCP calls GitHub through the daemon's proxy (see [Projects with a stored token](#projects-with-a-stored-token-pat)).
 - **Permissions per stage.** The agent type grants `thulu-github@read` on one stage and `thulu-github@write` on another (`mcp_by_stage`). The MCP filters which tools it exposes by scope.
 - **Auditability.** A single point to log every interaction with GitHub.
 
@@ -149,6 +149,58 @@ Lookup order on each call:
 If none answers, every tool fails with a clear message. The server has no
 fallback token.
 
+A `409` with `"code": "api.github.errors.use_proxy"` from any of the three
+means the project reaches GitHub through a stored credential; the next section
+covers it.
+
+## Projects with a stored token (PAT)
+
+A PAT carries everything its owner gave it, on every repository the owner
+reaches, and GitHub cannot narrow it. If a run received it, the agent's
+container could use it with `curl` to merge or deploy past its stage grant and
+its approvals. So the daemon never hands a PAT to a run key (task runs and
+chats alike): the token endpoints answer `409 api.github.errors.use_proxy`, and
+`/internal/credentials/resolve` refuses GitHub credentials to run keys. The
+daemon's own pushes, PR status reads and webhooks keep using the PAT.
+
+On that answer this server builds its Octokit on
+`${OCTOPUS_API}/internal/github-proxy` with the caller's run key in
+`X-API-Key` and no token. The daemon forwards a call to GitHub with the PAT
+only after checking, on every request:
+
+- the call is in [`github-proxy.json`](github-proxy.json): method and path for
+  REST, the exact document (whitespace collapsed) and its variables for
+  GraphQL, each a string, number, boolean or null. Anything else is `403`. For
+  GraphQL the daemon sends the listed document and the decoded variables, not
+  the caller's body;
+- one of the tools that make that call is granted in the run's stage (in a
+  delegated chat, the agent's `chat` stage);
+- the tool's approval is approved on the task (`run_dispatch` waits for
+  `deploy_prod`). The proxy knows which call it forwards, so a rerun next to
+  `run_dispatch` does not wait, unlike with an App token. In a delegated chat
+  `pr_merge` and `deployment_approve` are refused: they keep waiting for the
+  person through `/internal/github/…`;
+- the repository belongs to a project the run reaches: the task's projects, or
+  any project of the workspace for a delegated chat. A project with an http(s)
+  remote on another host (`gitlab.com/acme/widgets`) never matches
+  `github.com/acme/widgets`. The GraphQL documents that
+  act on a node id (`pr_review_thread_resolve`, `pr_ready_for_review`) name
+  their repository in `X-Thulu-Repo`, and the daemon asks GitHub which
+  repository the node belongs to before forwarding.
+
+The proxy drops every caller header except `Accept`, `Content-Type` and
+`X-GitHub-Api-Version`, caps the request body at 1 MiB and the answer at
+16 MiB, gives GitHub 40 s, follows no redirect except a log download's signed
+URL (fetched without the token) and rewrites `Link` headers so the next pages
+come back through it.
+
+`github-proxy.json` is read by this server (the GraphQL documents come from it)
+and embedded in the daemon binary. Adding a GitHub call here means adding its
+entry, with the tools that make it; `proxy.test.mjs` fails if an octokit method
+`server.js` calls is missing or has a different route, and
+`TestGithubProxyTableMatchesToolYaml` fails if an entry names a tool that is
+not in `tool.yaml`.
+
 ## In a chat
 
 A chat with no task opens the session without `?task=`. With "Act for me" the
@@ -156,7 +208,8 @@ chat's key is delegated, and the daemon gives it the token of any project in the
 workspace by repository (it accepts https, `.git`, `git@github.com:owner/name`,
 in any case). The token comes from the GitHub App without `contents:write`: it
 is enough to read, comment, review and open PRs, not to merge. A project's
-stored token (PAT) is never handed to a chat. If the daemon refuses (the repo
+stored token (PAT) is never handed to a chat: its calls go through the daemon's
+proxy, like a task run's. If the daemon refuses (the repo
 does not belong to a project of the workspace, there is no App installation,
 the `chat` stage does not grant the tool), the error carries its answer as is.
 
@@ -178,19 +231,33 @@ answers 401. Every `POST /messages` has to carry the same key as its session's
 handshake; otherwise, 401. The only session that opens without a key is the
 picker's probe (`?catalog=1`): it lists tools and refuses every call.
 
-With a GitHub App, the token comes with the minimum permissions. The tools that
-need more ask for them with `?permissions=`: `run_dispatch`, `run_rerun` and
-`run_cancel` ask for `actions:write`; `deployment_approve` asks for
-`deployments:write` (GitHub files the review of pending deployments under
-"Deployments: write", not under Actions). The App needs those permissions
-granted, or the mint fails and falls back to the project's stored token.
+With a GitHub App, the token comes with the minimum permissions: metadata and
+contents read, pull requests write, Actions read. It opens and reviews PRs but
+cannot merge one, because GitHub files merging under "Contents: write" and the
+daemon pushes the task branch with its own token. The tools that need more ask
+for them with `?permissions=`: `run_dispatch`, `run_rerun` and `run_cancel` ask
+for `actions:write`; `deployment_approve` asks for `deployments:write` (GitHub
+files the review of pending deployments under "Deployments: write", not under
+Actions); `pr_merge` asks for `contents:write`. The App needs those permissions
+granted, or the mint fails and falls back to the project's stored token, which
+for a run means the proxy.
 
 The daemon repeats the check on its side: a run's key gets `actions:write` only
 if the stage grants `thulu-github` `run_rerun`, `run_cancel` (both come with
-`@write`, `@admin` or the bare entry) or `run_dispatch` by name, and
-`deployments:write` only with `deployment_approve` by name. Asking without the
-grant returns 403 and nothing is minted. The key can call the endpoint without
-going through this MCP, so this server's tool filter is not enough on its own.
+`@write`, `@admin` or the bare entry) or `run_dispatch` by name,
+`deployments:write` only with `deployment_approve` by name and `contents:write`
+only with `pr_merge` by name. Asking without the grant returns 403 and nothing
+is minted. The key can call the endpoint without going through this MCP, so
+this server's tool filter is not enough on its own.
+
+`run_dispatch` also carries `requires_approval: deploy_prod` in `tool.yaml`.
+When the stage grants it, a task run gets `actions:write` only while its task
+has a `deploy_prod` approval in `approved`. Run keys cannot decide approvals
+and an agent opens them pending, so only a person unlocks it. Until then the
+mint answers 403 naming the approval, and the tool passes that reason on. The
+token cannot tell a dispatch from a rerun, so a stage that grants `run_rerun`
+next to `run_dispatch` waits for the approval for both. A delegated chat (no
+task) is not held: the person it acts for is the one asking.
 
 `commit` and `branch_push` do not ask for a token: the daemon does them. If the
 commits it is about to push touch `.github/workflows/`, the daemon also asks for

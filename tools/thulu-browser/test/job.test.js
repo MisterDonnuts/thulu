@@ -7,6 +7,7 @@ import path from "node:path";
 import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
 
+import { scrubJson, scrubber } from "../evidence/job.js";
 import { chromiumMissing } from "./chromium.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -32,6 +33,7 @@ const page = `<!doctype html><html lang="en"><title>Shop</title>
   <p id="greeting"></p>
   <ul><li>One</li><li>Two</li></ul>
   <a id="leave" href="https://elsewhere.test/">Leave</a>
+  <button id="leak" onclick="console.error('login failed for ' + document.querySelector('#pw').value); document.querySelector('#greeting').textContent = 'Try again'">Leak</button>
 </body></html>`;
 
 function serve(handler) {
@@ -150,6 +152,14 @@ before(async () => {
       { kind: "click", target: "#go", side_effect: true, label: "Pay" },
       { kind: "verify", case: "EV-5", expected: "Hello, QA", check: "text", target: "#greeting" },
     ])),
+    jobFor("timed", baseTake([
+      { kind: "goto", url: "/", label: "Open the shop" },
+      { kind: "fill", target: "#pw", secret: "QA_PASSWORD", label: "Type the password" },
+      { kind: "click", target: "#leak", label: "Fail the login" },
+      { kind: "verify", case: "EV-7", check: "perf", metric: "response", expected: "5000", label: "Answers fast" },
+      { kind: "verify", case: "EV-7", check: "perf", metric: "fcp", expected: "0", label: "Paints instantly" },
+      { kind: "a11y", label: "Accessible", fail_on: "minor" },
+    ], { network: "fast-4g", cpu_throttle: 2 })),
     jobFor("quota", baseTake([
       { kind: "goto", url: "/" },
       { kind: "verify", case: "EV-6", expected: "Sign in", check: "text", target: "h1", label: "Heading" },
@@ -174,8 +184,8 @@ const artifactsOf = (run) => daemon.artifacts.filter((a) => a.run === run);
 
 test("the batch runs to the end and exits 0 when the daemon answers 204", { skip }, () => {
   assert.equal(exitCode, 0);
-  assert.equal(daemon.nextCalls.get("b1"), 7, "six runs, then the 204");
-  assert.deepEqual([...daemon.results.keys()].sort(), ["blocked", "effects", "fail", "invalid", "pass", "quota"]);
+  assert.equal(daemon.nextCalls.get("b1"), 8, "seven runs, then the 204");
+  assert.deepEqual([...daemon.results.keys()].sort(), ["blocked", "effects", "fail", "invalid", "pass", "quota", "timed"]);
   assert.deepEqual([...daemon.keys], [KEY], "every request carries the batch key, and only it");
 });
 
@@ -243,6 +253,38 @@ test("a take with side-effect steps is refused with error, never replayed", { sk
   assert.match(r.error, /changes data/);
   assert.match(r.error, /Pay/);
   assert.deepEqual(artifactsOf("effects"), []);
+});
+
+test("a throttled take posts its perf checks with their values, its timing and its page errors, masked", { skip }, () => {
+  const r = daemon.results.get("timed");
+  assert.equal(r.status, "fail", "an FCP of at most 0 ms cannot pass");
+  const [fast, instant] = r.checks;
+  assert.equal(fast.metric, "response");
+  assert.equal(fast.pass, true, JSON.stringify(r.checks));
+  assert.equal(r.metrics.steps.at(-1).dead, false);
+  assert.equal(typeof fast.value, "number");
+  assert.equal(instant.metric, "fcp");
+  assert.equal(instant.pass, false);
+  assert.ok(instant.value > 0);
+  assert.deepEqual(r.metrics.profile, { network: "fast-4g", cpu_throttle: 2 });
+  assert.deepEqual(r.metrics.steps.map((m) => m.label), ["Open the shop", "Type the password", "Fail the login"]);
+  assert.ok(r.metrics.steps[0].vitals.fcp > 0);
+  assert.deepEqual(r.findings.map((f) => [f.kind, f.text]), [["console", "login failed for •••"]]);
+  assert.match(r.report_md, /### Page errors/);
+  assert.match(r.report_md, /### Timing/);
+  assert.match(r.report_md.split("\n")[0], /fast-4g · CPU 2x/);
+
+  const scan = r.checks.find((c) => c.label === "Accessible");
+  assert.equal(scan.measured, true);
+  assert.equal(scan.expected, "no violation");
+  const [a11y] = r.metrics.a11y;
+  assert.equal(a11y.fail_on, "minor");
+  assert.deepEqual(Object.keys(a11y.counts), ["critical", "serious", "moderate", "minor"]);
+  assert.equal(scan.pass, a11y.failing.length === 0);
+  assert.equal(typeof r.metrics.waits.cut, "boolean");
+  assert.ok(Array.isArray(r.metrics.waits.gaps));
+  assert.deepEqual(artifactsOf("timed").filter((a) => a.kind === "metrics").map((a) => [a.filename, a.type]),
+    [["login.metrics.json", "application/json"]], "a timed take uploads its metrics file");
 });
 
 test("files the daemon refuses are left out and the result still lands", { skip }, () => {
@@ -403,4 +445,13 @@ test("an unreachable URL says why: the cause's code, or its message when it has 
     throw new TypeError("fetch failed", { cause: Object.assign(new AggregateError([Object.assign(new Error("v6"), { code: "ENETUNREACH" })]), {}) });
   };
   assert.equal((await waitReachable("http://x/", { fetch: both, windowMs: 50, everyMs: 10 })).error, "fetch failed (ENETUNREACH)");
+});
+
+test("the metrics file is scrubbed string by string, so a secret JSON escapes does not slip through", () => {
+  const secret = 'pa"ss\\word';
+  const body = Buffer.from(JSON.stringify({ runs: [{ findings: [{ text: `login failed for ${secret}` }], steps: [] }] }));
+  assert.ok(!body.toString().includes(secret), "JSON escapes the secret, so a text scrub would miss it");
+  const out = scrubJson(body, scrubber([secret]));
+  assert.equal(JSON.parse(out.toString()).runs[0].findings[0].text, "login failed for •••");
+  assert.equal(scrubJson(Buffer.from("not json pa\"ss"), scrubber(['pa"ss'])).toString(), "not json •••");
 });

@@ -1,0 +1,70 @@
+{
+  "title": "Needs you",
+  "chip": "Waiting on you",
+  "verdict_lost": "The agent's verdict file did not reach Thulu, so this summary comes from the run's test results.",
+  "fallback": {
+    "question": "An agent asked you a question and waits for the answer.",
+    "approval": "This stage waits for your approval.",
+    "failure": "The last run failed. Re-run it or send the task back.",
+    "decision": "The agent stopped and needs your decision."
+  },
+  "actions": {
+    "answer": "Answer",
+    "rerun": "Re-run {stage}",
+    "rerun_typical": "Re-run {stage} (about {span})"
+  },
+  "waive": {
+    "cases": "Cases to skip",
+    "reason": "Reason",
+    "reason_help": "Required. Production Readiness lists it as a known gap.",
+    "submit": "Skip the checked cases",
+    "need_case": "Check at least one case to skip.",
+    "need_reason": "Write why these cases are skipped.",
+    "done": {
+      "one": "Skipped {count} case.",
+      "other": "Skipped {count} cases."
+    },
+    "done_advanced": "Skipped the cases. The task moved on to {stage}.",
+    "failed": "Could not skip the cases: {error}",
+    "unsupported": "This Thulu version cannot skip cases yet. Update the daemon."
+  },
+  "send_back": {
+    "note": "Note for the agent",
+    "note_help": "Required. It goes to Comments with the move, as an answer to the agent's stop."
+  },
+  "later": {
+    "at": "{label} at {stage}"
+  },
+  "running": {
+    "line": "{stage} · {agent} working",
+    "line_now": "{stage} · {agent} working · started just now",
+    "line_ago": "{stage} · {agent} working · started {ago} ago",
+    "someone": "the agent"
+  },
+  "pill_count": "Needs you · {count}",
+  "status": {
+    "label": "Task status",
+    "running": "Running",
+    "queued": "Waiting to start",
+    "missing": "See what is missing",
+    "skip": "Skip cases…",
+    "approval": "Review the approval",
+    "stop": "Open the stop"
+  },
+  "action": {
+    "rerun_title": "Re-run {stage}",
+    "rerun": "Re-run",
+    "rerun_example": "The staging database is back up. Try the login flow again.",
+    "send_back_title": "Send the task back",
+    "send_back": "Send back",
+    "send_back_example": "The login form still accepts an empty password. Fix it before testing again.",
+    "move_title": "Move the task",
+    "move": "Move",
+    "move_example": "Tested by hand on staging. Every case passes.",
+    "to": "Stage",
+    "why": "Why?",
+    "why_help": "Required. It goes to Comments as your decision, and the next agent reads it.",
+    "need_stage": "Pick a stage.",
+    "need_reason": "Write why."
+  }
+}

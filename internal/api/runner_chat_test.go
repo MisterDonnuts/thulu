@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -58,9 +59,7 @@ func startChatMachine(t *testing.T, script string) *chatMachine {
 	}
 	cfg := &hostrun.Config{DaemonURL: daemon.URL, RunnerID: m.reg.RunnerID, Credential: m.reg.Credential,
 		WorkDir: filepath.Join(tmp, "work"), Concurrency: 1, ChatConcurrency: 1, Entrypoint: entry}
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
-	go func() { _ = hostrun.New(cfg, "test").Run(ctx) }()
+	ctx := runHostRunner(t, cfg)
 	l := m.srv.runnerRoute.runner
 	go func() {
 		for ctx.Err() == nil {
@@ -184,12 +183,21 @@ func TestChatTurnThatTimesOutIsCanceled(t *testing.T) {
 		t.Fatalf("err = %v, want the machine named", err)
 	}
 	var canceled bool
+	var specJSON string
 	if err := c.srv.secretsStore.DB().QueryRowContext(t.Context(),
-		`SELECT cancel FROM runner_jobs WHERE launch_kind = $1`, runner.LaunchKindChatTurn).Scan(&canceled); err != nil {
+		`SELECT cancel, spec FROM runner_jobs WHERE launch_kind = $1`, runner.LaunchKindChatTurn).Scan(&canceled, &specJSON); err != nil {
 		t.Fatal(err)
 	}
 	if !canceled {
 		t.Error("the turn still runs with no one waiting")
+	}
+	// The machine stops the turn on its own too, should the cancel never reach it.
+	var spec runner.JobSpec
+	if err := json.Unmarshal([]byte(specJSON), &spec); err != nil {
+		t.Fatal(err)
+	}
+	if spec.DeadlineSeconds < 1 || spec.DeadlineSeconds > 3 {
+		t.Errorf("the turn's deadline_seconds = %d, want what was left of the waiter's 3 s", spec.DeadlineSeconds)
 	}
 }
 
@@ -343,9 +351,7 @@ printf '{"type":"result","result":"read: %s","is_error":false}\n' "$code"
 	cfg := &hostrun.Config{DaemonURL: daemon.URL, RunnerID: f.reg.RunnerID, Credential: f.reg.Credential,
 		Projects: map[string]string{f.project.ID: checkout}, WorkDir: filepath.Join(tmp, "work"),
 		Concurrency: 1, ChatConcurrency: 1, Entrypoint: entry}
-	runCtx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
-	go func() { _ = hostrun.New(cfg, "test").Run(runCtx) }()
+	runCtx := runHostRunner(t, cfg)
 	go func() {
 		for runCtx.Err() == nil {
 			f.launcher.settle(context.Background())

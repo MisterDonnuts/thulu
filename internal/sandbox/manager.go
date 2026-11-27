@@ -50,6 +50,7 @@ type Manager struct {
 	initMu              syncx.KeyedMutex
 	meter               cacheMeter
 	roomWait, roomRetry time.Duration
+	files               execFiles
 }
 
 const (
@@ -173,6 +174,9 @@ func (m *Manager) createWithRoom(ctx context.Context, taskID string, opts Create
 	logged := false
 	for {
 		res, err := m.docker.Create(ctx, opts)
+		if err == nil && res != nil {
+			m.files.forget(res.ContainerID)
+		}
 		if err == nil || !kubeapi.IsQuotaFull(err) || time.Now().Add(m.roomRetry).After(deadline) {
 			return res, err
 		}
@@ -258,6 +262,7 @@ func (m *Manager) Exec(ctx context.Context, taskID, stage string, dockerOpts Acq
 		return nil, ar, nil
 	}
 	exec.TimeoutMs = clampExecTimeout(exec.TimeoutMs, m.maxExecTimeoutMs(ctx))
+	m.placeFiles(ctx, ar.ContainerID, &exec)
 	res, err := m.docker.Exec(ctx, ar.ContainerID, exec)
 	if err != nil {
 		return nil, ar, err
@@ -351,13 +356,21 @@ func (m *Manager) Release(ctx context.Context, taskID string) error {
 		return err
 	}
 	m.inits.drop(taskID)
+	// A failed remove still frees the slot: the row reads evicted with its container id, ReapEvicted
+	// retries the remove on every GC, and the error keeps Destroy from deleting the row it needs.
+	var removeErr error
 	if sb.ContainerID != "" {
+		m.files.forget(sb.ContainerID)
 		if err := m.docker.Remove(ctx, sb.ContainerID); err != nil {
 			log.Printf("[sandbox] %s", i18n.Log("sandbox.log.docker_remove_failed", "container", sb.ContainerID, "err", err))
+			removeErr = apperr.Wrap(err, "sandbox.errors.remove_container", "container", sb.ContainerID)
 		}
 	}
 	m.releaseStorage(ctx, taskID)
-	return m.queue.Release(ctx, taskID)
+	if err := m.queue.Release(ctx, taskID); err != nil {
+		return err
+	}
+	return removeErr
 }
 
 func (m *Manager) releaseStorage(ctx context.Context, taskID string) {
@@ -404,7 +417,73 @@ func (m *Manager) ReapEvicted(ctx context.Context) {
 	}
 }
 
+// RemoveContainer removes a sandbox container no row records.
+func (m *Manager) RemoveContainer(ctx context.Context, containerID string) error {
+	if err := m.docker.Remove(ctx, containerID); err != nil {
+		return apperr.Wrap(err, "sandbox.errors.remove_container", "container", containerID)
+	}
+	log.Printf("[sandbox] %s", i18n.Log("sandbox.log.orphan_removed_by_person", "container", containerID))
+	return nil
+}
+
+// orphanGrace covers a create in flight: the container exists a moment before its row does.
+const orphanGrace = 2 * time.Minute
+
+// ReconcileOrphans removes the sandbox containers no live row points to: one a daemon created and
+// died before recording, or one whose row went while its remove failed. Nothing else would find
+// them, and each keeps its owner's name taken.
+func (m *Manager) ReconcileOrphans(ctx context.Context) int {
+	lister, ok := m.docker.(OrphanLister)
+	if !ok {
+		return 0
+	}
+	containers, err := lister.ListSandboxes(ctx)
+	if err != nil {
+		logx.Warn(err, "sandbox.log.orphan_list_failed")
+		return 0
+	}
+	if len(containers) == 0 {
+		return 0
+	}
+	rows, err := m.store.ListAll(ctx)
+	if err != nil {
+		logx.Warn(err, "sandbox.log.orphan_rows_failed")
+		return 0
+	}
+	owned := map[string]bool{}
+	starting := map[string]bool{}
+	for _, sb := range rows {
+		if sb.ContainerID != "" && (sb.Status == StatusReady || sb.Status == StatusStarting) {
+			// Docker lists short ids; a Kubernetes pod is its full name.
+			owned[sb.ContainerID] = true
+			owned[shortID(sb.ContainerID)] = true
+		}
+		if sb.Status == StatusStarting {
+			// A create in flight: its container exists before the row learns its id. Kubernetes
+			// labels the pod with the sanitized owner.
+			starting[sb.TaskID] = true
+			starting[sanitizeDNS(sb.TaskID)] = true
+		}
+	}
+	removed := 0
+	now := time.Now()
+	for _, c := range containers {
+		if owned[c.ID] || (c.Owner != "" && starting[c.Owner]) || now.Sub(c.Created) < orphanGrace {
+			continue
+		}
+		if err := m.docker.Remove(ctx, c.ID); err != nil {
+			log.Printf("[sandbox] %s", i18n.Log("sandbox.log.orphan_remove_failed", "container", c.ID, "name", c.Name, "err", err))
+			continue
+		}
+		log.Printf("[sandbox] %s", i18n.Log("sandbox.log.orphan_removed",
+			"container", c.ID, "name", c.Name, "owner", c.Owner, "state", c.State, "age", now.Sub(c.Created).Round(time.Second)))
+		removed++
+	}
+	return removed
+}
+
 func (m *Manager) GCOnce(ctx context.Context) {
+	m.ReconcileOrphans(ctx)
 	m.ReapEvicted(ctx)
 	m.ReapDead(ctx)
 	m.ReapIdle(ctx)
@@ -412,7 +491,11 @@ func (m *Manager) GCOnce(ctx context.Context) {
 
 func (m *Manager) StartGC(ctx context.Context, interval time.Duration) {
 	m.queue.StartGC(ctx)
-	go syncx.TickUntil(ctx, interval, m.GCOnce)
+	go func() {
+		// At boot too: a daemon that died mid-create left its container without a row.
+		m.ReconcileOrphans(ctx)
+		syncx.TickUntil(ctx, interval, m.GCOnce)
+	}()
 }
 
 func (m *Manager) taskLock(taskID string) *sync.Mutex { return m.taskMu.Get(taskID) }

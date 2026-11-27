@@ -1,0 +1,709 @@
+/* The task drawer's look, taken from the Task View Lab prototype (the spec for the task view): its
+   drawer head, tabs, buttons, section heads and properties. Every rule is scoped to .task-drawer so
+   the rest of the app keeps the shared look; the palette is in tokens.css. */
+
+/* Head: crumbs and icon buttons on one row, the key over the title, the column path. */
+.task-drawer .drawer-head {
+  position: relative;
+  gap: 10px;
+  padding: 14px 24px 10px;
+  border-bottom: 0;
+}
+.task-drawer .drawer-head-row {
+  display: block;
+}
+.task-drawer .drawer-heading {
+  gap: 0;
+}
+.task-drawer .drawer-eyebrow {
+  gap: 10px 8px;
+  min-height: 28px;
+  padding-right: 112px;
+  font-size: 12.5px;
+  color: var(--fg-3);
+}
+.task-drawer .drawer-actions {
+  position: absolute;
+  top: 14px;
+  right: 24px;
+  gap: 8px;
+}
+.task-drawer .drawer-actions .icon-btn {
+  width: 28px;
+  height: 28px;
+  border-color: transparent;
+  border-radius: 6px;
+  background: none;
+  color: var(--fg-3);
+}
+.task-drawer .drawer-actions .icon-btn:hover,
+.task-drawer .drawer-actions .icon-btn[aria-expanded="true"] {
+  border-color: transparent;
+  background: var(--surface-2);
+  color: var(--fg);
+}
+.task-drawer .drawer-actions .icon-btn[aria-pressed="true"] {
+  border-color: transparent;
+  background: var(--surface-2);
+  color: var(--fg);
+}
+.task-drawer .drawer-title {
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+/* Crumbs: "Board / Column", slashes between. */
+.task-drawer .drawer-eyebrow .crumbs {
+  font-size: 12.5px;
+  color: var(--fg-3);
+}
+.task-drawer .drawer-eyebrow .crumbs-list {
+  gap: 8px;
+}
+.task-drawer .drawer-eyebrow .crumb {
+  gap: 8px;
+}
+.task-drawer .drawer-eyebrow .crumb a {
+  color: var(--fg-3);
+}
+.task-drawer .drawer-eyebrow .crumb a:hover {
+  color: var(--fg);
+}
+.task-drawer .drawer-eyebrow .crumb-sep {
+  display: none;
+}
+.task-drawer .drawer-eyebrow .crumb + .crumb::before {
+  content: "/";
+  color: var(--fg-4);
+}
+
+/* Tabs: text tabs, the selected one underlined in the text colour, a count pill beside. */
+.task-drawer .drawer-bar > .tabs {
+  gap: 2px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--line);
+}
+.task-drawer .drawer-bar .tab {
+  gap: 6px;
+  min-height: 0;
+  margin-bottom: -1px;
+  padding: 10px 10px 9px;
+  border-radius: 0;
+  border-bottom-width: 2px;
+  color: var(--fg-3);
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.task-drawer .drawer-bar .tab:hover {
+  background: none;
+  color: var(--fg);
+}
+.task-drawer .drawer-bar .tab[aria-selected="true"] {
+  border-bottom-color: var(--fg);
+  color: var(--fg);
+}
+.task-drawer .drawer-bar .tab .count-pill {
+  min-width: 0;
+  height: auto;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--fg-3);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 17px;
+}
+.task-drawer .drawer-bar .tab .count-warn {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+@media (pointer: coarse) {
+  .task-drawer .drawer-bar .tab {
+    min-height: var(--tap-min);
+  }
+}
+
+/* The panel under the tabs. */
+.task-drawer .drawer-body {
+  padding: 18px 24px 40px;
+}
+
+/* Buttons: one size, a raised fill; primary is the text colour. Links stay links. */
+.task-drawer .btn:not(.btn-link) {
+  gap: 6px;
+  min-height: 0;
+  padding: 5px 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  background: var(--surface-1);
+  color: var(--fg);
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.task-drawer .btn:not(.btn-link):hover {
+  background: var(--surface-2);
+  border-color: var(--line-strong);
+}
+.task-drawer .btn-ghost:not(.btn-link),
+.task-drawer .btn-ghost:not(.btn-link):hover {
+  border-color: transparent;
+}
+.task-drawer .btn-ghost:not(.btn-link) {
+  background: transparent;
+  color: var(--fg-3);
+}
+.task-drawer .btn-ghost:not(.btn-link):hover {
+  color: var(--fg);
+}
+.task-drawer .btn-primary:not(.btn-link),
+.task-drawer .btn-primary:not(.btn-link):hover {
+  border-color: var(--fg);
+  background: var(--fg);
+  color: var(--surface-0);
+}
+.task-drawer .btn-primary:not(.btn-link):hover {
+  opacity: 0.9;
+}
+.task-drawer .btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.task-drawer .btn-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+  color: var(--accent);
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.task-drawer .btn-link:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+.task-drawer .btn-link .ico {
+  width: 16px;
+  height: 16px;
+}
+
+/* Section heads: small caps-like labels in the faint colour. */
+.task-drawer .sec-head {
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 0 8px;
+}
+.task-drawer .sec-head:has(.sec-actions .btn:not([hidden])) {
+  align-items: center;
+}
+.task-drawer .sec-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-4);
+}
+
+/* Properties: label and value on one line, a rule between rows. */
+.task-drawer .props .nprop {
+  grid-template-columns: 82px minmax(0, 1fr);
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+.task-drawer .props .nprop:last-child {
+  border-bottom: 0;
+}
+.task-drawer .props .nprop-label {
+  padding: 0;
+  color: var(--fg-4);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.task-drawer .props .nprop-label .ico {
+  display: none;
+}
+.task-drawer .props .nprop-value {
+  gap: 4px;
+  min-height: 0;
+  padding: 0 6px;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.task-drawer .props .nprop-value-empty {
+  color: var(--fg-3);
+  font-size: 12.5px;
+}
+
+/* Tags inside the drawer: small grey labels. */
+.task-drawer .tag {
+  gap: 4px;
+  padding: 1px 7px;
+  border-width: 0;
+  border-radius: 5px;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+@container prop-list (width >= 26rem) {
+  .task-drawer .props .nprop {
+    display: grid;
+  }
+}
+
+/* The status pill's dot, a touch larger than a badge's. */
+.task-drawer .ny-pill .dot {
+  width: 7px;
+  height: 7px;
+}
+
+/* Scrolled down, the head folds into one 46px bar: key, title, the state pill, the buttons. */
+.task-drawer.compact .drawer-head {
+  justify-content: center;
+  min-height: 46px;
+  padding: 0 16px 0 24px;
+  border-bottom: 1px solid var(--line);
+}
+.task-drawer.compact .drawer-heading {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  padding-right: 168px;
+}
+.task-drawer.compact .drawer-eyebrow {
+  flex: none;
+  min-height: 0;
+  padding-right: 0;
+}
+.task-drawer.compact .drawer-actions {
+  top: 9px;
+  right: 16px;
+}
+.task-drawer.compact .drawer-title {
+  font-size: 13.5px;
+  letter-spacing: 0;
+}
+
+/* Tags read as small grey labels; the column and the agent read as plain values, the agent in mono. */
+.task-drawer .props .tag {
+  --tag-bg: var(--surface-2);
+  --tag-fg: var(--fg-3);
+}
+.task-drawer .props [data-prop="stage"] .tag,
+.task-drawer .props [data-prop="agent"] .tag {
+  --tag-bg: transparent;
+  --tag-line: transparent;
+  padding: 0;
+  color: var(--fg);
+  font-size: 12.5px;
+  font-weight: 400;
+}
+.task-drawer .props [data-prop="agent"] .tag {
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.task-drawer .props [data-prop="stage"] .tag .tag-dot,
+.task-drawer .props [data-prop="agent"] .tag .ico,
+.task-drawer .props [data-prop="projects"] .tag .tag-dot {
+  display: none;
+}
+
+/* Narrow drawer (the spec's phone width): 16px sides, a smaller title. */
+@container drawer (max-width: 699px) {
+  .task-drawer .drawer-head {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+  .task-drawer .drawer-actions {
+    right: 16px;
+  }
+  .task-drawer .drawer-title {
+    font-size: 18px;
+  }
+  .task-drawer .drawer-bar > .tabs {
+    padding: 0 12px;
+  }
+  .task-drawer .drawer-body {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+  .task-drawer.compact .drawer-head {
+    padding-left: 16px;
+  }
+}
+@container drawer (max-width: 479px) {
+  .task-drawer .drawer-eyebrow {
+    padding-right: 76px;
+  }
+  .task-drawer.compact .drawer-heading {
+    padding-right: 140px;
+  }
+}
+
+/* Tests tab: the shared pieces it draws (the criteria list, a run's full note, the access and skip
+   forms, the critical tag, the result buttons) in the spec's values. The rest of the tab is in
+   task-view.css under .tv-*. */
+.task-drawer .tv .disclosure-code > .disclosure-summary {
+  gap: 6px;
+  color: var(--accent);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.task-drawer .tv .disclosure-code > .disclosure-summary:hover {
+  color: var(--accent);
+}
+.task-drawer .tv .disclosure-code > .disclosure-summary .disclosure-caret {
+  width: 14px;
+  height: 14px;
+  color: currentColor;
+}
+.task-drawer .tv .disclosure-code > .disclosure-body {
+  margin-top: 0;
+}
+/* A run's full note: a quiet line under what the agent saw. */
+.task-drawer .tv .tv-full-note {
+  margin-top: 4px;
+  color: var(--fg-3);
+  font-size: 12px;
+}
+.task-drawer .tv .tv-full-note > .disclosure-summary {
+  color: var(--fg-4);
+  font-size: 12px;
+  font-weight: 400;
+}
+.task-drawer .tv .tv-full-note > .disclosure-summary:hover {
+  color: var(--fg-3);
+}
+.task-drawer .tv .tv-full-note > .disclosure-body,
+.task-drawer .tv .tv-runs > .disclosure-body {
+  margin-top: 6px;
+}
+.task-drawer .tv .tv-runs {
+  margin-top: 8px;
+}
+/* The access and skip forms: small muted labels over the spec's inputs. */
+.task-drawer .tv-form .field {
+  gap: 3px;
+}
+.task-drawer .tv-form .field-label,
+.task-drawer .tv-form .field-help,
+.task-drawer .tv-form .field-hint {
+  color: var(--fg-3);
+  font-size: 12px;
+  font-weight: 400;
+}
+.task-drawer .tv-form .field-hint code {
+  padding: 0;
+  background: none;
+  color: var(--fg-4);
+  font-size: 10.5px;
+}
+.task-drawer .tv-form input:not([type="checkbox"], [type="radio"]),
+.task-drawer .tv-form select {
+  height: auto;
+  padding: 6px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--surface-1);
+  color: var(--fg);
+  font-size: 13px;
+}
+.task-drawer .tv-form textarea {
+  padding: 7px 9px;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  background: var(--surface-2);
+  color: var(--fg);
+  font-size: 13px;
+}
+.task-drawer .tv-form .callout {
+  border-radius: 8px;
+  font-size: 12.5px;
+}
+/* A critical case: a red label after its title. */
+.task-drawer .tv-row .tag.tv-crit {
+  --tag-bg: var(--danger-soft);
+  --tag-fg: var(--danger);
+  --tag-line: transparent;
+  flex: none;
+  border-radius: 5px;
+}
+.task-drawer .tv-row .tag.tv-crit .ico {
+  display: none;
+}
+/* Pass and Fail read in their colours; Previous and Next fade when there is nothing that way. */
+.task-drawer .tv-verdicts .btn[data-tv-verdict="pass"] {
+  color: var(--ok);
+}
+.task-drawer .tv-verdicts .btn[data-tv-verdict="fail"] {
+  color: var(--danger);
+}
+.task-drawer .tv-verdicts .btn[aria-pressed="true"] {
+  border-color: var(--fg);
+}
+.task-drawer .tv-hand-nav .btn-link:disabled {
+  color: var(--fg-4);
+  text-decoration: none;
+}
+.task-drawer .tv-hand-h .btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 6px;
+}
+.task-drawer .tv-detail > .callout {
+  border-radius: 8px;
+  font-size: 12.5px;
+}
+.task-drawer .tv-need-acts .btn .ico,
+.task-drawer .tv-verdicts .btn .ico {
+  width: 14px;
+  height: 14px;
+}
+
+/* Comments (the spec's .ov-cm): kind tags, avatars, the composer, the reply box, the filter chips
+   and the order select. The layout of the list itself is in styles/activity.css. */
+.task-drawer .tag.cm-tag {
+  border: 0;
+}
+.task-drawer .tag.cm-tag .ico {
+  width: 12px;
+  height: 12px;
+  stroke-width: 2.2;
+}
+.task-drawer .tag.cm-tag-dec {
+  background: var(--color-special-bg);
+  color: var(--color-special);
+}
+.task-drawer .tag.cm-tag-blk {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+.task-drawer .tag.cm-tag-ok {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+.task-drawer .tag.cm-tag-muted {
+  background: var(--surface-2);
+  color: var(--fg-3);
+}
+
+.task-drawer .avatar.cm-av {
+  --avatar-size: 24px;
+  border-radius: 50%;
+  background: #c9b8f5;
+  color: #111;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+.task-drawer .avatar.cm-av.avatar-square {
+  border-radius: 6px;
+  background: var(--av-bg, #9aa0aa);
+}
+
+/* The composer above the list and the reply box in a thread: a card with a bare field, a hint on
+   the left and the buttons on the right. */
+.task-drawer .composer.act-composer-main,
+.task-drawer .composer.reply-box {
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-1);
+}
+.task-drawer .composer.reply-box {
+  padding: 8px 10px;
+}
+.task-drawer .composer.act-composer-main:focus-within,
+.task-drawer .composer.reply-box:focus-within {
+  border-color: var(--line-strong);
+}
+.task-drawer .act-composer-main .composer-input,
+.task-drawer .reply-box .composer-input {
+  min-height: 40px;
+  padding: 2px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  font-size: 13px;
+  line-height: 1.5;
+  outline: none;
+}
+.task-drawer .reply-box .composer-input {
+  min-height: 0;
+}
+.task-drawer .act-composer-main .composer-foot,
+.task-drawer .reply-box .composer-foot {
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+.task-drawer .act-composer-main .composer-audience,
+.task-drawer .reply-box .composer-audience {
+  flex: 1 1 auto;
+  margin-right: auto;
+  color: var(--fg-4);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.task-drawer .act-composer-main .composer-actions,
+.task-drawer .reply-box .composer-actions {
+  gap: 8px;
+}
+.task-drawer .act-composer-main .composer-submit:not(.btn-primary) {
+  border-color: var(--fg);
+  background: var(--fg);
+  color: var(--surface-0);
+}
+.task-drawer .act-composer-main .composer-attach {
+  color: var(--fg-3);
+}
+
+/* Filters and order above the list: outlined pills, the picked one filled with the text colour. */
+.task-drawer .cm-tools .chip-group {
+  gap: 6px;
+}
+.task-drawer .cm-tools .chip {
+  gap: 6px;
+  min-height: 0;
+  padding: 3px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: none;
+  color: var(--fg-3);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+.task-drawer .cm-tools .chip:hover {
+  background: var(--surface-2);
+}
+.task-drawer .cm-tools .chip[aria-pressed="true"] {
+  border-color: var(--fg);
+  background: var(--fg);
+  color: var(--surface-0);
+}
+.task-drawer .cm-tools .chip > .chip-count {
+  color: inherit;
+  font-weight: 600;
+}
+.task-drawer .cm-tools .select-sm.cm-sort {
+  height: auto;
+  max-width: 170px;
+  padding: 4px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  background-color: var(--surface-1);
+  color: var(--fg);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* The @mention picker inside a comment box: the agent's square, its handle and the column it works. */
+.task-drawer :is(.act-composer-main, .reply-box) .nselect-item {
+  gap: 8px;
+  padding: 5px 6px;
+  border-radius: 6px;
+  font-size: 12.5px;
+}
+.task-drawer :is(.act-composer-main, .reply-box) .nselect-item.active,
+.task-drawer :is(.act-composer-main, .reply-box) .nselect-item:hover {
+  background: var(--surface-2);
+}
+.task-drawer :is(.act-composer-main, .reply-box) .nselect-item .nselect-label {
+  flex: none;
+  font-weight: 700;
+}
+.task-drawer :is(.act-composer-main, .reply-box) .nselect-item-hint {
+  margin-left: 0;
+  color: var(--fg-4);
+}
+.task-drawer :is(.act-composer-main, .reply-box) .nselect-lead .avatar.cm-av {
+  --avatar-size: 20px;
+  font-size: 9px;
+}
+
+/* The markdown inside a comment, the stop's folded report, and the link on a question's info line. */
+.task-drawer :is(.activity .cm-bd, .ar-vr-note) .md {
+  font-size: 13px;
+  line-height: 1.5;
+}
+.task-drawer :is(.activity .cm-bd, .ar-vr-note) .md p {
+  margin: 0 0 8px;
+  max-width: 70ch;
+}
+.task-drawer :is(.activity .cm-bd, .ar-vr-note) .md :is(ul, ol) {
+  margin: 0 0 8px;
+  padding-left: 20px;
+}
+.task-drawer :is(.activity .cm-bd, .ar-vr-note) .md li {
+  margin-bottom: 3px;
+}
+.task-drawer .activity .cm-bd .md > :last-child {
+  margin-bottom: 0;
+}
+.task-drawer .activity .cm-full[open] > .md {
+  max-height: 60vh;
+  overflow: auto;
+  margin-top: 6px;
+  padding-left: 10px;
+  border-left: 2px solid var(--line-strong);
+}
+.task-drawer .activity .q-info .btn-link {
+  padding: 0;
+  font-size: 12px;
+}
+
+/* Activity (lib/activity-rounds.ts): links at 12px, the filters' selects and the System events box
+   as the Task View Lab draws them. */
+.task-drawer .ar :is(.ar-round-hd, .ar-ev, .ar-foot, .ar-more) .btn-link {
+  font-size: 12px;
+}
+.task-drawer .ar-tools .select-sm.ar-sel {
+  height: auto;
+  max-width: 170px;
+  padding: 4px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  background-color: var(--surface-1);
+  color: var(--fg);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.task-drawer .ar-tools .check.ar-chk {
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--fg-3);
+}
+.task-drawer .ar-tools .ar-chk .check-input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--fg);
+}
+.task-drawer .ar-tools .ar-chk .check-label {
+  color: var(--fg-3);
+}
+/* A run's outcome pill, as the Lab's .pill: 12px semibold, 22px tall. */
+.task-drawer .ar-cl-meta .badge-pill {
+  height: 22px;
+  padding: 2px 9px 2px 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* The Files tab head: Add files right after the hint, and no taller than the label. */
+.task-drawer .tv-files-tab .sec-actions {
+  align-self: center;
+  margin-left: 0;
+  line-height: 18px;
+}

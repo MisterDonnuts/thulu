@@ -175,13 +175,14 @@ export interface CollapseInput {
   manual?: boolean;
   visible: number;
   terminal: boolean;
-  dragging: boolean;
   tight: boolean;
 }
 
+// A folded column stays folded during a drag: its strip takes the drop and lights up, and opening it
+// would shift every column under the pointer.
 export function columnCollapsed(c: CollapseInput): boolean {
   if (c.manual !== undefined) return c.manual;
-  if (c.visible === 0) return !c.dragging;
+  if (c.visible === 0) return true;
   return c.terminal && c.tight;
 }
 

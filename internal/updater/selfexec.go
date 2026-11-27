@@ -53,6 +53,7 @@ func (u *updateRun) delegate(ctx context.Context, m *release.Manifest, args []st
 	if err != nil {
 		return false, err
 	}
+	u.delegatedBin = bin
 	u.say("updater.cli.running_cli", "version", m.Version, "path", filepath.Join(binDir, art.File))
 	run := u.deps.Exec
 	if run == nil {
@@ -73,6 +74,9 @@ func (u *updateRun) execBinary(ctx context.Context, bin string, args []string) e
 	cmd.Env = os.Environ()
 	if u.opts.APIKey != "" {
 		cmd.Env = append(cmd.Env, "OCTOPUS_API_KEY="+u.opts.APIKey)
+	}
+	if exe, err := os.Executable(); err == nil && os.Getenv(InvokedCLIEnv) == "" {
+		cmd.Env = append(cmd.Env, InvokedCLIEnv+"="+exe)
 	}
 	if err := cmd.Run(); err != nil {
 		return apperr.Wrap(err, "updater.errors.cli_failed", "name", filepath.Base(bin))

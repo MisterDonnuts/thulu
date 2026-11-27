@@ -3,6 +3,8 @@ import path from "node:path";
 
 import { t } from "../i18n.js";
 import { getBrowser } from "../lib/browser.js";
+import { findingsFor } from "../lib/page-findings.js";
+import { profileOf, throttleContext } from "../lib/throttle.js";
 import { FrameCapture } from "./capture.js";
 import { Director, GuardError } from "./director.js";
 import { ffmpegAvailable } from "./ffmpeg.js";
@@ -36,18 +38,33 @@ function allowedHosts(take, baseUrls) {
   return baseUrls.map((u) => new URL(u).host);
 }
 
+/**
+ * The steps a replay means to judge: every verify, and every a11y step, named or not. An a11y step
+ * that threw (axe failed, its scope matched nothing) has no verdict, and without it here the run
+ * would read as passed on its other checks.
+ * @returns {{ step: number, case: string }[]}
+ */
+export function plannedChecks(steps) {
+  return steps.flatMap((s, i) => ((s.kind === "verify" && s.case) || s.kind === "a11y" ? [{ step: i, case: s.case ?? "" }] : []));
+}
+
 async function playOnce(take, steps, { baseUrl, badge, pace, secrets, dir, hosts }) {
   await mkdir(dir, { recursive: true });
   const browser = await getBrowser();
+  const profile = profileOf(take);
   const context = await browser.newContext({
     viewport: take.viewport,
     timezoneId: take.timezone,
     locale: take.locale,
+    ...(profile.color_scheme ? { colorScheme: profile.color_scheme } : {}),
   });
   try {
     const page = await context.newPage();
+    // Both sides of a before/after get the same profile, applied before the first navigation.
+    await throttleContext(context, profile);
+    findingsFor(page).ignore(take.ignore_errors ?? []);
     await Director.prepare(page, { redactCss: take.redact_css, badge });
-    const capture = new FrameCapture(page, dir);
+    const capture = new FrameCapture(page, dir, { cutWaits: take.cut_waits !== false });
     await capture.start();
     const director = new Director(page, { capture, pace, baseUrl, secrets, allowedHosts: hosts });
     const failures = [];
@@ -60,9 +77,10 @@ async function playOnce(take, steps, { baseUrl, badge, pace, secrets, dir, hosts
       }
     }
     const reel = await capture.stop();
-    const planned = steps.flatMap((s, i) => (s.kind === "verify" && s.case ? [{ step: i, case: s.case }] : []));
+    const planned = plannedChecks(steps);
     return { label: badge, baseUrl, reel, shots: director.shots, verdicts: director.verdicts,
-      notes: director.notes, failures, planned };
+      notes: director.notes, failures, planned, profile, metrics: director.metrics, findings: director.findings(),
+      cutWaits: capture.cutWaits, gaps: reel.gaps };
   } finally {
     await context.close().catch(() => {});
   }

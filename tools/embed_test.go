@@ -40,3 +40,13 @@ func TestNativeCoversEveryServerDirectory(t *testing.T) {
 		t.Fatal("found no server directories; the test is not looking at tools/")
 	}
 }
+
+func TestGithubProxyManifestIsTheFile(t *testing.T) {
+	onDisk, err := os.ReadFile(filepath.Join("thulu-github", "github-proxy.json"))
+	if err != nil {
+		t.Fatalf("read github-proxy.json: %v", err)
+	}
+	if !bytes.Equal(onDisk, GithubProxyManifest()) {
+		t.Error("thulu-github/github-proxy.json: embedded copy differs from the file")
+	}
+}

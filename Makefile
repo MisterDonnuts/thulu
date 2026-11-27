@@ -582,6 +582,8 @@ test-tools:
 	done
 	@echo "==> images/snippets"
 	node --test --test-timeout=30000 images/snippets/*.test.js
+	@echo "==> images/runtime/thulu-gates"
+	node --test --test-timeout=60000 images/runtime/thulu-gates/test/*.test.js
 
 fmt: $(GOIMPORTS_BIN)
 	$(TOOLS_BIN)/goimports -w -local github.com/MisterDonnuts/thulu .

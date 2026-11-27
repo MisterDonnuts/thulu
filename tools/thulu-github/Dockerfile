@@ -1,4 +1,4 @@
-FROM node:22-trixie-slim@sha256:c5849ff9c9ebcd66615412f0b548ca5b8ecaef84003dc9ac2e077ebe46aaa3f6
+FROM node:22-trixie-slim@sha256:68c76cfad89921b927eae28ba21407475e29d0ce450afcdbe70c1532db042b64
 
 ARG NPM_CONFIG_FETCH_RETRIES=5
 ARG NPM_CONFIG_FETCH_RETRY_MAXTIMEOUT=120000
@@ -13,7 +13,7 @@ RUN npm ci --omit=dev --ignore-scripts \
            /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
            /root/.npm /tmp/*
 
-COPY server.js i18n.js ./
+COPY server.js i18n.js github-proxy.json ./
 COPY locales ./locales
 
 # Numeric uid so runAsNonRoot can verify it; must match runAsUser 1000 in

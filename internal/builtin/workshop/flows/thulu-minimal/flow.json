@@ -1,0 +1,19 @@
+{
+  "revision": 1,
+  "tags": ["flow"],
+  "label": "Minimal start",
+  "labels": {"es": "Arranque mínimo"},
+  "description": "Four columns: Backlog, In progress, Review and Done. One general-purpose agent works each task that reaches In progress and commits on its branch; Review is for a person, who decides about the pull request.",
+  "descriptions": {
+    "es": "Cuatro columnas: Backlog, En curso, Revisión y Hecho. Un agente general trabaja cada tarea que llega a En curso y commitea en su rama; Revisión queda para una persona, que decide el pull request."
+  },
+  "board": {"id": "thulu_minimal"},
+  "stages": [
+    {"id": "backlog", "color": "#5d6477", "initial": true},
+    {"id": "in_progress", "color": "#f2994a", "default_agent": "thulu-agent",
+     "auto_advance": true, "agent_verdict": true, "wip_group": "work"},
+    {"id": "review", "color": "#bb86fc", "wip_group": "review", "no_skip": true},
+    {"id": "done", "color": "#3aa667", "terminal": true}
+  ],
+  "task_types": []
+}

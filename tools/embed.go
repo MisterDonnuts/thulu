@@ -30,3 +30,11 @@ var native embed.FS
 // <name>/tool.yaml, and <name>/skill.md when the server has a manual.
 // octopus-api has none: the system skills with `mcp: octopus-api` teach it.
 func Native() fs.FS { return native }
+
+//go:embed thulu-github/github-proxy.json
+var githubProxy []byte
+
+// GithubProxyManifest is thulu-github's call table: each REST route and GraphQL document the
+// server sends, with the tools that send it. thulu-github reads the same file, and the daemon's
+// GitHub proxy forwards nothing outside it.
+func GithubProxyManifest() []byte { return githubProxy }

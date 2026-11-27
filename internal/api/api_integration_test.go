@@ -203,6 +203,11 @@ func hasCookie(r *http.Request, name string) bool {
 
 func setupChatAgent(t *testing.T, srv *Server, name string) string {
 	t.Helper()
+	return setupStageAgent(t, srv, name, "chat")
+}
+
+func setupStageAgent(t *testing.T, srv *Server, name, stages string) string {
+	t.Helper()
 	agentDir := filepath.Join(srv.agentsDir, "agents", name)
 	if err := os.MkdirAll(filepath.Join(agentDir, "prompts"), 0755); err != nil {
 		t.Fatalf("mkdir agent dir: %v", err)
@@ -214,7 +219,7 @@ func setupChatAgent(t *testing.T, srv *Server, name string) string {
     labels:
       thulu.agent: "true"
       thulu.type: "` + name + `"
-      thulu.stages: "chat"
+      thulu.stages: "` + stages + `"
       thulu.model: "opus"
 `
 	if err := os.WriteFile(filepath.Join(agentDir, "docker-compose.yml"), []byte(compose), 0644); err != nil {
@@ -1955,6 +1960,7 @@ func TestIntegration_Settings_PutValidation(t *testing.T) {
 		{"priorities wrong type", "sandbox.priorities", `"not-a-map"`, http.StatusBadRequest},
 		{"idle_evict valid", "sandbox.idle_evict_seconds", `300`, http.StatusNoContent},
 		{"idle_evict negative", "sandbox.idle_evict_seconds", `-1`, http.StatusBadRequest},
+		{"idle_evict zero", "sandbox.idle_evict_seconds", `0`, http.StatusBadRequest},
 		{"acquire_block valid", "sandbox.acquire_block_ms", `5000`, http.StatusNoContent},
 		{"acquire_block wrong type", "sandbox.acquire_block_ms", `"not-a-number"`, http.StatusBadRequest},
 		{"invalid JSON body", "sandbox_max_concurrent", `{bad json`, http.StatusBadRequest},

@@ -1,5 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { timingSafeEqual } from "node:crypto";
+import { readFileSync } from "node:fs";
 
 import express from "express";
 import { Octokit } from "@octokit/rest";
@@ -49,6 +50,16 @@ function octopusAuthHeaders() {
 // Never fall back to a server-wide GH_TOKEN/GITHUB_TOKEN: every workspace calling a shared server
 // would act on GitHub with it.
 const GITHUB_API_URL = process.env.GITHUB_API_URL || "";
+
+// Every REST route and GraphQL document this server sends, with the tools that send it. The
+// daemon's GitHub proxy (internal/api/github_proxy.go) reads the same file and forwards nothing
+// else, so a call added here without its entry works with an App token and fails on a PAT project.
+const PROXY_TABLE = JSON.parse(readFileSync(new URL("./github-proxy.json", import.meta.url), "utf8"));
+const GQL = Object.fromEntries(Object.entries(PROXY_TABLE.graphql).map(([name, doc]) => [name, doc.query]));
+const GITHUB_PROXY_PATH = "/internal/github-proxy";
+// A 409 with this code: the project reaches GitHub through a stored PAT, which a run never
+// receives. Its calls go through the daemon's proxy instead, with the caller's own key.
+const USE_PROXY_CODE = "api.github.errors.use_proxy";
 const DIFF_CAP_BYTES = Number(process.env.DIFF_CAP_BYTES || 80 * 1024);
 const LOG_CAP_BYTES = Number(process.env.LOG_CAP_BYTES || 80 * 1024);
 const LIST_CAP = Number(process.env.LIST_CAP || 300);
@@ -951,12 +962,15 @@ function toolsForScope(scope) {
 
 // Reviewing pending deployments needs Deployments: write, not an Actions permission.
 // No workflows entry: commit/branch_push hold no token; the daemon adds workflows to its own push.
+// A run's token reads contents by default; GitHub files merging under Contents: write, so only
+// pr_merge asks for it (in a chat pr_merge mints nothing: the daemon holds it).
 const TOOL_PERMISSIONS = {
   run_dispatch: "actions:write",
   run_rerun: "actions:write",
   run_cancel: "actions:write",
   deployment_approve: "deployments:write",
   pr_checks: "checks:read",
+  pr_merge: "contents:write",
 };
 
 // An installation has checks:read only after an owner accepts it; when the mint is refused,
@@ -977,6 +991,9 @@ async function resolveToolToken(req, ctx) {
 async function resolveToken({ taskId, projectId, repo, tool, permission = TOOL_PERMISSIONS[tool] }) {
   if (!taskId && !projectId && repo) return resolveRepoToken(repo, permission);
   const perms = permission ? `?permissions=${permission}` : "";
+  // A 403 is the daemon refusing the permission (stage grant, a missing approval): its reason is
+  // what the agent needs, not "no token".
+  let refused = null;
   if (taskId) {
     try {
       const r = await fetch(
@@ -986,12 +1003,16 @@ async function resolveToken({ taskId, projectId, repo, tool, permission = TOOL_P
       if (r.ok) {
         const j = await r.json();
         if (j && j.token) return j.token;
+      } else if (await usesProxy(r)) {
+        return PROXY;
+      } else if (r.status === 403) {
+        refused = (await r.text()).trim();
       }
     } catch (err) {
       console.warn(tLog("log.task_token_lookup_failed", { task: taskId, err: err.message }));
     }
   }
-  if (projectId) {
+  if (projectId && refused === null) {
     try {
       const r = await fetch(
         `${OCTOPUS_API}/internal/projects/${encodeURIComponent(projectId)}/github-token${perms}`,
@@ -1000,18 +1021,38 @@ async function resolveToken({ taskId, projectId, repo, tool, permission = TOOL_P
       if (r.ok) {
         const j = await r.json();
         if (j && j.token) return j.token;
+      } else if (await usesProxy(r)) {
+        return PROXY;
+      } else if (r.status === 403) {
+        refused = (await r.text()).trim();
       }
     } catch (err) {
       console.warn(tLog("log.project_token_lookup_failed", { project: projectId, err: err.message }));
     }
   }
+  if (refused !== null) {
+    throw new Error(t("errors.token_refused", { permission: permission ?? "", body: refused }));
+  }
   throw new Error(t("errors.no_github_token"));
+}
+
+// The daemon answers this instead of a token when the project's credential is a stored PAT.
+const PROXY = Symbol("github-proxy");
+
+async function usesProxy(r) {
+  if (r.status !== 409) return false;
+  try {
+    return (await r.clone().json())?.code === USE_PROXY_CODE;
+  } catch {
+    return false;
+  }
 }
 
 async function resolveRepoToken(repo, permission) {
   const q = new URLSearchParams({ repo: String(repo) });
   if (permission) q.set("permissions", permission);
   const r = await fetch(`${OCTOPUS_API}/internal/github-token?${q}`, { headers: octopusAuthHeaders() });
+  if (await usesProxy(r)) return PROXY;
   const text = await r.text();
   if (!r.ok) {
     throw new Error(t("errors.repo_token_failed", { repo: String(repo), status: r.status, body: text.trim() }));
@@ -1024,6 +1065,22 @@ async function resolveRepoToken(repo, permission) {
   }
   if (j && j.token) return j.token;
   throw new Error(t("errors.no_github_token"));
+}
+
+// On a PAT project every call goes to the daemon's proxy with the caller's own key; the daemon
+// adds the PAT after checking the stage grant, the approvals and the repository. A node-id GraphQL
+// document names no repository, so the call says which one in X-Thulu-Repo.
+function githubClient(token, repo) {
+  if (token !== PROXY) {
+    return new Octokit(GITHUB_API_URL ? { auth: token, baseUrl: GITHUB_API_URL } : { auth: token });
+  }
+  const headers = octopusAuthHeaders();
+  const octokit = new Octokit({ baseUrl: `${OCTOPUS_API}${GITHUB_PROXY_PATH}` });
+  octokit.hook.before("request", (options) => {
+    Object.assign(options.headers, headers);
+    if (typeof repo === "string" && repo) options.headers["x-thulu-repo"] = repo;
+  });
+  return octokit;
 }
 
 function parseRepo(repo) {
@@ -1174,24 +1231,6 @@ function latestReviewStates(reviews) {
   return byLogin;
 }
 
-// i18n-ignore GraphQL query
-const REVIEW_THREADS_QUERY = `
-  query ($owner: String!, $repo: String!, $number: Int!, $after: String) {
-    repository(owner: $owner, name: $repo) {
-      pullRequest(number: $number) {
-        reviewThreads(first: 100, after: $after) {
-          pageInfo { hasNextPage endCursor }
-          nodes {
-            id isResolved isOutdated path line originalLine diffSide
-            comments(first: 50) {
-              totalCount
-              nodes { databaseId author { login } body createdAt url diffHunk replyTo { databaseId } }
-            }
-          }
-        }
-      }
-    }
-  }`;
 
 const HANDLERS = {
   commit: async (_octokit, args, ctx) => {
@@ -1335,7 +1374,7 @@ const HANDLERS = {
     let capped = false;
     let after = null;
     for (;;) {
-      const data = await octokit.graphql(REVIEW_THREADS_QUERY, { owner, repo, number: args.number, after });
+      const data = await octokit.graphql(GQL.review_threads, { owner, repo, number: args.number, after });
       const page = data?.repository?.pullRequest?.reviewThreads;
       for (const node of page?.nodes ?? []) {
         if (threads.length >= LIST_CAP) {
@@ -1737,7 +1776,7 @@ const HANDLERS = {
     if (pr.draft === draft) {
       return ok({ number: pr.number, draft, unchanged: true, html_url: pr.html_url });
     }
-    const res = await octokit.graphql(draft ? GQL_CONVERT_TO_DRAFT : GQL_MARK_READY, { id: pr.node_id });
+    const res = await octokit.graphql(draft ? GQL.convert_to_draft : GQL.mark_ready, { id: pr.node_id });
     const after = (draft ? res?.convertPullRequestToDraft : res?.markPullRequestReadyForReview)?.pullRequest;
     return ok({ number: pr.number, draft: after?.isDraft ?? draft, html_url: pr.html_url });
   },
@@ -2149,16 +2188,6 @@ const HANDLERS = {
   },
 };
 
-// i18n-ignore GraphQL document
-const GQL_THREAD = `query($id: ID!) { node(id: $id) { ... on PullRequestReviewThread { id isResolved pullRequest { number repository { nameWithOwner } } } } }`;
-// i18n-ignore GraphQL document
-const GQL_RESOLVE_THREAD = `mutation($id: ID!) { resolveReviewThread(input: { threadId: $id }) { thread { id isResolved } } }`;
-// i18n-ignore GraphQL document
-const GQL_UNRESOLVE_THREAD = `mutation($id: ID!) { unresolveReviewThread(input: { threadId: $id }) { thread { id isResolved } } }`;
-// i18n-ignore GraphQL document
-const GQL_MARK_READY = `mutation($id: ID!) { markPullRequestReadyForReview(input: { pullRequestId: $id }) { pullRequest { number isDraft } } }`;
-// i18n-ignore GraphQL document
-const GQL_CONVERT_TO_DRAFT = `mutation($id: ID!) { convertPullRequestToDraft(input: { pullRequestId: $id }) { pullRequest { number isDraft } } }`;
 
 // A thread id names no repository, and an installation token reaches every repo the App is
 // installed on:
@@ -2167,7 +2196,7 @@ async function setThreadResolved(octokit, args, resolved) {
   const { owner, repo } = parseRepo(args.repo);
   const threadId = String(args.thread_id ?? "").trim();
   if (!threadId) throw new Error(t("errors.thread_id_required"));
-  const found = await octokit.graphql(GQL_THREAD, { id: threadId });
+  const found = await octokit.graphql(GQL.thread, { id: threadId });
   const thread = found?.node;
   const actual = thread?.pullRequest?.repository?.nameWithOwner;
   if (!actual) throw new Error(t("errors.thread_not_found", { thread_id: threadId }));
@@ -2178,7 +2207,7 @@ async function setThreadResolved(octokit, args, resolved) {
   if (thread.isResolved === resolved) {
     return ok({ thread_id: threadId, number, resolved, unchanged: true });
   }
-  const res = await octokit.graphql(resolved ? GQL_RESOLVE_THREAD : GQL_UNRESOLVE_THREAD, { id: threadId });
+  const res = await octokit.graphql(resolved ? GQL.resolve_thread : GQL.unresolve_thread, { id: threadId });
   const after = (resolved ? res?.resolveReviewThread : res?.unresolveReviewThread)?.thread;
   return ok({ thread_id: threadId, number, resolved: after?.isResolved ?? resolved });
 }
@@ -2330,9 +2359,7 @@ function buildServer({ taskId, projectId, scope, allowedTools, catalog = false, 
       const ctx = { taskId, projectId, scope };
       if (!TASK_ONLY.has(name) && !held) {
         const token = await resolveToolToken({ taskId, projectId, repo: args.repo, tool: name }, ctx);
-        octokit = new Octokit(
-          GITHUB_API_URL ? { auth: token, baseUrl: GITHUB_API_URL } : { auth: token },
-        );
+        octokit = githubClient(token, args.repo);
       }
       return await handler(octokit, args, ctx);
     } catch (err) {

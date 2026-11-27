@@ -18,7 +18,7 @@ import {
   type Viewer,
 } from "./activity";
 import { causeLink, causePicksAgent, quotaLink, runBadgeTone, type Tone } from "./task-detail";
-import { fmtDate } from "./time";
+import { fmtDate, fmtDayClock } from "./time";
 import {
   authorLineHTML,
   avatarHTML as uiAvatarHTML,
@@ -34,6 +34,13 @@ import {
   type Attrs,
   type TagTone,
 } from "./ui";
+import {
+  isBlocker,
+  isBlocking,
+  questionItems,
+  recordedAnswer,
+  type TaskQuestion,
+} from "./questions";
 import type { Thread } from "./threads";
 
 export interface ActivityCtx {
@@ -101,7 +108,8 @@ export interface MetaInput {
   stage?: string;
 }
 
-export function metaHTML(m: MetaInput, ctx: ActivityCtx): string {
+// asideHTML goes after the author line: a comment's kind tag, for one.
+export function metaHTML(m: MetaInput, ctx: ActivityCtx, asideHTML = ""): string {
   const line = authorLineHTML(
     {
       name: m.name,
@@ -111,7 +119,7 @@ export function metaHTML(m: MetaInput, ctx: ActivityCtx): string {
     },
     ctx.now,
   );
-  return `<div class="act-meta">${line}</div>`;
+  return `<div class="act-meta">${line}${asideHTML}</div>`;
 }
 
 export function runningForText(startedAt: string, now: number): string {
@@ -160,8 +168,48 @@ function runStateWord(run: RunInfo): string {
   return RUN_STATE[run.state].word;
 }
 
-export function runCardHTML(run: RunInfo, ctx: ActivityCtx, errorLine = ""): string {
+// A run's state as a pill: done, failed, running (pulsing), queued...
+export function runPillHTML(run: RunInfo): string {
   const st = RUN_STATE[run.state];
+  return badgeHTML(t(runStateWord(run)), runBadgeTone(st.tone), {
+    shape: "pill",
+    icon: st.icon || undefined,
+    pulse: !st.icon,
+    attrs: { "data-run-state": run.state },
+  });
+}
+
+// What a run says under its title: the tool a running agent is on, why it waits, why it did not
+// start, ran out of turns, stopped or failed.
+export function runNoticesHTML(run: RunInfo, ctx: ActivityCtx, errorLine = ""): string[] {
+  const action = run.state === "running" ? (ctx.liveAction?.(run.id) ?? "") : "";
+  const lines: string[] = [];
+  if (run.state === "running")
+    lines.push(
+      `<div class="act-run-line act-run-action" data-run-action="${esc(run.id)}"${action ? "" : " hidden"}>${esc(action)}</div>`,
+    );
+  if (run.state === "queued")
+    lines.push(
+      `<div class="act-run-line">${esc(run.reason || t("lib.activity.run.queued_wait"))}${run.wait === "room" ? fixLink(quotaLink()) : ""}</div>`,
+    );
+  if (run.state === "not_started")
+    lines.push(
+      runErrorHTML(run.reason || t("lib.activity.run.not_started_why"), causeFix(run.cause, ctx)),
+    );
+  if (run.state === "out_of_turns") {
+    const turns = turnsText(run);
+    lines.push(runErrorHTML(turns || t("lib.activity.run.used_every_turn")));
+  }
+  if (run.state === "stopped")
+    lines.push(`<div class="act-run-line">${esc(stoppedText(run, ctx.viewer))}</div>`);
+  if (run.state === "failed") {
+    const exit = run.exit !== null ? t("lib.activity.run.exit", { code: run.exit }) : "";
+    lines.push(runErrorHTML([exit, errorLine].filter(Boolean).join(". ")));
+  }
+  return lines;
+}
+
+export function runCardHTML(run: RunInfo, ctx: ActivityCtx, errorLine = ""): string {
   const stage = run.stage ? ctx.stageLabel(run.stage) : "";
   const agent = run.agent || t("lib.activity.the_agent");
   const pending = run.state === "queued" || run.state === "not_started";
@@ -187,30 +235,7 @@ export function runCardHTML(run: RunInfo, ctx: ActivityCtx, errorLine = ""): str
     : run.state === "running"
       ? `<span class="act-run-dur" data-running-since="${esc(run.startedAt)}">${esc(runningForText(run.startedAt, ctx.now))}</span>`
       : `<span class="act-run-dur">${esc(t("lib.activity.run.took", { duration: runDurationText(run, ctx.now) }))}</span>`;
-  const action = run.state === "running" ? (ctx.liveAction?.(run.id) ?? "") : "";
-  const lines: string[] = [];
-  if (run.state === "running")
-    lines.push(
-      `<div class="act-run-line act-run-action" data-run-action="${esc(run.id)}"${action ? "" : " hidden"}>${esc(action)}</div>`,
-    );
-  if (run.state === "queued")
-    lines.push(
-      `<div class="act-run-line">${esc(run.reason || t("lib.activity.run.queued_wait"))}${run.wait === "room" ? fixLink(quotaLink()) : ""}</div>`,
-    );
-  if (run.state === "not_started")
-    lines.push(
-      runErrorHTML(run.reason || t("lib.activity.run.not_started_why"), causeFix(run.cause, ctx)),
-    );
-  if (run.state === "out_of_turns") {
-    const turns = turnsText(run);
-    lines.push(runErrorHTML(turns || t("lib.activity.run.used_every_turn")));
-  }
-  if (run.state === "stopped")
-    lines.push(`<div class="act-run-line">${esc(stoppedText(run, ctx.viewer))}</div>`);
-  if (run.state === "failed") {
-    const exit = run.exit !== null ? t("lib.activity.run.exit", { code: run.exit }) : "";
-    lines.push(runErrorHTML([exit, errorLine].filter(Boolean).join(". ")));
-  }
+  const lines = runNoticesHTML(run, ctx, errorLine);
   const id = esc(run.id);
   const btns = [
     pending
@@ -241,12 +266,7 @@ export function runCardHTML(run: RunInfo, ctx: ActivityCtx, errorLine = ""): str
   return `<div class="act-run act-run-${run.state}" data-run="${id}">
       <div class="act-run-head">
         <span class="act-run-title">${esc(title)}</span>
-        ${badgeHTML(t(runStateWord(run)), runBadgeTone(st.tone), {
-          shape: "pill",
-          icon: st.icon || undefined,
-          pulse: !st.icon,
-          attrs: { "data-run-state": run.state },
-        })}
+        ${runPillHTML(run)}
         ${dur}
         ${timeHTML(run.startedAt, ctx.now)}
       </div>
@@ -313,6 +333,11 @@ function systemText(e: SystemEntry, ctx: ActivityCtx): string {
   const said = own !== "" ? own : (ev.summary ?? "");
   const summary = said && said !== label ? said : "";
   return `<span class="act-sys-text">${esc(label)}</span>${summary ? `<span class="act-sys-sum">${esc(summary)}</span>` : ""}`;
+}
+
+// A system entry's text and links, without the line's icon and time.
+export function systemTextHTML(e: SystemEntry, ctx: ActivityCtx): string {
+  return systemText(e, ctx);
 }
 
 export function systemLineHTML(e: SystemEntry, ctx: ActivityCtx): string {
@@ -400,10 +425,15 @@ export interface ThreadActionsInput {
   stageAgent?: string;
   canSubtask: boolean;
   canHide?: boolean;
+  // The thread is a moment of a stage visit, so Activity can show it.
+  seeActivity?: boolean;
 }
 
+// The links under a thread's first comment: Reply, Resolve, Send to the agent, Make subtask, Hide,
+// and the same moment in Activity.
 export function threadActionsHTML(a: ThreadActionsInput): string {
-  const btn = (attrs: Attrs, label: string, title?: string) => actButton(label, attrs, { title });
+  const btn = (attrs: Attrs, label: string, title?: string) =>
+    buttonHTML({ label, variant: "link", cls: "act-btn", title, attrs });
   const out = [btn({ "data-thread-reply": a.id }, t("lib.activity.thread.reply"))];
   if (a.replies > 0) {
     out.push(
@@ -436,7 +466,9 @@ export function threadActionsHTML(a: ThreadActionsInput): string {
   if (a.canSubtask)
     out.push(btn({ "data-thread-subtask": a.id }, t("lib.activity.thread.make_subtask")));
   if (a.canHide) out.push(btn({ "data-thread-hide": a.id }, t("lib.activity.thread.hide")));
-  return `<div class="act-actions">${out.join("")}</div>`;
+  if (a.seeActivity)
+    out.push(btn({ "data-see-activity": a.id }, t("lib.activity.thread.see_activity")));
+  return `<div class="cm-ft">${out.join("")}</div>`;
 }
 
 export function applyFormHTML(rootID: string, agent: string, note: string): string {
@@ -462,7 +494,6 @@ export function filterBarHTML(current: ActivityFilter, label: string): string {
     all: t("lib.activity.filter.all"),
     comments: t("lib.activity.filter.comments"),
     runs: t("lib.activity.filter.runs"),
-    system: t("lib.activity.filter.system"),
   };
   return segmentedHTML(
     "act-filter",
@@ -472,22 +503,129 @@ export function filterBarHTML(current: ActivityFilter, label: string): string {
   );
 }
 
-export function questionWhoText(agent: string, blocking: boolean): string {
-  if (blocking)
-    return agent
-      ? t("lib.activity.question.waiting", { agent })
-      : t("lib.activity.question.waiting_unnamed");
-  return agent
-    ? t("lib.activity.question.asked_working", { agent })
-    : t("lib.activity.question.asked_working_unnamed");
+export function listedQuestions(qs: TaskQuestion[] | undefined): TaskQuestion[] {
+  const shown = (qs ?? []).filter((q) => questionItems(q).length > 0);
+  const at = (q: TaskQuestion) => q.created_at ?? "";
+  const open = shown
+    .filter((q) => q.status === "open")
+    .sort((a, b) => (at(a) < at(b) ? -1 : at(a) > at(b) ? 1 : 0));
+  const rest = shown
+    .filter((q) => q.status !== "open")
+    .sort((a, b) => (at(a) < at(b) ? 1 : at(a) > at(b) ? -1 : 0));
+  return [...open, ...rest];
 }
 
-export function questionPinHeadHTML(
-  agent: string,
-  at: string,
-  ctx: ActivityCtx,
-  blocking = true,
-): string {
-  const who = questionWhoText(agent, blocking);
-  return `<div class="act-q-head">${icoSvg("i-help")}<span class="act-q-who">${esc(who)}</span>${timeHTML(at, ctx.now)}<span class="act-q-pin">${esc(t("lib.activity.question.pinned"))}</span></div>`;
+export interface QuestionTally {
+  total: number;
+  pending: number;
+}
+
+export function questionTally(qs: TaskQuestion[] | undefined): QuestionTally {
+  const listed = listedQuestions(qs);
+  return { total: listed.length, pending: listed.filter((q) => q.status === "open").length };
+}
+
+export function questionHeadline(q: TaskQuestion): { header: string; text: string; more: number } {
+  const items = questionItems(q);
+  const first = items.at(0);
+  const text =
+    (first?.question ?? "")
+      .split("\n")
+      .map((l) => l.trim())
+      .find(Boolean) ?? "";
+  return { header: (first?.header ?? "").trim(), text, more: Math.max(0, items.length - 1) };
+}
+
+export function questionRowBodyId(id: string): string {
+  return `q-row-${id}`;
+}
+
+export interface QuestionCardOptions {
+  expanded: boolean;
+  stageLabel: (id: string) => string;
+  // The agent's avatar, and the avatar of the person who answered.
+  agentAvatarHTML: string;
+  personAvatarHTML: string;
+  // Who answered, as the viewer reads it ("You" for themselves).
+  answeredBy: string;
+  answeredByViewer: boolean;
+  // An open question's answer form; replies under the question beyond the answer.
+  formHTML?: string;
+  repliesHTML?: string;
+}
+
+function questionStateText(q: TaskQuestion, o: QuestionCardOptions): string {
+  if (q.status === "open") return t("lib.activity.question.waiting");
+  if (q.status === "canceled") return t("lib.activity.question.canceled");
+  const when = q.answered_at ? fmtDayClock(q.answered_at) : "";
+  if (o.answeredByViewer) return t("lib.activity.question.you_answered", { when });
+  return o.answeredBy
+    ? t("lib.activity.question.who_answered", { who: o.answeredBy, when })
+    : t("lib.activity.question.answered_at", { when });
+}
+
+function questionAnswerText(q: TaskQuestion, i: number): string {
+  const a = recordedAnswer(q).answers.find((x) => x.question_index === i);
+  if (!a) return "";
+  return [(a.selected ?? []).join(", "), a.other ?? ""].filter(Boolean).join(" · ");
+}
+
+// One agent question as a card: a row with the agent, how many questions, their headers and
+// whether it waits for the person; opened, what it asked and the answer in violet, or the form to
+// answer it.
+export function questionCardHTML(q: TaskQuestion, o: QuestionCardOptions): string {
+  const items = questionItems(q);
+  const open = q.status === "open";
+  const bodyId = questionRowBodyId(q.id);
+  const named = (q.agent ?? "").trim();
+  const agent = named !== "" ? named : t("lib.activity.question.unnamed");
+  const heads = items
+    .map((it) => (it.header ?? "").trim())
+    .filter(Boolean)
+    .join(" · ");
+  const row = `<button class="q-row" type="button" data-q-toggle="${esc(q.id)}" aria-expanded="${o.expanded}" aria-controls="${esc(bodyId)}">${o.agentAvatarHTML}<span class="nm">${esc(agent)}</span>${tagHTML(
+    t("lib.activity.question.count", { count: items.length }),
+    {
+      size: "sm",
+      tone: "special",
+      icon: isBlocker(q) ? "i-alert" : "i-help",
+      cls: "cm-tag cm-tag-dec",
+    },
+  )}<span class="q-heads">${esc(heads)}</span><span class="q-state${open ? " wait" : ""}">${esc(questionStateText(q, o))}</span><span class="chev">${icoSvg("i-chevron-right")}</span></button>`;
+  const info = [
+    isBlocking(q)
+      ? t("lib.activity.question.stopped_waited")
+      : t("lib.activity.question.kept_working"),
+    q.stage ? t("lib.activity.question.in_stage", { stage: o.stageLabel(q.stage) }) : "",
+    q.created_at ? t("lib.activity.question.asked", { when: fmtDayClock(q.created_at) }) : "",
+  ]
+    .filter(Boolean)
+    .map(esc)
+    .join(" · ");
+  const see = q.comment_id
+    ? ` · ${buttonHTML({ label: t("lib.activity.thread.see_activity"), variant: "link", attrs: { "data-see-activity": q.comment_id } })}`
+    : "";
+  const asked = items
+    .map((it, i) => {
+      const answer = questionAnswerText(q, i);
+      const given =
+        q.status === "answered"
+          ? `<div class="a">${o.personAvatarHTML}<span>${esc(answer || t("lib.activity.question.no_answer"))}</span></div>`
+          : "";
+      const offered =
+        q.status === "answered" && (it.options ?? []).length
+          ? `<details class="q-opts"><summary>${esc(t("lib.activity.question.options"))}</summary><ul>${(it.options ?? []).map((op) => `<li><b>${esc(op.label)}</b> <span class="q-muted">${esc(op.description ?? "")}</span></li>`).join("")}</ul></details>`
+          : "";
+      const head = it.header ? `<div class="h">${esc(it.header)}</div>` : "";
+      return `<div class="q">${head}<div class="qq">${esc(it.question)}</div>${given}${offered}</div>`;
+    })
+    .join("");
+  const note = recordedAnswer(q).note;
+  const noteHTML =
+    q.status === "answered" && note
+      ? `<div class="a note">${o.personAvatarHTML}<span>${esc(note)}</span></div>`
+      : "";
+  const what = open && o.formHTML ? o.formHTML : asked + noteHTML;
+  const body = `<div class="q-body" id="${esc(bodyId)}"${o.expanded ? "" : " hidden"}><div class="q-info">${info}${see}</div>${what}${o.repliesHTML ?? ""}</div>`;
+  return `<div class="qcard${open ? " q-open" : ""}" data-question-row="${esc(q.id)}">${row}${body}</div>`;
 }

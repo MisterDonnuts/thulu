@@ -114,20 +114,31 @@
     "send_to_never_ran": "This task has not run yet, so there is no session to hand the thread to. The first agent reads the thread in its brief.",
     "apply_note_label": "Instruction for {agent}",
     "apply_note_placeholder": "Instruction (optional): what to do with what was decided",
-    "apply_hint": "{agent} gets the whole thread and carries out what was concluded."
+    "apply_hint": "{agent} gets the whole thread and carries out what was concluded.",
+    "see_activity": "See in Activity"
   },
   "filter": {
     "all": "All",
     "comments": "Comments",
-    "runs": "Agent runs",
-    "system": "System"
+    "runs": "Agent runs"
   },
   "question": {
-    "waiting": "{agent} is waiting for your answer",
-    "waiting_unnamed": "An agent is waiting for your answer",
-    "pinned": "Pinned",
-    "asked_working": "{agent} asked and keeps working",
-    "asked_working_unnamed": "An agent asked and keeps working"
+    "unnamed": "An agent",
+    "canceled": "Canceled",
+    "count": {
+      "one": "{count} question",
+      "other": "{count} questions"
+    },
+    "waiting": "Waiting for you",
+    "you_answered": "You answered {when}",
+    "who_answered": "{who} answered {when}",
+    "answered_at": "Answered {when}",
+    "stopped_waited": "The agent stopped and waited for the answer",
+    "kept_working": "The agent kept working while it waited",
+    "in_stage": "in {stage}",
+    "asked": "asked {when}",
+    "no_answer": "No answer for this one",
+    "options": "Options it offered"
   },
   "audience": {
     "workspace": "Visible to the workspace.",

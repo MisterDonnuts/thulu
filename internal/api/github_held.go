@@ -15,7 +15,9 @@ import (
 	ghrest "github.com/MisterDonnuts/thulu/internal/github"
 	"github.com/MisterDonnuts/thulu/internal/githubapp"
 	"github.com/MisterDonnuts/thulu/internal/i18n"
+	"github.com/MisterDonnuts/thulu/internal/logx"
 	"github.com/MisterDonnuts/thulu/internal/project"
+	"github.com/MisterDonnuts/thulu/internal/task"
 )
 
 const (
@@ -208,12 +210,35 @@ func (s *Server) handleHeldPullMerge(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, 0, err)
 		return
 	}
+	if hold := heldMergeHold(r.Context(), token, req); hold != nil {
+		writeJSON(w, http.StatusConflict, keyedRefusal(r.Context(), map[string]any{"required_checks": []checksHold{*hold}},
+			"api.github.errors.required_checks", "number", req.Number, "checks", task.ChecksReason(r.Context(), &hold.RequiredStatus)))
+		return
+	}
 	res, err := ghrest.MergePR(r.Context(), token, req)
 	if err != nil {
 		writeError(w, r, 0, err)
 		return
 	}
+	if res.Merged {
+		s.heldMergeLanded(r, token, req, res)
+	}
 	writeJSON(w, http.StatusOK, res)
+}
+
+// heldMergeHold refuses a merge whose required checks are not green before asking GitHub, so the
+// person reads which checks hold it. A status that cannot be read lets the merge go to GitHub,
+// which enforces the same protection.
+func heldMergeHold(ctx context.Context, token string, req *ghrest.MergeReq) *checksHold {
+	st, err := ghrest.FetchPRStatus(ctx, token, req.Owner, req.Repo, req.Number, true)
+	if err != nil {
+		logx.Warn(err, "api.approvals.log.checks_read", "pr", req.Owner+"/"+req.Repo)
+		return nil
+	}
+	if st.Required.State == ghrest.RequiredUnknown || !st.Required.Holds() {
+		return nil
+	}
+	return &checksHold{Number: req.Number, RequiredStatus: st.Required}
 }
 
 func (s *Server) handleHeldDeploymentReview(w http.ResponseWriter, r *http.Request) {

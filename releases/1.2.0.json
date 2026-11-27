@@ -1,0 +1,7 @@
+{
+  "requires": [],
+  "manual_steps": [
+    "Runners: the first update from 1.1.0 runs the old CLI, which doesn't replace the `thulu` on your PATH. If `thulu version` still shows 1.1.0, run `thulu update` again (or reinstall with install.sh).",
+    "Runners: then run `thulu runner service install`. It points the service at the new CLI, keeps what you added to the service file, and picks up the new 60 s shutdown timeout."
+  ]
+}

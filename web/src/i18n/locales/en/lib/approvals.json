@@ -44,6 +44,16 @@
     "resume_unnamed_deferred": "A run is working on the task: requesting changes resumes the stage with your note when it ends.",
     "kick_back_deferred": "A run is working on the task: requesting changes sends it back to {stage} when the run ends.",
     "stay": "Requesting changes keeps the task in {stage}: a person decides what comes next.",
-    "record": "Requesting changes is only recorded: this approval belongs to another stage."
-  }
+    "record": "Requesting changes is only recorded: this approval belongs to another stage.",
+    "ahead": "Changes can be requested once the task reaches {stage}. Approving or waiving works now."
+  },
+  "test_change_files": {
+    "one": "The locked test that changed:",
+    "other": "The {count} locked tests that changed:"
+  },
+  "labels": {
+    "test_change": "Change to locked tests"
+  },
+  "checks_hold": "Waiting for the checks GitHub requires before a merge. {reason}",
+  "checks_wait": "The checks GitHub requires still run. If you approve now, the task stays in this column until they pass. {reason}"
 }

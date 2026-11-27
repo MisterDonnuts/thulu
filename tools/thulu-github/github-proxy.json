@@ -1,0 +1,82 @@
+{
+  "rest": [
+    {"octokit": "pulls.get", "method": "GET", "path": "/repos/{owner}/{repo}/pulls/{pull_number}", "tools": ["pr_view", "pr_diff", "pr_checks", "pr_ready_for_review"]},
+    {"octokit": "pulls.list", "method": "GET", "path": "/repos/{owner}/{repo}/pulls", "tools": ["pr_list"]},
+    {"octokit": "pulls.listFiles", "method": "GET", "path": "/repos/{owner}/{repo}/pulls/{pull_number}/files", "tools": ["pr_files"]},
+    {"octokit": "pulls.listReviews", "method": "GET", "path": "/repos/{owner}/{repo}/pulls/{pull_number}/reviews", "tools": ["pr_reviews_list", "pr_reviewers"]},
+    {"octokit": "pulls.listRequestedReviewers", "method": "GET", "path": "/repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers", "tools": ["pr_reviewers"]},
+    {"octokit": "pulls.getReviewComment", "method": "GET", "path": "/repos/{owner}/{repo}/pulls/comments/{comment_id}", "tools": ["pr_review_comment_reply"]},
+    {"octokit": "pulls.createReview", "method": "POST", "path": "/repos/{owner}/{repo}/pulls/{pull_number}/reviews", "tools": ["pr_review_submit"]},
+    {"octokit": "pulls.createReplyForReviewComment", "method": "POST", "path": "/repos/{owner}/{repo}/pulls/{pull_number}/comments/{comment_id}/replies", "tools": ["pr_review_comment_reply"]},
+    {"octokit": "pulls.requestReviewers", "method": "POST", "path": "/repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers", "tools": ["pr_reviewers_request"]},
+    {"octokit": "pulls.removeRequestedReviewers", "method": "DELETE", "path": "/repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers", "tools": ["pr_reviewers_remove"]},
+    {"octokit": "pulls.update", "method": "PATCH", "path": "/repos/{owner}/{repo}/pulls/{pull_number}", "tools": ["pr_update"]},
+    {"octokit": "pulls.create", "method": "POST", "path": "/repos/{owner}/{repo}/pulls", "tools": ["pr_create"]},
+    {"octokit": "pulls.merge", "method": "PUT", "path": "/repos/{owner}/{repo}/pulls/{pull_number}/merge", "tools": ["pr_merge"]},
+    {"octokit": "issues.listComments", "method": "GET", "path": "/repos/{owner}/{repo}/issues/{issue_number}/comments", "tools": ["pr_comments_list"]},
+    {"octokit": "issues.createComment", "method": "POST", "path": "/repos/{owner}/{repo}/issues/{issue_number}/comments", "tools": ["pr_comment"]},
+    {"octokit": "issues.listLabelsForRepo", "method": "GET", "path": "/repos/{owner}/{repo}/labels", "tools": ["labels_list", "pr_labels_add", "pr_labels_set"]},
+    {"octokit": "issues.listLabelsOnIssue", "method": "GET", "path": "/repos/{owner}/{repo}/issues/{issue_number}/labels", "tools": ["pr_labels_remove"]},
+    {"octokit": "issues.addLabels", "method": "POST", "path": "/repos/{owner}/{repo}/issues/{issue_number}/labels", "tools": ["pr_labels_add"]},
+    {"octokit": "issues.setLabels", "method": "PUT", "path": "/repos/{owner}/{repo}/issues/{issue_number}/labels", "tools": ["pr_labels_set"]},
+    {"octokit": "issues.removeLabel", "method": "DELETE", "path": "/repos/{owner}/{repo}/issues/{issue_number}/labels/{name}", "tools": ["pr_labels_remove"]},
+    {"octokit": "issues.addAssignees", "method": "POST", "path": "/repos/{owner}/{repo}/issues/{issue_number}/assignees", "tools": ["pr_assignees_add"]},
+    {"octokit": "issues.removeAssignees", "method": "DELETE", "path": "/repos/{owner}/{repo}/issues/{issue_number}/assignees", "tools": ["pr_assignees_remove"]},
+    {"octokit": "checks.listForRef", "method": "GET", "path": "/repos/{owner}/{repo}/commits/{ref}/check-runs", "tools": ["pr_checks"]},
+    {"octokit": "repos.getCombinedStatusForRef", "method": "GET", "path": "/repos/{owner}/{repo}/commits/{ref}/status", "tools": ["pr_checks"]},
+    {"octokit": "repos.getContent", "method": "GET", "path": "/repos/{owner}/{repo}/contents/{path}", "tools": ["workflow_view"]},
+    {"octokit": "actions.listRepoWorkflows", "method": "GET", "path": "/repos/{owner}/{repo}/actions/workflows", "tools": ["workflow_list"]},
+    {"octokit": "actions.getWorkflow", "method": "GET", "path": "/repos/{owner}/{repo}/actions/workflows/{workflow_id}", "tools": ["workflow_view"]},
+    {"octokit": "actions.listWorkflowRuns", "method": "GET", "path": "/repos/{owner}/{repo}/actions/workflows/{workflow_id}/runs", "tools": ["run_list", "run_dispatch"]},
+    {"octokit": "actions.createWorkflowDispatch", "method": "POST", "path": "/repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches", "tools": ["run_dispatch"]},
+    {"octokit": "actions.listWorkflowRunsForRepo", "method": "GET", "path": "/repos/{owner}/{repo}/actions/runs", "tools": ["run_list", "pr_checks"]},
+    {"octokit": "actions.getWorkflowRun", "method": "GET", "path": "/repos/{owner}/{repo}/actions/runs/{run_id}", "tools": ["run_view", "run_watch"]},
+    {"octokit": "actions.listJobsForWorkflowRun", "method": "GET", "path": "/repos/{owner}/{repo}/actions/runs/{run_id}/jobs", "tools": ["run_jobs", "run_watch"]},
+    {"octokit": "actions.listWorkflowRunArtifacts", "method": "GET", "path": "/repos/{owner}/{repo}/actions/runs/{run_id}/artifacts", "tools": ["run_artifacts"]},
+    {"octokit": "actions.getPendingDeploymentsForRun", "method": "GET", "path": "/repos/{owner}/{repo}/actions/runs/{run_id}/pending_deployments", "tools": ["run_pending_deployments", "run_watch", "deployment_approve"]},
+    {"octokit": "actions.reviewPendingDeploymentsForRun", "method": "POST", "path": "/repos/{owner}/{repo}/actions/runs/{run_id}/pending_deployments", "tools": ["deployment_approve"]},
+    {"octokit": "actions.cancelWorkflowRun", "method": "POST", "path": "/repos/{owner}/{repo}/actions/runs/{run_id}/cancel", "tools": ["run_cancel"]},
+    {"octokit": "actions.reRunWorkflow", "method": "POST", "path": "/repos/{owner}/{repo}/actions/runs/{run_id}/rerun", "tools": ["run_rerun"]},
+    {"octokit": "actions.reRunWorkflowFailedJobs", "method": "POST", "path": "/repos/{owner}/{repo}/actions/runs/{run_id}/rerun-failed-jobs", "tools": ["run_rerun"]},
+    {"octokit": "actions.downloadJobLogsForWorkflowRun", "method": "GET", "path": "/repos/{owner}/{repo}/actions/jobs/{job_id}/logs", "tools": ["run_logs"], "download": true},
+    {"octokit": "actions.downloadWorkflowRunLogs", "method": "GET", "path": "/repos/{owner}/{repo}/actions/runs/{run_id}/logs", "tools": ["run_logs"], "download": true}
+  ],
+  "graphql": {
+    "review_threads": {
+      "tools": ["pr_review_threads"],
+      "variables": ["owner", "repo", "number", "after"],
+      "repo_variables": {"owner": "owner", "name": "repo"},
+      "query": "query ($owner: String!, $repo: String!, $number: Int!, $after: String) { repository(owner: $owner, name: $repo) { pullRequest(number: $number) { reviewThreads(first: 100, after: $after) { pageInfo { hasNextPage endCursor } nodes { id isResolved isOutdated path line originalLine diffSide comments(first: 50) { totalCount nodes { databaseId author { login } body createdAt url diffHunk replyTo { databaseId } } } } } } } }"
+    },
+    "thread": {
+      "tools": ["pr_review_thread_resolve", "pr_review_thread_unresolve"],
+      "variables": ["id"],
+      "node_variable": "id",
+      "query": "query($id: ID!) { node(id: $id) { ... on PullRequestReviewThread { id isResolved pullRequest { number repository { nameWithOwner } } } } }"
+    },
+    "resolve_thread": {
+      "tools": ["pr_review_thread_resolve"],
+      "variables": ["id"],
+      "node_variable": "id",
+      "query": "mutation($id: ID!) { resolveReviewThread(input: { threadId: $id }) { thread { id isResolved } } }"
+    },
+    "unresolve_thread": {
+      "tools": ["pr_review_thread_unresolve"],
+      "variables": ["id"],
+      "node_variable": "id",
+      "query": "mutation($id: ID!) { unresolveReviewThread(input: { threadId: $id }) { thread { id isResolved } } }"
+    },
+    "mark_ready": {
+      "tools": ["pr_ready_for_review"],
+      "variables": ["id"],
+      "node_variable": "id",
+      "query": "mutation($id: ID!) { markPullRequestReadyForReview(input: { pullRequestId: $id }) { pullRequest { number isDraft } } }"
+    },
+    "convert_to_draft": {
+      "tools": ["pr_ready_for_review"],
+      "variables": ["id"],
+      "node_variable": "id",
+      "query": "mutation($id: ID!) { convertPullRequestToDraft(input: { pullRequestId: $id }) { pullRequest { number isDraft } } }"
+    }
+  }
+}

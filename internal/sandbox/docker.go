@@ -10,13 +10,16 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"sort"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
@@ -60,6 +63,8 @@ type Docker struct {
 	image  string
 	limits dockerLimits
 	cache  bool
+	// Memory of the Docker host (the VM under Colima or Docker Desktop), read once; 0 while unknown.
+	hostMem atomic.Int64
 }
 
 const (
@@ -68,12 +73,16 @@ const (
 	EnvSandboxPublishIP = "OCTOPUS_SANDBOX_PUBLISH_IP"
 	EnvSandboxPidsLimit = "OCTOPUS_SANDBOX_PIDS_LIMIT"
 	EnvSandboxCPUs      = "OCTOPUS_SANDBOX_CPUS"
+	// Size of the sandbox's /tmp, a tmpfs: by default 2g or less (see defaultTmpfsSize), a size such
+	// as "1g" used as given, "off" for the image's disk-backed one.
+	EnvSandboxTmpSize = "OCTOPUS_SANDBOX_TMP_SIZE"
 )
 
 const (
 	defaultSandboxPublishIP = "127.0.0.1"
 	defaultSandboxPids      = 4096
 	defaultSandboxCPUs      = 2.0
+	defaultSandboxTmpSize   = "2g"
 )
 
 // Dropped from Docker's default set: NET_RAW (packet spoofing), MKNOD, SETFCAP, SETPCAP,
@@ -84,10 +93,17 @@ type dockerLimits struct {
 	publishIP string
 	pids      int64
 	nanoCPUs  int64
+	// Empty leaves /tmp on the container's disk, where nothing bounds it.
+	tmpSize string
+	// The operator set tmpSize: it is used as given. The default shrinks to fit the memory.
+	tmpExplicit bool
 }
 
 func limitsFromEnv(getenv func(string) string) dockerLimits {
-	l := dockerLimits{publishIP: defaultSandboxPublishIP, pids: defaultSandboxPids, nanoCPUs: int64(defaultSandboxCPUs * 1e9)}
+	l := dockerLimits{
+		publishIP: defaultSandboxPublishIP, pids: defaultSandboxPids, nanoCPUs: int64(defaultSandboxCPUs * 1e9),
+		tmpSize: defaultSandboxTmpSize,
+	}
 	if v := strings.TrimSpace(getenv(EnvSandboxPublishIP)); v != "" {
 		if net.ParseIP(v) != nil {
 			l.publishIP = v
@@ -102,6 +118,17 @@ func limitsFromEnv(getenv func(string) string) dockerLimits {
 			log.Printf("[sandbox] %s", i18n.Log("sandbox.log.pids_limit_ignored", "env", EnvSandboxPidsLimit))
 		}
 	}
+	if v := strings.ToLower(strings.TrimSpace(getenv(EnvSandboxTmpSize))); v != "" {
+		switch {
+		case v == "off" || v == "0":
+			l.tmpSize = ""
+		case tmpSizeRe.MatchString(v):
+			l.tmpSize = v
+			l.tmpExplicit = true
+		default:
+			log.Printf("[sandbox] %s", i18n.Log("sandbox.log.tmp_size_ignored", "env", EnvSandboxTmpSize))
+		}
+	}
 	if v := strings.TrimSpace(getenv(EnvSandboxCPUs)); v != "" {
 		if f, err := strconv.ParseFloat(v, 64); err == nil && f >= 0 {
 			l.nanoCPUs = int64(f * 1e9)
@@ -110,6 +137,47 @@ func limitsFromEnv(getenv func(string) string) dockerLimits {
 		}
 	}
 	return l
+}
+
+var tmpSizeRe = regexp.MustCompile(`^[1-9]\d*[kmg]?$`)
+
+// A tmpfs lives in memory, and the sandbox's memory cap does not protect a Docker host that has
+// less than it (a 3 GB Colima VM under the 6 GB default): the default /tmp takes at most a quarter
+// of the cap and an eighth of the host, so a repo copied to /tmp fills /tmp, not the host's RAM.
+const (
+	tmpfsCapShare  = 4
+	tmpfsHostShare = 8
+	tmpfsFloor     = 64 << 20
+)
+
+func (d *Docker) tmpfsSize(memoryBytes int64) string {
+	if d.limits.tmpSize == "" || d.limits.tmpExplicit {
+		return d.limits.tmpSize
+	}
+	return defaultTmpfsSize(memoryBytes, d.hostMem.Load())
+}
+
+func defaultTmpfsSize(memoryBytes, hostMem int64) string {
+	size := int64(2 << 30)
+	if memoryBytes >= 256<<20 {
+		size = min(size, memoryBytes/tmpfsCapShare)
+	}
+	if hostMem > 0 {
+		size = min(size, hostMem/tmpfsHostShare)
+	}
+	size = max(size, tmpfsFloor)
+	return strconv.FormatInt(size>>20, 10) + "m"
+}
+
+// learnHostMemory reads the Docker host's memory once; a failed read is tried again on the next
+// create.
+func (d *Docker) learnHostMemory(ctx context.Context) {
+	if d.cli == nil || d.hostMem.Load() > 0 {
+		return
+	}
+	if info, err := d.cli.Info(ctx); err == nil && info.MemTotal > 0 {
+		d.hostMem.Store(info.MemTotal)
+	}
 }
 
 func NewDocker(cli *client.Client, image string) *Docker {
@@ -189,12 +257,20 @@ func (d *Docker) Create(ctx context.Context, opts CreateOpts) (*CreateResult, er
 	}
 	dockerx.StampInstall(labels)
 
-	containerName := "octopus-sb-" + sanitizeTaskID(opts.TaskID)
+	containerName := ContainerName(opts.TaskID)
+	// A container under this name has no row (the caller checked): a daemon that died between create
+	// and record, or a Release whose remove failed. Left there it fails this create on the name.
+	if rmErr := d.cli.ContainerRemove(ctx, containerName, container.RemoveOptions{Force: true, RemoveVolumes: true}); rmErr == nil {
+		log.Printf("[sandbox] %s", i18n.Log("sandbox.log.replaced_stale_container", "task", opts.TaskID, "name", containerName))
+	} else if !client.IsErrNotFound(rmErr) {
+		return nil, apperr.Wrap(rmErr, "sandbox.errors.remove_stale_container", "name", containerName)
+	}
 
 	rootless := rootlessMode()
 	env := sandboxEnv(append(append(slices.Clip(opts.ExtraEnv), gitEnv...), cacheVars...), len(caBundle) > 0)
 	cfg := sandboxContainerConfig(d.image, labels, exposed, env, rootless)
 
+	d.learnHostMemory(ctx)
 	host := d.sandboxHostConfig(mounts, bindings, netName, rootless, opts.MemoryBytes)
 	host.LogConfig = dockerx.ContainerLogConfig(ctx, d.cli)
 	dockerx.ApplyInit(ctx, d.cli, d.image, cfg.Entrypoint, host)
@@ -229,6 +305,43 @@ func (d *Docker) Create(ctx context.Context, opts CreateOpts) (*CreateResult, er
 		ContainerID: shortID(resp.ID),
 		HostPorts:   hostPorts,
 	}, nil
+}
+
+func ContainerName(ownerID string) string { return "octopus-sb-" + sanitizeTaskID(ownerID) }
+
+// ListedContainer is a sandbox container (a pod in Kubernetes) as the runtime lists it, row or not.
+type ListedContainer struct {
+	ID      string
+	Name    string
+	Owner   string
+	State   string
+	Created time.Time
+}
+
+// ListSandboxes lists this install's sandbox containers in any state.
+func (d *Docker) ListSandboxes(ctx context.Context) ([]ListedContainer, error) {
+	list, err := d.cli.ContainerList(ctx, container.ListOptions{All: true, Filters: filters.NewArgs(
+		filters.Arg("label", SandboxLabel+"=true"),
+	)})
+	if err != nil {
+		return nil, err
+	}
+	out := make([]ListedContainer, 0, len(list))
+	for i := range list {
+		c := &list[i]
+		if dockerx.ForeignInstall(c.Labels) {
+			continue
+		}
+		name := ""
+		if len(c.Names) > 0 {
+			name = strings.TrimPrefix(c.Names[0], "/")
+		}
+		out = append(out, ListedContainer{
+			ID: shortID(c.ID), Name: name, Owner: c.Labels[SandboxTaskLabel], State: c.State,
+			Created: time.Unix(c.Created, 0),
+		})
+	}
+	return out, nil
 }
 
 // Never set Entrypoint: the image's init (tini) must stay PID 1 to reap what `docker exec` commands
@@ -282,6 +395,12 @@ func (d *Docker) sandboxHostConfig(
 		host.PidsLimit = &pids
 	}
 	host.NanoCPUs = d.limits.nanoCPUs
+	// A sized tmpfs: copies of the repo, logs and caches written to /tmp end at the cap instead of
+	// filling the Docker host's disk. Mode 1777 and exec keep builds and the rootless user working.
+	if size := d.tmpfsSize(memoryBytes); size != "" {
+		//i18n:ignore Docker tmpfs mount options
+		host.Tmpfs = map[string]string{"/tmp": "rw,exec,nosuid,nodev,mode=1777,size=" + size}
+	}
 	return host
 }
 
@@ -391,6 +510,8 @@ type ExecOpts struct {
 	TimeoutMs int
 	// Bulk data (a prewarm's source archive) goes through Stdin to avoid the argument length limit.
 	Stdin string
+	// Written by Manager.Exec before the command; the runtimes never see them.
+	Files []ExecFile
 }
 
 // JSON tags must match the schema documented in the MCP exec tool description.

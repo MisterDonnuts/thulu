@@ -213,9 +213,12 @@ claude_token_optimizer_settings() {
 }
 
 claude_host_args() {
-  local plugin
+  local plugin rule
   plugin=$(claude_plugin_dir)
   CLAUDE_HOST_ARGS=()
+  CLAUDE_HOST_STRICT=1
+  CLAUDE_HOST_DENY=()
+  CLAUDE_HOST_PERM=(--dangerously-skip-permissions)
   if [ -d "$plugin/skills" ]; then
     mkdir -p "$plugin/.claude-plugin"
     # i18n-ignore a plugin manifest, not a message
@@ -224,16 +227,46 @@ claude_host_args() {
     CLAUDE_HOST_ARGS+=(--plugin-dir "$plugin")
   fi
   [ "${OCTOPUS_USER_SETTINGS:-}" = "1" ] || CLAUDE_HOST_ARGS+=(--setting-sources "")
-  if [ "${AUDIT_ONLY:-}" != "1" ] && [ -n "${OCTOPUS_LOCAL_MCP_CONFIG:-}" ] && [ -f "$OCTOPUS_LOCAL_MCP_CONFIG" ]; then
-    CLAUDE_HOST_ARGS+=(--mcp-config "$OCTOPUS_LOCAL_MCP_CONFIG")
+  # OCTOPUS_LOCAL_TOOLS is the runner's local_tools: thulu loads only what Thulu wires, selected adds
+  # the machine's MCPs the person listed, all loads every MCP the machine has.
+  local mode="${OCTOPUS_LOCAL_TOOLS:-}"
+  # A runner from before local_tools sent only the file, which meant selected.
+  [ -z "$mode" ] && [ -n "${OCTOPUS_LOCAL_MCP_CONFIG:-}" ] && mode=selected
+  case "$mode" in
+  all) CLAUDE_HOST_STRICT=0 ;;
+  selected)
+    if [ "${AUDIT_ONLY:-}" != "1" ] && [ -n "${OCTOPUS_LOCAL_MCP_CONFIG:-}" ] && [ -f "$OCTOPUS_LOCAL_MCP_CONFIG" ]; then
+      CLAUDE_HOST_ARGS+=(--mcp-config "$OCTOPUS_LOCAL_MCP_CONFIG")
+    fi
+    # A claude.ai connector loads only without --strict-mcp-config. The runner then names every MCP
+    # left out of the list, one per line, and a deny rule keeps each away from the agent.
+    if [ "${OCTOPUS_LOCAL_MCP_CONNECTORS:-}" = "1" ]; then
+      CLAUDE_HOST_STRICT=0
+      while IFS= read -r rule; do
+        [ -n "$rule" ] && CLAUDE_HOST_DENY+=("$rule")
+      done <<<"${OCTOPUS_LOCAL_MCP_DENY:-}"
+    fi
+    ;;
+  esac
+  # With disableBypassPermissionsMode in a policy, claude rejects --dangerously-skip-permissions.
+  # dontAsk denies what the allowlist leaves out instead of waiting on a prompt nobody can answer.
+  if [ "${OCTOPUS_BYPASS_DISABLED:-}" = "1" ]; then
+    CLAUDE_HOST_PERM=(--permission-mode dontAsk)
+    local -a allowed=()
+    while IFS= read -r rule; do
+      [ -n "$rule" ] && allowed+=("$rule")
+    done <<<"${OCTOPUS_ALLOWED_TOOLS:-}"
+    [ ${#allowed[@]} -gt 0 ] && CLAUDE_HOST_PERM+=(--allowedTools "${allowed[@]}")
   fi
+  return 0
 }
 
 # --strict-mcp-config: load only this run's --mcp-config, never a .mcp.json the repository brings or
-# one in the user's settings.
+# one in the user's settings. A runner's local_tools can lift it (claude_host_args).
 claude_cli() {
   local effort_args="" mcp_args="${MCP_CONFIG_ARGS:-}" settings
-  local -a settings_args=() host_args=()
+  local -a settings_args=() host_args=() strict_args=(--strict-mcp-config)
+  local -a perm_args=(--dangerously-skip-permissions) deny_args=(AskUserQuestion)
   [ -n "${EFFORT:-}" ] && effort_args="--effort ${EFFORT}"
   # --settings adds to the user's settings instead of replacing them.
   settings=$(claude_token_optimizer_settings)
@@ -241,14 +274,17 @@ claude_cli() {
   if claude_host_run; then
     claude_host_args
     host_args=(${CLAUDE_HOST_ARGS[@]+"${CLAUDE_HOST_ARGS[@]}"})
+    [ "$CLAUDE_HOST_STRICT" = "1" ] || strict_args=()
+    perm_args=("${CLAUDE_HOST_PERM[@]}")
+    deny_args+=(${CLAUDE_HOST_DENY[@]+"${CLAUDE_HOST_DENY[@]}"})
   fi
   # AskUserQuestion needs a terminal and a run has none; agents ask through the octopus-api task_ask
   # tool.
   # shellcheck disable=SC2086 # flag strings, word-split on purpose
   set -- "$@" -p \
-    --dangerously-skip-permissions \
-    --disallowedTools AskUserQuestion \
-    --strict-mcp-config \
+    "${perm_args[@]}" \
+    --disallowedTools "${deny_args[@]}" \
+    ${strict_args[@]+"${strict_args[@]}"} \
     --max-turns "${MAX_TURNS:-20}" \
     --output-format stream-json \
     --verbose \

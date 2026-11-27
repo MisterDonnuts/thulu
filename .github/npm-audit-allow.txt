@@ -52,3 +52,10 @@ GHSA-ch52-4w7c-c8xp
 # The patterns it expands are the repo's own eslint globs. Not reachable. No
 # fixed release exists yet (3.0.3 is the latest); clears with the first one.
 GHSA-vfj7-8cjw-p6xm
+
+# picomatch <=4.0.7 — ReDoS through single-branch repeated extglobs. Chains:
+# astro, vite, tinyglobby/fdir and vitest, all build or test time; the image
+# copies `web/dist` and no node_modules ships. The globs it compiles are the
+# repo's own config patterns, never user input. Not reachable. No fixed
+# release exists yet (4.0.7 is the latest); clears with the first one.
+GHSA-fc5q-39xc-vjpf

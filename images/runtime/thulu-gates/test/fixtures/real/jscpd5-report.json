@@ -1,0 +1,121 @@
+{
+  "duplicates": [
+    {
+      "firstFile": {
+        "end": 1151,
+        "endLoc": {
+          "column": 6,
+          "line": 1151,
+          "position": 39472
+        },
+        "name": "package-lock.json",
+        "start": 1135,
+        "startLoc": {
+          "column": 52,
+          "line": 1135,
+          "position": 38908
+        }
+      },
+      "format": "json",
+      "fragment": "    \"node_modules/@eslint/eslintrc/node_modules/ajv\": {\n      \"version\": \"6.15.0\",\n      \"resolved\": \"https://registry.npmjs.org/ajv/-/ajv-6.15.0.tgz\",\n      \"integrity\": \"sha512-fgFx7Hfoq60ytK2c7DhnF8jIvzYgOMxfugjLOSMHjLIPgenqa7S7oaagATUq99mV6IYvN2tRmC0wnTYX6iPbMw==\",\n      \"dev\": true,\n      \"license\": \"MIT\",\n      \"dependencies\": {\n        \"fast-deep-equal\": \"^3.1.1\",\n        \"fast-json-stable-stringify\": \"^2.0.0\",\n        \"json-schema-traverse\": \"^0.4.1\",\n        \"uri-js\": \"^4.2.2\"\n      },\n      \"funding\": {\n        \"type\": \"github\",\n        \"url\": \"https://github.com/sponsors/epoberezkin\"\n      }\n    },",
+      "isNew": false,
+      "kind": "exact",
+      "lines": 17,
+      "secondFile": {
+        "end": 3263,
+        "endLoc": {
+          "column": 6,
+          "line": 3263,
+          "position": 114542
+        },
+        "name": "package-lock.json",
+        "start": 3247,
+        "startLoc": {
+          "column": 42,
+          "line": 3247,
+          "position": 113978
+        }
+      },
+      "tokens": 55
+    },
+    {
+      "firstFile": {
+        "end": 22,
+        "endLoc": {
+          "column": 1,
+          "line": 22,
+          "position": 482
+        },
+        "name": "src/math.ts",
+        "start": 11,
+        "startLoc": {
+          "column": 23,
+          "line": 11,
+          "position": 197
+        }
+      },
+      "format": "typescript",
+      "fragment": "export function average(values: number[]): number {\n  if (values.length === 0) {\n    throw new Error(\"average of an empty list\");\n  }\n  let total = 0;\n  for (const v of values) {\n    total += v;\n  }\n  const result = total / values.length;\n  const rounded = Math.round(result * 100) / 100;\n  return rounded;\n}",
+      "isNew": false,
+      "kind": "exact",
+      "lines": 12,
+      "secondFile": {
+        "end": 25,
+        "endLoc": {
+          "column": 1,
+          "line": 25,
+          "position": 662
+        },
+        "name": "src/stats.ts",
+        "start": 14,
+        "startLoc": {
+          "column": 20,
+          "line": 14,
+          "position": 377
+        }
+      },
+      "tokens": 72
+    }
+  ],
+  "statistics": {
+    "detectionDate": "2026-11-18T13:48:49.645Z",
+    "formats": {
+      "json": {
+        "clones": 1,
+        "duplicatedLines": 17,
+        "duplicatedTokens": 55,
+        "lines": 5823,
+        "newClones": 0,
+        "newDuplicatedLines": 0,
+        "percentage": 0.29194573244032285,
+        "percentageTokens": 0.30150202828637207,
+        "sources": 2,
+        "tokens": 18242
+      },
+      "typescript": {
+        "clones": 1,
+        "duplicatedLines": 12,
+        "duplicatedTokens": 72,
+        "lines": 93,
+        "newClones": 0,
+        "newDuplicatedLines": 0,
+        "percentage": 12.903225806451612,
+        "percentageTokens": 12.32876712328767,
+        "sources": 3,
+        "tokens": 584
+      }
+    },
+    "total": {
+      "clones": 2,
+      "duplicatedLines": 29,
+      "duplicatedTokens": 127,
+      "lines": 5916,
+      "newClones": 0,
+      "newDuplicatedLines": 0,
+      "percentage": 0.49019607843137253,
+      "percentageTokens": 0.6745989588866461,
+      "sources": 5,
+      "tokens": 18826
+    }
+  }
+}

@@ -1,0 +1,1058 @@
+{
+  "_comment": "Boards the daemon (internal/stage/validate.go, read by board_rules_fixtures_test.go) and the column editor (web/src/lib/board-rules.ts, board-rules.test.ts) must judge alike. error is the stage.errors key without its prefix, empty for a board both accept. not_mirrored lists the daemon's keys board-rules.ts leaves to other checks, with the check.",
+  "cases": [
+    {
+      "name": "the Thulu shape",
+      "error": "",
+      "stages": [
+        {
+          "id": "backlog",
+          "label": "Backlog",
+          "position": 10,
+          "initial": true
+        },
+        {
+          "id": "dev",
+          "label": "Dev",
+          "position": 20,
+          "push_branch": true,
+          "pr_draft": true
+        },
+        {
+          "id": "review",
+          "label": "Review",
+          "position": 30,
+          "pr_ready": true,
+          "merge_target": true,
+          "changes_kick_back_to": "dev",
+          "required_approvals": [
+            {
+              "key": "merge",
+              "label": "Merge",
+              "required_checks": true
+            }
+          ]
+        },
+        {
+          "id": "ship",
+          "label": "Ship",
+          "position": 40,
+          "release_resources": true
+        },
+        {
+          "id": "done",
+          "label": "Done",
+          "position": 50,
+          "terminal": true
+        }
+      ]
+    },
+    {
+      "name": "a skippable column with no gate",
+      "error": "",
+      "stages": [
+        {
+          "id": "backlog",
+          "label": "Backlog",
+          "position": 10,
+          "initial": true
+        },
+        {
+          "id": "dev",
+          "label": "Dev",
+          "position": 20,
+          "skip_unless": ["ui"],
+          "agent_verdict": true
+        },
+        {
+          "id": "review",
+          "label": "Review",
+          "position": 30,
+          "open_pr": true
+        },
+        {
+          "id": "ship",
+          "label": "Ship",
+          "position": 40
+        },
+        {
+          "id": "done",
+          "label": "Done",
+          "position": 50,
+          "terminal": true
+        }
+      ]
+    },
+    {
+      "name": "the finishing column after a release",
+      "error": "",
+      "stages": [
+        {
+          "id": "backlog",
+          "label": "Backlog",
+          "position": 10,
+          "initial": true
+        },
+        {
+          "id": "dev",
+          "label": "Dev",
+          "position": 20
+        },
+        {
+          "id": "review",
+          "label": "Review",
+          "position": 30,
+          "open_pr": true
+        },
+        {
+          "id": "ship",
+          "label": "Ship",
+          "position": 40,
+          "release_resources": true
+        },
+        {
+          "id": "done",
+          "label": "Done",
+          "position": 50,
+          "terminal": true
+        }
+      ]
+    },
+    {
+      "name": "start and finish at once",
+      "error": "initial_and_terminal",
+      "stages": [
+        {
+          "id": "backlog",
+          "label": "Backlog",
+          "position": 10,
+          "initial": true,
+          "terminal": true
+        },
+        {
+          "id": "done",
+          "label": "Done",
+          "position": 20,
+          "terminal": true
+        }
+      ]
+    },
+    {
+      "name": "a finishing column that auto-advances",
+      "error": "terminal_auto_advance",
+      "stages": [
+        {
+          "id": "backlog",
+          "label": "Backlog",
+          "position": 10,
+          "initial": true
+        },
+        {
+          "id": "dev",
+          "label": "Dev",
+          "position": 20
+        },
+        {
+          "id": "review",
+          "label": "Review",
+          "position": 30,
+          "open_pr": true
+        },
+        {
+          "id": "ship",
+          "label": "Ship",
+          "position": 40
+        },
+        {
+          "id": "done",
+          "label": "Done",
+          "position": 50,
+          "terminal": true,
+          "auto_advance": true
+        }
+      ]
+    },
+    {
+      "name": "an agent verdict in the start column",
+      "error": "flag_on_edge_stage",
+      "stages": [
+        {
+          "id": "backlog",
+          "label": "Backlog",
+          "position": 10,
+          "initial": true,
+          "agent_verdict": true
+        },
+        {
+          "id": "dev",
+          "label": "Dev",
+          "position": 20
+        },
+        {
+          "id": "review",
+          "label": "Review",
+          "position": 30,
+          "open_pr": true
+        },
+        {
+          "id": "ship",
+          "label": "Ship",
+          "position": 40
+        },
+        {
+          "id": "done",
+          "label": "Done",
+          "position": 50,
+          "terminal": true
+        }
+      ]
+    },
+    {
+      "name": "a pull request ready in the start column",
+      "error": "flag_on_edge_stage",
+      "stages": [
+        {
+          "id": "backlog",
+          "label": "Backlog",
+          "position": 10,
+          "initial": true,
+          "pr_ready": true
+        },
+        {
+          "id": "dev",
+          "label": "Dev",
+          "position": 20
+        },
+        {
+          "id": "review",
+          "label": "Review",
+          "position": 30,
+          "open_pr": true
+        },
+        {
+          "id": "ship",
+          "label": "Ship",
+          "position": 40
+        },
+        {
+          "id": "done",
+          "label": "Done",
+          "position": 50,
+          "terminal": true
+        }
+      ]
+    },
+    {
+      "name": "a draft pull request in the finishing column",
+      "error": "flag_on_edge_stage",
+      "stages": [
+        {
+          "id": "backlog",
+          "label": "Backlog",
+          "position": 10,
+          "initial": true
+        },
+        {
+          "id": "dev",
+          "label": "Dev",
+          "position": 20
+        },
+        {
+          "id": "review",
+          "label": "Review",
+          "position": 30,
+          "open_pr": true
+        },
+        {
+          "id": "ship",
+          "label": "Ship",
+          "position": 40
+        },
+        {
+          "id": "done",
+          "label": "Done",
+          "position": 50,
+          "terminal": true,
+          "pr_draft": true
+        }
+      ]
+    },
+    {
+      "name": "a skippable finishing column",
+      "error": "flag_on_edge_stage",
+      "stages": [
+        {
+          "id": "backlog",
+          "label": "Backlog",
+          "position": 10,
+          "initial": true
+        },
+        {
+          "id": "dev",
+          "label": "Dev",
+          "position": 20
+        },
+        {
+          "id": "review",
+          "label": "Review",
+          "position": 30,
+          "open_pr": true
+        },
+        {
+          "id": "ship",
+          "label": "Ship",
+          "position": 40
+        },
+        {
+          "id": "done",
+          "label": "Done",
+          "position": 50,
+          "terminal": true,
+          "skip_unless": ["ui"]
+        }
+      ]
+    },
+    {
+      "name": "a skippable column that pushes",
+      "error": "skip_unless_combined",
+      "stages": [
+        {
+          "id": "backlog",
+          "label": "Backlog",
+          "position": 10,
+          "initial": true
+        },
+        {
+          "id": "dev",
+          "label": "Dev",
+          "position": 20,
+          "skip_unless": ["ui"],
+          "push_branch": true
+        },
+        {
+          "id": "review",
+          "label": "Review",
+          "position": 30,
+          "open_pr": true
+        },
+        {
+          "id": "ship",
+          "label": "Ship",
+          "position": 40
+        },
+        {
+          "id": "done",
+          "label": "Done",
+          "position": 50,
+          "terminal": true
+        }
+      ]
+    },
+    {
+      "name": "no_skip with skip_unless",
+      "error": "skip_unless_combined",
+      "stages": [
+        {
+          "id": "backlog",
+          "label": "Backlog",
+          "position": 10,
+          "initial": true
+        },
+        {
+          "id": "dev",
+          "label": "Dev",
+          "position": 20,
+          "skip_unless": ["ui"],
+          "no_skip": true
+        },
+        {
+          "id": "review",
+          "label": "Review",
+          "position": 30,
+          "open_pr": true
+        },
+        {
+          "id": "done",
+          "label": "Done",
+          "position": 40,
+          "terminal": true
+        }
+      ]
+    },
+    {
+      "name": "a skippable column with an approval",
+      "error": "skip_unless_combined",
+      "stages": [
+        {
+          "id": "backlog",
+          "label": "Backlog",
+          "position": 10,
+          "initial": true
+        },
+        {
+          "id": "dev",
+          "label": "Dev",
+          "position": 20,
+          "skip_unless": ["ui"],
+          "required_approvals": [
+            {
+              "key": "qa",
+              "label": "QA"
+            }
+          ]
+        },
+        {
+          "id": "review",
+          "label": "Review",
+          "position": 30,
+          "open_pr": true
+        },
+        {
+          "id": "ship",
+          "label": "Ship",
+          "position": 40
+        },
+        {
+          "id": "done",
+          "label": "Done",
+          "position": 50,
+          "terminal": true
+        }
+      ]
+    },
+    {
+      "name": "a skippable column that frees resources",
+      "error": "skip_unless_combined",
+      "stages": [
+        {
+          "id": "backlog",
+          "label": "Backlog",
+          "position": 10,
+          "initial": true
+        },
+        {
+          "id": "dev",
+          "label": "Dev",
+          "position": 20
+        },
+        {
+          "id": "review",
+          "label": "Review",
+          "position": 30,
+          "open_pr": true
+        },
+        {
+          "id": "ship",
+          "label": "Ship",
+          "position": 40,
+          "skip_unless": ["ui"],
+          "release_resources": true
+        },
+        {
+          "id": "done",
+          "label": "Done",
+          "position": 50,
+          "terminal": true
+        }
+      ]
+    },
+    {
+      "name": "changes back to a column not on the board",
+      "error": "changes_kick_back_unknown",
+      "stages": [
+        {
+          "id": "backlog",
+          "label": "Backlog",
+          "position": 10,
+          "initial": true
+        },
+        {
+          "id": "dev",
+          "label": "Dev",
+          "position": 20
+        },
+        {
+          "id": "review",
+          "label": "Review",
+          "position": 30,
+          "open_pr": true,
+          "changes_kick_back_to": "nowhere"
+        },
+        {
+          "id": "ship",
+          "label": "Ship",
+          "position": 40
+        },
+        {
+          "id": "done",
+          "label": "Done",
+          "position": 50,
+          "terminal": true
+        }
+      ]
+    },
+    {
+      "name": "changes back to the same column",
+      "error": "changes_kick_back_self",
+      "stages": [
+        {
+          "id": "backlog",
+          "label": "Backlog",
+          "position": 10,
+          "initial": true
+        },
+        {
+          "id": "dev",
+          "label": "Dev",
+          "position": 20
+        },
+        {
+          "id": "review",
+          "label": "Review",
+          "position": 30,
+          "open_pr": true,
+          "changes_kick_back_to": "review"
+        },
+        {
+          "id": "ship",
+          "label": "Ship",
+          "position": 40
+        },
+        {
+          "id": "done",
+          "label": "Done",
+          "position": 50,
+          "terminal": true
+        }
+      ]
+    },
+    {
+      "name": "changes back to the finishing column",
+      "error": "changes_kick_back_terminal",
+      "stages": [
+        {
+          "id": "backlog",
+          "label": "Backlog",
+          "position": 10,
+          "initial": true
+        },
+        {
+          "id": "dev",
+          "label": "Dev",
+          "position": 20
+        },
+        {
+          "id": "review",
+          "label": "Review",
+          "position": 30,
+          "open_pr": true,
+          "changes_kick_back_to": "done"
+        },
+        {
+          "id": "ship",
+          "label": "Ship",
+          "position": 40
+        },
+        {
+          "id": "done",
+          "label": "Done",
+          "position": 50,
+          "terminal": true
+        }
+      ]
+    },
+    {
+      "name": "changes back to a later column",
+      "error": "changes_kick_back_forward",
+      "stages": [
+        {
+          "id": "backlog",
+          "label": "Backlog",
+          "position": 10,
+          "initial": true
+        },
+        {
+          "id": "dev",
+          "label": "Dev",
+          "position": 20,
+          "changes_kick_back_to": "review"
+        },
+        {
+          "id": "review",
+          "label": "Review",
+          "position": 30,
+          "open_pr": true
+        },
+        {
+          "id": "ship",
+          "label": "Ship",
+          "position": 40
+        },
+        {
+          "id": "done",
+          "label": "Done",
+          "position": 50,
+          "terminal": true
+        }
+      ]
+    },
+    {
+      "name": "no start column",
+      "error": "initial_count",
+      "stages": [
+        {
+          "id": "backlog",
+          "label": "Backlog",
+          "position": 10
+        },
+        {
+          "id": "dev",
+          "label": "Dev",
+          "position": 20
+        },
+        {
+          "id": "review",
+          "label": "Review",
+          "position": 30,
+          "open_pr": true
+        },
+        {
+          "id": "ship",
+          "label": "Ship",
+          "position": 40
+        },
+        {
+          "id": "done",
+          "label": "Done",
+          "position": 50,
+          "terminal": true
+        }
+      ]
+    },
+    {
+      "name": "two start columns",
+      "error": "initial_count",
+      "stages": [
+        {
+          "id": "backlog",
+          "label": "Backlog",
+          "position": 10,
+          "initial": true
+        },
+        {
+          "id": "dev",
+          "label": "Dev",
+          "position": 20,
+          "initial": true
+        },
+        {
+          "id": "review",
+          "label": "Review",
+          "position": 30,
+          "open_pr": true
+        },
+        {
+          "id": "ship",
+          "label": "Ship",
+          "position": 40
+        },
+        {
+          "id": "done",
+          "label": "Done",
+          "position": 50,
+          "terminal": true
+        }
+      ]
+    },
+    {
+      "name": "no finishing column",
+      "error": "terminal_missing",
+      "stages": [
+        {
+          "id": "backlog",
+          "label": "Backlog",
+          "position": 10,
+          "initial": true
+        },
+        {
+          "id": "dev",
+          "label": "Dev",
+          "position": 20
+        },
+        {
+          "id": "review",
+          "label": "Review",
+          "position": 30,
+          "open_pr": true
+        },
+        {
+          "id": "ship",
+          "label": "Ship",
+          "position": 40
+        },
+        {
+          "id": "done",
+          "label": "Done",
+          "position": 50
+        }
+      ]
+    },
+    {
+      "name": "two merge columns",
+      "error": "merge_target_multiple",
+      "stages": [
+        {
+          "id": "backlog",
+          "label": "Backlog",
+          "position": 10,
+          "initial": true
+        },
+        {
+          "id": "dev",
+          "label": "Dev",
+          "position": 20,
+          "pr_draft": true
+        },
+        {
+          "id": "review",
+          "label": "Review",
+          "position": 30,
+          "open_pr": true,
+          "merge_target": true
+        },
+        {
+          "id": "ship",
+          "label": "Ship",
+          "position": 40,
+          "merge_target": true
+        },
+        {
+          "id": "done",
+          "label": "Done",
+          "position": 50,
+          "terminal": true
+        }
+      ]
+    },
+    {
+      "name": "a merge column before any pull request",
+      "error": "merge_target_without_pr",
+      "stages": [
+        {
+          "id": "backlog",
+          "label": "Backlog",
+          "position": 10,
+          "initial": true
+        },
+        {
+          "id": "dev",
+          "label": "Dev",
+          "position": 20,
+          "merge_target": true
+        },
+        {
+          "id": "review",
+          "label": "Review",
+          "position": 30,
+          "open_pr": true
+        },
+        {
+          "id": "ship",
+          "label": "Ship",
+          "position": 40
+        },
+        {
+          "id": "done",
+          "label": "Done",
+          "position": 50,
+          "terminal": true
+        }
+      ]
+    },
+    {
+      "name": "a merge column on the column that opens the pull request",
+      "error": "merge_target_without_pr",
+      "stages": [
+        {
+          "id": "backlog",
+          "label": "Backlog",
+          "position": 10,
+          "initial": true
+        },
+        {
+          "id": "dev",
+          "label": "Dev",
+          "position": 20
+        },
+        {
+          "id": "review",
+          "label": "Review",
+          "position": 30,
+          "open_pr": true,
+          "merge_target": true
+        },
+        {
+          "id": "ship",
+          "label": "Ship",
+          "position": 40
+        },
+        {
+          "id": "done",
+          "label": "Done",
+          "position": 50,
+          "terminal": true
+        }
+      ]
+    },
+    {
+      "name": "required checks before any pull request",
+      "error": "required_checks_without_pr",
+      "stages": [
+        {
+          "id": "backlog",
+          "label": "Backlog",
+          "position": 10,
+          "initial": true
+        },
+        {
+          "id": "dev",
+          "label": "Dev",
+          "position": 20,
+          "required_approvals": [
+            {
+              "key": "merge",
+              "label": "Merge",
+              "required_checks": true
+            }
+          ]
+        },
+        {
+          "id": "review",
+          "label": "Review",
+          "position": 30,
+          "open_pr": true
+        },
+        {
+          "id": "ship",
+          "label": "Ship",
+          "position": 40
+        },
+        {
+          "id": "done",
+          "label": "Done",
+          "position": 50,
+          "terminal": true
+        }
+      ]
+    },
+    {
+      "name": "a pull request opened after the worktree was freed",
+      "error": "release_resources_worktree_after",
+      "stages": [
+        {
+          "id": "backlog",
+          "label": "Backlog",
+          "position": 10,
+          "initial": true
+        },
+        {
+          "id": "dev",
+          "label": "Dev",
+          "position": 20,
+          "release_resources": true
+        },
+        {
+          "id": "review",
+          "label": "Review",
+          "position": 30,
+          "open_pr": true
+        },
+        {
+          "id": "ship",
+          "label": "Ship",
+          "position": 40
+        },
+        {
+          "id": "done",
+          "label": "Done",
+          "position": 50,
+          "terminal": true
+        }
+      ]
+    },
+    {
+      "name": "a push after the worktree was freed",
+      "error": "release_resources_worktree_after",
+      "stages": [
+        {
+          "id": "backlog",
+          "label": "Backlog",
+          "position": 10,
+          "initial": true
+        },
+        {
+          "id": "dev",
+          "label": "Dev",
+          "position": 20
+        },
+        {
+          "id": "review",
+          "label": "Review",
+          "position": 30,
+          "open_pr": true
+        },
+        {
+          "id": "ship",
+          "label": "Ship",
+          "position": 40,
+          "release_resources": true
+        },
+        {
+          "id": "late",
+          "label": "Late",
+          "position": 45,
+          "push_branch": true
+        },
+        {
+          "id": "done",
+          "label": "Done",
+          "position": 50,
+          "terminal": true
+        }
+      ]
+    },
+    {
+      "name": "a resource-freeing column that kicks back",
+      "error": "release_resources_kick_back",
+      "stages": [
+        {
+          "id": "backlog",
+          "label": "Backlog",
+          "position": 10,
+          "initial": true
+        },
+        {
+          "id": "dev",
+          "label": "Dev",
+          "position": 20
+        },
+        {
+          "id": "review",
+          "label": "Review",
+          "position": 30,
+          "open_pr": true
+        },
+        {
+          "id": "ship",
+          "label": "Ship",
+          "position": 40,
+          "release_resources": true,
+          "on_changes_requested": "kick_back"
+        },
+        {
+          "id": "done",
+          "label": "Done",
+          "position": 50,
+          "terminal": true
+        }
+      ]
+    },
+    {
+      "name": "a resource-freeing column with a kick-back target",
+      "error": "release_resources_kick_back",
+      "stages": [
+        {
+          "id": "backlog",
+          "label": "Backlog",
+          "position": 10,
+          "initial": true
+        },
+        {
+          "id": "dev",
+          "label": "Dev",
+          "position": 20
+        },
+        {
+          "id": "review",
+          "label": "Review",
+          "position": 30,
+          "open_pr": true
+        },
+        {
+          "id": "ship",
+          "label": "Ship",
+          "position": 40,
+          "release_resources": true,
+          "changes_kick_back_to": "dev"
+        },
+        {
+          "id": "done",
+          "label": "Done",
+          "position": 50,
+          "terminal": true
+        }
+      ]
+    },
+    {
+      "name": "changes back to a skippable column",
+      "error": "skip_unless_kick_back_target",
+      "stages": [
+        {
+          "id": "backlog",
+          "label": "Backlog",
+          "position": 10,
+          "initial": true
+        },
+        {
+          "id": "dev",
+          "label": "Dev",
+          "position": 20,
+          "skip_unless": ["ui"]
+        },
+        {
+          "id": "review",
+          "label": "Review",
+          "position": 30,
+          "open_pr": true,
+          "changes_kick_back_to": "dev"
+        },
+        {
+          "id": "ship",
+          "label": "Ship",
+          "position": 40
+        },
+        {
+          "id": "done",
+          "label": "Done",
+          "position": 50,
+          "terminal": true
+        }
+      ]
+    }
+  ],
+  "not_mirrored": {
+    "board_empty": "the editor never deletes the last column",
+    "too_many_stages": "the editor's add-column form checks the count",
+    "duplicate_stage": "the add-column form checks the id against the board",
+    "invalid_stage_id": "the add-column form checks the id (validId)",
+    "id_reserved_virtual": "the add-column form refuses RESERVED_STAGE_IDS",
+    "id_reserved_pseudo": "the add-column form refuses RESERVED_STAGE_IDS",
+    "stage_label_required": "the rename field checks the label",
+    "stage_label_too_long": "the rename field caps the label length",
+    "stage_color_invalid": "the color comes from the swatch picker",
+    "stage_virtual": "virtual stages are never part of an edited board",
+    "wip_group_invalid": "the WIP group is a radio of WIP_GROUPS",
+    "default_agent_invalid": "the agent comes from the picker's list of agent names",
+    "skip_unless_too_many": "parseSkipUnless checks it before the save",
+    "skip_unless_invalid": "parseSkipUnless checks it before the save",
+    "skip_unless_duplicate": "parseSkipUnless drops repeats",
+    "too_many_approvals": "the daemon's cap; the approvals editor does not count rows",
+    "approval_key_invalid": "normalizeRequiredApprovals checks it before the save",
+    "approval_key_duplicate": "normalizeRequiredApprovals checks it before the save",
+    "approval_label_required": "normalizeRequiredApprovals checks it before the save",
+    "approval_label_too_long": "the label input caps its length",
+    "approval_type_duplicate": "normalizeRequiredApprovals drops repeated types",
+    "approval_type_unknown": "ValidateApprovalTypes needs the board's task types; the editor offers only those",
+    "on_changes_requested_invalid": "the mode is a select of the three valid modes"
+  }
+}

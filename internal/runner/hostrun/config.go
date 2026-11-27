@@ -28,13 +28,37 @@ type Config struct {
 	ProjectFiles   map[string][]string `json:"project_files,omitempty"`
 	WorkDir        string              `json:"work_dir,omitempty"`
 	LocalMCPConfig string              `json:"local_mcp_config,omitempty"`
-	UserSettings   bool                `json:"user_settings,omitempty"`
-	Bash           string              `json:"bash,omitempty"`
-	Concurrency    int                 `json:"concurrency,omitempty"`
+	// How much of the machine's own tooling an agent gets: LocalToolsThulu (the default),
+	// LocalToolsSelected or LocalToolsAll. Decided on the machine only; the daemon shows it.
+	LocalTools string `json:"local_tools,omitempty"`
+	// What LocalToolsSelected adds: servers defined in LocalMCPConfig, and claude.ai connectors by
+	// the name claude shows ("claude.ai Slack"). Empty means every server in LocalMCPConfig.
+	LocalMCP []string `json:"local_mcp,omitempty"`
+	// Permission rules a run gets when a Claude Code policy turns off bypass mode.
+	AllowedTools []string `json:"allowed_tools,omitempty"`
+	// Written into the service definition by `thulu runner service install`, over what the file
+	// already had: PATH and anything else the runner's service must keep.
+	ServiceEnv   map[string]string `json:"service_env,omitempty"`
+	UserSettings bool              `json:"user_settings,omitempty"`
+	Bash         string            `json:"bash,omitempty"`
+	Concurrency  int               `json:"concurrency,omitempty"`
 	// Chat turns take slots of their own, so a turn never waits behind a long run.
 	ChatConcurrency int    `json:"chat_concurrency,omitempty"`
 	KeepRuns        bool   `json:"keep_runs,omitempty"`
 	Entrypoint      string `json:"entrypoint,omitempty"`
+
+	// Memory, in MB (memory.go). 0 takes the default; a negative value turns the check off.
+	// The most a run (the agent CLI and everything it starts) may take; DefaultRunMemoryLimitMB.
+	RunMemoryLimitMB int `json:"run_memory_limit_mb,omitempty"`
+	// A cap per project on this machine, by project id, over run_memory_limit_mb and the daemon's.
+	ProjectMemoryLimitMB map[string]int `json:"project_memory_limit_mb,omitempty"`
+	// Under this much available memory the runner claims no new run; DefaultMinFreeMemoryMB.
+	MinFreeMemoryMB int `json:"min_free_memory_mb,omitempty"`
+	// Under this much available memory the runner stops its largest run; DefaultMachineFloorMB.
+	MachineMemoryFloorMB int `json:"machine_memory_floor_mb,omitempty"`
+	// A worktree's build cache (.angular/cache, .next/cache, node_modules/.cache) over this many MB
+	// goes when a run ends; DefaultBuildCacheMaxMB. Negative keeps every cache.
+	BuildCacheMaxMB int `json:"build_cache_max_mb,omitempty"`
 
 	// Where it was read from, so a running runner picks up `thulu add` and `thulu runner allow`
 	// without a restart. mu guards Roots and Projects, which Reload swaps while jobs read them.

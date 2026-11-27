@@ -94,6 +94,7 @@ export function globalRows(): KbdRow[] {
   return [
     { sep: t("common.kbd.navigation") },
     { keys: [MOD_KEY, "K"], label: t("common.kbd.palette") },
+    { keys: [MOD_KEY, "J"], label: t("common.kbd.new_chat") },
     { keys: ["G", "D"], label: t("common.nav.dashboard") },
     { keys: ["G", "T"], label: t("common.nav.tasks") },
     { keys: ["G", "P"], label: t("common.nav.projects") },

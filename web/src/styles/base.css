@@ -116,6 +116,17 @@ select:focus-visible {
     opacity: 1;
   }
 }
+/* A folded body that just opened (lib/collapse.ts revealIn). */
+@keyframes octopus-expand-in {
+  from {
+    transform: translateY(-2px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
 @keyframes octopus-spin {
   to {
     transform: rotate(360deg);
@@ -192,4 +203,7 @@ select:focus-visible {
 }
 .hidden {
   display: none !important;
+}
+.expand-in {
+  animation: octopus-expand-in var(--dur-normal) var(--ease-out);
 }

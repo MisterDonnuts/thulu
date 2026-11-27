@@ -1,0 +1,58 @@
+{
+  "kinds": [
+    {
+      "kind": "device",
+      "icon": "smartphone",
+      "order": 10,
+      "actions": ["by_hand", "skip"],
+      "secrets": false,
+      "title_key": "task.needs.device.title",
+      "help_key": "task.needs.device.help"
+    },
+    {
+      "kind": "third_party_account",
+      "icon": "globe",
+      "order": 20,
+      "actions": ["access", "by_hand", "skip"],
+      "secrets": true,
+      "title_key": "task.needs.third_party_account.title",
+      "help_key": "task.needs.third_party_account.help"
+    },
+    {
+      "kind": "environment",
+      "icon": "server",
+      "order": 30,
+      "actions": ["access", "rerun", "skip"],
+      "secrets": true,
+      "title_key": "task.needs.environment.title",
+      "help_key": "task.needs.environment.help"
+    },
+    {
+      "kind": "account",
+      "icon": "key",
+      "order": 40,
+      "actions": ["access", "by_hand", "skip"],
+      "secrets": true,
+      "title_key": "task.needs.account.title",
+      "help_key": "task.needs.account.help"
+    },
+    {
+      "kind": "judgment",
+      "icon": "eye",
+      "order": 50,
+      "actions": ["review_video", "skip"],
+      "secrets": false,
+      "title_key": "task.needs.judgment.title",
+      "help_key": "task.needs.judgment.help"
+    },
+    {
+      "kind": "other",
+      "icon": "help",
+      "order": 90,
+      "actions": ["by_hand", "skip"],
+      "secrets": false,
+      "title_key": "task.needs.other.title",
+      "help_key": "task.needs.other.help"
+    }
+  ]
+}

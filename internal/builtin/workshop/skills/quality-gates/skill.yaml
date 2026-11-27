@@ -1,0 +1,9 @@
+name: quality-gates
+description: How to verify a task branch with thulu-gates in the sandbox. Flags and thresholds, reading report.json and the SARIF it leaves, triaging false positives without closing high findings, telling a failing test caused by the change from a flaky or pre-existing one, gate config changes and new suppressions, which verdict.md to write and which stage a kick_back goes to, and the verification report. Use it when it is your turn to run the quality gates of a task or to judge their artifacts.
+descriptions:
+  es: Cómo verificar la rama de una tarea con thulu-gates en el sandbox. Flags y umbrales, cómo leer report.json y los SARIF que deja, triage de falsos positivos sin cerrar hallazgos altos, cómo separar un test que rompió el cambio de uno flaky o preexistente, cambios en la config de los gates y supresiones nuevas, qué verdict.md escribir y a qué etapa va un kick_back, y el reporte de verificación. Usala cuando te toca correr los quality gates de una tarea o juzgar sus artefactos.
+type: knowledge
+enforcement: on_demand
+version: 7
+tags: [quality, verification, flow]
+requires: []

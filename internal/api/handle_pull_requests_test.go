@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -104,7 +105,7 @@ func TestTaskPullRequests(t *testing.T) {
 		t.Errorf("row = %+v", got)
 	}
 	wantCI := github.CIStatus{Source: github.CISourceChecks, Total: 2, Passed: 1, Running: 1, State: github.CIStateRunning}
-	if got.CI != wantCI {
+	if got.CI.Checks = nil; !reflect.DeepEqual(got.CI, wantCI) {
 		t.Errorf("ci = %+v, want %+v", got.CI, wantCI)
 	}
 	bad := rows[1]

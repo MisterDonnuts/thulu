@@ -1,13 +1,13 @@
 import { t } from "../i18n";
 import { agentLink } from "./agent-link";
 import { runAgoLabel, type TestCasePriority } from "./test-cases";
-import { formatSeconds } from "./time";
+import { fmtMs, formatSeconds, unitShort } from "./time";
 
 export type CaseStatus =
   "draft" | "ready" | "queued" | "running" | "pass" | "fail" | "blocked" | "error" | "canceled";
 export type RunStatus = "queued" | "running" | "pass" | "fail" | "blocked" | "error" | "canceled";
 export type BatchStatus = "queued" | "running" | "done" | "canceled" | "error";
-export type Trigger = "manual" | "schedule" | "deploy" | "api" | "recording";
+export type Trigger = "manual" | "schedule" | "deploy" | "api" | "recording" | "agent";
 export type EvPriority = "low" | "medium" | "high" | "critical";
 
 export interface LatestResult {
@@ -39,7 +39,11 @@ export interface EvCase {
   created_at: string;
   updated_at: string;
   latest?: Record<string, LatestResult>;
+  // Set by a person: the case does nothing harmful when replayed against production.
+  safe_for_prod?: boolean;
 }
+
+export type EvMetric = "ttfb" | "fcp" | "lcp" | "cls" | "inp" | "response";
 
 export interface EvCheck {
   label: string;
@@ -47,6 +51,44 @@ export interface EvCheck {
   observed: string;
   pass: boolean;
   measured: boolean;
+  metric?: EvMetric;
+  value?: number;
+}
+
+// Something the page complained about during a run, under the step that was running.
+export interface EvFinding {
+  step: number;
+  kind: "console" | "pageerror" | "http" | "failed" | string;
+  text?: string;
+  url?: string;
+  status?: number;
+  method?: string;
+  resource?: string;
+  count: number;
+}
+
+export interface EvStepMetric {
+  step: number;
+  label?: string;
+  kind?: string;
+  response_ms?: number | null;
+  dead?: boolean;
+  vitals?: Partial<Record<"ttfb" | "fcp" | "lcp" | "cls" | "inp", number | null>>;
+}
+
+export interface EvGap {
+  step: number;
+  ms: number;
+  reason: string;
+  cut: boolean;
+}
+
+// What the runner measured in a run: the throttling profile, each step's timing and the waits.
+export interface EvMetrics {
+  profile?: { network?: string; cpu_throttle?: number; color_scheme?: string };
+  steps?: EvStepMetric[];
+  steps_dropped?: boolean;
+  waits?: { cut: boolean; gaps: EvGap[] };
 }
 
 export interface EvFailure {
@@ -58,7 +100,7 @@ export interface EvFailure {
 
 export interface EvArtifact {
   id: string;
-  kind: "video" | "take" | "chapters" | "shot" | "poster";
+  kind: "video" | "take" | "chapters" | "shot" | "poster" | "metrics";
   filename: string;
   mime_type: string;
   size: number;
@@ -90,6 +132,9 @@ export interface EvRun {
   case_title?: string;
   trigger?: Trigger;
   trigger_ref?: string;
+  // Only on a single run.
+  metrics?: EvMetrics;
+  findings?: EvFinding[];
 }
 
 export interface EvCaseDetail extends EvCase {
@@ -492,6 +537,8 @@ export function triggerLabel(trigger: string, ref: string): string {
       return ref ? t("evidence.trigger.deploy_ref", { ref }) : t("evidence.trigger.deploy");
     case "api":
       return t("evidence.trigger.api");
+    case "agent":
+      return ref ? t("evidence.trigger.agent_task", { task: ref }) : t("evidence.trigger.agent");
     case "recording":
       return ref
         ? t("evidence.trigger.recording_by", { who: ref })
@@ -559,6 +606,59 @@ export function pickRun(runs: EvRun[], wanted: string, envId = ""): EvRun | null
 
 export function checksSummary(checks: EvCheck[]): { passed: number; total: number } {
   return { passed: checks.filter((c) => c.pass).length, total: checks.length };
+}
+
+const METRIC_NAMES: Record<EvMetric, string> = {
+  ttfb: "TTFB", // i18n-ignore metric name
+  fcp: "FCP", // i18n-ignore metric name
+  lcp: "LCP", // i18n-ignore metric name
+  cls: "CLS", // i18n-ignore metric name
+  inp: "INP", // i18n-ignore metric name
+  response: "",
+};
+
+export function metricName(m: EvMetric): string {
+  return METRIC_NAMES[m] || t("evidence.timing.response");
+}
+
+/** A metric's value as the report writes it: "420 ms", "1.8 s", or a bare CLS score. */
+export function metricValue(m: EvMetric | "", v: number | null | undefined): string {
+  if (v === null || v === undefined || !isFinite(v)) return "—";
+  if (m === "cls") return v.toFixed(2);
+  return v === 0 ? unitShort(0, "millisecond") : fmtMs(v);
+}
+
+/** One page error in words: "500 POST /api/pay ×2", "Console: total is NaN". */
+export function findingLabel(f: EvFinding): string {
+  const times = f.count > 1 ? ` ×${f.count}` : "";
+  switch (f.kind) {
+    case "http":
+      return `${t("evidence.findings.http", { status: f.status ?? "", method: f.method ?? "", url: f.url ?? "" })}${times}`;
+    case "failed":
+      return `${t("evidence.findings.failed", { method: f.method ?? "", url: f.url ?? "", error: f.text ?? "" })}${times}`;
+    case "pageerror":
+      return `${t("evidence.findings.pageerror", { text: f.text ?? "" })}${times}`;
+    default:
+      return `${t("evidence.findings.console", { text: f.text ?? "" })}${times}`;
+  }
+}
+
+/** The waits the runner cut from the video: total and how many, or null when none or filmed. */
+export function waitsCut(m: EvMetrics | undefined): { ms: number; count: number } | null {
+  const cut = (m?.waits?.gaps ?? []).filter((g) => g.cut);
+  if (!cut.length) return null;
+  return { ms: cut.reduce((s, g) => s + g.ms, 0), count: cut.length };
+}
+
+/** "slow-4g · CPU 4x · dark", empty without a profile. */
+export function profileLabel(m: EvMetrics | undefined): string {
+  const p = m?.profile ?? {};
+  const parts: string[] = [];
+  if (p.network) parts.push(p.network);
+  if (p.cpu_throttle && p.cpu_throttle > 1)
+    parts.push(t("evidence.timing.cpu", { factor: p.cpu_throttle }));
+  if (p.color_scheme) parts.push(p.color_scheme);
+  return parts.join(" · ");
 }
 
 export function libraryIndex(cases: EvCase[]): Map<string, string> {

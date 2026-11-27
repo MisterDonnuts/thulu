@@ -28,6 +28,9 @@ export interface BlockedPayload {
   error?: string;
   blocked_by?: Array<{ title?: string }>;
   blocking_approvals?: Array<{ key?: string; label: string; status?: string }>;
+  // Set when the approvals are decided and only GitHub's required checks hold the move; error then
+  // says which checks.
+  required_checks?: unknown[];
   // Sent by daemons from before approvals.
   blocking_flags?: Array<{ kind: string; label: string }>;
 }
@@ -45,6 +48,9 @@ export function blockedMoveMessage(payload: BlockedPayload): string {
       ? t("lib.dnd.blocked.waiting_more", { titles, count: deps.length - DEP_PREVIEW })
       : t("lib.dnd.blocked.waiting", { titles });
   }
+  // With required checks the listed approvals are already approved: naming them would read as if
+  // they still waited for someone.
+  if (payload.required_checks?.length && payload.error) return payload.error;
   const approvals = payload.blocking_approvals ?? [];
   if (approvals.length > 0)
     return t("lib.dnd.blocked.approvals", { labels: approvals.map((a) => a.label).join(", ") });

@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"strings"
 
 	"github.com/MisterDonnuts/thulu/internal/apperr"
 	"github.com/MisterDonnuts/thulu/internal/i18n"
@@ -17,7 +18,28 @@ import (
 var (
 	queryRunnerService     = service.Query
 	uninstallRunnerService = service.Uninstall
+	installRunnerService   = service.Install
+	installedRunnerService = service.Installed
+	restartRunnerService   = service.Restart
+	specForRunnerService   = service.SpecFor
 )
+
+// mergedSpec is the service a reinstall writes: it keeps what someone added to the file already
+// there (a PATH entry, a variable) instead of writing it away, and runner.json's service_env wins
+// over both.
+func mergedSpec(ctx context.Context, config string, cfg *hostrun.Config) (service.Spec, service.Merged, error) {
+	spec, err := specForRunnerService(config)
+	if err != nil {
+		return spec, service.Merged{}, err
+	}
+	old, _, err := installedRunnerService(ctx)
+	if err != nil {
+		return spec, service.Merged{}, err
+	}
+	merged := service.MergeEnv(old.Env, spec.Path, cfg.ServiceEnv)
+	spec.Path, spec.Env = merged.Path, merged.Env
+	return spec, merged, nil
+}
 
 func RunnerService(ctx context.Context, out io.Writer, action, config string) error {
 	switch action {
@@ -29,15 +51,18 @@ func RunnerService(ctx context.Context, out io.Writer, action, config string) er
 		if perr := hostrun.Preflight(cfg); perr != nil {
 			return perr
 		}
-		spec, err := service.SpecFor(config)
+		spec, merged, err := mergedSpec(ctx, config, cfg)
 		if err != nil {
 			return err
 		}
-		st, err := service.Install(ctx, spec)
+		st, err := installRunnerService(ctx, spec)
 		if err != nil {
 			return err
 		}
 		fmt.Fprintln(out, i18n.Text("cli.runner_service.installed", "file", st.File, "log", spec.Log))
+		if len(merged.Kept) > 0 {
+			fmt.Fprintln(out, i18n.Text("cli.runner_service.kept_env", "names", strings.Join(merged.Kept, ", "), "file", st.File))
+		}
 		if !st.Running {
 			fmt.Fprintln(out, i18n.Text("cli.runner_service.not_running", "log", spec.Log))
 		}
@@ -45,6 +70,12 @@ func RunnerService(ctx context.Context, out io.Writer, action, config string) er
 		return nil
 	case "uninstall":
 		return uninstallRunner(ctx, out, config)
+	case "restart":
+		if err := restartRunnerService(ctx); err != nil {
+			return err
+		}
+		fmt.Fprintln(out, i18n.Text("cli.runner_service.restarted"))
+		return nil
 	case "status", "":
 		st, err := queryRunnerService(ctx)
 		if err != nil {

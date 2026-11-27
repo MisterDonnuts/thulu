@@ -1,0 +1,9 @@
+name: quality-review
+description: How a stage auditor judges one run. Numbered checks from the stage's auditor prompt, each marked PASS, FAIL, N/A or UNCHECKED with evidence, a fixed number of report claims verified against the repo, missing evidence counted as a failure, no default to continue, which verdict each kind of failure gets, the score, the notes the next run reads in its brief, and the auditor comment kept for a person. Use it whenever you audit a stage run; the auditor loads it by name.
+descriptions:
+  es: Cómo juzga una corrida el auditor de una etapa. Checks numerados del prompt del auditor de la etapa, cada uno marcado PASS, FAIL, N/A o UNCHECKED con evidencia, un número fijo de afirmaciones del reporte verificadas contra el repo, la evidencia que falta contada como falla, sin continue por defecto, qué veredicto corresponde a cada tipo de falla, el puntaje, las notas que la corrida siguiente lee en su brief, y el comentario del auditor reservado para una persona. Usala cada vez que auditás una corrida de etapa; el auditor la carga por nombre.
+type: knowledge
+enforcement: on_demand
+version: 3
+tags: [flow, audit]
+requires: []

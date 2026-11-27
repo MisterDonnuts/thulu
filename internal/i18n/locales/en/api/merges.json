@@ -1,0 +1,24 @@
+{
+  "comments": {
+    "moved": "{url} was merged by {by} ({sha}); the task moved to {stage}",
+    "waiting": "{url} was merged ({sha}); the task moves when these repositories merge too: {projects}",
+    "out_of_order": "{url} was merged ({sha}) while the task was still in {stage}, before any stage that opens a PR; it stays where it is",
+    "deferred": "{url} was merged ({sha}) while an agent was working on the task; it moves to {stage} when the run ends",
+    "other_branch": "{url} was merged into {base}, not {default}: nothing was recorded for the release",
+    "other_head": "{url} was merged from {head}, not from the task branch {branch}: nothing was recorded and the task stays where it is",
+    "closed_unmerged": "{by} closed {url} without merging it"
+  },
+  "events": {
+    "merged": "{url} merged by {by} ({sha})"
+  },
+  "waived_note": "merged on GitHub by {by}",
+  "log": {
+    "save_sha": "save the merge commit of task {task}",
+    "record": "record the merge on task {task}",
+    "comment": "comment the merge on task {task}",
+    "move": "move merged task {task}",
+    "reconcile_list": "list the tasks of board {board} to look for merged PRs",
+    "reconcile_read": "read PR {url}",
+    "reconciled": "merged PRs: read {read}, found {merged} merged, moved {moved} tasks"
+  }
+}

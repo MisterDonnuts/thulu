@@ -441,9 +441,13 @@ who delegated:
   `actions:write` when the agent's `chat` stage grants `run_dispatch`,
   `run_rerun` or `run_cancel`, and `checks:read` when it grants `pr_checks`
   (any scope keyword does). A project whose only GitHub credential is a
-  stored token (PAT) gives the chat a 403: that token's scopes cannot be
-  narrowed. Each token handed out is audited as `chat.github_granted`, with
-  the agent, the person, the project and the permissions.
+  stored token (PAT) never hands it to the chat: that token's scopes cannot be
+  narrowed. thulu-github sends the chat's GitHub calls through the daemon's
+  proxy (`/internal/github-proxy/…`), which forwards only the calls of the
+  tools the `chat` stage grants and refuses `pr_merge` and
+  `deployment_approve` there. Each token handed out is audited as
+  `chat.github_granted`, with the agent, the person, the project and the
+  permissions; calls through the proxy are not.
 - `pr_merge` and `deployment_approve` wait for the person: they appear in the
   chat with **Confirmar** / **Cancelar** (`chat.action_held`,
   `chat.action_confirmed`), and only the confirmation runs them, with a token

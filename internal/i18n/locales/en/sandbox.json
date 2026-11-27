@@ -85,6 +85,7 @@
     "prewarm_tar_failed": "packing the snapshot failed:\n{log}",
     "prewarm_failed": "the prewarm failed (exit {code}):\n{log}",
     "init_files_pack": "pack the init script's support files",
+    "exec_file_write": "could not write {path} in the sandbox (exit {code}): {stderr}",
     "init_files_write": "write the init script's support files in the sandbox: {stderr}",
     "setup_log_save": "save the sandbox install log row",
     "setup_log_load": "read the sandbox install log",
@@ -94,7 +95,12 @@
     "app_failed": "the app did not come up: {reason}",
     "app_failed_cause": "the app did not come up: {reason}: {cause}",
     "app_no_script": "the project has no init script to bring the app up with",
-    "app_source": "an app needs exactly one source and an owner: a host directory or an archive"
+    "app_source": "an app needs exactly one source and an owner: a host directory or an archive",
+    "remove_stale_container": "remove the stale sandbox container {name}",
+    "remove_container": "remove sandbox container {container}",
+    "reap_exec": "run the reaper in sandbox container {container}",
+    "reap_failed": "the reaper in sandbox container {container} ended with code {code}: {stderr}",
+    "find_pod": "sandbox/kube: look up sandbox pod {name}"
   },
   "log": {
     "adopting_pod": "adopting existing pod {ns}/{name} (phase={phase})",
@@ -146,6 +152,7 @@
     "sweep_terminated": "[sandbox] sweep terminated sandboxes",
     "swept_pod": "swept terminated pod {ns}/{name} (phase={phase}, finished {age} ago)",
     "touch_failed": "touch {task}: {err}",
+    "exec_file_failed": "write {path} in sandbox {container} for the command: {err}",
     "write_response_failed": "write response: {err}",
     "init_meta_failed": "init: could not write the run's meta file for task {task}, project {dir}: {err}",
     "init_preview_env_failed": "init: no preview URL for port {port} of task {task}, the script runs without {env}: {err}",
@@ -156,7 +163,16 @@
     "setup_log_failed": "record the install log row of task {task}, project {project}",
     "cache_measure_failed": "measure the dependency cache of workspace {workspace}",
     "cache_usage_decode": "decode a cache measurement of workspace {workspace}; that part reads as empty",
-    "app_teardown": "remove the app sandbox of {owner}"
+    "app_teardown": "remove the app sandbox of {owner}",
+    "replaced_stale_container": "task {task}: removed stale container {name} that no row recorded before creating its sandbox",
+    "orphan_list_failed": "list sandbox containers to find the ones no row records",
+    "orphan_remove_failed": "remove sandbox container {container} ({name}) that no row records: {err}",
+    "orphan_removed": "removed sandbox container {container} ({name}, owner {owner}, {state}, {age} old): no live row records it",
+    "orphan_removed_by_person": "removed sandbox container {container}, which no row recorded, at a person's request",
+    "tmp_size_ignored": "{env} is not a size such as 2g or 512m, or off: /tmp keeps the default size",
+    "reaped_process": "killed in the sandbox of {owner} (container {container}), left by run {run}: {process}",
+    "reap_survivor": "still alive in the sandbox of {owner} (container {container}) after killing what run {run} left: {process}",
+    "orphan_rows_failed": "list sandbox rows to find the containers no row records"
   },
   "output": {
     "truncated": "\n[…truncated {bytes} bytes]"
@@ -171,7 +187,7 @@
     "attached": "attached {filename:%q} ({size} bytes, {mime_type}) to the task",
     "exec_command": "Shell command (interpreted by `bash -lc`).",
     "exec_cwd": "Working directory. Default /workspace.",
-    "exec_description": "Run a shell command inside the task's sandbox container. Each call gets a fresh shell (no state survives between calls — `cd` does not persist). Use this for builds, tests, lint runs, or starting dev servers (use `setsid nohup ... &` to detach a long-running process). Output is capped at ~100KB per stream; redirect to a file and read it back if you need the full log.",
+    "exec_description": "Run a shell command inside the task's sandbox container. Each call gets a fresh shell (no state survives between calls — `cd` does not persist). Use this for builds, tests and lint runs. A long-running process (a dev server) goes in the startup script and starts with init_run; never detach one from exec with setsid, nohup or disown. Whatever an exec leaves running is killed when your run ends. Output is capped at ~100KB per stream; redirect to a file and read it back if you need the full log.",
     "exec_env": "Extra env vars merged on top of the sandbox env.",
     "exec_failed": "exec failed: {error}",
     "exec_timeout": "Hard kill after this ms. Default 300000 (5min), max 1800000 (30min).",

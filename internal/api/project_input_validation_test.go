@@ -75,26 +75,29 @@ func TestProjectInputStatus(t *testing.T) {
 }
 
 func TestTokenPermissionsParam(t *testing.T) {
-	withDeployments := githubapp.PermsAgentTools.With(githubapp.PermDeploymentsWrite)
-	withWorkflows := githubapp.PermsAgentTools.With(githubapp.PermWorkflowsWrite)
+	base := githubapp.PermsRunTools
+	actionsWrite := base.With(githubapp.Permissions{"actions": "write"})
+	withDeployments := base.With(githubapp.PermDeploymentsWrite)
+	withWorkflows := base.With(githubapp.PermWorkflowsWrite)
 	cases := []struct {
 		query          string
 		want           githubapp.Permissions
 		ok             bool
 		workflowsOptIn bool
 	}{
-		{"", githubapp.PermsAgentTools, true, false},
-		{"?permissions=actions:write", githubapp.PermsActionsWrite, true, false},
+		{"", base, true, false},
+		{"?permissions=actions:write", actionsWrite, true, false},
 		{"?permissions=deployments:write", withDeployments, true, false},
 		{"?permissions=administration:write", nil, false, false},
-		{"?permissions=actions:write,contents:write", nil, false, false},
+		{"?permissions=contents:write", base.With(githubapp.Permissions{"contents": "write"}), true, false},
+		{"?permissions=actions:write,contents:write", actionsWrite.With(githubapp.Permissions{"contents": "write"}), true, false},
 		{"?permissions=ACTIONS:WRITE", nil, false, false},
 		{"?permissions=workflows:write", nil, false, false},
 		{"?permissions=workflows:write", withWorkflows, true, true},
-		{"?permissions=actions:write,workflows:write", githubapp.PermsActionsWrite.With(githubapp.PermWorkflowsWrite), true, true},
-		{"?permissions=checks:read", githubapp.PermsAgentTools.With(githubapp.PermChecksRead), true, false},
+		{"?permissions=actions:write,workflows:write", actionsWrite.With(githubapp.PermWorkflowsWrite), true, true},
+		{"?permissions=checks:read", base.With(githubapp.PermChecksRead), true, false},
 		{"?permissions=checks:write", nil, false, false},
-		{"?permissions=actions:write,checks:read", githubapp.PermsActionsWrite.With(githubapp.PermChecksRead), true, false},
+		{"?permissions=actions:write,checks:read", actionsWrite.With(githubapp.PermChecksRead), true, false},
 	}
 	for _, c := range cases {
 		optIn := ""

@@ -3,8 +3,9 @@ import { DEV_AUTHOR } from "./person";
 import { formatSeconds } from "./time";
 import { groupThreads, type Thread, type ThreadComment } from "./threads";
 
-export type ActivityFilter = "all" | "comments" | "runs" | "system";
-export const ACTIVITY_FILTERS: readonly ActivityFilter[] = ["all", "comments", "runs", "system"];
+// No "system" filter: those rows live in the History tab. A stored "system" reads as "all".
+export type ActivityFilter = "all" | "comments" | "runs";
+export const ACTIVITY_FILTERS: readonly ActivityFilter[] = ["all", "comments", "runs"];
 export const FILTER_KEY = "octopus.activity.filter";
 export const VISIBLE_ITEMS = 12;
 
@@ -247,7 +248,11 @@ export function classifyEvent(kind: string): SystemKind | null {
     case "auditor_verdict":
     case "credential_blocked":
     case "preview_url":
+    case "stage_skip_added":
+    case "stage_skip_removed":
       return "other";
+    // stage_skipped stays out: the daemon writes a note for every column it passes over, and the
+    // note already says why.
     default:
       return null;
   }
@@ -351,8 +356,35 @@ export function isOpenThread<C extends StreamComment>(th: Thread<C>): boolean {
   return th.replies.length > 0 && !th.root.resolved_at;
 }
 
-export function openThreadCount<C extends StreamComment>(comments: C[]): number {
-  return groupThreads(comments).filter(isOpenThread).length;
+// Open threads, leaving out the ones rooted at an agent question: those live in the Questions
+// block, which counts the ones still waiting on its own. Counting them here showed "5 open" on a
+// task whose five questions were all answered.
+export function openThreadCount<C extends StreamComment>(
+  comments: C[],
+  isQuestion: (rootID: string) => boolean = () => false,
+): number {
+  return groupThreads(comments).filter((th) => isOpenThread(th) && !isQuestion(th.root.id)).length;
+}
+
+export interface RoundGroup<T> {
+  round: number;
+  items: T[];
+}
+
+// The stream cut into rounds, oldest first. Items keep their order; an item belongs to the round
+// that was open when it started.
+export function groupByRound<T extends { at: string }>(
+  items: readonly T[],
+  roundAt: (at: string) => number,
+): Array<RoundGroup<T>> {
+  const out: Array<RoundGroup<T>> = [];
+  for (const it of items) {
+    const round = roundAt(it.at);
+    const last = out.at(-1);
+    if (last && last.round >= round) last.items.push(it);
+    else out.push({ round, items: [it] });
+  }
+  return out;
 }
 
 export function buildStream<C extends StreamComment>(input: StreamInput<C>): Array<StreamItem<C>> {
@@ -373,8 +405,7 @@ export function buildStream<C extends StreamComment>(input: StreamInput<C>): Arr
   if (filter !== "comments") {
     const newest = input.runs.length ? input.runs[input.runs.length - 1].id : "";
     for (const run of input.runs) {
-      const card =
-        filter === "runs" || (filter === "all" && (run.state !== "done" || run.id === newest));
+      const card = filter === "runs" || run.state !== "done" || run.id === newest;
       if (card) items.push({ type: "run", id: `run-${run.id}`, at: run.startedAt, run });
       else if (run.state === "done")
         items.push({
@@ -385,7 +416,7 @@ export function buildStream<C extends StreamComment>(input: StreamInput<C>): Arr
         });
     }
   }
-  if (filter === "all" || filter === "system") {
+  if (filter === "all") {
     for (const e of input.events) {
       const kind = classifyEvent(e.kind);
       if (!kind || saidByNote(e)) continue;
@@ -563,9 +594,15 @@ export function authorLabel(
   c: { author?: string; source?: string },
   viewer?: Viewer | null,
 ): string {
-  const a = (c.author ?? "").trim();
+  const raw = (c.author ?? "").trim();
+  // A test case run records an agent as "agent:<name>"; the person reads the name.
+  const a = raw.startsWith("agent:") ? raw.slice("agent:".length) : raw;
   if (isViewer(a, viewer)) return t("lib.activity.you");
+  if (raw.startsWith("agent:")) return a || t("lib.activity.an_agent");
   if (c.source === "automation" && (!a || a === "automation")) return t("lib.activity.automation");
+  // The daemon signs its own comments "octopus" (approval threads, agent pauses): the product's name.
+  if (c.source === "system" && (!a || a === "octopus" || a === "system"))
+    return t("lib.activity.octopus");
   if (a && !(a === DEV_MODE_AUTHOR && c.source === "user")) return a;
   if (c.source === "agent") return t("lib.activity.an_agent");
   if (c.source === "system") return t("lib.activity.octopus");
@@ -620,6 +657,8 @@ export interface AudienceInput {
   handles: string[];
   notify?: { agent: string; on: boolean };
   fallback?: string;
+  // What the line says while the comment goes to nobody in particular.
+  hint?: string;
 }
 
 export function audienceLine(input: AudienceInput): string {
@@ -636,7 +675,7 @@ export function audienceLine(input: AudienceInput): string {
   }
   if (input.notify?.on)
     return `${base} ${t("lib.activity.audience.notified", { agent: input.notify.agent || t("lib.activity.the_agent") })}`;
-  return base;
+  return input.hint ?? base;
 }
 
 export interface MentionableAgent {

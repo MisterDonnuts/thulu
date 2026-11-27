@@ -35,7 +35,9 @@
     "store_upsert": "store upsert",
     "turn_failed": "chat turn failed: {detail}",
     "turn_in_flight": "chatruntime: a turn is already running for this chat",
-    "turn_script_exited": "chat-turn.sh exited {code}: {stderr}"
+    "turn_script_exited": "chat-turn.sh exited {code}: {stderr}",
+    "turn_stopped": "the chat turn was stopped: it ran past its time limit or nobody waits for it any more",
+    "turn_canceled": "you stopped the turn"
   },
   "log": {
     "async_turn": "[chat] async turn for {chat}",
@@ -74,11 +76,23 @@
     "write_exec_stdin": "[chat] write turn text to exec stdin",
     "touch": "[chat] touch {chat}",
     "placement_changed": "{chat}: the chat now runs elsewhere than {container}; recreating it there",
-    "machine_no_browser": "{chat} (agent {agent}) runs on a machine and this daemon runs thulu-browser per run, which a machine cannot host: the chat gets no browser"
+    "machine_no_browser": "{chat} (agent {agent}) runs on a machine and this daemon runs thulu-browser per run, which a machine cannot host: the chat gets no browser",
+    "turn_kill_failed": "kill the process group of the stopped chat turn in container {container}: {err}",
+    "turn_group_killed": "killed the process group of the stopped chat turn in container {container}",
+    "stale_pod_removed": "removed chat pod {pod} in {ns}: the daemon that drove it is gone, and so is its exec token, so what its turns left running could not be killed",
+    "turn_reap_failed": "kill what the chat turn left running in container {container}: {err}",
+    "turn_process_reaped": "killed in chat container {container}, left by turn {turn}: {process}",
+    "turn_process_survived": "still alive in chat container {container} after killing what turn {turn} left: {process}",
+    "queued_turn_refused": "chat {chat}: a queued message could not go out",
+    "auto_title": "chat {chat}: could not set the automatic title",
+    "transcript_write": "could not write the turn transcript",
+    "turn_parse_drain": "[chat] drain the turn's parser",
+    "turn_parse_feed": "[chat] feed the turn's parser"
   },
   "messages": {
     "agent_error": "**Agent error:** {error}",
-    "empty_reply": "_(empty reply — check the agent logs)_"
+    "empty_reply": "_(empty reply — check the agent logs)_",
+    "turn_canceled": "_You stopped the turn. What the agent already did stays in the steps._"
   },
   "labels": {
     "thread_chat_title": "{title} · thread"

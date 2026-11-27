@@ -1,6 +1,8 @@
 {
   "reports": {
-    "empty": "Todavía no hay reportes. Los agentes dejan acá sus reportes de etapa y la evidencia de las pruebas."
+    "empty": "Todavía no hay reportes. Los agentes dejan acá sus reportes de etapa y la evidencia de las pruebas.",
+    "title": "Reportes",
+    "hint": "Reportes de etapa y evidencia de pruebas que dejaron los agentes"
   },
   "exit": "salida {code}",
   "instance": "instancia {id}",
@@ -44,6 +46,7 @@
     "auditor_verdict": "Veredicto del auditor",
     "auditor_run_started": "Auditoría iniciada",
     "auditor_run_finished": "Auditoría terminada",
+    "auditor_skipped": "Auditoría salteada",
     "flag_raised": "Flag levantado",
     "flag_resolved": "Flag resuelto",
     "question_asked": "El agente preguntó",
@@ -75,6 +78,11 @@
     "subtasks_reordered": "Subtareas reordenadas",
     "preview_url": "Vista previa de la app",
     "run_not_started": "La corrida no arrancó",
-    "run_queue_canceled": "Espera cancelada"
+    "run_queue_canceled": "Espera cancelada",
+    "run_outlived": "Resultado no aplicado",
+    "stage_launch_deferred": "Arranque en espera",
+    "stage_skip_added": "Columna salteada",
+    "stage_skip_removed": "Salteo quitado",
+    "stage_skipped": "Pasó de largo una columna"
   }
 }

@@ -1,13 +1,22 @@
 {
   "comments": {
+    "requested": "Se pidió aprobación: **{approval}**.",
+    "requested_reason": "\n\n{reason}",
+    "decided_approved": "Aprobó **{approval}**.",
+    "decided_changes": "Pidió cambios en **{approval}**.",
+    "decided_waived": "Salteó **{approval}**.",
+    "decided_note": "\n\n{note}",
     "awaiting": "Esperando aprobación para salir de **{stage}**: {approvals}. La tarea sigue sola cuando estén aprobadas o salteadas.",
+    "awaiting_checks": "Aprobado ({approvals}), pero **{stage}** espera los checks que GitHub exige antes del merge: {checks}. La tarea sigue sola cuando pasen.",
     "changes_deferred": "**{by}** pidió cambios en **{approval}** mientras el agente trabaja. Le llegan cuando termine esta corrida.",
     "kicked_back": "**{by}** pidió cambios en **{approval}**: vuelve a **{stage}**.\n\n{note}",
     "resume_failed": "Se pidieron cambios en **{approval}**, pero no se pudo retomar el agente de la etapa: {err}\n\n{note}",
     "settled_advancing": "Están todas las aprobaciones: pasa a **{stage}**."
   },
   "errors": {
+    "thread": "buscar el hilo de la aprobación {approval}",
     "bad_decision": "{decision:%q} no es una decisión: usá approved, changes_requested o waived",
+    "changes_ahead": "la tarea todavía no está en {stage}, así que nada actuaría sobre los cambios pedidos en {approval:%q}: aprobala o salteala ahora, o pedí cambios cuando la tarea llegue ahí",
     "delete": "borrar la aprobación {id}",
     "fork_insert": "copiar una aprobación al fork",
     "import": "importar la aprobación {id}",
@@ -23,7 +32,8 @@
     "reset": "volver aprobaciones a pendiente",
     "scan": "leer una aprobación",
     "task_required": "la aprobación necesita una tarea",
-    "update": "actualizar la aprobación {id}"
+    "update": "actualizar la aprobación {id}",
+    "stage_agent_working": "{approval:%q} avala lo que produce el agente de {stage}, y ese agente sigue trabajando: aprobala cuando termine la corrida"
   },
   "events": {
     "approved": "{label} aprobada",
@@ -33,19 +43,27 @@
     "reset_answered": "{label} vuelve a pendiente después de los cambios pedidos",
     "reset_changed": "{label} vuelve a pendiente: el código cambió después de aprobarla",
     "reset_reentered": "{label} vuelve a pendiente: la tarea volvió a su etapa",
-    "waived": "{label} salteada"
+    "reset_pushed": "{label} vuelve a pendiente: hay commits nuevos en el pull request",
+    "waived": "{label} salteada",
+    "tests_restored": "{label} dispensada: los tests bloqueados volvieron a estar como antes",
+    "tests_relocked": "{label} dispensada: los tests se volvieron a bloquear"
   },
   "log": {
+    "open_thread": "abrir el hilo de la aprobación {approval} en la tarea {task}",
+    "resolve_thread": "resolver el hilo de la aprobación {approval} en la tarea {task}",
+    "reopen_thread": "reabrir el hilo de la aprobación {approval}",
     "claim": "sacar la tarea {task} de awaiting_approval",
     "decorate_counts": "contar aprobaciones pendientes",
     "ensure": "abrir las aprobaciones de la etapa para la tarea {task}",
     "gate": "leer las aprobaciones que frenan la tarea {task}",
-    "kick_back_failed": "devolver la tarea {task} después de que pidieran cambios: {err}",
     "mirror_flag": "copiar la aprobación {approval} a task_flags",
     "record_event": "registrar un evento de aprobación en la tarea {task}",
     "reopen": "reabrir las aprobaciones que le pidieron cambios a la tarea {task}",
     "reset": "volver a pendiente las aprobaciones de la tarea {task} después de su corrida",
     "sync_flags": "traer los flags que escribió la versión anterior ({step})"
   },
-  "resume_message": "{by} pidió cambios antes de aprobar \"{approval}\":\n\n{note}\n\nHacé los cambios en esta etapa. Cuando termines, la aprobación vuelve a pendiente para que la revisen de nuevo."
+  "resume_message": "{by} pidió cambios antes de aprobar \"{approval}\":\n\n{note}\n\nHacé los cambios en esta etapa. Cuando termines, la aprobación vuelve a pendiente para que la revisen de nuevo.",
+  "labels": {
+    "test_change": "Cambio en tests bloqueados"
+  }
 }

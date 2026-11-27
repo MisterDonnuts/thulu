@@ -20,16 +20,22 @@
     "sandbox_queue_full": "la cola de sandboxes está llena (posición {position})",
     "env_metrics_disabled": "las métricas de entorno no están activadas en esta instalación",
     "metric_not_found": "no hay ninguna métrica {metric:%q} en el entorno {environment}",
-    "environment_not_found": "no existe el entorno {environment:%q} en este workspace",
+    "environment_not_found": "no hay un entorno {environment:%q} en este workspace (environment lleva el ID del entorno, no su nombre)",
     "no_credential_store": "esta instalación no tiene almacén de credenciales",
     "credential_disabled": "la credencial {name:%q} está desactivada",
     "credential_no_token": "la credencial {name:%q} no tiene un único campo de token ({fields})",
     "credential_not_found": "no hay ninguna credencial llamada {name:%q} en este workspace",
     "no_auth_store": "no hay almacén de autenticación",
     "stage_gated": "la tarea se creó pero quedó antes de la etapa {stage:%q}: espera aprobación ({approvals})",
-    "environment_not_found": "no hay un entorno {environment:%q} en este workspace (environment lleva el ID del entorno, no su nombre)",
     "unknown_stage": "el tablero {board:%q} no tiene la etapa {stage:%q}",
-    "ref_templated": "{field} no admite templates {{ }}: la corrida buscaría {value:%q} tal cual; poné un ID que exista"
+    "unknown_stage_any": "ningún tablero de este espacio de trabajo tiene la etapa {stage:%q}",
+    "ref_templated": "{field} no admite templates {{ }}: la corrida buscaría {value:%q} tal cual; poné un ID que exista",
+    "move_other_board": "la tarea {task} está en el tablero {actual:%q}, no en {board:%q}: el paso move sólo mueve tareas del tablero que nombra",
+    "move_archived": "la tarea {task} está archivada: una automatización no la mueve",
+    "move_running": "la tarea {task} tiene un agente corriendo: moverla dejaría huérfana la corrida",
+    "move_raced": "la tarea {task} cambió de etapa mientras la automatización la movía",
+    "deploy_watch_step_reserved": "un paso deploy_watch sólo va en la automatización que Thulu genera para una vigilancia de deploys; registrá la vigilancia",
+    "managed_by_deploy_watch": "Thulu generó esta automatización a partir de la vigilancia de deploys de {project}; cambiá o borrá la vigilancia en la página del proyecto"
   },
   "audit": {
     "task_created": "Tarea creada por una automatización: {title}",
@@ -42,6 +48,11 @@
   },
   "log": {
     "publish_failed": "publicar {kind}: {err}",
-    "discover_agents_failed": "descubrir agentes: {err}"
+    "discover_agents_failed": "descubrir agentes: {err}",
+    "task_for_pr": "buscar la tarea de un PR en el workspace {workspace}",
+    "move_note": "comentar el movimiento de la automatización en la tarea {task}"
+  },
+  "comments": {
+    "moved": "Una automatización movió la tarea a {stage}: {note}"
   }
 }

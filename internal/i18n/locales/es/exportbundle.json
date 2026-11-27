@@ -50,7 +50,9 @@
     "task_owned_elsewhere": "la tarea {id} ya existe acá en el workspace {workspace} y un import no mueve tareas existentes a {target}. Importá en {workspace} o en otra instalación",
     "board_owned_by_fallback": "el tablero {id} ya existe acá en {workspace}, el workspace sin dueño donde quedó lo que esta instalación hizo antes de tener workspaces. Un import sólo lo pasa a {target} si {target} es el único workspace y {workspace} no tiene proyectos ni tareas. Importá en otra instalación",
     "project_owned_by_fallback": "el proyecto {id} ya existe acá en {workspace}, el workspace sin dueño donde quedó lo que esta instalación hizo antes de tener workspaces, y un import no lo mueve a {target}. Importá en otra instalación",
-    "task_owned_by_fallback": "la tarea {id} ya existe acá en {workspace}, el workspace sin dueño donde quedó lo que esta instalación hizo antes de tener workspaces, y un import no la mueve a {target}. Importá en otra instalación"
+    "task_owned_by_fallback": "la tarea {id} ya existe acá en {workspace}, el workspace sin dueño donde quedó lo que esta instalación hizo antes de tener workspaces, y un import no la mueve a {target}. Importá en otra instalación",
+    "export_locked_files": "exportar los archivos de test bloqueados de {task}",
+    "export_criteria": "exportar los criterios de aceptación de la tarea {task}"
   },
   "hints": {
     "credential_reenter": "guardada cifrada; volvé a cargarla en el host nuevo y volvé a asignarla a sus proyectos/entornos",

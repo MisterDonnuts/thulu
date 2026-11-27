@@ -187,14 +187,24 @@ func (s *Server) handleRecordTestCaseRun(w http.ResponseWriter, r *http.Request)
 		ReportID             string   `json:"report_id"`
 		CommentID            string   `json:"comment_id"`
 		CaptureAttachmentIDs []string `json:"capture_attachment_ids"`
+		// Only on a blocked run: what a person must bring, what the agent tried, whether the case
+		// writes real data. round and vtt_attachment_id are the daemon's.
+		Needs       []task.Need `json:"needs"`
+		Tried       string      `json:"tried"`
+		TriedResult string      `json:"tried_result"`
+		WritesData  bool        `json:"writes_data"`
 	}
 	if !decodeBody(w, r, &body) {
+		return
+	}
+	if body.Verdict == task.TestCaseWaived && !waiverByPerson(w, r, author) {
 		return
 	}
 	run, c, err := s.taskStore.RecordTestCaseRun(r.Context(), id, r.PathValue("case"), task.TestCaseRun{
 		Verdict: body.Verdict, Observed: body.Observed, Note: body.Note,
 		VideoAttachmentID: body.VideoAttachmentID, TakeAttachmentID: body.TakeAttachmentID,
 		ReportID: body.ReportID, CommentID: body.CommentID, CaptureAttachmentIDs: body.CaptureAttachmentIDs,
+		Needs: body.Needs, Tried: body.Tried, TriedResult: body.TriedResult, WritesData: body.WritesData,
 		Author: author,
 	})
 	if err != nil {

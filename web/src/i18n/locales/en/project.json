@@ -150,7 +150,18 @@
     "template": "Stage template",
     "template_hint": "default agent per stage",
     "saved": "Saved",
-    "save_failed": "Couldn't save: {error}"
+    "save_failed": "Couldn't save: {error}",
+    "release_mode": "Release mode",
+    "release_mode_hint": "How merged work reaches production. Auto: a deploy follows each merge and the release agent verifies it. Batch: merged tasks wait in Release until a release task ships them together.",
+    "release_mode_unset": "Not set",
+    "release_mode_auto": "Auto, one deploy per merge",
+    "release_mode_batch": "Batch, via a release task",
+    "release_environment": "Production environment",
+    "release_environment_hint": "The GitHub or Evidence environment that is production. An agent's Evidence batch on it runs only cases marked safe for production.",
+    "release_environment_placeholder": "production",
+    "gates_profile": "Quality gate profile",
+    "gates_profile_hint": "JSON for thulu-gates, kept in Thulu and never in the repo. Every run of this project gets it, over the repo's .thulu/gates.json. accept_unverified takes a check id and the reason it may stay unverified: that check reports accepted and does not fail the verdict. Leave it empty for none.",
+    "gates_profile_invalid": "Write a JSON object, for example {\"coverage_min\": 60}, or leave it empty."
   },
   "danger": {
     "title": "Danger zone",
@@ -396,7 +407,8 @@
     "save_addresses": "Save addresses",
     "unlink_app": "Unlink App",
     "approve_mappings": "Activate mappings",
-    "publish_dashboard": "Publish dashboard"
+    "publish_dashboard": "Publish dashboard",
+    "delete_watch": "Delete watch"
   },
   "runner": {
     "title": "Where agents run",
@@ -404,5 +416,46 @@
     "where_hint": "In Thulu, from a clone, or on a machine with a runner, from a folder on it.",
     "folder": "Folder on the machine",
     "folder_hint": "It has to be inside a folder the machine allows (thulu runner allow)."
+  },
+  "deploy_watches": {
+    "title": "Deploy watches",
+    "intro": "How Thulu learns of this project's deploys. Each deploy, or each change a polled watch sees, opens a release task. The release agent registers a watch when the project has none; Thulu generates the automation behind it.",
+    "columns": {
+      "source": "Source",
+      "target": "Target",
+      "interval": "Checks",
+      "last_seen": "Last seen",
+      "actions": "Actions"
+    },
+    "sources": {
+      "github_workflow": "GitHub workflow",
+      "github_deployment": "GitHub deployment",
+      "cloud": "Cloud Run",
+      "http": "URL"
+    },
+    "on_event": "On each event",
+    "every_minutes": {
+      "one": "Every {count} min",
+      "other": "Every {count} min"
+    },
+    "every_hours": {
+      "one": "Every hour",
+      "other": "Every {count} h"
+    },
+    "state": {
+      "success": "Up",
+      "failure": "Failing",
+      "error": "Cannot read",
+      "waiting": "No reading yet",
+      "webhook": "GitHub notifies"
+    },
+    "created_by": "registered by {who}",
+    "empty": "No watch yet. The release agent registers one on the next release task.",
+    "load_failed": "Could not load the deploy watches.",
+    "delete": "Delete watch",
+    "delete_title": "Delete the watch on {target}?",
+    "delete_message": "Thulu deletes the automation it generated for this watch too. Deploys stop opening release tasks until someone registers another watch.",
+    "deleted": "Watch deleted.",
+    "delete_failed": "Could not delete the watch."
   }
 }

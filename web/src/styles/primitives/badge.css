@@ -58,6 +58,21 @@
   color: var(--info);
 }
 
+/* badge-fit: a badge that may hold a long sentence (a card's "Blocked: …") shrinks to its
+   row and ends in an ellipsis instead of running past the card. */
+.badge-fit {
+  display: inline-block;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: calc(var(--badge-h) - 2px);
+}
+.badge-fit .ico,
+.badge-fit .dot {
+  margin: -2px var(--s-1) 0 0;
+  vertical-align: middle;
+}
 .badge-pill {
   padding: 0 var(--s-3);
   border-radius: var(--r-pill);

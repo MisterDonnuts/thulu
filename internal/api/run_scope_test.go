@@ -102,6 +102,7 @@ func taskWrites(id string) []scopedCall {
 		{http.MethodPost, "/tasks/" + id + "/flags", map[string]any{"label": "needs a look"}},
 		{http.MethodPost, "/tasks/" + id + "/flags/import", nil},
 		{http.MethodPost, "/tasks/" + id + "/auditor-feedback?instance=i1", nil},
+		{http.MethodPost, "/tasks/" + id + "/stage-verdict?instance=i1", nil},
 		{http.MethodPost, "/tasks/" + id + "/reports", map[string]any{"kind": "evidence", "body": "planted"}},
 		{http.MethodPut, "/tasks/" + id + "/sections/goal", map[string]any{"content": "x"}},
 		{http.MethodPatch, "/tasks/" + id + "/sections/goal/items/0", map[string]any{"checked": true}},

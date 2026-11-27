@@ -77,7 +77,10 @@
     "collect_credential_refused": "no credential can read environment {env}'s metrics: {detail}. Grant a cloud credential to this environment (not to the whole workspace) in Settings → Credentials",
     "collect_credential_load": "load the credential for environment {env}",
     "collector_no_targets": "the collector has no credential store wired; nothing can be collected",
-    "list_collected_signals": "list the environment's collected signals"
+    "list_collected_signals": "list the environment's collected signals",
+    "post_deploys": "post /deploys",
+    "decode_deploys_response": "decode the deploys response (HTTP {status})",
+    "deploys_http_status": "reading deploys returned HTTP {status}: {message}"
   },
   "log": {
     "collector_disabled_no_url": "collector disabled (no MCP_THULU_CLOUD_URL configured)",

@@ -9,20 +9,42 @@
     "note_required": "{decision} necesita una nota que diga por qué",
     "open_limit": "los agentes ya pidieron {max} aprobaciones en esta tarea que nadie decidió: esperá a que las decidan antes de pedir más",
     "stage_requirement": "{approval:%q} la pide la etapa y no se puede quitar: salteala, con una nota",
-    "gate_closed_create": "Una tarea nueva arranca en {stage}, y para salir de ahí necesita aprobación: {approvals}. Creala en {stage} y movela cuando esté aprobada."
+    "unknown_stage": "{stage:%q} no es una etapa del tablero de esta tarea",
+    "stage_not_ahead": "una aprobación puede retener la etapa actual ({current}) o una posterior que no sea la última; {stage:%q} no lo es",
+    "gate_closed_create": "Una tarea nueva arranca en {stage}, y para salir de ahí necesita aprobación: {approvals}. Creala en {stage} y movela cuando esté aprobada.",
+    "required_checks": "{approval:%q} espera los checks que GitHub exige antes del merge: {checks}",
+    "required_checks_waive": "sólo un admin puede saltear {approval:%q} mientras los checks requeridos no estén en verde: {checks}",
+    "gate_checks": "{stage} espera los checks que GitHub exige antes del merge, que pide {approvals}: {checks}. La tarea puede avanzar cuando pasen."
+  },
+  "comments": {
+    "approved_ahead_of_checks": "Se aprobó **{approval}** mientras los checks que exige GitHub siguen corriendo: {checks}. La tarea queda en **{stage}** hasta que pasen.",
+    "reset_pushed": "Hay commits nuevos en [PR #{number}]({url}) (head `{sha}`): **{approval}** vuelve a pendiente. Aprobala de nuevo cuando los hayas revisado."
   },
   "events": {
     "skipped": "pasó sin que nadie decidiera ({cause}): {approvals}",
     "waived_note": "salteada por un movimiento administrativo ({cause})"
   },
   "log": {
+    "post_decision": "publicar la decisión de la aprobación {approval} en la tarea {task}",
     "hook_task": "leer la tarea {task} para el webhook de una aprobación",
-    "skipped": "leer las aprobaciones que salteó la tarea {task}"
+    "skipped": "leer las aprobaciones que salteó la tarea {task}",
+    "checks_root": "leer la tarea padre de {task} para sus pull requests",
+    "checks_read": "leer los checks requeridos de {pr}",
+    "checks_note": "dejar la nota de checks requeridos en la tarea {task}",
+    "checks_reset": "volver a pendiente las aprobaciones de la tarea {task} después de un push"
   },
   "prompts": {
     "brief_heading": "## Aprobaciones\n\n",
     "brief_line": "- **{label}**{stage}: {status}\n",
     "brief_note": "  {by}: {note}\n",
     "brief_stage": " ({stage})"
+  },
+  "checks": {
+    "pr": "PR #{number}: {reason}",
+    "failing": "falló {checks}",
+    "running": "{checks} sigue corriendo",
+    "missing": "{checks} todavía no reportó",
+    "behind": "la rama quedó atrás de la base, que pide estar al día",
+    "unknown": "no se pudieron leer los checks requeridos de GitHub; probá de nuevo"
   }
 }

@@ -150,7 +150,11 @@ func validateNumericSetting(key string, raw json.RawMessage) (numeric bool, err 
 	switch key {
 	case settings.SandboxMaxKey:
 		return true, intInRange(raw, 1, noMax, apperr.Invalid("api.settings.errors.sandbox_max_positive"))
-	case settings.SandboxIdleEvictSecondsKey, settings.SandboxAcquireBlockMsKey,
+	case settings.SandboxIdleEvictSecondsKey:
+		// 0 used to turn the eviction off, and a sandbox then kept whatever a run left running in
+		// it until the janitor's sweep hours later.
+		return true, intInRange(raw, 1, noMax, apperr.Invalid("api.settings.errors.positive_int", "setting", key))
+	case settings.SandboxAcquireBlockMsKey,
 		settings.AgentMaxRunMinutesKey, settings.ChatMemoryBytesKey,
 		settings.ChatNanoCPUsKey, settings.ChatPidsLimitKey,
 		settings.AgentMaxContainersKey, settings.MentionMaxContainersKey:

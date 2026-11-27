@@ -55,5 +55,30 @@
       "task_body": "El chequeo imprimió:",
       "fingerprint_comment": "Una tarjeta por día. La fecha sale del disparo, así que una corrida que arranca a las 23:59 no cae en la tarjeta de mañana."
     }
+  },
+  "watch_deploy": {
+    "title": "Vigilar deploy",
+    "blurb": "Cuando GitHub informa un deploy exitoso a producción, abre una tarea de release para ese SHA. Su agente verifica el deploy y mueve las tareas que salieron. Pide el tablero Thulu.",
+    "spec": {
+      "name": "vigilar deploy",
+      "description": "un deploy exitoso a producción abre una tarea de release para el agente de release",
+      "type_comment": "El tipo release pone la tarea directo en Release, donde su agente verifica el deploy",
+      "type_comment_more": "y mueve las tareas mergeadas que trae este SHA.",
+      "project_comment": "Sumá project_ids con el proyecto del repo para que el agente trabaje sobre su código.",
+      "task_title": "Verificar el deploy de {{ trigger.payload.repo }} en {{ trigger.payload.sha }}",
+      "task_body": "GitHub informa un deploy exitoso a {{ trigger.payload.environment }}.",
+      "task_url": "URL deployada",
+      "task_batches": "Tandas de smoke ya encoladas para este deploy"
+    }
+  },
+  "watch_deploy_workflow": {
+    "title": "Vigilar deploy (workflow)",
+    "blurb": "Para repos que deployan desde un workflow de GitHub Actions sin Environments. Cuando el workflow termina en verde sobre la rama default, abre una tarea de release para ese SHA.",
+    "spec": {
+      "name": "vigilar deploy por workflow",
+      "description": "un workflow de deploy en verde sobre la rama default abre una tarea de release",
+      "workflow_comment": "Cambiá Deploy en el filtro por el nombre del workflow que deploya a producción.",
+      "task_body": "El workflow {{ trigger.payload.workflow_name }} terminó en verde sobre {{ trigger.payload.head_branch }}."
+    }
   }
 }

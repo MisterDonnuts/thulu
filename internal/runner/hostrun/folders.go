@@ -191,17 +191,20 @@ func describeRepo(ctx context.Context, dir string) runner.InventoryRepo {
 const inventoryEvery = time.Minute
 
 // reportFolders keeps the daemon's copy of this machine's folders and engines fresh while the runner
-// runs, and sweeps idle chat folders on the same beat, the first one at start. A daemon from before
-// folders in the dashboard answers 404; the runner then stops reporting and works as it did, from its
-// config.
+// runs, and sweeps idle chat folders and the worktrees of closed tasks on the same beat, the first
+// one at start. A daemon from before folders in the dashboard answers 404; the runner then stops
+// reporting and works as it did, from its config.
 func (r *Runner) reportFolders(ctx context.Context) {
 	t := time.NewTicker(inventoryEvery)
 	defer t.Stop()
 	for {
 		r.sweepChats(time.Now())
+		r.sweepWorktrees(ctx)
 		logx.Warn(r.cfg.Reload(), "hostrun.log.reload_failed")
 		inv := r.cfg.Scan(ctx)
 		inv.Engines = probeEngines(ctx)
+		inv.LocalTools = r.cfg.current().ToolsState(ctx)
+		inv.Admission = r.admissionState()
 		err := r.client.Inventory(ctx, inv)
 		var ce *callError
 		if asCallError(err, &ce) && ce.Status == http.StatusNotFound {
@@ -215,6 +218,7 @@ func (r *Runner) reportFolders(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-t.C:
+		case <-r.pushInv:
 		}
 	}
 }

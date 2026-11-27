@@ -7,12 +7,48 @@
     "needs_approval": "Espera una aprobación",
     "failed": "Falló",
     "out_of_turns": "Sin turnos",
-    "blocked_auditor": "Frenada por el auditor",
+    "blocked": "Frenada",
     "not_started": "No arrancó",
     "credential_blocked": "Credencial vencida",
     "no_agent": "Sin agente",
     "stopped": "Frenada",
     "resume_failed": "No se pudo retomar"
+  },
+  "block": {
+    "verdict": "Frenada por @{agent}",
+    "verdict_reason": "Frenada por @{agent}: {reason}",
+    "auditor": "Frenada por el auditor",
+    "auditor_agent": "Frenada por el auditor (@{agent})",
+    "kick_back_limit": "Frenada: llegó al tope de devoluciones",
+    "released": "Frenada: la rama ya está mergeada",
+    "no_target": "Frenada: no hay una columna anterior a la que devolverla",
+    "auditor_failed": "Frenada: el auditor no arrancó",
+    "auditor_no_verdict": "Frenada: el auditor no dejó veredicto",
+    "verdict_missing": "Frenada: el agente no escribió su veredicto",
+    "verdict_missing_agent": "Frenada: @{agent} no escribió su veredicto",
+    "verdict_undelivered": "Frenada: el veredicto del agente no llegó a Thulu",
+    "verdict_undelivered_agent": "Frenada: el veredicto de @{agent} no llegó a Thulu",
+    "kick_back_repeated": "Frenada: @{agent} la devolvió dos veces por lo mismo",
+    "kick_back_repeated_reason": "Frenada: @{agent} la devolvió dos veces por lo mismo ({reason})"
+  },
+  "block_reason": {
+    "gates_failed": "fallan los gates",
+    "review_blocking": "la revisión encontró problemas bloqueantes",
+    "qa_failed": "falló la prueba",
+    "mutants_survived": "sobrevivieron mutantes",
+    "spec_test_conflict": "la spec y los tests no coinciden",
+    "nothing_to_change": "no hay nada que cambiar",
+    "gate_config_changed": "cambió la configuración de los gates",
+    "branch_behind": "la rama está atrasada o tiene conflictos",
+    "commit_rules": "los commits no siguen las reglas del proyecto",
+    "forbidden_files": "archivos de debug, evidencia o secretos en el diff",
+    "spec_mismatch": "el cambio no coincide con la spec",
+    "evidence_missing": "casos de prueba sin corrida o sin evidencia",
+    "review_shallow": "a la revisión IA se le pasaron cosas",
+    "reports_inconsistent": "los reportes contradicen el código",
+    "nits": "hallazgos menores para arreglar antes de salir",
+    "repeated_kick_back": "devuelta dos veces por lo mismo",
+    "needs_decision": "necesita que decida una persona"
   },
   "priority": {
     "urgent": "Urgente",
@@ -87,6 +123,25 @@
     "reports_count": {
       "one": "Reportes, {count} reporte",
       "other": "Reportes, {count} reportes"
+    },
+    "overview": "Resumen",
+    "overview_waiting": {
+      "one": "Resumen, {count} te espera",
+      "other": "Resumen, {count} te esperan"
+    },
+    "overview_threads": {
+      "one": "Resumen, {count} hilo",
+      "other": "Resumen, {count} hilos"
+    },
+    "activity": "Actividad",
+    "activity_rounds": {
+      "one": "Actividad, {count} ronda",
+      "other": "Actividad, {count} rondas"
+    },
+    "files": "Archivos",
+    "files_count": {
+      "one": "Archivos, {count} archivo",
+      "other": "Archivos, {count} archivos"
     }
   },
   "runs_line": "{runs}, {tokens}",

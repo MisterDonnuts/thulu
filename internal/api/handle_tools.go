@@ -41,6 +41,9 @@ type ExposedTool struct {
 	// Scope outside read/write (thulu-github "deploy", octopus-api "board") is never implied and
 	// must be named. Empty: the picker treats the server as one grant.
 	Scope string `json:"scope,omitempty" yaml:"scope"`
+	// The approval key a person must approve on the run's task before the daemon mints what the
+	// tool needs (thulu-github run_dispatch: deploy_prod). The daemon enforces its own copy.
+	RequiresApproval string `json:"requires_approval,omitempty" yaml:"requires_approval"`
 }
 
 type toolYaml struct {

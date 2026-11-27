@@ -217,6 +217,9 @@ body.ce-grabbing * {
   font-size: var(--t-sm);
   color: var(--fg-2);
 }
+.ce-section-desc a {
+  color: var(--accent);
+}
 .ce-agent select {
   max-width: 320px;
 }

@@ -1,0 +1,9 @@
+name: code-review
+description: How to review a task's diff against its spec, without style comments. Spec check per criterion, review dimensions as a guide for where to look, one verification subagent per candidate finding that reads and when it can runs the code, zero findings as a valid outcome, severities, findings Development can fix in one round, re-reviews after a kick_back and publishing the review on the draft PR. Use it when it is your turn to review the code of a task.
+descriptions:
+  es: Cómo revisar el diff de una tarea contra su spec, sin comentarios de estilo. Chequeo de la spec criterio por criterio, dimensiones de revisión como guía de dónde mirar, un subagente de verificación por hallazgo candidato que lee y, si puede, ejecuta el código, cero hallazgos como salida válida, severidades, hallazgos que Desarrollo puede arreglar en una vuelta, re-revisiones después de un kick_back y cómo publicar la revisión en el PR draft. Usala cuando te toca revisar el código de una tarea.
+type: knowledge
+enforcement: on_demand
+version: 3
+tags: [review, code, flow]
+requires: []

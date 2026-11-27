@@ -10,6 +10,7 @@ import { t } from "../i18n";
 
 const kinds = [
   { id: "agent", label: t("workshop.tabs.agents"), icon: "bot" },
+  { id: "flow", label: t("workshop.tabs.flows"), icon: "board" },
   { id: "skill", label: t("workshop.tabs.skills"), icon: "skills" },
 ].map((k) => ({ ...k, count: 0, tabId: `ws-shop-tab-${k.id}`, panelId: "ws-shop-list" }));
 ---
@@ -184,6 +185,13 @@ const kinds = [
   .wsp-file {
     margin-top: var(--s-3);
   }
+  /* A heading inside the detail: the flow's columns and its task types. */
+  .wsp-sub {
+    margin: 0;
+    font-size: var(--t-sm);
+    font-weight: 600;
+    color: var(--fg-2);
+  }
   .wsp-file-path {
     font-family: var(--font-mono);
     font-size: var(--t-xs);
@@ -240,6 +248,15 @@ const kinds = [
     max-width: 72ch;
     color: var(--fg-2);
   }
+  /* "Open <board>" after a flow install: the accent link of the rest of the app, not the browser's. */
+  .wsp-board-link {
+    color: var(--accent);
+    font-weight: 500;
+    text-decoration: none;
+  }
+  .wsp-board-link:hover {
+    text-decoration: underline;
+  }
   .wsp-notices {
     display: flex;
     flex-direction: column;
@@ -277,6 +294,13 @@ const kinds = [
   /* The choice of an item takes the row under its name. */
   .wsp-seg {
     grid-column: 2 / -1;
+  }
+  /* A flow's columns, under its row, with what the apply does to each. */
+  .wsp-item-stages {
+    grid-column: 2 / -1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-2);
   }
 
   @media (max-width: 760px) {

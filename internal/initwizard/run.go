@@ -146,6 +146,10 @@ func (w *run) loadPrevious(iv *Interviewer) {
 	iv.PreviousWorkspace.Name = previous.WorkspaceName
 	iv.PreviousWorkspace.Slug = previous.WorkspaceSlug
 	iv.PreviousWorkspace.ID = previous.WorkspaceID
+	// LoadAnswers answers an empty Config when there is no file; a file the setup wrote always
+	// names its mode.
+	iv.Rerun = previous.Mode != ""
+	iv.PreviousBoard = previous.Board
 	if previous.Mode != ModeKubernetes {
 		return
 	}
@@ -159,7 +163,21 @@ func (w *run) loadPrevious(iv *Interviewer) {
 }
 
 func (w *run) needsAPI() bool {
+	return w.storesCredentials() || w.cfg.installsBoard()
+}
+
+func (w *run) storesCredentials() bool {
 	return w.cfg.GitToken != "" || len(w.cfg.Credentials) > 0 || w.cfg.Runner.Enabled
+}
+
+// deferAPI records the post-boot steps that could not reach the API, each with how to finish it.
+func (w *run) deferAPI(effect, finish string) {
+	if w.storesCredentials() {
+		w.cfg.Defer(i18n.Text("initwizard.deferred.git_and_llm.step"), effect, finish)
+	}
+	if w.cfg.installsBoard() {
+		w.deferFlow()
+	}
 }
 
 func (w *run) revokeSessionKey(ctx context.Context) {
@@ -388,6 +406,7 @@ func (w *run) reviewRows() [][2]string {
 		github += " · " + c.GitHubURL
 	}
 	add(i18n.Text("initwizard.review.github"), github)
+	add(i18n.Text("initwizard.review.board"), flowRow(c))
 	return rows
 }
 
@@ -763,22 +782,21 @@ func (w *run) postBoot(ctx context.Context) {
 		key = w.sessionKey
 	}
 	if key == "" {
-		w.cfg.Defer(i18n.Text("initwizard.deferred.git_and_llm.step"),
-			i18n.Text("initwizard.deferred.git_and_llm.no_key_effect"),
+		w.deferAPI(i18n.Text("initwizard.deferred.git_and_llm.no_key_effect"),
 			i18n.Text("initwizard.deferred.git_and_llm.no_key_finish"))
 		return
 	}
 	client := NewAPIClient(w.daemonURL(), key)
 	if err := client.Reachable(ctx); err != nil {
 		w.warn(i18n.Text("initwizard.cli.api_unreachable", "err", apperr.Text(err)))
-		w.cfg.Defer(i18n.Text("initwizard.deferred.git_and_llm.step"),
-			i18n.Text("initwizard.deferred.git_and_llm.unreachable_effect"),
+		w.deferAPI(i18n.Text("initwizard.deferred.git_and_llm.unreachable_effect"),
 			i18n.Text("initwizard.deferred.git_and_llm.unreachable_finish"))
 		return
 	}
 	w.storeGitCredential(ctx, client)
 	w.storeCredentials(ctx, client)
 	w.setupRunner(ctx, client)
+	w.installFlow(ctx, client)
 }
 
 func (w *run) storeGitCredential(ctx context.Context, client *APIClient) {

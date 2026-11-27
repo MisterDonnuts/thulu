@@ -1,0 +1,9 @@
+name: release-verification
+description: How to verify a production deploy and close the tasks it carried. What went out, by each task's merge_sha with an ancestry check and a search for reverts; smoke only with cases marked safe for production; a health window with three outcomes plus inconclusive, compared against the same slot of the previous day and week and against the SLO; rollback first, and when it can run without asking; batch size and age, deploy windows and alarms; watch mode and the deploy watch that opens its release tasks, and batch mode with the deploy_prod approval before run_dispatch. It never merges and never approves deployments. Use it when it is your turn to run or watch a deploy.
+descriptions:
+  es: Cómo verificar un deploy a producción y cerrar las tareas que llevó. Qué salió, por el merge_sha de cada tarea con chequeo de ancestría y búsqueda de reverts; smoke sólo con casos marcados como seguros para producción; una ventana de salud con tres resultados más inconcluso, comparada contra la misma franja del día y la semana anteriores y contra el SLO; rollback primero, y cuándo puede correr sin preguntar; tamaño y antigüedad del lote, ventanas de deploy y alarmas; modo vigilancia y la vigilancia de deploys que abre sus tareas de release, y modo lote con la aprobación deploy_prod antes de run_dispatch. Nunca mergea ni aprueba deployments. Usala cuando te toca correr o vigilar un deploy.
+type: knowledge
+enforcement: on_demand
+version: 4
+tags: [release, deploy, observability, flow]
+requires: []

@@ -33,6 +33,28 @@ rewrite the whole body: what the person wrote stays where it is.
 | `out-of-scope` | What someone could believe is included and is not. |
 | `risks` | What can go wrong and what would give it away. |
 
+The acceptance criteria are the exception: they are a list, written with
+`task_criteria_set`, and Thulu writes their `acceptance-criteria` section
+from it.
+
+### Acceptance criteria
+
+Each criterion is one behavior someone can observe from outside, with a key
+that test cases point to:
+
+```
+task_criteria_set(id=$TASK_ID, criteria=[
+  { key: "AC-1", text: "Given a 40k-row list\nWhen the person exports it\nThen the CSV arrives by email in under 5 minutes" },
+  { key: "AC-2", text: "If the export fails, then the person gets an email saying so" }
+])
+```
+
+- Send the whole list every time: what you leave out is deleted.
+- Keep a criterion's key when you change its text, and never reuse a deleted
+  one: cases and approvals point to the key. A changed text drops the
+  person's approval of that criterion.
+- Do not write the `acceptance-criteria` section with `task_section_set`.
+
 ### Definition of Done
 
 Each item gets checked with evidence (`task_checklist_check` with a `note`),
@@ -67,6 +89,12 @@ is tested, step by step.
   yourself: an approval stops the stage in which it is requested, and in yours
   there is nothing to review yet. The agent that makes the change requests it,
   in its own stage.
+- **Columns this task skips.** When the brief says your stage may skip later
+  columns, list the ones this change does not need under `skip:` in
+  `flags.yaml`, each with a reason that names the fact behind it (format in
+  `octopus-run`). Only the columns the brief lists as skippable are
+  accepted. When unsure, leave the column in: later agents can remove a
+  skip, never add one.
 
 ## Splitting
 

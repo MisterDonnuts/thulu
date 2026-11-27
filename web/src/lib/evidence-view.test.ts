@@ -278,6 +278,8 @@ describe("batches", () => {
     expect(triggerLabel("manual", "ana")).toBe("Run by ana");
     expect(triggerLabel("deploy", "v1.2")).toBe("After deploy v1.2");
     expect(triggerLabel("api", "")).toBe("From CI");
+    expect(triggerLabel("agent", "")).toBe("Queued by an agent");
+    expect(triggerLabel("agent", "a1b2")).toBe("Queued by an agent for task a1b2");
     expect(triggerLabel("other", "")).toBe("other");
   });
 

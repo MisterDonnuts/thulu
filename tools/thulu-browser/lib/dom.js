@@ -45,6 +45,54 @@ export async function serializeDOM(page) {
   }, INTERACTIVE_SELECTOR);
 }
 
+/**
+ * The page as a person sees it, for a blind tester: each interactive element (same numbering as
+ * serializeDOM, so an index clicks the same element) with its role, its accessible name and its
+ * state. No ids, names, classes or paths: only the host a link goes to, when it leaves this one.
+ * @returns {Promise<{ n: number, role: string, name: string, value: string, states: string[], host: string }[]>}
+ */
+export async function accessibleElements(page) {
+  return page.evaluate((sel) => {
+    const IMPLICIT = { a: "link", button: "button", select: "combobox", textarea: "textbox", summary: "button" };
+    const INPUT_ROLE = { button: "button", submit: "button", reset: "button", checkbox: "checkbox", radio: "radio",
+      range: "slider", search: "searchbox", number: "spinbutton" };
+    const clean = (s) => (s || "").replace(/\s+/g, " ").trim();
+    return Array.from(document.querySelectorAll(sel)).map((el, i) => {
+      const tag = el.tagName.toLowerCase();
+      const attr = (n) => (el.getAttribute(n) || "").trim();
+      const type = (attr("type") || "text").toLowerCase();
+      const role = attr("role") || (tag === "input" ? INPUT_ROLE[type] || "textbox" : IMPLICIT[tag] || tag);
+      const labelledBy = attr("aria-labelledby").split(/\s+/).filter(Boolean)
+        .map((id) => clean(document.getElementById(id)?.textContent)).join(" ");
+      const labelFor = el.id ? clean(document.querySelector(`label[for="${CSS.escape(el.id)}"]`)?.textContent) : "";
+      const field = ["input", "textarea", "select"].includes(tag);
+      const name = clean(attr("aria-label") || labelledBy || labelFor || clean(el.closest("label")?.textContent) ||
+        (field ? "" : el.textContent) || attr("title") || attr("alt") ||
+        (field ? attr("placeholder") : "") || (tag === "input" && INPUT_ROLE[type] === "button" ? attr("value") : "")).slice(0, 80);
+      const states = [];
+      if (el.disabled || attr("aria-disabled") === "true") states.push("disabled");
+      if (el.checked || attr("aria-checked") === "true") states.push("checked");
+      if (attr("aria-expanded") === "true") states.push("expanded");
+      if (attr("aria-expanded") === "false") states.push("collapsed");
+      if (el.required || attr("aria-required") === "true") states.push("required");
+      if (attr("aria-invalid") === "true") states.push("invalid");
+      let value = "";
+      if (tag === "select") value = clean(el.selectedOptions?.[0]?.textContent);
+      else if (field && !["checkbox", "radio", "button", "submit", "reset"].includes(type)) {
+        value = type === "password" && el.value ? "•••" : String(el.value || "").slice(0, 40);
+      }
+      let host = "";
+      if (tag === "a" && el.href) {
+        try {
+          const u = new URL(el.href);
+          if (u.host !== location.host) host = u.host;
+        } catch {}
+      }
+      return { n: i + 1, role, name, value, states, host };
+    });
+  }, INTERACTIVE_SELECTOR);
+}
+
 export async function getElementAt(page, index) {
   const elements = await page.$$(INTERACTIVE_SELECTOR);
   const el = elements[index - 1];

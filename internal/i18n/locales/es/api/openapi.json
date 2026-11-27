@@ -35,14 +35,44 @@
     "unknown_stream": "Stream desconocido, o de otro cliente"
   },
   "schemas": {
+    "workspace_agent_turns": {
+      "about": "Cuántas respuestas se dan los agentes en un hilo de comentarios antes de esperar a una persona",
+      "value": "lo que eligió el workspace; null si no eligió nada",
+      "default": "lo que tiene un workspace sin valor propio",
+      "ceiling": "lo máximo que puede elegir un workspace",
+      "effective": "lo que tienen los hilos del workspace: el valor, o el default"
+    },
+    "comment_meta": {
+      "about": "la parte estructurada de un comentario con tipo; todos los campos son opcionales",
+      "action": "decision: move, send_back, relaunch, waive, access, approve, request_changes o waive_approval",
+      "cases": "decision: los casos de prueba que cubrió un waive o un acceso dado",
+      "secrets": "decision: nombres de los secretos que guardó un acceso dado, nunca sus valores",
+      "report_id": "block: el informe stage_verdict con el informe completo del agente",
+      "turns": "pause: las respuestas que se dieron los agentes antes de pausarse"
+    },
+    "comment": {
+      "parent_id": "el comentario raíz del hilo; vacío en una raíz. Mandalo para responder",
+      "kind": "comment, question, block, decision, approval o pause; comment para conversación y filas viejas"
+    },
+    "relaunch": {
+      "turns": "turnos de la corrida; 0 o ausente usa los de la columna",
+      "reason": "opcional: por qué se corre de nuevo. Se publica como comentario de decisión; sin motivo el relanzamiento queda sólo como evento"
+    },
     "task": {
-      "body": "Descripción en Markdown. Sólo la trae {route}: los listados la devuelven vacía para que el sondeo del tablero no cargue todas las descripciones."
+      "reason": "{route}: por qué cambia la columna. Obligatorio si una persona mueve la tarea hacia atrás; opcional en los demás casos. Se publica como comentario de tipo decision, en respuesta al freno abierto",
+      "body": "Descripción en Markdown. Sólo la trae {route}: los listados la devuelven vacía para que el sondeo del tablero no cargue todas las descripciones.",
+      "attention": "Sólo {route}: lo que la tarea necesita de una persona {kind, headline, stage, run_id, verdict_lost, items, options, approval_id, question_id, thread_id}, o null",
+      "upcoming_approvals": "Sólo {route}: aprobaciones de etapas siguientes y aprobaciones dadas sobre un HEAD anterior (stale)",
+      "criteria": "Filas de criterios de aceptación; sólo las trae {route}",
+      "round": "1, más uno cada vez que la tarea volvió a una etapa anterior; sólo lo trae {route}"
     },
     "test_case": {
       "key": "TC-<n> si no se indica otra; única por tarea. {param} en una ruta acepta la clave o el id",
       "priority": "low, medium, high o critical",
-      "status": "pending, pass, fail, blocked o skipped",
-      "runs": "Las más recientes primero"
+      "status": "pending, pass, fail, blocked, skipped o waived",
+      "runs": "Las más recientes primero",
+      "covers": "Claves de criterio que cubre el caso ({route}); si viene vacío, se lee de \"Covers: AC-n\" en la descripción",
+      "preconditions": "Lo que tiene que cumplirse antes de correr el caso; si viene vacío, se lee de \"Preconditions:\" en la descripción"
     },
     "report": {
       "source": "agent, auditor o user",
@@ -50,9 +80,16 @@
       "body": "Markdown"
     },
     "test_case_run": {
-      "verdict": "pass, fail o blocked",
+      "verdict": "pass, fail, blocked o waived (waived necesita una nota, el motivo, y una persona: la corrida de un agente recibe 403)",
       "report_id": "El reporte de evidencia en la pestaña Reportes",
-      "comment_id": "Dónde guardaban su reporte las corridas registradas antes de que existieran los reportes"
+      "comment_id": "Dónde guardaban su reporte las corridas registradas antes de que existieran los reportes",
+      "needs": "Sólo en una corrida bloqueada: lo que tiene que traer una persona; los tipos salen de {route}",
+      "observed": "Qué pasó, como mucho {max} caracteres; el detalle va en note",
+      "round": "La ronda de la tarea cuando se registró la corrida; la pone el daemon",
+      "tried": "En una corrida bloqueada: none, simulated o partial",
+      "tried_result": "Qué mostró el intento",
+      "vtt_attachment_id": "Subtítulos o capítulos (.vtt) con el nombre del video; los vincula el daemon",
+      "writes_data": "Si el caso escribe datos reales"
     },
     "webhook": {
       "secret": "Secreto de firma; se devuelve sólo al crearlo y al rotarlo",
@@ -83,7 +120,32 @@
       "default": "el límite de la instalación, el que tiene un workspace sin valor propio; 0 = sin límite",
       "ceiling": "lo máximo que puede elegir un workspace",
       "effective": "lo que tienen las corridas del workspace: min(value, ceiling), o el default",
-      "body": "minutos enteros de 1 al tope, o null para volver al default de la instalación"
+      "body": "un número entero de 1 al tope del ajuste (minutos para agent.max_run_minutes, respuestas para agent_turns_per_thread), o null para volver al default"
+    },
+    "access": {
+      "environment_id": "Entorno de evidencia de uno de los proyectos de la tarea; guarda los secretos",
+      "reason": "Opcional; se publica como texto de la decisión",
+      "secret_names": "Nombres de los secretos guardados; los valores nunca vuelven",
+      "secrets": "Nombre de secreto a valor; los nombres van en mayúsculas, como TEST_USER_PASSWORD"
+    },
+    "criteria_approve": {
+      "keys": "Criterios a aprobar; vacío aprueba todos"
+    },
+    "criteria_request": {
+      "criteria": "La lista entera, en orden; reemplaza la actual"
+    },
+    "criterion": {
+      "approved_by": "Quién aprobó el criterio; vacío desde que cambió su texto",
+      "key": "AC-n, único dentro de la tarea"
+    },
+    "need": {
+      "kind": "Uno de los tipos que lista {route}",
+      "secrets": "Secretos que tiene que dar una persona; sólo en tipos que los piden"
+    },
+    "need_kind": {
+      "actions": "Lo que puede hacer una persona: access, by_hand, skip, rerun, review_video",
+      "order": "Orden, menor primero",
+      "secrets": "Si este tipo pide secretos"
     }
   },
   "ops": {
@@ -217,6 +279,10 @@
     "record_test_case_run": {
       "summary": "Registrar una corrida de un caso de prueba",
       "description": "verdict es obligatorio. Cada id de adjunto, reporte y comentario tiene que ser de la tarea (si no, 404). El caso toma el veredicto como estado y cuenta como cubierto. Responde {run, test_case}."
+    },
+    "waive_test_cases": {
+      "summary": "Saltear casos de prueba con un motivo",
+      "description": "Cuerpo {cases: [keys o ids], reason}; reason es obligatorio. Registra una corrida con veredicto waived por caso, a nombre de quien llama (la key de la corrida de un agente recibe 403), con el motivo como nota y el HEAD de la tarea cuando se conoce. Si la tarea está frenada en una etapa cuyos casos para una persona quedaron todos aprobados o salteados, sigue como después de un veredicto continue. Responde {waived, advanced, stage}."
     },
     "list_workspace_test_cases": {
       "summary": "Vista de QA: casos de prueba de todo el workspace de quien llama",
@@ -456,6 +522,25 @@
     },
     "put_workspace_setting": {
       "summary": "Fijar o borrar un ajuste propio del workspace (admin)"
+    },
+    "approve_criteria": {
+      "summary": "Aprobar criterios de aceptación",
+      "description": "Una persona aprueba los criterios nombrados, o todos cuando keys viene vacío. Cambiar el texto de un criterio borra su aprobación. Sólo personas con sesión iniciada: una API key recibe 403."
+    },
+    "give_test_case_access": {
+      "summary": "Darle acceso a un agente a casos bloqueados",
+      "description": "Guarda los secretos en un entorno de evidencia del proyecto de la tarea (los valores nunca vuelven), pone los casos en cola, publica una decisión que nombra los secretos y relanza la etapa para esos casos. Sólo personas con sesión iniciada: una API key recibe 403."
+    },
+    "list_criteria": {
+      "summary": "Listar criterios de aceptación"
+    },
+    "list_need_kinds": {
+      "summary": "Listar lo que puede necesitar un caso bloqueado",
+      "description": "El catálogo de tipos de necesidad: ícono, orden, las acciones que puede tomar una persona y si el tipo pide secretos."
+    },
+    "set_criteria": {
+      "summary": "Reemplazar criterios de aceptación",
+      "description": "Reemplaza la lista entera y reescribe la sección acceptance-criteria del brief, una línea AC-n por criterio. Las claves tienen la forma AC-1, no se repiten y llevan texto."
     }
   }
 }

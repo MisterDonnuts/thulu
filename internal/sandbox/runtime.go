@@ -23,8 +23,15 @@ type TerminatedSweeper interface {
 	SweepTerminated(ctx context.Context, olderThan time.Duration) (int, error)
 }
 
+// OrphanLister lists sandbox containers (Docker) or pods (Kubernetes) whether or not a row records
+// them.
+type OrphanLister interface {
+	ListSandboxes(ctx context.Context) ([]ListedContainer, error)
+}
+
 var (
 	_ Runtime       = (*Docker)(nil)
+	_ OrphanLister  = (*Docker)(nil)
 	_ PeerAddresser = (*Docker)(nil)
 )
 

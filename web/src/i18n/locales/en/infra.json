@@ -26,7 +26,8 @@
       "kubernetes": "Kubernetes",
       "metrics": "Metrics",
       "postgres": "Postgres",
-      "settings": "Settings"
+      "settings": "Settings",
+      "images": "Images"
     }
   },
   "tiles": {

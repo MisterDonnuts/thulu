@@ -212,6 +212,7 @@ func laterAuthMigrations() []migrate.Migration {
 		apiKeyScopeMigrations(), runScopeMigrations(), signupMigrations(),
 		accountMigrations(), invitationMigrations(), accessRequestMigrations(),
 		rotationMigrations(), preferenceMigrations(), runKeyLLMMigrations(),
+		runKeyInstanceMigrations(),
 	} {
 		out = append(out, part...)
 	}
@@ -1009,12 +1010,12 @@ func (s *UserStore) createAPIKey(ctx context.Context,
 	_, err = s.db.ExecContext(ctx, s.rb(
 		`INSERT INTO api_keys (id, name, key_hash, key_prefix, created_by, created_at,
 		                       scope_task_id, scope_chat_id, scope_agent, scope_stage, scope_delegated_by,
-		                       scope_llm_agent, scope_llm_engine,
+		                       scope_llm_agent, scope_llm_engine, scope_instance,
 		                       expires_at, workspace_id, role, permissions)
-		 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`),
+		 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`),
 		id, name, h, prefix, createdBy, now,
 		scope.TaskID, scope.ChatID, scope.Agent, scope.Stage, scope.DelegatedBy,
-		scope.LLMAgent, scope.LLMEngine, expiresAt,
+		scope.LLMAgent, scope.LLMEngine, scope.Instance, expiresAt,
 		grant.WorkspaceID, string(grant.Role), EncodePermissions(grant.Permissions),
 	)
 	if err != nil {
@@ -1046,11 +1047,12 @@ func (s *UserStore) LookupAPIKeyInfo(ctx context.Context, rawKey string) *APIKey
 	var role, perms string
 	err := s.db.QueryRowContext(ctx, s.rb(
 		`SELECT id, name, scope_task_id, scope_chat_id, scope_agent, scope_stage, scope_delegated_by,
-		        scope_llm_agent, scope_llm_engine,
+		        scope_llm_agent, scope_llm_engine, scope_instance,
 		        expires_at, workspace_id, role, permissions
 		   FROM api_keys WHERE key_hash = ? AND revoked_at IS NULL`), h,
 	).Scan(&info.ID, &info.Name, &info.Scope.TaskID, &info.Scope.ChatID, &info.Scope.Agent, &info.Scope.Stage,
-		&info.Scope.DelegatedBy, &info.Scope.LLMAgent, &info.Scope.LLMEngine, &expires, &info.WorkspaceID, &role, &perms)
+		&info.Scope.DelegatedBy, &info.Scope.LLMAgent, &info.Scope.LLMEngine, &info.Scope.Instance,
+		&expires, &info.WorkspaceID, &role, &perms)
 	if err != nil {
 		return nil
 	}

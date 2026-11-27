@@ -23,7 +23,82 @@ export interface RunWord {
   icon: string;
 }
 
-export function runWord(status: string | undefined, terminal: boolean): RunWord | null {
+// Who blocked a task and why, as the daemon reports it (task.block). The label names the agent:
+// columns get renamed and rearranged, agents keep their job.
+export interface BlockInfo {
+  stage?: string;
+  agent?: string;
+  cause: string;
+  reason?: string;
+}
+
+const BLOCK_REASON_TEXT = new Map<string, () => string>([
+  ["gates_failed", () => t("lib.task_detail.block_reason.gates_failed")],
+  ["review_blocking", () => t("lib.task_detail.block_reason.review_blocking")],
+  ["qa_failed", () => t("lib.task_detail.block_reason.qa_failed")],
+  ["mutants_survived", () => t("lib.task_detail.block_reason.mutants_survived")],
+  ["spec_test_conflict", () => t("lib.task_detail.block_reason.spec_test_conflict")],
+  ["nothing_to_change", () => t("lib.task_detail.block_reason.nothing_to_change")],
+  ["gate_config_changed", () => t("lib.task_detail.block_reason.gate_config_changed")],
+  ["branch_behind", () => t("lib.task_detail.block_reason.branch_behind")],
+  ["commit_rules", () => t("lib.task_detail.block_reason.commit_rules")],
+  ["forbidden_files", () => t("lib.task_detail.block_reason.forbidden_files")],
+  ["spec_mismatch", () => t("lib.task_detail.block_reason.spec_mismatch")],
+  ["evidence_missing", () => t("lib.task_detail.block_reason.evidence_missing")],
+  ["review_shallow", () => t("lib.task_detail.block_reason.review_shallow")],
+  ["reports_inconsistent", () => t("lib.task_detail.block_reason.reports_inconsistent")],
+  ["nits", () => t("lib.task_detail.block_reason.nits")],
+  ["repeated_kick_back", () => t("lib.task_detail.block_reason.repeated_kick_back")],
+  ["needs_decision", () => t("lib.task_detail.block_reason.needs_decision")],
+]);
+
+const BLOCK_CAUSE_TEXT = new Map<string, () => string>([
+  ["kick_back_limit", () => t("lib.task_detail.block.kick_back_limit")],
+  ["released", () => t("lib.task_detail.block.released")],
+  ["no_target", () => t("lib.task_detail.block.no_target")],
+  ["auditor_failed", () => t("lib.task_detail.block.auditor_failed")],
+  ["auditor_no_verdict", () => t("lib.task_detail.block.auditor_no_verdict")],
+]);
+
+export function blockLabel(block: BlockInfo | null | undefined): string {
+  if (!block) return t("lib.task_detail.run.blocked");
+  const agent = block.agent ?? "";
+  if (block.cause === "verdict" && agent) {
+    const reason = BLOCK_REASON_TEXT.get(block.reason ?? "");
+    return reason
+      ? t("lib.task_detail.block.verdict_reason", { agent, reason: reason() })
+      : t("lib.task_detail.block.verdict", { agent });
+  }
+  if (block.cause === "kick_back_repeated" && agent) {
+    const reason = BLOCK_REASON_TEXT.get(block.reason ?? "");
+    return reason
+      ? t("lib.task_detail.block.kick_back_repeated_reason", { agent, reason: reason() })
+      : t("lib.task_detail.block.kick_back_repeated", { agent });
+  }
+  if (block.cause === "verdict_missing") {
+    return agent
+      ? t("lib.task_detail.block.verdict_missing_agent", { agent })
+      : t("lib.task_detail.block.verdict_missing");
+  }
+  if (block.cause === "verdict_undelivered") {
+    return agent
+      ? t("lib.task_detail.block.verdict_undelivered_agent", { agent })
+      : t("lib.task_detail.block.verdict_undelivered");
+  }
+  if (block.cause === "auditor") {
+    return agent
+      ? t("lib.task_detail.block.auditor_agent", { agent })
+      : t("lib.task_detail.block.auditor");
+  }
+  const text = BLOCK_CAUSE_TEXT.get(block.cause);
+  return text ? text() : t("lib.task_detail.run.blocked");
+}
+
+export function runWord(
+  status: string | undefined,
+  terminal: boolean,
+  block?: BlockInfo | null,
+): RunWord | null {
   if (terminal) {
     return { id: "done", label: t("lib.task_detail.run.done"), tone: "success", icon: "i-check" };
   }
@@ -68,8 +143,8 @@ export function runWord(status: string | undefined, terminal: boolean): RunWord 
       };
     case "blocked":
       return {
-        id: "blocked_auditor",
-        label: t("lib.task_detail.run.blocked_auditor"),
+        id: "blocked",
+        label: blockLabel(block),
         tone: "danger",
         icon: "i-alert",
       };
@@ -616,6 +691,26 @@ export function approvalsTabName(pending: number): string {
   return pending > 0
     ? t("lib.task_detail.tabs.approvals_pending", { count: pending })
     : t("lib.task_detail.tabs.approvals");
+}
+
+// The first tab counts the threads waiting for the person, orange, or else every thread.
+export function overviewTabName(c: { n: number; warn: boolean }): string {
+  if (!c.n) return t("lib.task_detail.tabs.overview");
+  return c.warn
+    ? t("lib.task_detail.tabs.overview_waiting", { count: c.n })
+    : t("lib.task_detail.tabs.overview_threads", { count: c.n });
+}
+
+export function activityTabName(rounds: number): string {
+  return rounds > 0
+    ? t("lib.task_detail.tabs.activity_rounds", { count: rounds })
+    : t("lib.task_detail.tabs.activity");
+}
+
+export function filesTabName(count: number): string {
+  return count > 0
+    ? t("lib.task_detail.tabs.files_count", { count })
+    : t("lib.task_detail.tabs.files");
 }
 
 export function reportsTabName(count: number): string {

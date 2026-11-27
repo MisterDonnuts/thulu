@@ -152,9 +152,17 @@ type Task struct {
 	Approvals        []Approval `json:"approvals,omitempty"`
 	PendingApprovals int        `json:"pending_approvals,omitempty"`
 	StatusReason     string     `json:"status_reason,omitempty"`
-	OpenQuestions    int        `json:"open_questions,omitempty"`
-	TestCases        []TestCase `json:"test_cases,omitempty"`
-	Questions        []Question `json:"questions,omitempty"`
+	// Who blocked the task and why, from its latest task_blocked event; set by the store's Get and
+	// List on blocked tasks only.
+	Block         *BlockInfo `json:"block,omitempty"`
+	OpenQuestions int        `json:"open_questions,omitempty"`
+	TestCases     []TestCase `json:"test_cases,omitempty"`
+	Questions     []Question `json:"questions,omitempty"`
+	// The acceptance criteria as rows (task_criteria); only Get carries them.
+	Criteria []Criterion `json:"criteria,omitempty"`
+	// The task's current round: 1, plus one each time it went back to an earlier stage. Only Get
+	// carries it.
+	Round int `json:"round,omitempty"`
 
 	Children []Task `json:"children,omitempty"`
 	// Set only by the API on Get (costs a Docker/Kubernetes call); false on every task a list
@@ -168,6 +176,15 @@ type Task struct {
 	SortOrder int `json:"sort_order,omitempty"`
 
 	ArchivedAt *time.Time `json:"archived_at,omitempty"`
+
+	// Project id → the commit the merge left on the base branch.
+	MergeSHAs map[string]string `json:"merge_shas,omitempty"`
+	// What the spec says the change touches (ui, perf, …); stages with skip_unless read it. nil
+	// means nobody set them and every stage runs, so it is never omitted: null and [] differ.
+	FlowFlags []string `json:"flow_flags"`
+	// The columns this task skips (refinement's flags.yaml or a person), in the order they were
+	// set. Never nil after a read.
+	StageSkips []StageSkip `json:"stage_skips"`
 
 	// Derived from task_dependencies on every read, never persisted. Lists fill only the count;
 	// BlockedBy comes from Get.
@@ -201,6 +218,9 @@ type Comment struct {
 	ResolvedBy string            `json:"resolved_by,omitempty"`
 	Key        string            `json:"key,omitempty"`
 	BodyI18n   map[string]string `json:"body_i18n,omitempty"`
+	// What the comment is for (CommentKind); "comment" for conversation and for older rows.
+	Kind CommentKind  `json:"kind"`
+	Meta *CommentMeta `json:"meta,omitempty"`
 }
 
 type Attachment struct {
@@ -226,6 +246,8 @@ type Report struct {
 	Title      string    `json:"title,omitempty"`
 	Body       string    `json:"body"`
 	CreatedAt  time.Time `json:"created_at"`
+	// A stage_verdict report's front matter, read from Body; nil on other kinds.
+	VerdictMeta *VerdictMeta `json:"verdict_meta,omitempty"`
 }
 
 // auditor_feedback is read back: the dispatcher acts on its verdict frontmatter when the run had no
@@ -234,6 +256,8 @@ const (
 	ReportKindAgentIndex      = "agent_index"
 	ReportKindAuditorFeedback = "auditor_feedback"
 	ReportKindEvidence        = "evidence"
+	// verdict.md of a stage with agent_verdict; read back like auditor_feedback.
+	ReportKindStageVerdict = "stage_verdict"
 )
 
 type Patch struct {
@@ -260,6 +284,15 @@ type Patch struct {
 	SessionAgent *string `json:"-"`
 	SessionStage *string `json:"-"`
 	Archived     *bool   `json:"archived,omitempty"`
+
+	MergeSHAs map[string]string `json:"merge_shas,omitempty"`
+	// A pointer to an empty slice records that the change touches nothing a conditional stage
+	// waits for.
+	FlowFlags *[]string `json:"flow_flags,omitempty"`
+
+	// Who makes the change (auth.Author.Label()), for the events the patch records: entering a
+	// column the task skipped drops that skip in its name. Empty reads as "octopus".
+	By string `json:"-"`
 }
 
 type Store struct {
@@ -269,6 +302,7 @@ type Store struct {
 	changes            *ChangeBus
 	onApproval         func(ctx context.Context, a Approval)
 	onQuestionCanceled func(ctx context.Context, q Question)
+	readChecks         ChecksReader
 	storage            *storageQuota
 }
 
@@ -583,8 +617,12 @@ func Migrations(in migrate.Inspector) ([]migrate.Migration, error) {
 		// triggered_by decides whose own engine login a run may use; ListEvents must leave it out
 		// so it never reaches an export bundle.
 		migrate.Migration{ID: 50, SQL: `ALTER TABLE workflow_events ADD COLUMN IF NOT EXISTS triggered_by TEXT NOT NULL DEFAULT ''`},
+		flowStateMigration,
+		// The task's HEAD a test case run was recorded on; '' for older runs and when unknown.
+		migrate.Migration{ID: 52, SQL: `ALTER TABLE test_case_runs ADD COLUMN IF NOT EXISTS head_ref TEXT NOT NULL DEFAULT ''`},
+		commentKindMigration,
 	)
-	return migrations, nil
+	return append(migrations, taskViewMigrations()...), nil
 }
 
 // IDs share the task store's single migration sequence with the inline list in Migrations.
@@ -646,7 +684,9 @@ func mustGenerateID() string {
 }
 
 type taskJSON struct {
-	tags, assigns, wt, pr string
+	tags, assigns, wt, pr, merge, skips string
+	// nil stores NULL: flow flags nobody set.
+	flowFlags any
 }
 
 func (t *Task) marshalJSONCols() (taskJSON, error) {
@@ -660,12 +700,25 @@ func (t *Task) marshalJSONCols() (taskJSON, error) {
 		{t.StageAssignments, &out.assigns, "stage_assignments"},
 		{t.WorktreePaths, &out.wt, "worktree_paths"},
 		{t.PRURLs, &out.pr, "pr_urls"},
+		{t.MergeSHAs, &out.merge, "merge_shas"},
 	} {
 		b, err := json.Marshal(m.src)
 		if err != nil {
 			return taskJSON{}, apperr.Wrap(err, "task.errors.marshal_column", "column", m.name)
 		}
 		*m.dst = string(b)
+	}
+	skips, err := marshalStageSkips(t.StageSkips)
+	if err != nil {
+		return taskJSON{}, err
+	}
+	out.skips = skips
+	if t.FlowFlags != nil {
+		b, err := json.Marshal(t.FlowFlags)
+		if err != nil {
+			return taskJSON{}, apperr.Wrap(err, "task.errors.marshal_column", "column", "flow_flags")
+		}
+		out.flowFlags = string(b)
 	}
 	return out, nil
 }
@@ -792,8 +845,14 @@ func (s *Store) Create(ctx context.Context, t *Task) error {
 	if t.PRURLs == nil {
 		t.PRURLs = map[string]string{}
 	}
+	if t.MergeSHAs == nil {
+		t.MergeSHAs = map[string]string{}
+	}
 	if t.Status == "" {
 		t.Status = StatusIdle
+	}
+	if t.StageSkips == nil {
+		t.StageSkips = []StageSkip{}
 	}
 	now := time.Now().UTC()
 	t.CreatedAt = now
@@ -813,17 +872,20 @@ func (s *Store) Create(ctx context.Context, t *Task) error {
 		`INSERT INTO tasks (id, title, body, stage, stage_assignments,
 		    branch_name, worktree_paths, pr_urls, current_run_id, current_instance,
 		    status, tags, priority, workspace_id, board_id, type_id, parent_id, origin_task_id,
-		    created_at, updated_at)
-		 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`),
+		    created_at, updated_at, merge_shas, flow_flags, stage_skips)
+		 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`),
 		t.ID, t.Title, t.Body, t.Stage, cols.assigns,
 		t.BranchName, cols.wt, cols.pr, t.CurrentRunID, t.CurrentInstance,
 		string(t.Status), cols.tags, t.Priority, t.WorkspaceID, t.BoardID, t.TypeID, t.ParentID,
-		t.OriginTaskID, t.CreatedAt, t.UpdatedAt,
+		t.OriginTaskID, t.CreatedAt, t.UpdatedAt, cols.merge, cols.flowFlags, cols.skips,
 	); err != nil {
 		return err
 	}
 	if linkErr := s.writeProjectLinks(ctx, tx, t.ID, t.ProjectIDs); linkErr != nil {
 		return linkErr
+	}
+	if _, syncErr := s.syncCriteriaFromBody(ctx, tx, t.ID, "", t.Body, now); syncErr != nil {
+		return syncErr
 	}
 	if err = tx.Commit(); err != nil {
 		return apperr.Wrap(err, "task.errors.create_commit")
@@ -845,11 +907,15 @@ func (s *Store) Get(ctx context.Context, id string) (*Task, error) {
 	logx.Warn(err2, "task.log.get_attachments", "id", id)
 	t.Approvals, err2 = s.ListApprovals(ctx, id)
 	logx.Warn(err2, "task.log.get_flags", "id", id)
+	decorateApprovalThreads(t.Approvals, t.Comments)
 	t.Flags = FlagsOf(t.Approvals)
 	t.TestCases, err2 = s.ListTestCases(ctx, id)
 	logx.Warn(err2, "task.log.get_test_cases", "id", id)
 	t.Questions, err2 = s.ListQuestions(ctx, id)
 	logx.Warn(err2, "task.log.get_questions", "id", id)
+	t.Criteria, err2 = s.ListCriteria(ctx, id)
+	logx.Warn(err2, "task.log.get_criteria", "id", id)
+	t.Round = s.TaskRound(ctx, id)
 	t.BlockedBy, err2 = s.GetDependencies(ctx, id)
 	logx.Warn(err2, "task.log.get_dependencies", "id", id)
 	t.Blocking, err2 = s.GetDependents(ctx, id)
@@ -861,6 +927,7 @@ func (s *Store) Get(ctx context.Context, id string) (*Task, error) {
 	one := []Task{*t}
 	s.decorateStatusReasons(ctx, one)
 	t.StatusReason = one[0].StatusReason
+	t.Block = one[0].Block
 	return t, nil
 }
 
@@ -895,7 +962,7 @@ const taskCols = `id, title, body, stage, stage_assignments,
 	        branch_name, worktree_paths, pr_urls, current_run_id, current_instance,
 	        status, tags, priority, workspace_id, board_id, type_id, parent_id,
 	        origin_task_id, session_id, session_agent, session_stage, created_at, updated_at,
-	        sort_order, archived_at`
+	        sort_order, archived_at, merge_shas, flow_flags, stage_skips`
 
 // Substitutes ” for body so scanTask stays aligned with one column list. Never use for
 // ListByWorkspace
@@ -907,17 +974,20 @@ var ErrNotFound error = apperr.NotFound("task.errors.not_found")
 
 var ErrConflict error = apperr.Conflict("task.errors.conflict")
 
+var ErrStageChanged error = apperr.Conflict("task.errors.stage_changed_generic")
+
 var ErrInvalid error = apperr.Invalid("task.errors.invalid")
 
 func scanTask(r rowScanner) (*Task, error) {
 	t := &Task{}
-	var tagsJSON, assignsJSON, wtJSON, prJSON, status string
+	var tagsJSON, assignsJSON, wtJSON, prJSON, mergeJSON, skipsJSON, status string
+	var flowFlags sql.NullString
 	var archived sql.NullTime
 	if err := r.Scan(&t.ID, &t.Title, &t.Body, &t.Stage, &assignsJSON,
 		&t.BranchName, &wtJSON, &prJSON, &t.CurrentRunID, &t.CurrentInstance,
 		&status, &tagsJSON, &t.Priority, &t.WorkspaceID, &t.BoardID, &t.TypeID, &t.ParentID,
 		&t.OriginTaskID, &t.SessionID, &t.SessionAgent, &t.SessionStage,
-		&t.CreatedAt, &t.UpdatedAt, &t.SortOrder, &archived); err != nil {
+		&t.CreatedAt, &t.UpdatedAt, &t.SortOrder, &archived, &mergeJSON, &flowFlags, &skipsJSON); err != nil {
 		return nil, apperr.Wrap(err, "task.errors.scan_row")
 	}
 	t.Status = RunStatus(status)
@@ -937,9 +1007,20 @@ func scanTask(r rowScanner) (*Task, error) {
 		{assignsJSON, &t.StageAssignments, "stage_assignments"},
 		{wtJSON, &t.WorktreePaths, "worktree_paths"},
 		{prJSON, &t.PRURLs, "pr_urls"},
+		{mergeJSON, &t.MergeSHAs, "merge_shas"},
+		{skipsJSON, &t.StageSkips, "stage_skips"},
 	} {
 		if err := json.Unmarshal([]byte(u.raw), u.dst); err != nil {
 			return nil, apperr.Wrap(err, "task.errors.unmarshal_column", "column", u.name, "task", t.ID)
+		}
+	}
+	if flowFlags.Valid {
+		t.FlowFlags = []string{}
+		if err := json.Unmarshal([]byte(flowFlags.String), &t.FlowFlags); err != nil {
+			return nil, apperr.Wrap(err, "task.errors.unmarshal_column", "column", "flow_flags", "task", t.ID)
+		}
+		if t.FlowFlags == nil {
+			t.FlowFlags = []string{}
 		}
 	}
 	if t.StageAssignments == nil {
@@ -951,6 +1032,12 @@ func scanTask(r rowScanner) (*Task, error) {
 	}
 	if t.PRURLs == nil {
 		t.PRURLs = map[string]string{}
+	}
+	if t.MergeSHAs == nil {
+		t.MergeSHAs = map[string]string{}
+	}
+	if t.StageSkips == nil {
+		t.StageSkips = []StageSkip{}
 	}
 	return t, nil
 }
@@ -1080,8 +1167,10 @@ type CardFilter struct {
 	Workspace string
 	Board     string
 	Stage     string
-	TopLevel  bool
-	Archived  bool
+	// Only tasks that touch this project.
+	Project  string
+	TopLevel bool
+	Archived bool
 }
 
 // Every filter must be in the SQL before the LIMIT: filtering afterwards let the cursor page into
@@ -1094,8 +1183,14 @@ func (s *Store) ListPage(ctx context.Context, f CardFilter, p listpage.Request) 
 	}
 	if f.Board != "" {
 		conds, args = append(conds, `board_id = ?`), append(args, f.Board) //i18n:ignore SQL fragment
-	} else if f.Stage != "" {
+	}
+	if f.Stage != "" {
 		conds, args = append(conds, `stage = ?`), append(args, f.Stage) //i18n:ignore SQL fragment
+	}
+	if f.Project != "" {
+		//i18n:ignore SQL fragment
+		conds = append(conds, `EXISTS (SELECT 1 FROM task_projects tp WHERE tp.task_id = tasks.id AND tp.project_id = ?)`)
+		args = append(args, f.Project)
 	}
 	if f.TopLevel {
 		conds = append(conds, `parent_id = ''`) //i18n:ignore SQL fragment
@@ -1123,13 +1218,16 @@ func (s *Store) ListInBoardStage(ctx context.Context, boardID, stage string) ([]
 	return tasks, err
 }
 
-func (s *Store) BoardStageHasAgent(ctx context.Context, workspaceID, boardID, stage, exceptID string) (bool, error) {
+// typeID, when set, narrows to tasks of that type: on a board whose types give a stage different
+// agents, another type's agent says nothing about this one.
+func (s *Store) BoardStageHasAgent(ctx context.Context, workspaceID, boardID, stage, typeID, exceptID string) (bool, error) {
 	var found bool
 	err := s.db.QueryRowContext(ctx, s.rb(`SELECT EXISTS (
 		SELECT 1 FROM tasks
 		 WHERE workspace_id = ? AND board_id = ? AND id <> ?
+		   AND (? = '' OR type_id = ?)
 		   AND COALESCE(stage_assignments::jsonb ->> ?, '') <> '')`),
-		workspaceID, boardID, exceptID, stage).Scan(&found)
+		workspaceID, boardID, exceptID, typeID, typeID, stage).Scan(&found)
 	return found, err
 }
 
@@ -1170,7 +1268,34 @@ func (s *Store) SetChildOrder(ctx context.Context, parentID string, ids []string
 }
 
 func (s *Store) AllInGroupDone(ctx context.Context, rootID string) (bool, error) {
-	frag, args := s.notTerminalFrag("")
+	return s.allInGroup(ctx, rootID, s.notTerminalFrag)
+}
+
+// Every task of the group sits in a terminal stage or one with release_resources: nothing left in
+// the group runs on its sandbox or worktrees. Same as AllInGroupDone on boards without the flag.
+func (s *Store) AllInGroupReleased(ctx context.Context, rootID string) (bool, error) {
+	return s.allInGroup(ctx, rootID, s.notReleasedFrag)
+}
+
+// Whether the task's stage frees its resources on entry (release_resources) without ending it.
+func (s *Store) InReleaseStage(t *Task) bool {
+	if t == nil {
+		return false
+	}
+	info, ok := s.boardFor(t).Get(t.Stage)
+	return ok && info.ReleaseResources && !info.Terminal
+}
+
+func (s *Store) InTerminalStage(t *Task) bool {
+	if t == nil {
+		return false
+	}
+	info, ok := s.boardFor(t).Get(t.Stage)
+	return ok && info.Terminal
+}
+
+func (s *Store) allInGroup(ctx context.Context, rootID string, notIn func(alias string) (string, []any)) (bool, error) {
+	frag, args := notIn("")
 	row := s.db.QueryRowContext(ctx, s.rb(
 		`SELECT COUNT(*) FROM tasks
 		 WHERE (id = ? OR parent_id = ?) AND `+frag),
@@ -1282,7 +1407,7 @@ func (s *Store) decorateStatusReasons(ctx context.Context, out []Task) {
 		return
 	}
 	q := `SELECT task_id, body, body_i18n FROM task_comments
-	       WHERE source = ? AND note_key <> '' AND parent_id = '' AND task_id IN (` +
+	       WHERE source = ? AND note_key <> '' AND parent_id = '' AND kind = 'comment' AND task_id IN (` +
 		placeholderList(len(ids)) + `)` + ` ORDER BY created_at DESC`
 	rows, err := s.db.QueryContext(ctx, s.rb(q), append([]any{string(SourceSystem)}, ids...)...)
 	if err != nil {
@@ -1304,6 +1429,46 @@ func (s *Store) decorateStatusReasons(ctx context.Context, out []Task) {
 		}
 		c.BodyI18n = decodeTexts(texts)
 		out[i].StatusReason = c.textFor(locale)
+	}
+	logx.Warn(rows.Err(), "task.log.status_reasons")
+	s.decorateBlocks(ctx, out)
+}
+
+// One query for every blocked task in out: the payload of its latest task_blocked event.
+func (s *Store) decorateBlocks(ctx context.Context, out []Task) {
+	var ids []any
+	at := map[string]int{}
+	for i := range out {
+		if out[i].Status == StatusBlocked {
+			ids = append(ids, out[i].ID)
+			at[out[i].ID] = i
+		}
+	}
+	if len(ids) == 0 {
+		return
+	}
+	q := `SELECT task_id, payload FROM workflow_events WHERE kind = ? AND task_id IN (` +
+		placeholderList(len(ids)) + `)` + ` ORDER BY created_at DESC`
+	rows, err := s.db.QueryContext(ctx, s.rb(q), append([]any{string(EventTaskBlocked)}, ids...)...)
+	if err != nil {
+		logx.Warn(err, "task.log.status_reasons")
+		return
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var taskID, payload string
+		if err := rows.Scan(&taskID, &payload); err != nil {
+			logx.Warn(err, "task.log.status_reasons")
+			return
+		}
+		i := at[taskID]
+		if out[i].Block != nil {
+			continue
+		}
+		var b BlockInfo
+		if json.Unmarshal([]byte(payload), &b) == nil && b.Cause != "" {
+			out[i].Block = &b
+		}
 	}
 	logx.Warn(rows.Err(), "task.log.status_reasons")
 }
@@ -1384,6 +1549,12 @@ func (p Patch) applyTo(t *Task) {
 	if p.PRURLs != nil {
 		t.PRURLs = p.PRURLs
 	}
+	if p.MergeSHAs != nil {
+		t.MergeSHAs = p.MergeSHAs
+	}
+	if p.FlowFlags != nil {
+		t.FlowFlags = copyFlowFlags(p.FlowFlags)
+	}
 	patch.Set(&t.CurrentRunID, p.CurrentRunID)
 	patch.Set(&t.CurrentInstance, p.CurrentInstance)
 	patch.Set(&t.Status, p.Status)
@@ -1432,6 +1603,12 @@ func (p Patch) assignments(now time.Time) (cols []string, args []any, err error)
 	if err := jsonCol("pr_urls", p.PRURLs != nil, p.PRURLs); err != nil {
 		return nil, nil, err
 	}
+	if err := jsonCol("merge_shas", p.MergeSHAs != nil, p.MergeSHAs); err != nil {
+		return nil, nil, err
+	}
+	if err := jsonCol("flow_flags", p.FlowFlags != nil, copyFlowFlags(p.FlowFlags)); err != nil {
+		return nil, nil, err
+	}
 	str("current_run_id", p.CurrentRunID)
 	str("current_instance", p.CurrentInstance)
 	if p.Status != nil {
@@ -1461,6 +1638,16 @@ func (p Patch) assignments(now time.Time) (cols []string, args []any, err error)
 }
 
 func (s *Store) Update(ctx context.Context, id string, p Patch) (*Task, error) {
+	return s.update(ctx, id, p, nil)
+}
+
+// UpdateIfStage applies p only while the task is still in stage, so two movers racing for the same
+// task cannot both move it. A task found elsewhere returns ErrStageChanged and is left as it is.
+func (s *Store) UpdateIfStage(ctx context.Context, id string, stage Stage, p Patch) (*Task, error) {
+	return s.update(ctx, id, p, &stage)
+}
+
+func (s *Store) update(ctx context.Context, id string, p Patch, expect *Stage) (*Task, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, apperr.Wrap(err, "task.errors.update_begin", "id", id)
@@ -1471,8 +1658,12 @@ func (s *Store) Update(ctx context.Context, id string, p Patch) (*Task, error) {
 	if err != nil {
 		return nil, err
 	}
-	prevStage, prevBoard := t.Stage, t.BoardID
+	if expect != nil && t.Stage != *expect {
+		return nil, apperr.Wrap(ErrStageChanged, "task.errors.stage_changed", "id", id, "stage", t.Stage)
+	}
+	prevStage, prevBoard, prevBody := t.Stage, t.BoardID, t.Body
 	p.applyTo(t)
+	droppedSkips, skipCause := skipsLeftByMove(prevStage, prevBoard, t)
 	t.UpdatedAt = time.Now().UTC()
 	if p.Archived != nil {
 		t.ArchivedAt = nil
@@ -1486,6 +1677,13 @@ func (s *Store) Update(ctx context.Context, id string, p Patch) (*Task, error) {
 	if err != nil {
 		return nil, err
 	}
+	if len(droppedSkips) > 0 {
+		raw, mErr := marshalStageSkips(t.StageSkips)
+		if mErr != nil {
+			return nil, mErr
+		}
+		cols, args = append(cols, "stage_skips"), append(args, raw)
+	}
 	set := make([]string, len(cols))
 	for i, c := range cols {
 		set[i] = c + "=?"
@@ -1495,26 +1693,41 @@ func (s *Store) Update(ctx context.Context, id string, p Patch) (*Task, error) {
 	if _, err = tx.ExecContext(ctx, s.rb(q), append(args, id)...); err != nil {
 		return nil, err
 	}
-	if p.ProjectIDs != nil {
-		t.ProjectIDs = dedupeStrings(*p.ProjectIDs)
-		if linkErr := s.writeProjectLinks(ctx, tx, id, t.ProjectIDs); linkErr != nil {
-			return nil, linkErr
-		}
-	}
-	if p.Archived != nil && !t.IsSubtask() {
-		if _, err = tx.ExecContext(ctx, s.rb(`UPDATE tasks SET archived_at=?, updated_at=? WHERE parent_id=?`),
-			t.ArchivedAt, t.UpdatedAt, id); err != nil {
-			return nil, apperr.Wrap(err, "task.errors.archive_subtasks", "id", id)
-		}
+	criteria, err := s.writePatchedRows(ctx, tx, id, p, prevBody, t)
+	if err != nil {
+		return nil, err
 	}
 	if err = tx.Commit(); err != nil {
 		return nil, apperr.Wrap(err, "task.errors.update_commit", "id", id)
 	}
+	s.afterCriteriaChange(ctx, id, "", criteria)
+	s.recordSkipsLeftByMove(ctx, id, p.By, skipCause, droppedSkips)
 	if t.Stage != prevStage || t.BoardID != prevBoard {
 		s.stageEntered(ctx, t)
 	}
 	s.notify(ChangeUpdated, t)
 	return t, nil
+}
+
+// writePatchedRows writes what a patch changes outside the task row: project links, the archive
+// mark of subtasks and the criteria a rewritten body carries.
+func (s *Store) writePatchedRows(ctx context.Context, tx *sql.Tx, id string, p Patch, prevBody string, t *Task) (CriteriaChange, error) {
+	if p.ProjectIDs != nil {
+		t.ProjectIDs = dedupeStrings(*p.ProjectIDs)
+		if err := s.writeProjectLinks(ctx, tx, id, t.ProjectIDs); err != nil {
+			return CriteriaChange{}, err
+		}
+	}
+	if p.Archived != nil && !t.IsSubtask() {
+		if _, err := tx.ExecContext(ctx, s.rb(`UPDATE tasks SET archived_at=?, updated_at=? WHERE parent_id=?`),
+			t.ArchivedAt, t.UpdatedAt, id); err != nil {
+			return CriteriaChange{}, apperr.Wrap(err, "task.errors.archive_subtasks", "id", id)
+		}
+	}
+	if p.Body == nil {
+		return CriteriaChange{}, nil
+	}
+	return s.syncCriteriaFromBody(ctx, tx, id, prevBody, t.Body, t.UpdatedAt)
 }
 
 // Callers must create the destination row first, then record the forked_from event and create
@@ -1527,9 +1740,11 @@ type (
 		resolvedAt                  sql.NullTime
 		resolvedBy                  string
 		noteKey, texts              string
+		kind, meta                  string
 	}
 	forkEvent struct {
 		kind, refID, actor, summary, payload string
+		round                                int
 		createdAt                            time.Time
 	}
 	forkAttachment struct {
@@ -1591,7 +1806,7 @@ func (s *Store) ForkData(ctx context.Context, srcID, dstID string) error {
 		}
 	}()
 
-	commentRemap, err := s.insertForkComments(ctx, tx, dstID, comments)
+	commentRemap, err := s.insertForkComments(ctx, tx, dstID, comments, renumberApprovals(approvals))
 	if err != nil {
 		return err
 	}
@@ -1617,7 +1832,8 @@ func (s *Store) ForkData(ctx context.Context, srcID, dstID string) error {
 
 func (s *Store) readForkComments(ctx context.Context, srcID string) ([]forkComment, error) {
 	rows, err := s.db.QueryContext(ctx, s.rb(
-		`SELECT id, parent_id, source, author, body, stage, created_at, resolved_at, resolved_by, note_key, body_i18n
+		`SELECT id, parent_id, source, author, body, stage, created_at, resolved_at, resolved_by, note_key, body_i18n,
+		        kind, meta
 		   FROM task_comments WHERE task_id = ? ORDER BY created_at`), srcID)
 	if err != nil {
 		return nil, apperr.Wrap(err, "task.errors.fork_read_comments")
@@ -1627,7 +1843,7 @@ func (s *Store) readForkComments(ctx context.Context, srcID string) ([]forkComme
 	for rows.Next() {
 		var c forkComment
 		if err := rows.Scan(&c.id, &c.parentID, &c.source, &c.author, &c.body, &c.stage, &c.createdAt, &c.resolvedAt, &c.resolvedBy,
-			&c.noteKey, &c.texts); err != nil {
+			&c.noteKey, &c.texts, &c.kind, &c.meta); err != nil {
 			return nil, err
 		}
 		out = append(out, c)
@@ -1637,7 +1853,7 @@ func (s *Store) readForkComments(ctx context.Context, srcID string) ([]forkComme
 
 func (s *Store) readForkEvents(ctx context.Context, srcID string) ([]forkEvent, error) {
 	rows, err := s.db.QueryContext(ctx, s.rb(
-		`SELECT kind, ref_id, actor, summary, payload, created_at FROM workflow_events WHERE task_id = ? ORDER BY created_at`), srcID)
+		`SELECT kind, ref_id, actor, summary, payload, round, created_at FROM workflow_events WHERE task_id = ? ORDER BY created_at`), srcID)
 	if err != nil {
 		return nil, apperr.Wrap(err, "task.errors.fork_read_events")
 	}
@@ -1645,7 +1861,7 @@ func (s *Store) readForkEvents(ctx context.Context, srcID string) ([]forkEvent, 
 	var out []forkEvent
 	for rows.Next() {
 		var e forkEvent
-		if err := rows.Scan(&e.kind, &e.refID, &e.actor, &e.summary, &e.payload, &e.createdAt); err != nil {
+		if err := rows.Scan(&e.kind, &e.refID, &e.actor, &e.summary, &e.payload, &e.round, &e.createdAt); err != nil {
 			return nil, err
 		}
 		out = append(out, e)
@@ -1671,7 +1887,9 @@ func (s *Store) readForkAttachments(ctx context.Context, srcID string) ([]forkAt
 	return out, rows.Err()
 }
 
-func (s *Store) insertForkComments(ctx context.Context, tx *sql.Tx, dstID string, comments []forkComment) (map[string]string, error) {
+func (s *Store) insertForkComments(ctx context.Context, tx *sql.Tx, dstID string, comments []forkComment,
+	approvalRemap map[string]string,
+) (map[string]string, error) {
 	remap := make(map[string]string, len(comments))
 	for i := range comments {
 		remap[comments[i].id] = mustGenerateID()
@@ -1684,10 +1902,10 @@ func (s *Store) insertForkComments(ctx context.Context, tx *sql.Tx, dstID string
 		}
 		if _, err := tx.ExecContext(ctx, s.rb(
 			`INSERT INTO task_comments (id, task_id, parent_id, source, author, body, stage, created_at, resolved_at, resolved_by,
-			                            note_key, body_i18n)
-			 VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`),
+			                            note_key, body_i18n, kind, meta)
+			 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`),
 			remap[c.id], dstID, parent, c.source, c.author, c.body, c.stage, c.createdAt, c.resolvedAt, c.resolvedBy,
-			c.noteKey, c.texts,
+			c.noteKey, c.texts, c.kind, forkedMeta(c.meta, approvalRemap),
 		); err != nil {
 			return nil, apperr.Wrap(err, "task.errors.fork_insert_comment")
 		}
@@ -1698,8 +1916,8 @@ func (s *Store) insertForkComments(ctx context.Context, tx *sql.Tx, dstID string
 func (s *Store) insertForkEvents(ctx context.Context, tx *sql.Tx, dstID string, events []forkEvent) error {
 	for _, e := range events {
 		if _, err := tx.ExecContext(ctx, s.rb(
-			`INSERT INTO workflow_events (id, task_id, kind, ref_id, actor, summary, payload, created_at) VALUES (?,?,?,?,?,?,?,?)`),
-			mustGenerateID(), dstID, e.kind, e.refID, e.actor, e.summary, e.payload, e.createdAt,
+			`INSERT INTO workflow_events (id, task_id, kind, ref_id, actor, summary, payload, round, created_at) VALUES (?,?,?,?,?,?,?,?,?)`),
+			mustGenerateID(), dstID, e.kind, e.refID, e.actor, e.summary, e.payload, e.round, e.createdAt,
 		); err != nil {
 			return apperr.Wrap(err, "task.errors.fork_insert_event")
 		}
@@ -1766,7 +1984,7 @@ func (s *Store) Delete(ctx context.Context, id string) error {
 	for _, tbl := range []string{
 		"test_case_runs", "test_cases",
 		"task_comments", "task_attachments", "task_flags", "task_reports",
-		"workflow_events", "task_projects",
+		"workflow_events", "task_projects", "task_locked_files",
 	} {
 		if _, err = tx.ExecContext(ctx, s.rb(`DELETE FROM `+tbl+` WHERE task_id = ?`), id); err != nil {
 			return apperr.Wrap(err, "task.errors.delete_from", "id", id, "table", tbl)
@@ -1845,9 +2063,7 @@ func (s *Store) AddReply(ctx context.Context, taskID, parentID string, src Sourc
 	}
 	c, err := s.addComment(ctx, taskID, root, src, author, body)
 	if err == nil && src == SourceUser {
-		_, reopenErr := s.db.ExecContext(ctx, s.rb(
-			`UPDATE task_comments SET resolved_at = NULL, resolved_by = '' WHERE id = ? AND resolved_at IS NOT NULL`), root)
-		logx.Warn(reopenErr, "task.log.reopen_thread", "thread", root, "task", taskID)
+		s.reopenThread(ctx, taskID, root)
 	}
 	return c, err
 }
@@ -1921,11 +2137,14 @@ func (s *Store) insertComment(ctx context.Context, c *Comment) (*Comment, error)
 	c.ID = mustGenerateID()
 	c.Stage = s.stageOf(ctx, c.TaskID)
 	c.CreatedAt = time.Now().UTC()
+	c.Kind = commentKindOr(c.Kind)
 	taskID := c.TaskID
 	_, err := s.db.ExecContext(ctx, s.rb(
-		`INSERT INTO task_comments (id, task_id, parent_id, source, author, body, stage, created_at, note_key, body_i18n)
-		 VALUES (?,?,?,?,?,?,?,?,?,?)`),
+		`INSERT INTO task_comments (id, task_id, parent_id, source, author, body, stage, created_at, note_key, body_i18n,
+		                            kind, meta)
+		 VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`),
 		c.ID, c.TaskID, c.ParentID, c.Source, c.Author, c.Body, c.Stage, c.CreatedAt, c.Key, encodeTexts(c.BodyI18n),
+		string(c.Kind), encodeMeta(c.Meta),
 	)
 	if err != nil {
 		return nil, err
@@ -1937,7 +2156,7 @@ func (s *Store) insertComment(ctx context.Context, c *Comment) (*Comment, error)
 func (s *Store) ListComments(ctx context.Context, taskID string) ([]Comment, error) {
 	rows, err := s.db.QueryContext(ctx, s.rb(
 		`SELECT id, task_id, parent_id, source, author, body, stage, created_at, resolved_at, resolved_by,
-		        note_key, body_i18n
+		        note_key, body_i18n, kind, meta
 		   FROM task_comments WHERE task_id = ? ORDER BY created_at ASC`), taskID,
 	)
 	if err != nil {
@@ -1952,11 +2171,14 @@ func (s *Store) ListComments(ctx context.Context, taskID string) ([]Comment, err
 			c        Comment
 			resolved sql.NullTime
 			texts    string
+			meta     string
 		)
 		if err := rows.Scan(&c.ID, &c.TaskID, &c.ParentID, &c.Source, &c.Author, &c.Body, &c.Stage, &c.CreatedAt,
-			&resolved, &c.ResolvedBy, &c.Key, &texts); err != nil {
+			&resolved, &c.ResolvedBy, &c.Key, &texts, &c.Kind, &meta); err != nil {
 			return nil, err
 		}
+		c.Kind = commentKindOr(c.Kind)
+		c.Meta = decodeMeta(meta)
 		if resolved.Valid {
 			at := resolved.Time.UTC()
 			c.ResolvedAt = &at
@@ -2147,6 +2369,9 @@ func (s *Store) ListReports(ctx context.Context, taskID string) ([]Report, error
 		if err := rows.Scan(&r.ID, &r.TaskID, &r.Source, &r.Author, &r.Stage, &r.InstanceID, &r.Kind, &r.Title, &r.Body, &r.CreatedAt); err != nil {
 			return nil, err
 		}
+		if r.Kind == ReportKindStageVerdict {
+			r.VerdictMeta = VerdictMetaOf(r.Body)
+		}
 		out = append(out, r)
 	}
 	if err := rows.Err(); err != nil {
@@ -2190,4 +2415,25 @@ func SanitizeFilename(name string) string {
 		out = out[:120]
 	}
 	return out
+}
+
+// renumberApprovals gives the fork's approvals their ids before the comments are copied (an
+// approval's thread names its approval in meta, and must name the fork's copy); it returns old → new.
+func renumberApprovals(approvals []Approval) map[string]string {
+	remap := make(map[string]string, len(approvals))
+	for i := range approvals {
+		next := mustGenerateID()
+		remap[approvals[i].ID], approvals[i].ID = next, next
+	}
+	return remap
+}
+
+// forkedMeta is a copied comment's meta pointing at the fork's approval instead of the source's.
+func forkedMeta(raw string, approvalRemap map[string]string) string {
+	m := decodeMeta(raw)
+	if m == nil || approvalRemap[m.ApprovalID] == "" {
+		return raw
+	}
+	m.ApprovalID = approvalRemap[m.ApprovalID]
+	return encodeMeta(m)
 }

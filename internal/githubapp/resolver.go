@@ -59,8 +59,8 @@ const mintTimeout = 20 * time.Second
 
 const credentialTimeout = 5 * time.Second
 
-// PermsAgentTools is the smallest set covering every caller of this entry point (MCP token
-// endpoints, branch push, fallback PR).
+// PermsAgentTools is the smallest set covering every caller of this entry point (branch push,
+// fallback PR). The MCP token endpoints ask GetGithubTokenFor for PermsRunTools instead.
 func (r *Resolver) GetGithubToken(ctx context.Context, projectID string) (*Token, error) {
 	return r.GetGithubTokenFor(ctx, projectID, PermsAgentTools)
 }

@@ -102,7 +102,9 @@
     "auditor_hint": "tick the stages where the auditor reviews the run when it ends; the settings are optional (left empty, it uses the auditor's own)",
     "columns": "Board columns",
     "modes": "Modes",
-    "modes_hint": "not columns: the agent runs when someone calls it. Prompts, skills and MCP are picked per mode just as per column."
+    "modes_hint": "not columns: the agent runs when someone calls it. Prompts, skills and MCP are picked per mode just as per column.",
+    "auditor_mode": "When the auditor runs",
+    "auditor_mode_hint": "Only on signals skips the audit of a clean run: it runs when the run failed or ran out of turns, changed locked tests, gate config or suppressions, went over the diff budget, raised flags, left no report, followed a relaunch with a reason, or the task is high risk. The task's Activity lists the checks of every skipped audit."
   },
   "auditor": {
     "engine_same": "Same as the agent ({engine})",
@@ -110,7 +112,12 @@
     "engine_no_turns": "{engine} has no turn limit, so Turns does not apply.",
     "model_default": "— default —",
     "skills_hint": "comma-separated names; they add to the base skill and the quality-review one, when the workspace has them",
-    "pick_stage": "Pick at least one valid stage above."
+    "pick_stage": "Pick at least one valid stage above.",
+    "mode_signals": "Only on signals",
+    "mode_always": "After every run",
+    "budget_lines": "Diff budget, lines",
+    "budget_files": "Diff budget, files",
+    "budget_hint": "Production lines the branch may add (deleted lines and tests left out) before the auditor runs. Empty uses 400 lines and 20 files."
   },
   "llm": {
     "key_line_html": "Key: {engine} default profile <code class=\"code-inline\">{profile}</code>",
@@ -194,12 +201,14 @@
       "admin": "Admin",
       "deploy": "Deploy",
       "board": "Other boards",
+      "release": "Release",
       "other": "Other"
     },
     "group_by_name": "{group} · granted by name",
     "group_hint": {
       "deploy": "They merge PRs, dispatch workflows and approve deployments. No scope includes them: tick them only on the stage that has to do that.",
       "board": "They read and change tasks on the workspace's other boards. No scope includes them: tick them only if this stage works across boards.",
+      "release": "They move other tasks of the board in bulk and run Evidence batches against production. No scope includes them, and the daemon refuses them to a run that does not name them: tick them only on the release stage.",
       "other": "No scope includes them: the server grants them only when named one by one."
     },
     "deploy_template_title": "Grants thulu-github@read plus run_dispatch, run_watch and run_logs: what a stage that deploys through GitHub Actions needs",
@@ -214,7 +223,7 @@
         "other": "On this stage it grants {count} tools picked by hand."
       }
     },
-    "deploy_note": "run_dispatch starts GitHub Actions workflows: the GitHub App needs the Actions: write permission."
+    "deploy_note": "run_dispatch starts GitHub Actions workflows: the GitHub App needs the Actions: write permission, and in a task Thulu hands it out only after a person approves deploy_prod on that task."
   },
   "prompts": {
     "intro": "Per-stage files are named after the stage id, so a prompt written for a custom stage lives or dies with it. Every save is kept: open a file and use History to read or restore an earlier version.",

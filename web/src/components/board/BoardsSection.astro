@@ -26,9 +26,14 @@ import "../../styles/boards-settings.css";
     <div class="bs-list-bar">
       <h2 id="bs-list-title" class="visually-hidden">{t("settings.boards.list.title")}</h2>
       <p class="bs-list-lede">{t("settings.boards.list.intro")}</p>
-      <Button id="bs-new" class="bs-edit-only" variant="primary" icon="plus"
-        >{t("settings.boards.list.new")}</Button
-      >
+      <span class="bs-list-actions">
+        <Button href="/agents/?workshop=flow" class="bs-edit-only" icon="board"
+          >{t("settings.boards.list.install_flow")}</Button
+        >
+        <Button id="bs-new" class="bs-edit-only" variant="primary" icon="plus"
+          >{t("settings.boards.list.new")}</Button
+        >
+      </span>
     </div>
     <FormError id="bs-list-error" />
     <div id="bs-cards" class="bs-cards" aria-busy="true">
@@ -94,6 +99,23 @@ import "../../styles/boards-settings.css";
           maxlength="280"
           placeholder={t("settings.boards.detail.description_placeholder")}
           aria-describedby="bs-desc-hint"></textarea>
+      </Field>
+      <Field
+        label={t("settings.boards.detail.kick_backs")}
+        for="bs-kick-backs"
+        help={t("settings.boards.detail.kick_backs_hint")}
+        helpId="bs-kick-backs-hint"
+        errorId="bs-kick-backs-error"
+      >
+        <input
+          id="bs-kick-backs"
+          type="number"
+          min="0"
+          max="20"
+          step="1"
+          inputmode="numeric"
+          aria-describedby="bs-kick-backs-hint"
+        />
       </Field>
     </Panel>
 

@@ -36,6 +36,9 @@ type Watcher struct {
 
 	mu        sync.Mutex
 	callbacks map[string]func(exitCode int, stopReason string)
+	// A callback stays here while it runs: Reconcile must not replay an exit its callback is still
+	// copying outputs for.
+	running map[string]int
 }
 
 func New(docker *client.Client, reg *registry.Registry, collector *usage.Collector, projectStore *project.Store) *Watcher {
@@ -45,6 +48,7 @@ func New(docker *client.Client, reg *registry.Registry, collector *usage.Collect
 		collector:    collector,
 		projectStore: projectStore,
 		callbacks:    make(map[string]func(int, string)),
+		running:      make(map[string]int),
 	}
 }
 
@@ -55,6 +59,40 @@ func (w *Watcher) OnDie(containerID string, cb func(exitCode int, stopReason str
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	w.callbacks[containerID] = cb
+}
+
+// Watching is true while an exit callback waits for the container or runs for it.
+func (w *Watcher) Watching(containerID string) bool {
+	containerID = shortContainerID(containerID)
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	_, waiting := w.callbacks[containerID]
+	return waiting || w.running[containerID] > 0
+}
+
+// Forget drops a callback whose container exited before it was registered: its die event is gone,
+// and Reconcile finishes the run instead.
+func (w *Watcher) Forget(containerID string) {
+	containerID = shortContainerID(containerID)
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	delete(w.callbacks, containerID)
+}
+
+func shortContainerID(id string) string {
+	if len(id) > 12 {
+		return id[:12]
+	}
+	return id
+}
+
+func (w *Watcher) doneRunning(id string) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.running[id]--
+	if w.running[id] <= 0 {
+		delete(w.running, id)
+	}
 }
 
 func (w *Watcher) SyncExisting(ctx context.Context) error {
@@ -148,10 +186,14 @@ func (w *Watcher) handleEvent(ctx context.Context, msg events.Message) {
 		cb, hasCB := w.callbacks[a.ID]
 		if hasCB {
 			delete(w.callbacks, a.ID)
+			w.running[a.ID]++
 		}
 		w.mu.Unlock()
 		if hasCB {
-			go cb(exitCode, a.StopReason)
+			go func() {
+				defer w.doneRunning(a.ID)
+				cb(exitCode, a.StopReason)
+			}()
 		}
 
 		if w.collector != nil {

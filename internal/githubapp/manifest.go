@@ -14,8 +14,8 @@ import (
 	"github.com/MisterDonnuts/thulu/internal/logx"
 )
 
-// Every agent token mints PermsAgentTools; an App lacking any of it clones fine but fails every
-// push and PR as if the project had no credential.
+// The daemon's own pushes and PRs mint PermsAgentTools; an App lacking any of it clones fine but
+// fails every push and PR as if the project had no credential.
 var RequiredAppPermissions = PermsAgentTools
 
 var RecommendedAppPermissions = PermChecksRead

@@ -73,7 +73,9 @@
     "tags_hint": "separated by commas",
     "tags_placeholder": "checkout, smoke",
     "saved": "{key} saved.",
-    "created": "{key} created. Next, have an agent record it."
+    "created": "{key} created. Next, have an agent record it.",
+    "safe_for_prod": "Safe to run in production",
+    "safe_for_prod_hint": "It only reads: no orders, payments, emails or data changes. Only a person can set this; agents cannot, and a take an agent records clears it."
   },
   "cases": {
     "all": "All",
@@ -192,7 +194,13 @@
     "take_upload": "Uploaded {when}.",
     "took": "took {duration}",
     "video_aria": "Video of the latest run of {key}",
-    "what": "What has to work"
+    "what": "What has to work",
+    "measured_metric": "Measured · {metric} {value}",
+    "page_errors": {
+      "one": "{count} page error",
+      "other": "{count} page errors"
+    },
+    "timing": "Timing"
   },
   "empty": {
     "title": "Start your library of cases",
@@ -498,6 +506,8 @@
     "deploy": "After a deploy",
     "deploy_ref": "After deploy {ref}",
     "api": "From CI",
+    "agent": "Queued by an agent",
+    "agent_task": "Queued by an agent for task {task}",
     "recording": "First run after a recording",
     "recording_by": "First run after {who} recorded it"
   },
@@ -591,5 +601,25 @@
     "deadline": "The batch ran past its time limit and was stopped.",
     "daemon_restarted": "Thulu restarted while this batch ran. Run it again.",
     "runner_lost": "The runner stopped before this run finished. Run it again."
+  },
+  "findings": {
+    "http": "{status} {method} {url}",
+    "failed": "Request failed: {method} {url} ({error})",
+    "pageerror": "Uncaught error: {text}",
+    "console": "Console error: {text}"
+  },
+  "timing": {
+    "lab": "Lab numbers from one run, not field data",
+    "profile": "profile {profile}",
+    "cpu": "CPU {factor}x",
+    "waits_cut": {
+      "one": "{wait} of waiting cut from the video ({count} wait)",
+      "other": "{wait} of waiting cut from the video ({count} waits)"
+    },
+    "waits_filmed": "waits filmed in real time",
+    "steps_dropped": "the per-step list was too large to keep here; the metrics file has it",
+    "col_step": "Step",
+    "response": "Response",
+    "dead": "none (dead)"
   }
 }

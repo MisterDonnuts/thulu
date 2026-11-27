@@ -8,7 +8,9 @@
     "check_suite": "terminó un check suite",
     "task_created": "se creó una tarea",
     "task_stage_changed": "una tarea entró en una etapa nueva",
-    "task_failed": "falló una corrida de un agente"
+    "task_failed": "falló una corrida de un agente",
+    "deployment_status": "un deployment de GitHub cambió de estado (success, failure, in progress…)",
+    "workflow_run": "se pidió, empezó o terminó una corrida de un workflow de GitHub Actions"
   },
   "runs": {
     "timeout": "la receta superó su timeout de {timeout}",
@@ -159,7 +161,13 @@
     "yaml_kind_mapping": "un bloque de claves",
     "yaml_kind_duration": "una duración como 15m",
     "yaml_kind_bool": "true o false",
-    "yaml_kind_number": "un número"
+    "yaml_kind_number": "un número",
+    "step_move_required": "el paso {step:%q} necesita move.task_id y move.stage",
+    "move_unavailable": "los pasos move no están disponibles en esta instalación",
+    "move_task_empty": "move.task_id quedó vacío al renderizarlo",
+    "step_deploy_watch_required": "el paso {step:%q} necesita deploy_watch.watch",
+    "deploy_watch_unavailable": "este daemon no tiene vigilancias de deploy conectadas, así que un paso deploy_watch no puede correr",
+    "managed_by_required": "una automatización administrada necesita el nombre de quien la administra"
   },
   "log": {
     "mint_key_failed": "crear la key de {id}: {err}",

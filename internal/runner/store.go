@@ -390,6 +390,22 @@ func (s *Store) RequestCancel(ctx context.Context, jobID string) error {
 	return nil
 }
 
+// AdoptRunning gives each running job whose lease ends before now+grace a lease that lasts that
+// long, so the runner still holding it can prove so with its next heartbeat. A daemon calls it once
+// as it starts: while no daemon answered, no heartbeat could land, and Expire would otherwise call a
+// run lost before its runner had a chance to speak. Nothing else changes: the job stays its
+// runner's, and a job that ended, was revoked or was never claimed is left alone. A runner that
+// does not come back loses the job when the new lease runs out. Only the daemon holding the
+// singleton lease runs this, so two daemons never adopt the same job.
+func (s *Store) AdoptRunning(ctx context.Context, grace time.Duration) (int64, error) {
+	out, err := s.db.ExecContext(ctx, `UPDATE runner_jobs SET lease_until = $1
+		WHERE state = $2 AND (lease_until IS NULL OR lease_until < $1)`, s.now().Add(grace), StateRunning)
+	if err != nil {
+		return 0, apperr.Wrap(err, "runner.errors.adopt")
+	}
+	return out.RowsAffected()
+}
+
 func (s *Store) Expire(ctx context.Context, claimTimeout time.Duration) (int64, error) {
 	now := s.now()
 	out, err := s.db.ExecContext(ctx, `UPDATE runner_jobs SET state = $1, exit_code = $2, finished_at = $3, spec = '{}'

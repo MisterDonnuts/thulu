@@ -131,9 +131,15 @@ type Server struct {
 
 	prewarm prewarmState
 
+	prMerges prMergeState
+
 	// Store.Update is last-write-wins on the full row; without this lock concurrent
 	// section/checklist ops clobber each other.
 	sectionsMu sync.Mutex
+
+	// Task ids whose teardown began: an agent's exit callback that fires after its container was
+	// removed must not copy outputs back for a task being deleted.
+	tornDown sync.Map
 }
 
 type sandboxDeps struct {
@@ -437,6 +443,8 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	s.registerProjectRoutes(mux, rr)
 	s.registerUploadProjectRoutes(mux, rr)
 	s.registerTaskRoutes(mux, rr)
+	s.registerReleaseRoutes(mux, rr)
+	s.registerDeployWatchRoutes(mux, rr)
 	s.registerMCPProxyRoutes(mux, rr)
 	s.registerQuestionRoutes(mux, rr)
 	s.registerApprovalRoutes(mux, rr)
@@ -660,6 +668,7 @@ func (s *Server) registerProjectRoutes(mux *http.ServeMux, rr roleGate) {
 	mux.HandleFunc("DELETE /projects/{id}", rr(auth.RoleAdmin, s.handleDeleteProject))
 	mux.HandleFunc("GET /projects/{id}/worktrees", rr(auth.RoleViewer, s.handleListWorktrees))
 	mux.HandleFunc("GET /projects/{id}/metrics", rr(auth.RoleViewer, s.handleProjectMetrics))
+	mux.HandleFunc("GET /projects/{id}/deploy-contents", rr(auth.RoleViewer, s.handleDeployContents))
 
 	mux.HandleFunc("GET /projects/{id}/environments", rr(auth.RoleViewer, s.handleListEnvironments))
 	mux.HandleFunc("POST /projects/{id}/environments", rr(auth.RoleAdmin, s.handleCreateEnvironment))
@@ -709,6 +718,9 @@ func (s *Server) registerProjectRoutes(mux *http.ServeMux, rr roleGate) {
 	// Handlers also enforce requireTaskScope.
 	mux.HandleFunc("GET /internal/projects/{id}/github-token", rr(auth.RoleDeveloper, s.handleInternalProjectGithubToken))
 	mux.HandleFunc("GET /internal/github-token", rr(auth.RoleDeveloper, s.handleInternalRepoGithubToken))
+	for _, method := range githubProxyMethods {
+		mux.HandleFunc(method+" "+githubProxyPrefix+"/{path...}", rr(auth.RoleDeveloper, s.handleGithubProxy))
+	}
 	mux.HandleFunc("POST /internal/github/{owner}/{repo}/pulls/{number}/merge", rr(auth.RoleDeveloper, s.handleHeldPullMerge))
 	mux.HandleFunc("POST /internal/github/{owner}/{repo}/runs/{runId}/deployment-review", rr(auth.RoleDeveloper, s.handleHeldDeploymentReview))
 	mux.HandleFunc("GET /internal/environments/{envId}", rr(auth.RoleDeveloper, s.handleInternalEnvironment))
@@ -772,6 +784,21 @@ func (s *Server) registerTaskContainerRoutes(mux *http.ServeMux, rr roleGate) {
 	mux.HandleFunc("DELETE /tasks/{id}/orphan-agents/{containerId}", rr(auth.RoleDeveloper, s.handleRemoveOrphanAgent))
 }
 
+// A run reaches the task routes with the deploy_watch_* tool named (run_scope.go); a person needs
+// admin to write, as for an automation.
+func (s *Server) registerDeployWatchRoutes(mux *http.ServeMux, rr roleGate) {
+	mux.HandleFunc("GET /tasks/{id}/deploy-watches", rr(auth.RoleViewer, s.handleListTaskDeployWatches))
+	mux.HandleFunc("PUT /tasks/{id}/deploy-watches", rr(auth.RoleDeveloper, s.handleSetDeployWatch))
+	mux.HandleFunc("DELETE /tasks/{id}/deploy-watches/{watchId}", rr(auth.RoleDeveloper, s.handleDeleteTaskDeployWatch))
+	mux.HandleFunc("GET /projects/{id}/deploy-watches", rr(auth.RoleViewer, s.handleListProjectDeployWatches))
+	mux.HandleFunc("DELETE /projects/{id}/deploy-watches/{watchId}", rr(auth.RoleAdmin, s.handleDeleteProjectDeployWatch))
+}
+
+// The release flow's routes: a body names the board, so they need tasks:write and not flows:write.
+func (s *Server) registerReleaseRoutes(mux *http.ServeMux, rr roleGate) {
+	mux.HandleFunc("POST /tasks/batch-move", rr(auth.RoleDeveloper, s.handleBatchMoveTasks))
+}
+
 func (s *Server) registerTaskRoutes(mux *http.ServeMux, rr roleGate) {
 	mux.HandleFunc("GET /tasks", rr(auth.RoleViewer, s.handleListTasks))
 	mux.HandleFunc("POST /tasks", rr(auth.RoleDeveloper, s.handleCreateTask))
@@ -804,12 +831,11 @@ func (s *Server) registerTaskRoutes(mux *http.ServeMux, rr roleGate) {
 	mux.HandleFunc("GET /run/bundle", rr(auth.RoleViewer, s.handleRunBundle))
 	mux.HandleFunc("GET /tasks/{id}/reports", rr(auth.RoleViewer, s.handleListReports))
 	mux.HandleFunc("POST /tasks/{id}/reports", rr(auth.RoleDeveloper, s.handleAddReport))
-	mux.HandleFunc("GET /tasks/{id}/flags", rr(auth.RoleViewer, s.handleListFlags))
-	mux.HandleFunc("POST /tasks/{id}/flags", rr(auth.RoleDeveloper, s.handleCreateFlag))
-	mux.HandleFunc("POST /tasks/{id}/flags/import", rr(auth.RoleDeveloper, s.handleImportFlags))
+	s.registerFlagRoutes(mux, rr)
 	mux.HandleFunc("POST /tasks/{id}/auditor-feedback", rr(auth.RoleDeveloper, s.handleImportAuditorFeedback))
-	mux.HandleFunc("PATCH /tasks/{id}/flags/{flagId}", rr(auth.RoleDeveloper, s.handleUpdateFlag))
-	mux.HandleFunc("DELETE /tasks/{id}/flags/{flagId}", rr(auth.RoleDeveloper, s.handleDeleteFlag))
+	mux.HandleFunc("POST /tasks/{id}/stage-verdict", rr(auth.RoleDeveloper, s.handleImportStageVerdict))
+	mux.HandleFunc("POST /tasks/{id}/locked-tests", rr(auth.RoleDeveloper, s.handleImportLockedTests))
+	mux.HandleFunc("GET /tasks/{id}/locked-files", rr(auth.RoleViewer, s.handleListLockedFiles))
 	mux.HandleFunc("GET /tasks/{id}/events", rr(auth.RoleViewer, s.handleListEvents))
 	mux.HandleFunc("GET /tasks/{id}/sections", rr(auth.RoleViewer, s.handleListSections))
 	mux.HandleFunc("PUT /tasks/{id}/sections/{slug}", rr(auth.RoleDeveloper, s.handleSetSection))
@@ -847,14 +873,31 @@ func (s *Server) registerMCPProxyRoutes(mux *http.ServeMux, rr roleGate) {
 	mux.HandleFunc("POST /mcp-proxy/{name}/messages", rr(auth.RoleDeveloper, s.handleMCPProxyMessages))
 }
 
+// What flags.yaml writes, also open to people: the flags it raises and the columns the task skips.
+func (s *Server) registerFlagRoutes(mux *http.ServeMux, rr roleGate) {
+	mux.HandleFunc("GET /tasks/{id}/flags", rr(auth.RoleViewer, s.handleListFlags))
+	mux.HandleFunc("POST /tasks/{id}/flags", rr(auth.RoleDeveloper, s.handleCreateFlag))
+	mux.HandleFunc("POST /tasks/{id}/flags/import", rr(auth.RoleDeveloper, s.handleImportFlags))
+	mux.HandleFunc("POST /tasks/{id}/stage-skips", rr(auth.RoleDeveloper, s.handleAddStageSkip))
+	mux.HandleFunc("POST /tasks/{id}/stage-skips/{stage}/remove", rr(auth.RoleDeveloper, s.handleRemoveStageSkip))
+	mux.HandleFunc("PATCH /tasks/{id}/flags/{flagId}", rr(auth.RoleDeveloper, s.handleUpdateFlag))
+	mux.HandleFunc("DELETE /tasks/{id}/flags/{flagId}", rr(auth.RoleDeveloper, s.handleDeleteFlag))
+}
+
 func (s *Server) registerTestCaseRoutes(mux *http.ServeMux, rr roleGate) {
 	mux.HandleFunc("GET /tasks/{id}/test-cases", rr(auth.RoleViewer, s.handleListTestCases))
 	mux.HandleFunc("POST /tasks/{id}/test-cases", rr(auth.RoleDeveloper, s.handleAddTestCases))
 	mux.HandleFunc("POST /tasks/{id}/test-cases/import-body", rr(auth.RoleDeveloper, s.handleImportTestCasesFromBody))
+	mux.HandleFunc("POST /tasks/{id}/test-cases/waive", rr(auth.RoleDeveloper, s.handleWaiveTestCases))
+	mux.HandleFunc("POST /tasks/{id}/test-cases/access", rr(auth.RoleDeveloper, s.handleGiveTestCaseAccess))
+	mux.HandleFunc("GET /tasks/{id}/criteria", rr(auth.RoleViewer, s.handleListCriteria))
+	mux.HandleFunc("PUT /tasks/{id}/criteria", rr(auth.RoleDeveloper, s.handleSetCriteria))
+	mux.HandleFunc("POST /tasks/{id}/criteria/approve", rr(auth.RoleDeveloper, s.handleApproveCriteria))
 	mux.HandleFunc("PATCH /tasks/{id}/test-cases/{case}", rr(auth.RoleDeveloper, s.handleUpdateTestCase))
 	mux.HandleFunc("DELETE /tasks/{id}/test-cases/{case}", rr(auth.RoleDeveloper, s.handleDeleteTestCase))
 	mux.HandleFunc("POST /tasks/{id}/test-cases/{case}/runs", rr(auth.RoleDeveloper, s.handleRecordTestCaseRun))
 	mux.HandleFunc("GET /test-cases", rr(auth.RoleViewer, s.handleListWorkspaceTestCases))
+	mux.HandleFunc("GET /test-cases/need-kinds", rr(auth.RoleViewer, s.handleListNeedKinds))
 }
 
 func (s *Server) registerAutomationRoutes(mux *http.ServeMux, rr roleGate) {
@@ -1002,6 +1045,9 @@ func (s *Server) registerChatRoutes(mux *http.ServeMux, rr roleGate) {
 	mux.HandleFunc("GET /chats/{id}/messages", rr(auth.RoleViewer, s.handleListChatMessages))
 	mux.HandleFunc("POST /chats/{id}/messages", rr(auth.RoleDeveloper, s.handlePostChatMessage))
 	mux.HandleFunc("POST /chats/{id}/delegation", rr(auth.RoleDeveloper, s.handleChatDelegation))
+	mux.HandleFunc("POST /chats/{id}/turn/cancel", rr(auth.RoleDeveloper, s.handleCancelChatTurn))
+	mux.HandleFunc("DELETE /chats/{id}/queue/{queueId}", rr(auth.RoleDeveloper, s.handleUnqueueChatMessage))
+	mux.HandleFunc("GET /chats/{id}/turns/{turnId}/transcript", rr(auth.RoleViewer, s.handleChatTurnTranscript))
 	mux.HandleFunc("GET /chats/{id}/actions", rr(auth.RoleViewer, s.handleListChatActions))
 	mux.HandleFunc("POST /chats/{id}/actions/{actionId}/confirm", rr(auth.RoleDeveloper, s.handleConfirmChatAction))
 	mux.HandleFunc("POST /chats/{id}/actions/{actionId}/cancel", rr(auth.RoleDeveloper, s.handleCancelChatAction))
@@ -1175,6 +1221,9 @@ func (s *Server) Dispatcher() *task.Dispatcher { return s.taskDispatcher }
 // Call once at startup, after the watcher has synced existing containers into the registry.
 func (s *Server) ReconcileOrphans(ctx context.Context) {
 	s.taskDispatcher.Reconcile(ctx)
+	// After Reconcile: one finishes the runs that exited while the daemon was down, the other arms
+	// the ones still running again.
+	s.taskDispatcher.RearmLiveRuns(ctx)
 	s.taskDispatcher.ReconcileDone(ctx)
 	// Before ReconcileQuestions: a queued resume must get its awaiting_input back.
 	s.taskDispatcher.ResumeQueued(ctx)

@@ -45,7 +45,8 @@ func (s *Server) emitStagesChanged(r *http.Request, kind audit.EventKind, boardI
 // Editors display this response as the board, so seeded names must be localized here; the webhook
 // keeps stored names.
 func (s *Server) boardStages(r *http.Request, boardID string) []types.StageInfo {
-	return stagepkg.LocalizeSeeded(s.boards.Board(boardID).List(), i18n.RequestLocale(r))
+	info, _ := s.boardInfo(boardID)
+	return localizeColumns(info, s.boards.Board(boardID).List(), i18n.RequestLocale(r))
 }
 
 type CreateStageRequest struct {
@@ -73,6 +74,10 @@ func (s *Server) handleCreateStage(w http.ResponseWriter, r *http.Request) {
 	idx := defaultInsertIndex(board)
 	if req.Index != nil {
 		idx = clamp(*req.Index, 0, len(board))
+	}
+	if err := s.checkColumnAgent(s.boardWorkspace(boardID), req.ID, req.DefaultAgent); err != nil {
+		writeError(w, r, http.StatusBadRequest, err)
+		return
 	}
 	if req.Initial {
 		board = clearInitial(board)
@@ -103,6 +108,15 @@ type StagePatch struct {
 	RequiredApprovals  *[]types.ApprovalRequirement `json:"required_approvals"`
 	OnChangesRequested *string                      `json:"on_changes_requested"`
 	ChangesKickBackTo  *types.Stage                 `json:"changes_kick_back_to"`
+	AgentVerdict       *bool                        `json:"agent_verdict"`
+	LockTests          *bool                        `json:"lock_tests"`
+	SkipUnless         *[]string                    `json:"skip_unless"`
+	NoSkip             *bool                        `json:"no_skip"`
+	ReleaseResources   *bool                        `json:"release_resources"`
+	MergeTarget        *bool                        `json:"merge_target"`
+	PRDraft            *bool                        `json:"pr_draft"`
+	PRReady            *bool                        `json:"pr_ready"`
+	DefaultAgent       *string                      `json:"default_agent"`
 }
 
 func (s *Server) handleUpdateStage(w http.ResponseWriter, r *http.Request) {
@@ -123,6 +137,12 @@ func (s *Server) handleUpdateStage(w http.ResponseWriter, r *http.Request) {
 	if !found {
 		writeErrKey(w, r, http.StatusNotFound, "api.stages.errors.stage_not_on_board", "stage", id, "board", boardID)
 		return
+	}
+	if p.DefaultAgent != nil && *p.DefaultAgent != board[idx].DefaultAgent {
+		if err := s.checkColumnAgent(s.boardWorkspace(boardID), id, *p.DefaultAgent); err != nil {
+			writeError(w, r, http.StatusBadRequest, err)
+			return
+		}
 	}
 	// Clear the previous initial in the same write: a two-step edit would fail validation.
 	if p.Initial != nil && *p.Initial {
@@ -282,6 +302,11 @@ func (s *Server) dropStagePriority(ctx context.Context, id types.Stage) {
 	}
 }
 
+func (s *Server) boardWorkspace(boardID string) string {
+	b, _ := s.boardInfo(boardID)
+	return b.WorkspaceID
+}
+
 func lookupStage(board []types.StageInfo, id types.Stage) (int, bool) {
 	for i := range board {
 		if board[i].ID == id {
@@ -326,6 +351,20 @@ func applyStagePatch(st *types.StageInfo, p StagePatch) {
 	patch.Set(&st.RequiredApprovals, p.RequiredApprovals)
 	patch.Set(&st.OnChangesRequested, p.OnChangesRequested)
 	patch.Set(&st.ChangesKickBackTo, p.ChangesKickBackTo)
+	setIf(&st.AgentVerdict, p.AgentVerdict)
+	setIf(&st.LockTests, p.LockTests)
+	if p.SkipUnless != nil {
+		st.SkipUnless = nil
+		if len(*p.SkipUnless) > 0 {
+			st.SkipUnless = append([]string{}, *p.SkipUnless...)
+		}
+	}
+	setIf(&st.NoSkip, p.NoSkip)
+	setIf(&st.ReleaseResources, p.ReleaseResources)
+	setIf(&st.MergeTarget, p.MergeTarget)
+	setIf(&st.PRDraft, p.PRDraft)
+	setIf(&st.PRReady, p.PRReady)
+	patch.Set(&st.DefaultAgent, p.DefaultAgent)
 }
 
 func reorderBoard(board []types.StageInfo, ids []types.Stage) ([]types.StageInfo, error) {

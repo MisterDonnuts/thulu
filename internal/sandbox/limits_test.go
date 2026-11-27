@@ -22,6 +22,7 @@ type fakeRuntime struct {
 	execStart chan struct{}
 	exposed   [][]int
 	refuse    []error
+	removeErr error
 }
 
 func newFakeRuntime() *fakeRuntime { return &fakeRuntime{alive: map[string]bool{}} }
@@ -66,6 +67,9 @@ func (f *fakeRuntime) Alive(_ context.Context, id string) bool {
 func (f *fakeRuntime) Remove(_ context.Context, id string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	if f.removeErr != nil {
+		return f.removeErr
+	}
 	delete(f.alive, id)
 	f.removed = append(f.removed, id)
 	return nil
@@ -236,17 +240,25 @@ func TestReapIdleSkipsSandboxBeingAcquired(t *testing.T) {
 	}
 }
 
-func TestReapIdleDisabledAtZero(t *testing.T) {
+// 0 used to turn idle eviction off and left sandboxes running forever. The setting refuses it now;
+// a 0 stored by an older version means the default.
+func TestReapIdleTreatsAStoredZeroAsTheDefault(t *testing.T) {
 	m, st, sett, _ := newFakeManager(t)
 	ctx := context.Background()
 	_ = sett.PutJSON(ctx, settings.SandboxIdleEvictSecondsKey, 0)
-	if _, err := m.Acquire(ctx, "task-keep", "in_progress", AcquireDockerOpts{}); err != nil {
-		t.Fatal(err)
+	for _, id := range []string{"task-stale", "task-recent"} {
+		if _, err := m.Acquire(ctx, id, "in_progress", AcquireDockerOpts{}); err != nil {
+			t.Fatal(err)
+		}
 	}
-	backdate(t, st, "task-keep", 24*time.Hour)
+	backdate(t, st, "task-stale", 24*time.Hour)
+	backdate(t, st, "task-recent", 10*time.Minute)
 	m.ReapIdle(ctx)
-	if sb, _ := st.Get(ctx, "task-keep"); sb.Status == StatusEvicted {
-		t.Fatal("sweep ran with idle_evict_seconds=0")
+	if sb, _ := st.Get(ctx, "task-stale"); sb.Status != StatusEvicted {
+		t.Fatalf("a sandbox idle for a day survived a stored 0: %s", sb.Status)
+	}
+	if sb, _ := st.Get(ctx, "task-recent"); sb.Status == StatusEvicted {
+		t.Fatal("a sandbox idle for 10 minutes was evicted under the 30 minute default")
 	}
 }
 

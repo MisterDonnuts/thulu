@@ -21,9 +21,11 @@ export class LiveTake {
   title;
   baseUrl;
   redactCss;
+  profile;
+  ignoreErrors;
   steps = [];
 
-  constructor({ page, dir, capture, director, secrets, title, baseUrl, redactCss, changesData }) {
+  constructor({ page, dir, capture, director, secrets, title, baseUrl, redactCss, changesData, profile, ignoreErrors }) {
     this.#page = page;
     this.#dir = dir;
     this.#capture = capture;
@@ -33,21 +35,34 @@ export class LiveTake {
     this.title = title;
     this.baseUrl = baseUrl;
     this.redactCss = redactCss;
+    this.profile = profile;
+    this.ignoreErrors = ignoreErrors;
   }
 
-  /** @param {import('playwright').Page} page */
-  static async start(page, { title, baseUrl, redactCss = [], changesData = false }) {
+  /** The timing of each action filmed so far. */
+  get metrics() {
+    return this.#director.metrics;
+  }
+
+  /**
+   * @param {import('playwright').Page} page
+   * @param {{ profile?: object, ignoreErrors?: string[] }} opts  profile: the session's throttling and
+   *   color scheme, written into the take so a replay runs under the same conditions
+   */
+  static async start(page, { title, baseUrl, redactCss = [], changesData = false, profile = {}, ignoreErrors = [],
+    cutWaits = true }) {
     const origin = baseUrl || safeOrigin(page.url());
     if (!origin) throw new Error(t("errors.base_url_required"));
     const dir = await workDir();
     const frames = path.join(dir, "a");
     await mkdir(frames, { recursive: true });
     await Director.prepare(page, { redactCss });
-    const capture = new FrameCapture(page, frames);
+    const capture = new FrameCapture(page, frames, { cutWaits });
     await capture.start();
     const secrets = {};
     const director = new Director(page, { capture, baseUrl: origin, secrets });
-    const take = new LiveTake({ page, dir, capture, director, secrets, title, baseUrl: origin, redactCss, changesData });
+    const take = new LiveTake({ page, dir, capture, director, secrets, title, baseUrl: origin, redactCss, changesData,
+      profile, ignoreErrors });
     if (safeOrigin(page.url())) take.steps.push(take.#portable({ kind: "goto", url: page.url() }));
     return take;
   }
@@ -91,6 +106,9 @@ export class LiveTake {
       base_url: this.baseUrl,
       viewport: vp,
       ...(this.redactCss.length ? { redact_css: this.redactCss } : {}),
+      ...this.profile,
+      ...(this.ignoreErrors.length ? { ignore_errors: this.ignoreErrors } : {}),
+      ...(this.#capture.cutWaits ? {} : { cut_waits: false }),
       steps: this.steps,
     };
   }
@@ -100,7 +118,8 @@ export class LiveTake {
     const take = this.steps.length ? parseTake(this.toJSON()) : null;
     const run = {
       baseUrl: this.baseUrl, reel, shots: this.#director.shots, verdicts: this.#director.verdicts,
-      notes: this.#director.notes, failures: [],
+      notes: this.#director.notes, failures: [], profile: this.profile, metrics: this.#director.metrics,
+      findings: this.#director.findings(), cutWaits: this.#capture.cutWaits, gaps: reel.gaps,
     };
     return makeBundle({ title: this.title, mode: "live", runs: [run], take,
       viewport: this.#page.viewportSize() || { width: 1440, height: 900 }, dir: this.#dir });

@@ -159,16 +159,15 @@ describe("filters in Nested mode", () => {
 });
 
 describe("columns", () => {
-  const base = { visible: 2, terminal: false, dragging: false, tight: false };
+  const base = { visible: 2, terminal: false, tight: false };
 
   it("lets a choice made by hand win", () => {
     expect(columnCollapsed({ ...base, manual: true })).toBe(true);
     expect(columnCollapsed({ ...base, visible: 0, manual: false })).toBe(false);
   });
 
-  it("folds an empty column until a drag starts", () => {
+  it("folds an empty column", () => {
     expect(columnCollapsed({ ...base, visible: 0 })).toBe(true);
-    expect(columnCollapsed({ ...base, visible: 0, dragging: true })).toBe(false);
   });
 
   it("folds the last stage only while the board is too narrow", () => {

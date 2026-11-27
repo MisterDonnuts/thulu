@@ -11,10 +11,13 @@ import { randomUUID } from "crypto";
 
 import { t, tLog, withLocale } from "./i18n.js";
 import { closeBrowser, getBrowser } from "./lib/browser.js";
-import { captureElementInfo, getElementAt, serializeDOM } from "./lib/dom.js";
+import { accessibleElements, captureElementInfo, getElementAt, serializeDOM } from "./lib/dom.js";
 import { HOST_GATEWAY, callerHostLoopback, closeHostProxy, hostContextOptions } from "./lib/host-proxy.js";
 import { callerKey, keyFromRequest, uploadAttachment, withExtension } from "./lib/octopus.js";
 import { admitHandshake, admitMessage, grantedTools } from "./lib/session-auth.js";
+import { countByKind, describeFinding, findingsFor, groupFindings, ignorePatterns } from "./lib/page-findings.js";
+import { VITALS, describeAction, describeVitals, formatMetric, perfFor } from "./lib/perf.js";
+import { COLOR_SCHEMES, CPU_MAX, NETWORKS, describeProfile, emulation, throttleContext } from "./lib/throttle.js";
 import {
   EVIDENCE_TOOLS,
   clearEvidenceStores,
@@ -24,7 +27,7 @@ import {
   typedText,
 } from "./evidence/tools.js";
 
-const VERSION = "2.1.0";
+const VERSION = "2.2.0";
 const PORT = Number(process.env.PORT || 3000);
 // A per-run browser shares its agent's network namespace and binds 127.0.0.1 so only that agent
 // reaches it.
@@ -36,6 +39,8 @@ const GRANTED_TOOLS = String(process.env.MCP_ALLOWED_TOOLS || "").trim();
 const DEFAULT_TIMEOUT_MS = 30_000;
 const SESSION_IDLE_MS = Number(process.env.SESSION_IDLE_MS || 10 * 60 * 1000);
 const AGENTS_ROOT = process.env.AGENTS_ROOT || "/agents-shared";
+const MAX_STEPS = 500;
+const METRICS_STEPS = 20;
 
 const sessionKeys = new Map();
 
@@ -215,9 +220,15 @@ async function handleNewSession(args) {
     record_video = false,
     video_filename,
     task_id,
+    ignore_errors = [],
+    blind = false,
   } = args;
+  // Refuse a bad profile or pattern before a context exists.
+  const profile = emulation(args);
+  ignorePatterns(ignore_errors);
   const browser = await getBrowser();
   const contextOptions = { viewport: { width: viewport_width, height: viewport_height }, ...(await hostContextOptions()) };
+  if (profile.color_scheme) contextOptions.colorScheme = profile.color_scheme;
   let videoDir = null;
   if (record_video) {
     videoDir = `/tmp/thulu-video-${randomUUID()}`;
@@ -226,13 +237,21 @@ async function handleNewSession(args) {
   }
   const context = await browser.newContext(contextOptions);
   const page = await context.newPage();
+  await throttleContext(context, profile);
+  const findings = findingsFor(page);
+  findings.ignore(ignore_errors);
+  findings.protect(callerKey.getStore());
+  await perfFor(page).ready;
   const id = randomUUID();
   sessions.set(id, {
     context,
     page,
     lastActivity: Date.now(),
     log: [],
-    meta: { instance_id, agent_type, viewport_width, viewport_height, videoDir, video_filename, task_id },
+    steps: [],
+    meta: { instance_id, agent_type, viewport_width, viewport_height, videoDir, video_filename, task_id,
+      emulation: profile, ignore_errors, blind: Boolean(blind) },
+    journey: newJourney(),
   });
   const who = { id, agent: agent_type || "unknown", instance: instance_id || "unknown" };
   console.log(record_video ? tLog("log.session_created_recording", who) : tLog("log.session_created", who));
@@ -242,12 +261,108 @@ async function handleNewSession(args) {
         type: "text",
         text: [
           t("text.session_created", { id, width: viewport_width, height: viewport_height }),
+          Object.keys(profile).length ? t("text.session_profile", { profile: describeProfile(profile) }) : null,
           record_video ? t("text.session_recording") : null,
+          blind ? t("text.session_blind") : null,
           t("text.session_usage", { minutes: SESSION_IDLE_MS / 60000 }),
         ].filter(Boolean).join("\n"),
       },
     ],
   };
+}
+
+// Every action runs through here: it opens a step (findings that arrive from now until the next step
+// starts belong to it) and, when measured, times how long the page took to respond. `from: "end"`
+// starts the clock after fn returns, for typing, where the keystrokes themselves are not the wait.
+async function act(s, tool, fn, { measure = true, from = "start" } = {}) {
+  const step = { n: (s.steps.at(-1)?.n ?? 0) + 1, tool, start: Date.now() };
+  s.steps.push(step);
+  if (s.steps.length > MAX_STEPS) s.steps.splice(0, s.steps.length - MAX_STEPS);
+  const perf = perfFor(s.page);
+  const before = s.page.url();
+  let timer = null;
+  try {
+    if (measure) await perf.ready;
+    if (measure && from === "start") timer = perf.begin();
+    const out = await fn();
+    if (measure && !timer) timer = perf.begin();
+    if (timer) step.perf = await timer.end();
+    if (out?.what) step.what = out.what;
+    step.findings = groupFindings(findingsFor(s.page).since(step.start), [{ step: step.n, start: step.start }]).findings;
+    trackJourney(s.journey, step, { before, after: s.page.url(), back: tool === "browser_go_back" && out?.moved !== false });
+    return { out, step };
+  } catch (err) {
+    step.error = String(err?.message ?? err).split("\n")[0];
+    trackJourney(s.journey, step, { before, after: s.page.url(), back: false });
+    throw err;
+  }
+}
+
+// How a person got through the page, which a blind tester's run is judged on. The stage agent
+// compares it with the spec's shortest path; the tool only counts.
+function newJourney() {
+  return { actions: 0, navigations: 0, backs: 0, dead: 0, errors: 0, first: 0, last: 0, seen: new Set() };
+}
+
+function trackJourney(j, step, { before, after, back }) {
+  if (!j) return;
+  j.actions += 1;
+  if (!j.first) j.first = step.start;
+  j.last = Date.now();
+  if (before && before !== "about:blank") j.seen.add(pageKey(before));
+  const moved = Boolean(after) && after !== before && after !== "about:blank";
+  if (moved || back) {
+    j.navigations += 1;
+    // A page already seen is a way back, whether by go_back or by clicking to it again.
+    if (back || j.seen.has(pageKey(after))) j.backs += 1;
+  }
+  if (after && after !== "about:blank") j.seen.add(pageKey(after));
+  if (step.perf?.dead) j.dead += 1;
+  j.errors += (step.findings ?? []).reduce((n, f) => n + f.count, 0);
+}
+
+function journeyOf(j) {
+  return { actions: j.actions, navigations: j.navigations, backs: j.backs, dead_clicks: j.dead, errors: j.errors,
+    time_on_task_ms: j.first ? j.last - j.first : 0 };
+}
+
+function pageKey(u) {
+  try {
+    const x = new URL(u);
+    return `${x.origin}${x.pathname}`;
+  } catch {
+    return u;
+  }
+}
+
+// A blind session hides how the page is built: no selectors, no code, no log of them.
+function refuseBlind(s, tool) {
+  if (s?.meta?.blind) throw new Error(t("errors.blind_tool", { tool }));
+}
+
+// What a step adds to its log entry: the step number, its timing and what the page complained about.
+function stepFields(step) {
+  return {
+    step: step.n,
+    ...(step.perf ? { perf: step.perf } : {}),
+    ...(step.findings?.length ? { findings: step.findings } : {}),
+  };
+}
+
+// The lines a step adds to the tool's answer.
+function stepLines(step) {
+  const lines = [];
+  if (step.perf) lines.push(describeAction(step.perf));
+  const found = step.findings ?? [];
+  if (found.length) {
+    const total = found.reduce((n, f) => n + f.count, 0);
+    lines.push(t("text.step_findings", { count: total, list: found.slice(0, 3).map(describeFinding).join("; ") }));
+  }
+  return lines.length ? `\n${lines.join("\n")}` : "";
+}
+
+function stepWindows(s) {
+  return s.steps.map((st) => ({ step: st.n, start: st.start }));
 }
 
 async function handleCloseSession(args) {
@@ -294,31 +409,58 @@ async function handleCloseSession(args) {
   };
 }
 
+// Inside a take the Director plays and times the action; the step takes its measure from there.
 async function recorded(s, tool, kind, args) {
-  const step = await recordAction(s, kind, args);
+  if (kind === "type" && args.secret) findingsFor(s.page).protect(args.text);
+  const before = s.take.metrics.length;
+  const { out: played, step } = await act(s, tool, async () => {
+    const st = await recordAction(s, kind, args);
+    return { st, what: st.label || st.target || st.url || st.key || st.direction || "" };
+  }, { measure: false });
+  if (s.take.metrics.length > before) {
+    const { step: _chapter, label: _label, kind: _kind, ...perf } = s.take.metrics.at(-1);
+    step.perf = perf;
+  }
   const logged = { ...args, session_id: undefined, ...(args.secret ? { text: undefined } : {}) };
-  if (step.target) logged.selector = step.target;
-  s.log.push({ t: Date.now(), tool, args: logged });
-  const what = step.label || [step.kind, step.target || step.url || step.key || step.direction || ""].join(" ").trim();
-  return { content: [{ type: "text", text: t("text.recorded", { what, url: s.page.url() }) }] };
+  if (played.st.target) logged.selector = played.st.target;
+  s.log.push({ t: Date.now(), tool, args: logged, ...stepFields(step) });
+  const st = played.st;
+  // A blind tester hears neither the selector the take resolved nor the address, as in browser_get_state.
+  const what = st.label || (s.meta.blind ? st.kind
+    : [st.kind, st.target || st.url || st.key || st.direction || ""].join(" ").trim());
+  const said = s.meta.blind ? t("text.recorded_blind", { what, title: await s.page.title() })
+    : t("text.recorded", { what, url: s.page.url() });
+  return { content: [{ type: "text", text: said + stepLines(step) }] };
 }
 
 async function handleNavigate(args) {
   const { session_id, url, wait_until = "networkidle" } = args;
   const s = requireSession(session_id);
-  if (s.take) return recorded(s, "browser_navigate", "goto", args);
-  await s.page.goto(url, { waitUntil: wait_until, timeout: DEFAULT_TIMEOUT_MS });
+  // A blind tester gets the start URL and finds the rest through the page, as a person would. A
+  // first navigation that failed does not use it up.
+  if (s.meta.blind && s.meta.navigated) throw new Error(t("errors.blind_navigate"));
+  if (s.take) {
+    const out = await recorded(s, "browser_navigate", "goto", args);
+    s.meta.navigated = true;
+    return out;
+  }
+  const { step } = await act(s, "browser_navigate", async () => {
+    await s.page.goto(url, { waitUntil: wait_until, timeout: DEFAULT_TIMEOUT_MS });
+    return { what: url };
+  });
+  s.meta.navigated = true;
   const title = await s.page.title();
   const finalUrl = s.page.url();
-  s.log.push({ t: Date.now(), tool: "browser_navigate", args: { url, wait_until } });
+  s.log.push({ t: Date.now(), tool: "browser_navigate", args: { url, wait_until }, ...stepFields(step) });
   return {
-    content: [{ type: "text", text: t("text.navigated", { url: finalUrl, title }) }],
+    content: [{ type: "text", text: t("text.navigated", { url: finalUrl, title }) + stepLines(step) }],
   };
 }
 
 async function handleGetState(args) {
   const { session_id } = args;
   const s = requireSession(session_id);
+  if (s.meta.blind) return blindState(s);
   const elements = await serializeDOM(s.page);
   const url = s.page.url();
   const title = await s.page.title();
@@ -329,6 +471,64 @@ async function handleGetState(args) {
     t("text.state_total", { count: elements.length }),
   ].join("\n");
   return { content: [{ type: "text", text }] };
+}
+
+function stateLabel(state) {
+  switch (state) {
+    case "disabled": return t("labels.state_disabled");
+    case "checked": return t("labels.state_checked");
+    case "expanded": return t("labels.state_expanded");
+    case "collapsed": return t("labels.state_collapsed");
+    case "required": return t("labels.state_required");
+    case "invalid": return t("labels.state_invalid");
+    default: return state;
+  }
+}
+
+// What a screen reader would announce: role, name and state, the page title and its host only.
+async function blindState(s) {
+  const elements = await accessibleElements(s.page);
+  let host = "";
+  try {
+    host = new URL(s.page.url()).host;
+  } catch {}
+  const lines = elements.map((e) => {
+    const extra = [
+      e.value ? t("text.blind_value", { value: e.value }) : null,
+      ...e.states.map((st) => stateLabel(st)),
+      e.host ? t("text.blind_link_host", { host: e.host }) : null,
+    ].filter(Boolean);
+    const name = e.name ? JSON.stringify(e.name) : t("text.blind_unnamed");
+    return t("text.blind_element", { n: e.n, role: e.role, name, extra: extra.length ? ` (${extra.join(", ")})` : "" });
+  });
+  const text = [
+    t("text.blind_state_header", { title: await s.page.title(), host }),
+    ...lines,
+    ``,
+    t("text.state_total", { count: elements.length }),
+  ].join("\n");
+  return { content: [{ type: "text", text }] };
+}
+
+async function handleGoBack(args) {
+  const { session_id } = args;
+  const s = requireSession(session_id);
+  if (s.take) throw new Error(t("errors.go_back_in_take"));
+  const { out, step } = await act(s, "browser_go_back", async () => {
+    const from = s.page.url();
+    const res = await s.page.goBack({ waitUntil: "load", timeout: DEFAULT_TIMEOUT_MS });
+    // Back from the session's first page lands on the blank tab it opened with (and answers null, as
+    // a same-document back does): return to the page, or a blind tester is left with nothing.
+    if (s.page.url() === "about:blank" && from !== "about:blank") {
+      await s.page.goForward({ waitUntil: "load", timeout: DEFAULT_TIMEOUT_MS });
+      return { what: s.page.url(), moved: false };
+    }
+    return { what: s.page.url(), moved: res !== null || s.page.url() !== from };
+  });
+  s.log.push({ t: Date.now(), tool: "browser_go_back", args: {}, ...stepFields(step) });
+  if (!out.moved) return { content: [{ type: "text", text: t("text.go_back_none") }] };
+  const where = s.meta.blind ? await s.page.title() : s.page.url();
+  return { content: [{ type: "text", text: t("text.went_back", { where }) + stepLines(step) }] };
 }
 
 async function handleGetTextSession(args) {
@@ -383,26 +583,34 @@ async function handleClick(args) {
   const { session_id, index, selector } = args;
   const s = requireSession(session_id);
   if (s.take) return recorded(s, "browser_click", "click", args);
+  if (index === undefined && !selector) throw new Error(t("errors.index_or_selector"));
   let info = null;
-  if (index !== undefined) {
-    info = await captureElementInfo(s.page, index);
-    const el = await getElementAt(s.page, index);
-    await el.click({ timeout: DEFAULT_TIMEOUT_MS });
-  } else if (selector) {
-    await s.page.click(selector, { timeout: DEFAULT_TIMEOUT_MS });
-  } else {
-    throw new Error(t("errors.index_or_selector"));
-  }
-  s.log.push({ t: Date.now(), tool: "browser_click", args: { index, selector }, elementInfo: info });
+  const { step } = await act(s, "browser_click", async () => {
+    if (index !== undefined) {
+      info = await captureElementInfo(s.page, index);
+      const el = await getElementAt(s.page, index);
+      await el.click({ timeout: DEFAULT_TIMEOUT_MS });
+    } else {
+      await s.page.click(selector, { timeout: DEFAULT_TIMEOUT_MS });
+    }
+    return { what: elementWhat(info, selector) };
+  });
+  s.log.push({ t: Date.now(), tool: "browser_click", args: { index, selector }, elementInfo: info, ...stepFields(step) });
   const newUrl = s.page.url();
   return {
     content: [
       {
         type: "text",
-        text: t("text.clicked", { element: info ? ` <${info.tag}>${info.text ? ` "${info.text}"` : ""}` : "", url: newUrl }),
+        text: t("text.clicked", { element: info ? ` <${info.tag}>${info.text ? ` "${info.text}"` : ""}` : "", url: newUrl }) +
+          stepLines(step),
       },
     ],
   };
+}
+
+function elementWhat(info, selector) {
+  if (!info) return selector || "";
+  return `<${info.tag}>${info.text ? ` "${info.text}"` : ""}`;
 }
 
 async function handleType(input) {
@@ -410,21 +618,24 @@ async function handleType(input) {
   const args = await typedText(input);
   const { index, selector, text, clear_first = true, secret } = args;
   if (s.take) return recorded(s, "browser_type", "type", args);
+  if (index === undefined && !selector) throw new Error(t("errors.index_or_selector"));
+  if (secret) findingsFor(s.page).protect(text);
   let info = null;
-  if (index !== undefined) {
-    info = await captureElementInfo(s.page, index);
-    const el = await getElementAt(s.page, index);
-    if (clear_first) await el.fill("");
-    await el.type(text);
-  } else if (selector) {
-    if (clear_first) await s.page.fill(selector, "");
-    await s.page.type(selector, text);
-  } else {
-    throw new Error(t("errors.index_or_selector"));
-  }
+  const { step } = await act(s, "browser_type", async () => {
+    if (index !== undefined) {
+      info = await captureElementInfo(s.page, index);
+      const el = await getElementAt(s.page, index);
+      if (clear_first) await el.fill("");
+      await el.type(text);
+    } else {
+      if (clear_first) await s.page.fill(selector, "");
+      await s.page.type(selector, text);
+    }
+    return { what: elementWhat(info, selector) };
+  }, { from: "end" });
   const shown = secret ? t("text.secret_value", { name: secret }) : `"${text}"`;
   s.log.push({ t: Date.now(), tool: "browser_type", args: { index, selector, text: secret ? undefined : text, secret, clear_first },
-    elementInfo: info });
+    elementInfo: info, ...stepFields(step) });
   return {
     content: [
       {
@@ -432,7 +643,7 @@ async function handleType(input) {
         text: t("text.typed", {
           value: shown,
           target: info ? t("text.typed_into", { element: `<${info.tag}>${info.placeholder ? ` (${info.placeholder})` : ""}` }) : "",
-        }),
+        }) + stepLines(step),
       },
     ],
   };
@@ -442,25 +653,27 @@ async function handleSelect(args) {
   const { session_id, index, selector, value } = args;
   const s = requireSession(session_id);
   if (s.take) return recorded(s, "browser_select", "select", args);
+  if (index === undefined && !selector) throw new Error(t("errors.index_or_selector"));
   let info = null;
-  if (index !== undefined) {
-    info = await captureElementInfo(s.page, index);
-    const el = await getElementAt(s.page, index);
-    await el.selectOption(value);
-  } else if (selector) {
-    await s.page.selectOption(selector, value);
-  } else {
-    throw new Error(t("errors.index_or_selector"));
-  }
-  s.log.push({ t: Date.now(), tool: "browser_select", args: { index, selector, value }, elementInfo: info });
+  const { step } = await act(s, "browser_select", async () => {
+    if (index !== undefined) {
+      info = await captureElementInfo(s.page, index);
+      const el = await getElementAt(s.page, index);
+      await el.selectOption(value);
+    } else {
+      await s.page.selectOption(selector, value);
+    }
+    return { what: elementWhat(info, selector) };
+  });
+  s.log.push({ t: Date.now(), tool: "browser_select", args: { index, selector, value }, elementInfo: info, ...stepFields(step) });
   return {
     content: [
       {
         type: "text",
         text: t("text.selected", {
           value,
-          target: info ? t("text.selected_in", { element: `<select>${info.name ? ` name="${info.name}"` : ""}` }) : "",
-        }),
+          target: info ? t("text.selected_in", { element: `<select>${info.name && !s.meta.blind ? ` name="${info.name}"` : ""}` }) : "",
+        }) + stepLines(step),
       },
     ],
   };
@@ -478,15 +691,18 @@ async function handleScroll(args) {
   };
   const expr = scrollMap[direction];
   if (!expr) throw new Error(t("errors.scroll_direction"));
-  await s.page.evaluate(expr);
-  s.log.push({ t: Date.now(), tool: "browser_scroll", args: { direction, amount } });
+  const { step } = await act(s, "browser_scroll", async () => {
+    await s.page.evaluate(expr);
+    return { what: direction };
+  });
+  s.log.push({ t: Date.now(), tool: "browser_scroll", args: { direction, amount }, ...stepFields(step) });
   return {
     content: [
       {
         type: "text",
-        text: direction === "up" || direction === "down"
+        text: (direction === "up" || direction === "down"
           ? t("text.scrolled_by", { direction, amount })
-          : t("text.scrolled", { direction }),
+          : t("text.scrolled", { direction })) + stepLines(step),
       },
     ],
   };
@@ -496,22 +712,24 @@ async function handleHover(args) {
   const { session_id, index, selector } = args;
   const s = requireSession(session_id);
   if (s.take) return recorded(s, "browser_hover", "hover", args);
+  if (index === undefined && !selector) throw new Error(t("errors.index_or_selector"));
   let info = null;
-  if (index !== undefined) {
-    info = await captureElementInfo(s.page, index);
-    const el = await getElementAt(s.page, index);
-    await el.hover();
-  } else if (selector) {
-    await s.page.hover(selector);
-  } else {
-    throw new Error(t("errors.index_or_selector"));
-  }
-  s.log.push({ t: Date.now(), tool: "browser_hover", args: { index, selector }, elementInfo: info });
+  const { step } = await act(s, "browser_hover", async () => {
+    if (index !== undefined) {
+      info = await captureElementInfo(s.page, index);
+      const el = await getElementAt(s.page, index);
+      await el.hover();
+    } else {
+      await s.page.hover(selector);
+    }
+    return { what: elementWhat(info, selector) };
+  });
+  s.log.push({ t: Date.now(), tool: "browser_hover", args: { index, selector }, elementInfo: info, ...stepFields(step) });
   return {
     content: [
       {
         type: "text",
-        text: t("text.hovered", { element: info ? ` <${info.tag}>${info.text ? ` "${info.text}"` : ""}` : "" }),
+        text: t("text.hovered", { element: info ? ` <${info.tag}>${info.text ? ` "${info.text}"` : ""}` : "" }) + stepLines(step),
       },
     ],
   };
@@ -521,14 +739,18 @@ async function handlePressKey(args) {
   const { session_id, key } = args;
   const s = requireSession(session_id);
   if (s.take) return recorded(s, "browser_press_key", "press", args);
-  await s.page.keyboard.press(key);
-  s.log.push({ t: Date.now(), tool: "browser_press_key", args: { key } });
-  return { content: [{ type: "text", text: t("text.pressed", { key }) }] };
+  const { step } = await act(s, "browser_press_key", async () => {
+    await s.page.keyboard.press(key);
+    return { what: key };
+  });
+  s.log.push({ t: Date.now(), tool: "browser_press_key", args: { key }, ...stepFields(step) });
+  return { content: [{ type: "text", text: t("text.pressed", { key }) + stepLines(step) }] };
 }
 
 async function handleRunScript(args) {
   const { session_id, name, code, path: scriptPath, params = {} } = args;
   const s = requireSession(session_id);
+  refuseBlind(s, "browser_run_script");
 
   let scriptCode;
   let scriptLabel;
@@ -552,26 +774,29 @@ async function handleRunScript(args) {
     throw new Error(t("errors.script_source_required"));
   }
 
-  let result;
-  if (/^\s*export\s+default\s/.test(scriptCode)) {
-    const tmpFile = path.join("/tmp", `thulu-script-${randomUUID()}.mjs`);
-    try {
-      await fs.writeFile(tmpFile, scriptCode);
-      const mod = await import(tmpFile);
-      result = await mod.default(s.page, params);
-    } finally {
-      await fs.unlink(tmpFile).catch(() => {});
+  // A script opens a step for page errors, but is not timed: it may do anything, waits included.
+  const { out: result, step } = await act(s, "browser_run_script", async () => {
+    if (/^\s*export\s+default\s/.test(scriptCode)) {
+      const tmpFile = path.join("/tmp", `thulu-script-${randomUUID()}.mjs`);
+      try {
+        await fs.writeFile(tmpFile, scriptCode);
+        const mod = await import(tmpFile);
+        return await mod.default(s.page, params);
+      } finally {
+        await fs.unlink(tmpFile).catch(() => {});
+      }
     }
-  } else {
     const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
     const fn = new AsyncFunction("page", "params", scriptCode);
-    result = await fn(s.page, params);
-  }
+    return fn(s.page, params);
+  }, { measure: false });
+  step.what = scriptLabel;
 
   s.log.push({
     t: Date.now(),
     tool: "browser_run_script",
     args: { name, scriptPath, params, codeLength: scriptCode.length },
+    ...stepFields(step),
   });
 
   return {
@@ -591,6 +816,7 @@ async function handleListScripts(args) {
   const { session_id, dir } = args;
   let scriptDir = dir;
 
+  if (session_id) refuseBlind(sessions.get(session_id), "browser_list_scripts");
   if (!scriptDir && session_id) {
     const s = sessions.get(session_id);
     if (s?.meta?.agent_type) {
@@ -637,6 +863,7 @@ async function handleListScripts(args) {
 async function handleGetSessionLog(args) {
   const { session_id } = args;
   const s = requireSession(session_id);
+  refuseBlind(s, "browser_get_session_log");
   return {
     content: [
       {
@@ -645,6 +872,78 @@ async function handleGetSessionLog(args) {
       },
     ],
   };
+}
+
+function sessionFindings(s) {
+  return findingsFor(s.page).group(stepWindows(s));
+}
+
+function stepVitals(perf) {
+  const v = perf?.vitals ?? {};
+  return Object.fromEntries(VITALS.map((m) => [m, v[m] ?? null]));
+}
+
+async function handleMetrics(args) {
+  const { session_id, format = "text" } = args;
+  const s = requireSession(session_id);
+  const viewport = { width: s.meta.viewport_width, height: s.meta.viewport_height };
+  const page = await perfFor(s.page).snapshot();
+  const { findings } = sessionFindings(s);
+  const counts = countByKind(findings);
+  const steps = s.steps.filter((st) => st.perf).slice(-METRICS_STEPS);
+  if (format === "json") {
+    const out = {
+      profile: { ...s.meta.emulation, viewport },
+      page,
+      steps: steps.map((st) => ({
+        step: st.n, tool: st.tool, what: st.what ?? "", url: st.perf.vitals?.url ?? "",
+        response_ms: st.perf.response_ms, first_ms: st.perf.first_ms, event_ms: st.perf.event_ms,
+        settled_ms: st.perf.settled_ms, requests: st.perf.requests, dead: st.perf.dead,
+        ...stepVitals(st.perf), ...(st.perf.vitals?.inp_bound ? { inp_bound: true } : {}),
+      })),
+      findings: counts,
+      journey: journeyOf(s.journey),
+    };
+    return { content: [{ type: "text", text: JSON.stringify(out, null, 2) }] };
+  }
+  const lines = [
+    t("text.metrics_header", { profile: describeProfile(s.meta.emulation, { viewport }) }),
+    page.url ? t("text.metrics_page", { url: page.url, vitals: describeVitals(page) || t("labels.no_data") }) : null,
+  ];
+  if (steps.length) {
+    lines.push("", t("text.metrics_steps", { count: steps.length }));
+    for (const st of steps) {
+      const response = st.perf.dead ? t("text.metrics_dead") : formatMetric("response", st.perf.response_ms);
+      const vitals = describeVitals(st.perf.vitals, { ratings: false });
+      lines.push(t("text.metrics_step", { n: st.n, tool: st.tool, what: st.what ?? "", response,
+        vitals: vitals || t("labels.no_data") }));
+    }
+  } else {
+    lines.push("", t("text.metrics_no_steps"));
+  }
+  lines.push("", t("text.metrics_findings", { http: counts.http, failed: counts.failed, console: counts.console,
+    pageerror: counts.pageerror }));
+  const j = journeyOf(s.journey);
+  lines.push(t("text.journey_line", { actions: j.actions, navigations: j.navigations, backs: j.backs,
+    dead: j.dead_clicks, errors: j.errors, time: formatMetric("response", j.time_on_task_ms) }));
+  return { content: [{ type: "text", text: lines.filter((l) => l !== null).join("\n") }] };
+}
+
+async function handleFindings(args) {
+  const { session_id } = args;
+  const s = requireSession(session_id);
+  const { findings, dropped } = sessionFindings(s);
+  if (!findings.length) return { content: [{ type: "text", text: t("text.findings_none") }] };
+  const lines = [t("text.findings_header", { count: findings.reduce((n, f) => n + f.count, 0) })];
+  const byStep = new Map();
+  for (const f of findings) byStep.set(f.step, [...(byStep.get(f.step) ?? []), f]);
+  for (const [n, list] of byStep) {
+    const st = s.steps.find((x) => x.n === n);
+    lines.push("", t("text.findings_step", { n, tool: st?.tool ?? "", what: st?.what ?? "" }));
+    for (const f of list) lines.push(`  - ${describeFinding(f)}`);
+  }
+  if (dropped) lines.push("", t("text.findings_dropped", { count: dropped }));
+  return { content: [{ type: "text", text: lines.join("\n") }] };
 }
 
 async function handleWait(args) {
@@ -660,6 +959,7 @@ async function handleWait(args) {
 async function handleExportScript(args) {
   const { session_id, path: outputPath, description = "" } = args;
   const s = requireSession(session_id);
+  refuseBlind(s, "browser_export_script");
 
   const lines = [
     // i18n-ignore the header browser_list_scripts parses
@@ -783,6 +1083,13 @@ const TOOLS = [
         agent_type: { type: "string", description: t("tools.browser_new_session.params.agent_type") },
         record_video: { type: "boolean", default: false, description: t("tools.browser_new_session.params.record_video") },
         video_filename: { type: "string", description: t("tools.browser_new_session.params.video_filename", { timestamp: "{timestamp}" }) },
+        network: { type: "string", enum: NETWORKS, description: t("tools.browser_new_session.params.network") },
+        cpu_throttle: { type: "number", minimum: 1, maximum: CPU_MAX,
+          description: t("tools.browser_new_session.params.cpu_throttle") },
+        color_scheme: { type: "string", enum: COLOR_SCHEMES, description: t("tools.browser_new_session.params.color_scheme") },
+        ignore_errors: { type: "array", items: { type: "string" },
+          description: t("tools.browser_new_session.params.ignore_errors") },
+        blind: { type: "boolean", default: false, description: t("tools.browser_new_session.params.blind") },
       },
     },
   },
@@ -995,8 +1302,42 @@ const TOOLS = [
   },
 
   {
+    name: "browser_go_back",
+    description: t("tools.browser_go_back.description"),
+    inputSchema: {
+      type: "object",
+      properties: {
+        session_id: { type: "string" },
+      },
+      required: ["session_id"],
+    },
+  },
+  {
     name: "browser_get_session_log",
     description: t("tools.browser_get_session_log.description"),
+    inputSchema: {
+      type: "object",
+      properties: {
+        session_id: { type: "string" },
+      },
+      required: ["session_id"],
+    },
+  },
+  {
+    name: "browser_metrics",
+    description: t("tools.browser_metrics.description"),
+    inputSchema: {
+      type: "object",
+      properties: {
+        session_id: { type: "string" },
+        format: { type: "string", enum: ["text", "json"], default: "text", description: t("tools.browser_metrics.params.format") },
+      },
+      required: ["session_id"],
+    },
+  },
+  {
+    name: "browser_findings",
+    description: t("tools.browser_findings.description"),
     inputSchema: {
       type: "object",
       properties: {
@@ -1039,7 +1380,10 @@ const HANDLERS = {
   browser_run_script: handleRunScript,
   browser_list_scripts: handleListScripts,
   browser_wait: handleWait,
+  browser_go_back: handleGoBack,
   browser_get_session_log: handleGetSessionLog,
+  browser_metrics: handleMetrics,
+  browser_findings: handleFindings,
   browser_export_script: handleExportScript,
   ...evidenceHandlers({ requireSession }),
 };

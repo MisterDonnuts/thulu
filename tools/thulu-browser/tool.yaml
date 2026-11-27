@@ -1,7 +1,7 @@
 name: thulu-browser
 description: Headless Chromium via Playwright. Persistent sessions, interaction, scripts and filmed evidence (video with cursor, subtitles and verdicts, annotated captures, before/after).
 type: mcp
-version: "2.1.0"
+version: "2.2.0"
 tools:
   - name: screenshot
     description: PNG of a URL in a fresh context (no session).
@@ -9,7 +9,7 @@ tools:
     description: Rendered innerText of a URL (no session).
 
   - name: browser_new_session
-    description: "Creates an isolated BrowserContext. Returns session_id for the rest of the tools. record_video=true records the session as .webm (for mobile/9:16 use viewport 390x844)."
+    description: "Creates an isolated BrowserContext. Returns session_id for the rest of the tools. record_video=true records the session as .webm (for mobile/9:16 use viewport 390x844). network, cpu_throttle and color_scheme slow the session down or set prefers-color-scheme; a take filmed in it keeps them. blind=true shows only roles, accessible names and states, for a tester that must find its way as a person would."
   - name: browser_close_session
     description: Closes the session and frees resources. If record_video was true, finalizes the .webm and persists it to the agent's output dir.
 
@@ -47,21 +47,29 @@ tools:
     description: Returns the JSON log of every interaction in the session.
   - name: browser_export_script
     description: Generates a reusable Playwright script from the session log.
+  - name: browser_metrics
+    description: "Lab timing per step: TTFB, FCP, LCP, CLS and INP (web-vitals) and response_ms of each action, plus the throttling profile. format=json for numbers to compare."
+  - name: browser_findings
+    description: Console errors, uncaught exceptions, 4xx/5xx responses and failed requests of the session, by the step that caused them.
+  - name: browser_go_back
+    description: Goes back one page in the session history. Counts as a back step in browser_metrics' journey.
+  - name: a11y_scan
+    description: "Accessibility scan with axe-core (WCAG 2.2 AA by default): violations by impact (critical, serious, moderate, minor). Inside a take it is a check re-run on every replay."
 
   - name: evidence_start
     description: Starts recording a take in the session. From then on each browser_* is filmed with cursor, ring and subtitle (label) and annotated with a stable selector. Only the actions are filmed.
   - name: evidence_shot
     description: Annotated capture of the page (numbered spotlight, notes, data redaction, header with host and time). Inside a take it goes into the video; outside one, it is uploaded to the task.
   - name: evidence_verify
-    description: Records a test case with expected and observed. With check + target the tool measures it (and measures it again on every replay); in video it shows a pass/fail card.
+    description: Records a test case with expected and observed. With check + target the tool measures it (and measures it again on every replay); check "perf" with a metric (ttfb, fcp, lcp, cls, inp, response) and expected as the maximum is re-measured on every replay too. In video it shows a pass/fail card.
   - name: evidence_note
-    description: Held subtitle in the video; level fact or issue also lists it in the report.
+    description: Held subtitle in the video; level fact or issue also lists it in the report, level think goes to its Think-aloud section.
   - name: evidence_finish
     description: Stops the recording and builds a draft (MP4 with dead time cut + contact sheet that comes back as an image). Returns render_id and take_id. Nothing reaches the task yet.
   - name: evidence_get_take
     description: Returns a take as JSON, to fix it or save it in the repo (.octopus/evidence/takes/).
   - name: evidence_render
-    description: Replays a JSON take in a clean browser and films it. Accepts the repo's library of targets and flows, secrets by name, and compare_base_url for a side-by-side before/after.
+    description: Replays a JSON take in a clean browser and films it. Accepts the repo's library of targets and flows, secrets by name, compare_base_url for a side-by-side before/after, and network, cpu_throttle and color_scheme to override the take's.
   - name: evidence_recording
     description: In a recording chat of the Evidence library, returns the case to record (title, steps, expected), the environment (name, base URL) and the names of its test logins.
   - name: evidence_save_case

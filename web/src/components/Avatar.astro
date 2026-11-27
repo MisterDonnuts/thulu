@@ -17,6 +17,7 @@ interface Props {
   size?: AvatarSize;
   shape?: AvatarShape;
   pending?: boolean;
+  hue?: number;
   icon?: string;
   letters?: boolean;
   status?: AvatarStatus;
@@ -31,6 +32,7 @@ const {
   size = "sm",
   shape = "round",
   pending = false,
+  hue,
   icon,
   letters = false,
   status,
@@ -43,7 +45,7 @@ const mark = avatarMark({ name, kind, pending, icon, letters });
 ---
 
 <span
-  class={avatarClasses({ kind, size, shape, pending, cls: extra })}
+  class={avatarClasses({ kind, size, shape, pending, hue, cls: extra })}
   {...avatarA11y(label)}
   {...rest}
 >

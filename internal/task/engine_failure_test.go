@@ -289,6 +289,13 @@ func TestPostStageRunSaysTheEngineRejectedTheCredential(t *testing.T) {
 					closing = body
 				}
 			}
+			if tc.exit == 0 {
+				// A clean exit is the agent_run_finished event alone.
+				if all := systemComments(t, store, tk.ID); len(all) != 0 {
+					t.Fatalf("a clean exit posted %q", all)
+				}
+				return
+			}
 			if closing == "" {
 				t.Fatalf("no closing comment starting with %q in %q", finished, systemComments(t, store, tk.ID))
 			}

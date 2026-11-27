@@ -2,7 +2,6 @@ package task
 
 import (
 	"context"
-	"encoding/json"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -147,20 +146,20 @@ func TestBoardStageHasAgent(t *testing.T) {
 	if err := store.Create(ctx, self); err != nil {
 		t.Fatalf("create: %v", err)
 	}
-	if has, err := store.BoardStageHasAgent(ctx, testWS, self.BoardID, "verify", self.ID); err != nil || has {
+	if has, err := store.BoardStageHasAgent(ctx, testWS, self.BoardID, "verify", "", self.ID); err != nil || has {
 		t.Errorf("own assignment counted: has=%v err=%v", has, err)
 	}
 	empty := &Task{WorkspaceID: testWS, Title: "empty", StageAssignments: map[Stage]string{"verify": ""}}
 	if err := store.Create(ctx, empty); err != nil {
 		t.Fatalf("create: %v", err)
 	}
-	if has, _ := store.BoardStageHasAgent(ctx, testWS, self.BoardID, "verify", empty.ID); !has {
+	if has, _ := store.BoardStageHasAgent(ctx, testWS, self.BoardID, "verify", "", empty.ID); !has {
 		t.Error("another task's agent for verify not found")
 	}
-	if has, _ := store.BoardStageHasAgent(ctx, "other-ws", self.BoardID, "verify", empty.ID); has {
+	if has, _ := store.BoardStageHasAgent(ctx, "other-ws", self.BoardID, "verify", "", empty.ID); has {
 		t.Error("an assignment leaked across workspaces")
 	}
-	if has, _ := store.BoardStageHasAgent(ctx, testWS, self.BoardID, "shipped", empty.ID); has {
+	if has, _ := store.BoardStageHasAgent(ctx, testWS, self.BoardID, "shipped", "", empty.ID); has {
 		t.Error("an assignment for verify answered for shipped")
 	}
 }
@@ -227,34 +226,35 @@ func TestTaskInDeletedStageIsInert(t *testing.T) {
 	}
 }
 
-func TestKickbackFallsBackToCustomDefault(t *testing.T) {
+// KickbackDefault on customBoard is verify itself; the auditor used to "send back" a task to the
+// stage it was in. With no earlier stage but the initial one, the task now blocks instead.
+func TestAuditorKickBackWithNoEarlierStageBlocks(t *testing.T) {
 	d, store := newStageTestDispatcher(t, customBoard())
 	tk := &Task{WorkspaceID: testWS, Title: "x", Stage: "verify"}
 	if err := store.Create(t.Context(), tk); err != nil {
 		t.Fatalf("create: %v", err)
 	}
 
-	handled := d.applyAuditorVerdict(context.Background(), tk, tk.ID, "verify",
-		auditorVerdict{Verdict: "kick_back", KickBackTo: "no_such_stage"})
+	handled := d.applyVerdict(context.Background(), tk, tk.ID, "verify",
+		stageVerdict{Verdict: "kick_back", KickBackTo: "no_such_stage"})
 	if !handled {
 		t.Fatal("kick_back verdict should end the post-run flow")
 	}
 	after, _ := store.Get(t.Context(), tk.ID)
-	if after.Stage != "verify" {
-		t.Errorf("kick_back target = %q, want custom default 'verify'", after.Stage)
+	if after.Stage != "verify" || after.Status != StatusBlocked {
+		t.Errorf("stage/status = %q/%q, want verify/blocked", after.Stage, after.Status)
 	}
 	evs, err := store.ListEvents(t.Context(), tk.ID)
 	if err != nil {
 		t.Fatalf("events: %v", err)
 	}
-	var moved map[string]string
 	for _, e := range evs {
 		if e.Kind == EventStageEntered {
-			_ = json.Unmarshal(e.Payload, &moved)
+			t.Errorf("no stage may be entered, got %s", e.Payload)
 		}
 	}
-	if moved["from"] != "verify" || moved["to"] != "verify" || moved["via"] != "kick_back" {
-		t.Errorf("kick_back event payload = %v, want from, to and via", moved)
+	if c := lastComment(t, store, tk.ID); !strings.Contains(c, "no earlier stage") {
+		t.Errorf("comment = %q, want the no-target explanation", c)
 	}
 }
 

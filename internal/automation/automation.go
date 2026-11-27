@@ -39,6 +39,10 @@ const (
 	StepFanout    = "fanout"
 	StepTask      = "task"
 	StepMention   = "mention"
+	StepMove      = "move"
+	// StepDeployWatch reads a project's deploy watch: only automations the daemon generates for a
+	// watch carry it (api refuses it in a recipe a person wrote).
+	StepDeployWatch = "deploy_watch"
 )
 
 const (
@@ -133,8 +137,11 @@ type Step struct {
 	Query     *QueryStep   `yaml:"query,omitempty" json:"query,omitempty"`
 	Task      *TaskStep    `yaml:"task,omitempty" json:"task,omitempty"`
 	Mention   *MentionStep `yaml:"mention,omitempty" json:"mention,omitempty"`
+	Move      *MoveStep    `yaml:"move,omitempty" json:"move,omitempty"`
 	Fanout    *FanoutStep  `yaml:"fanout,omitempty" json:"fanout,omitempty"`
-	Steps     []Step       `yaml:"steps,omitempty" json:"steps,omitempty"`
+	// DeployWatch observes a polled deploy source (cloud or http) once and says whether it changed.
+	DeployWatch *DeployWatchStep `yaml:"deploy_watch,omitempty" json:"deploy_watch,omitempty"`
+	Steps       []Step           `yaml:"steps,omitempty" json:"steps,omitempty"`
 }
 
 func (s Step) Kind() string {
@@ -153,8 +160,12 @@ func (s Step) Kind() string {
 		return StepTask
 	case s.Mention != nil:
 		return StepMention
+	case s.Move != nil:
+		return StepMove
 	case s.Fanout != nil:
 		return StepFanout
+	case s.DeployWatch != nil:
+		return StepDeployWatch
 	default:
 		return ""
 	}
@@ -215,6 +226,22 @@ type MentionStep struct {
 	TaskID string `yaml:"task_id" json:"task_id"`
 	Agent  string `yaml:"agent,omitempty" json:"agent,omitempty"`
 	Body   string `yaml:"body" json:"body"`
+}
+
+// MoveStep moves one task to a stage of its board, through the stage's exit gate: a pending
+// approval holds it (the step reports gated, it does not fail) and a move that would jump a stage
+// asking for an approval is refused. Board, when set, is the board the task must be on.
+type MoveStep struct {
+	TaskID string `yaml:"task_id" json:"task_id"`
+	Stage  string `yaml:"stage" json:"stage"`
+	Board  string `yaml:"board,omitempty" json:"board,omitempty"`
+	Note   string `yaml:"note,omitempty" json:"note,omitempty"`
+}
+
+// DeployWatchStep names the deploy watch to observe. The step's result carries changed, state,
+// version, previous_state, previous_version, fingerprint, detail and url.
+type DeployWatchStep struct {
+	Watch string `yaml:"watch" json:"watch"`
 }
 
 type FanoutStep struct {
@@ -296,6 +323,10 @@ type Automation struct {
 	LastStatus  string     `json:"last_status,omitempty"`
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at"`
+
+	// ManagedBy names what owns this automation ("deploy_watch:<id>"); empty for a recipe a person
+	// wrote. A managed automation is changed and deleted through its owner, never by hand.
+	ManagedBy string `json:"managed_by,omitempty"`
 
 	Parsed *Spec `json:"parsed,omitempty"`
 
@@ -545,7 +576,8 @@ func singleAction(st *Step) error {
 	n := 0
 	for _, set := range []bool{
 		st.Condition != "", st.MCP != nil, st.HTTP != nil, st.Script != nil,
-		st.Query != nil, st.Task != nil, st.Mention != nil, st.Fanout != nil,
+		st.Query != nil, st.Task != nil, st.Mention != nil, st.Move != nil, st.Fanout != nil,
+		st.DeployWatch != nil,
 	} {
 		if set {
 			n++
@@ -574,6 +606,10 @@ func validateStepBody(st *Step, kind string, nested bool, seen map[string]bool) 
 		err = validateTaskStep(st)
 	case StepMention:
 		err = validateMentionStep(st)
+	case StepMove:
+		err = validateMoveStep(st)
+	case StepDeployWatch:
+		err = validateDeployWatchStep(st)
 	case StepFanout:
 		return validateFanoutStep(st, nested, seen)
 	}
@@ -655,6 +691,30 @@ func validateMentionStep(st *Step) error {
 		return apperr.Invalid("automation.errors.step_mention_required", "step", st.ID)
 	}
 	return validateTemplates(st.ID, st.Mention.TaskID, st.Mention.Body)
+}
+
+func validateMoveStep(st *Step) error {
+	if strings.TrimSpace(st.Move.TaskID) == "" || strings.TrimSpace(st.Move.Stage) == "" {
+		return apperr.Invalid("automation.errors.step_move_required", "step", st.ID)
+	}
+	return validateTemplates(st.ID, st.Move.TaskID, st.Move.Note)
+}
+
+func validateDeployWatchStep(st *Step) error {
+	if strings.TrimSpace(st.DeployWatch.Watch) == "" {
+		return apperr.Invalid("automation.errors.step_deploy_watch_required", "step", st.ID)
+	}
+	return nil
+}
+
+// HasDeployWatchStep reports whether any step, fanout children included, observes a deploy watch.
+func HasDeployWatchStep(steps []Step) bool {
+	for i := range steps {
+		if steps[i].DeployWatch != nil || HasDeployWatchStep(steps[i].Steps) {
+			return true
+		}
+	}
+	return false
 }
 
 func validateFanoutStep(st *Step, nested bool, seen map[string]bool) error {

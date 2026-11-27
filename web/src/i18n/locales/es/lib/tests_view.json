@@ -1,0 +1,201 @@
+{
+  "summary": {
+    "pass": "{pass} de {total} pasan",
+    "proven": "{proven} de {total} criterios de aceptación probados",
+    "last_run": "última corrida {when} de {who}"
+  },
+  "criteria": {
+    "title": "Criterios de aceptación",
+    "read": "Leer los criterios",
+    "written_by": "· escritos por {who} en el brief",
+    "filter": "{key}: {state}. Mostrar sólo sus casos",
+    "state": {
+      "ok": "Probado",
+      "waived": "Probado, con casos salteados",
+      "part": "Probado en parte",
+      "wait": "Esperando",
+      "fail": "Falla",
+      "untested": "Sin correr",
+      "none": "Ningún caso lo cubre"
+    },
+    "key": {
+      "ok": "probado",
+      "part": "en parte",
+      "wait": "espera a una persona"
+    }
+  },
+  "needs": {
+    "title": "Para terminar de probar, una persona tiene que aportar",
+    "sub": {
+      "one": "{count} caso que el agente no pudo correr",
+      "other": "{count} casos que el agente no pudo correr"
+    },
+    "sub_queued": {
+      "one": "{count} caso que el agente no pudo correr · {queued} corriendo de nuevo",
+      "other": "{count} casos que el agente no pudo correr · {queued} corriendo de nuevo"
+    },
+    "running_again": {
+      "one": "{count} caso corre de nuevo con lo que le diste al agente.",
+      "other": "{count} casos corren de nuevo con lo que le diste al agente."
+    },
+    "untitled": "Otra cosa",
+    "access": "Darle acceso al agente",
+    "test_by_hand": "Probar a mano",
+    "by_hand": "A mano",
+    "review_video": "Ver el video",
+    "fixed_rerun": "Ya lo arreglé (volver a correr)",
+    "skip": "Saltear…",
+    "tried": {
+      "one": "El agente probó {count} caso con lo que tenía",
+      "other": "El agente probó {count} casos con lo que tenía"
+    },
+    "tried_result": "El agente probó: {result}",
+    "writes_all": "Probar escribe datos reales",
+    "writes_some": {
+      "one": "{count} caso escribe datos reales",
+      "other": "{count} casos escriben datos reales"
+    },
+    "code_wrong": "¿El problema está en el código?",
+    "send_back": "Devolverla…",
+    "rerun": "Volver a correr {stage}…",
+    "see_stop": "Ver la parada en Comentarios"
+  },
+  "access": {
+    "lead": "El agente vuelve a correr {cases} cuando confirmes que tiene acceso.",
+    "lead_secrets": "El agente vuelve a correr {cases} con estos valores. Se guardan en el entorno, nunca en la tarea.",
+    "environment": "Guardarlos en",
+    "environment_help": "Los secretos del entorno. El agente los lee por nombre.",
+    "no_environment": "Este proyecto no tiene un entorno donde puedas agregar secretos. Creá uno en Evidencia primero.",
+    "environments_loading": "Cargando los entornos…",
+    "reason": "Nota para el agente",
+    "writes_data": "Algunos de estos casos escriben datos reales donde corren.",
+    "submit": {
+      "one": "Dar acceso y volver a correr {count} caso",
+      "other": "Dar acceso y volver a correr {count} casos"
+    },
+    "need_secret": "Escribí un valor para {name}.",
+    "need_environment": "Elegí el entorno donde guardar los valores.",
+    "done": {
+      "one": "Acceso dado. {count} caso corre de nuevo.",
+      "other": "Acceso dado. {count} casos corren de nuevo."
+    },
+    "failed": "No se pudo dar acceso: {error}"
+  },
+  "skip": {
+    "reason": "¿Por qué saltear {cases}?",
+    "help": "Obligatorio. Va a Comentarios y al reporte de preparación como hueco conocido.",
+    "submit": {
+      "one": "Saltear {count} caso",
+      "other": "Saltear {count} casos"
+    }
+  },
+  "hand": {
+    "title": "Probando a mano",
+    "close": "Dejar de probar a mano",
+    "case_n": "caso {n} de {total}",
+    "previous": "← Anterior",
+    "next": "Siguiente →",
+    "done": "Todos los casos tienen resultado: {tally}.",
+    "n_pass": {
+      "one": "{count} pasa",
+      "other": "{count} pasan"
+    },
+    "n_fail": {
+      "one": "{count} falla",
+      "other": "{count} fallan"
+    },
+    "n_skipped": {
+      "one": "{count} salteado",
+      "other": "{count} salteados"
+    },
+    "review": "Revisar",
+    "summary": "Volver al resumen",
+    "save": "Guardar resultados",
+    "saved": {
+      "one": "Se guardó {count} resultado.",
+      "other": "Se guardaron {count} resultados."
+    },
+    "save_failed": "No se pudo guardar {key}: {error}"
+  },
+  "verdict": {
+    "pass": "Pasa",
+    "fail": "Falla",
+    "skip": "Saltear",
+    "note": "Qué viste (obligatorio para fallar o saltear)",
+    "note_label": "Qué viste al probar {key}",
+    "need_note": "Escribí qué viste: un caso que falla o se saltea lo necesita.",
+    "saved": "Se guardó tu resultado para {key}."
+  },
+  "list": {
+    "heading": "Casos",
+    "empty": "Todavía no hay casos de prueba.",
+    "case": "Caso",
+    "title": "Título",
+    "covers": "Cubre",
+    "group": "{group} · {count}",
+    "round_short": "R{n}",
+    "more": "+{count}",
+    "more_rounds": {
+      "one": "{count} ronda anterior no se muestra",
+      "other": "{count} rondas anteriores no se muestran"
+    },
+    "cell": "Ronda {round}: {verdicts}",
+    "cell_none": "Ronda {round}: sin correr",
+    "has_video": "Tiene video",
+    "show_all": "Mostrar todos los casos",
+    "covering": "Cubren {key}"
+  },
+  "groups": {
+    "blocked": "Necesitan una persona",
+    "queued": "Corriendo de nuevo",
+    "fail": "Fallan",
+    "pass": "Pasan",
+    "waived": "Salteados",
+    "untested": "Sin correr"
+  },
+  "legend": {
+    "pass": "pasa",
+    "fail": "falla",
+    "blocked": "necesita una persona",
+    "none": "sin correr",
+    "mixed": "cambió dentro de la ronda",
+    "columns": {
+      "one": "Columnas: la última ronda en que corrió Testing. El historial completo está dentro de cada caso.",
+      "other": "Columnas: las últimas {count} rondas en que corrió Testing. El historial completo está dentro de cada caso."
+    }
+  },
+  "detail": {
+    "how": "Cómo probar",
+    "saw": "Qué vio el agente",
+    "pass_if": "Pasa si",
+    "no_steps": "Todavía no tiene pasos.",
+    "not_run": "Todavía no corrió.",
+    "no_observed": "La corrida no dejó nota.",
+    "full_note": "Nota completa",
+    "evidence": "Evidencia",
+    "evidence_of": "ronda {round}, {verdict}",
+    "subtitles": "Pasos",
+    "history": "Historial por ronda",
+    "all_runs": {
+      "one": "{count} corrida completa",
+      "other": "Las {count} corridas completas"
+    },
+    "tried_simulated": "Lo probó con datos de reemplazo",
+    "tried_partial": "Probó una parte",
+    "tried_none": "No lo pudo probar",
+    "writes_data": "Escribe datos reales",
+    "skipped_by": "Salteado por {who}",
+    "no_reason": "Sin motivo."
+  },
+  "tab": {
+    "plain": "Pruebas",
+    "blocked": {
+      "one": "Pruebas, {count} caso necesita una persona",
+      "other": "Pruebas, {count} casos necesitan una persona"
+    },
+    "cases": {
+      "one": "Pruebas, {count} caso",
+      "other": "Pruebas, {count} casos"
+    }
+  }
+}

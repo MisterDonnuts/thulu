@@ -22,7 +22,15 @@
     "no_folders": "No allowed folders: run thulu runner allow on that machine.",
     "not_reported": "It hasn't reported its folders yet: start it with thulu runner run.",
     "revoke": "Revoke",
-    "no_projects": "no projects"
+    "no_projects": "no projects",
+    "local_tools_thulu": "Local tools: only Thulu's MCPs.",
+    "local_tools_selected": "Local tools: Thulu's MCPs plus {mcp}.",
+    "local_tools_selected_none": "Local tools: selected, with nothing selected yet.",
+    "local_tools_all": "Local tools: every MCP the machine has, claude.ai connectors included.",
+    "local_tools_hint": "Set on the machine: thulu runner config local-tools.",
+    "bypass_off": "A Claude Code policy on the machine turns off bypass mode: runs may use only what allowed_tools lists.",
+    "bypass_off_empty": "A Claude Code policy on the machine turns off bypass mode and allowed_tools is empty: runs cannot edit files or run commands.",
+    "paused_low_memory": "Not taking runs: {available} free, needs {needs}."
   },
   "setup": {
     "register_title": "Register the machine",

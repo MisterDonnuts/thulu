@@ -40,6 +40,16 @@ func apiURL(getenv func(string) string) string {
 	return DefaultAPIURL
 }
 
+// GitHub Enterprise Server serves GraphQL at /api/graphql next to the REST /api/v3; github.com at
+// api.github.com/graphql.
+func GraphQLURL() string {
+	api := APIURL()
+	if base, ok := strings.CutSuffix(api, "/api/v3"); ok {
+		return base + "/api/graphql"
+	}
+	return api + "/graphql"
+}
+
 func Host() string {
 	u, err := url.Parse(WebURL())
 	if err != nil {

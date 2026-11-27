@@ -97,7 +97,8 @@
     "cache_claim_terminating": "kuberuntime: el claim de la caché {ns}/{name} sigue terminando después de {timeout}",
     "quota_line_cpu": "el workspace tiene reservadas {used} de {hard} CPU y necesita {requested} más",
     "quota_line_memory": "el workspace tiene reservados {used} de {hard} GiB de memoria y necesita {requested} GiB más",
-    "quota_line_pods": "el workspace corre {used} de {hard} pods"
+    "quota_line_pods": "el workspace corre {used} de {hard} pods",
+    "list_secrets": "kuberuntime: listar los secrets de {ns}"
   },
   "image_build": {
     "auth_secret": "no se pudieron leer las credenciales del registry {ns}/{name}",
@@ -142,6 +143,10 @@
     "reconcile_namespace_failed": "llevar el namespace {ns} a las etiquetas actuales: {err}",
     "label_claim_failed": "etiquetar el claim {ns}/{name}: {err}",
     "sweep_unlabeled_failed": "barrer pods sin etiquetas actuales en {ns}: {err}",
-    "unlabeled_pod_removed": "se borró el pod {ns}/{name} ({phase}): no lleva ninguna etiqueta actual, lo creó una versión anterior"
+    "unlabeled_pod_removed": "se borró el pod {ns}/{name} ({phase}): no lleva ninguna etiqueta actual, lo creó una versión anterior",
+    "task_pod_deleted": "baja de tarea: borrado el pod {ns}/{pod} de la tarea {task} (instancia {instance}, {phase})",
+    "orphan_agent_pod_deleted": "barrido: borrado el pod de agente {ns}/{pod} (instancia {instance}, creado hace {age}): su tarea ya no existe",
+    "unscheduled_pod_deleted": "barrido: borrado el pod de agente {ns}/{pod} (instancia {instance}): ningún nodo lo tomó en {age}, pasado el límite de su corrida",
+    "orphan_env_secret_deleted": "barrido: borrado el secret de entorno {ns}/{secret} (creado hace {age}): su pod ya no existe"
   }
 }

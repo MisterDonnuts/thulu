@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/MisterDonnuts/thulu/internal/apperr"
+	stagepkg "github.com/MisterDonnuts/thulu/internal/stage"
 )
 
 // Tasks on a deleted board are judged by the default board's terminals, matching
@@ -13,6 +14,27 @@ import (
 // or such tasks block dependents and pin the group sandbox forever. Derived live, not denormalized,
 // because boards are hand-edited.
 func (s *Store) notTerminalFrag(alias string) (string, []any) {
+	return s.notInStagesFrag(alias, stagepkg.Registry.Terminals)
+}
+
+// Like notTerminalFrag, with the stages that free the worktree (release_resources) counted as
+// finished too: a group whose tasks all sit in one of them has no more use for its sandbox.
+func (s *Store) notReleasedFrag(alias string) (string, []any) {
+	return s.notInStagesFrag(alias, releasedStages)
+}
+
+func releasedStages(reg stagepkg.Registry) []Stage {
+	out := reg.Terminals()
+	list := reg.List()
+	for i := range list {
+		if list[i].ReleaseResources && !list[i].Terminal {
+			out = append(out, list[i].ID)
+		}
+	}
+	return out
+}
+
+func (s *Store) notInStagesFrag(alias string, pick func(stagepkg.Registry) []Stage) (string, []any) {
 	if alias != "" {
 		alias += "."
 	}
@@ -21,17 +43,17 @@ func (s *Store) notTerminalFrag(alias string) (string, []any) {
 	var known []string
 	for _, b := range s.boards.BoardList() {
 		known = append(known, b.ID)
-		terminals := s.boards.Board(b.ID).Terminals()
-		if len(terminals) == 0 {
+		stages := pick(s.boards.Board(b.ID))
+		if len(stages) == 0 {
 			continue
 		}
 		args = append(args, b.ID)
-		args = append(args, stageArgs(terminals)...)
+		args = append(args, stageArgs(stages)...)
 		//i18n:ignore SQL fragment
 		clauses = append(clauses, "("+alias+"board_id = ? AND "+alias+"stage IN ("+
-			placeholderList(len(terminals))+"))")
+			placeholderList(len(stages))+"))")
 	}
-	if frag, fallbackArgs := s.ghostBoardClause(alias, known); frag != "" {
+	if frag, fallbackArgs := s.ghostBoardClause(alias, known, pick); frag != "" {
 		clauses = append(clauses, frag)
 		args = append(args, fallbackArgs...)
 	}
@@ -41,21 +63,21 @@ func (s *Store) notTerminalFrag(alias string) (string, []any) {
 	return "NOT (" + strings.Join(clauses, " OR ") + ")", args
 }
 
-func (s *Store) ghostBoardClause(alias string, known []string) (string, []any) {
+func (s *Store) ghostBoardClause(alias string, known []string, pick func(stagepkg.Registry) []Stage) (string, []any) {
 	if len(known) == 0 {
 		return "", nil
 	}
-	terminals := s.boards.Board(s.boards.DefaultBoardID()).Terminals()
-	if len(terminals) == 0 {
+	stages := pick(s.boards.Board(s.boards.DefaultBoardID()))
+	if len(stages) == 0 {
 		return "", nil
 	}
-	args := make([]any, 0, len(known)+len(terminals))
+	args := make([]any, 0, len(known)+len(stages))
 	for _, id := range known {
 		args = append(args, id)
 	}
-	args = append(args, stageArgs(terminals)...)
+	args = append(args, stageArgs(stages)...)
 	return "(" + alias + "board_id NOT IN (" + placeholderList(len(known)) + ") AND " + //i18n:ignore SQL fragment
-		alias + "stage IN (" + placeholderList(len(terminals)) + "))", args
+		alias + "stage IN (" + placeholderList(len(stages)) + "))", args
 }
 
 // n must be >= 1.

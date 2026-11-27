@@ -2,7 +2,8 @@
   "list": {
     "title": "Boards",
     "intro": "Each board is a workflow with its own columns and rules. A task joins a board when it is created and stays on it.",
-    "new": "New board"
+    "new": "New board",
+    "install_flow": "Install a flow"
   },
   "empty": {
     "title": "No boards yet",
@@ -20,7 +21,9 @@
     "tasks": {
       "one": "{count} task",
       "other": "{count} tasks"
-    }
+    },
+    "flow": "{flow} rev. {rev}",
+    "flow_hint": "Installed from the Workshop. Updating it from there rewrites its columns and task types."
   },
   "menu": {
     "open": "Open board",
@@ -44,7 +47,10 @@
     "description_hint": "Shown under the board's name. Up to 280 characters.",
     "saving": "Saving…",
     "saved": "Saved",
-    "edit_behavior": "Behavior"
+    "edit_behavior": "Behavior",
+    "kick_backs": "Send-backs per task",
+    "kick_backs_hint": "How many times a task can be sent back (by an auditor, an agent's verdict or a request for changes) before it waits blocked for a person. 0 means no limit.",
+    "kick_backs_invalid": "Use a whole number from 0 to {max}."
   },
   "columns": {
     "title": "Columns",
@@ -62,7 +68,15 @@
     },
     "wip_work": "Counts as In progress",
     "wip_review": "Counts as Needs review",
-    "none": "Tasks wait here for a person."
+    "none": "Tasks wait here for a person.",
+    "pr_draft": "Draft PR",
+    "pr_ready": "PR ready",
+    "merge_target": "Gets merged PRs",
+    "release_resources": "Frees resources",
+    "agent_verdict": "Agent decides",
+    "lock_tests": "Tests locked",
+    "skip_unless": "Only {values}",
+    "no_skip": "Never skipped"
   },
   "types": {
     "title": "Task types",
@@ -125,7 +139,16 @@
     "fix_to": "Move them to",
     "fix_go": "Move and save",
     "fix_undo": "Undo the change",
-    "untyped": "No type (walks the whole board)"
+    "untyped": "No type (walks the whole board)",
+    "agents": "Agents for this type",
+    "agents_set": {
+      "one": "Agents for this type ({count} set)",
+      "other": "Agents for this type ({count} set)"
+    },
+    "agents_hint": "Tasks of this type run this agent instead of the column's. Only columns the type walks are listed.",
+    "agent_column": "Same as the column",
+    "agent_column_named": "Same as the column ({agent})",
+    "agent_none": "No agent"
   },
   "new": {
     "title": "New board",

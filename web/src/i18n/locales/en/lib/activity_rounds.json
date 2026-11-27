@@ -1,0 +1,95 @@
+{
+  "title": "Rounds",
+  "hint": "A round starts each time the task goes back. Open a column to read what happened there.",
+  "a_person": "A person",
+  "round": "Round {n}",
+  "reason": "Reason in comments",
+  "open_thread": "Open in comments",
+  "no_items": "No agent ran here: the task moved on.",
+  "empty": "The task has not moved through any column yet.",
+  "no_match": "Nothing matches these filters.",
+  "more": {
+    "one": "Show earlier rounds · {count} more",
+    "other": "Show earlier rounds · {count} more"
+  },
+  "less": "Show fewer",
+  "every_round": "That is every round.",
+  "end": {
+    "passed": "Passed to {stage}",
+    "agent_back": "{agent} sent it back to {stage}",
+    "person_back": "{who} sent it back to {stage}",
+    "person_moved": "{who} moved it to {stage}",
+    "stopped_back": "{who} sent it back to {stage} after the stop",
+    "stopped_moved": "{who} moved it to {stage} after the stop",
+    "running": "Running now",
+    "waiting": "Stopped, waiting for a person",
+    "idle": "Still here"
+  },
+  "why": {
+    "started": "Started in {stage}.",
+    "moved": "{who} moved it to {stage}.",
+    "person_back": "{who} sent it back to {stage}.",
+    "agent_back": "{agent} sent it back to {stage}.",
+    "moved_reason": "{who} moved it to {stage}: {reason}",
+    "person_back_reason": "{who} sent it back to {stage}: {reason}",
+    "agent_back_reason": "{agent} sent it back to {stage}: {reason}",
+    "agent_who": "{stage} ({agent})"
+  },
+  "item": {
+    "moved_here": "Moved here by a person",
+    "question": "{agent} asked a question",
+    "question_answered": "{agent} asked a question; {who} answered",
+    "stop": "{agent} stopped for a person",
+    "stop_answered": "{agent} stopped for a person; {who} answered",
+    "stop_decided": "{agent} stopped for a person; {who}: {decision}",
+    "decision": "{who}: {decision}",
+    "comment": "{who}: {text}",
+    "relaunch": "{who} re-ran {stage}",
+    "relaunch_turns": "{who} re-ran {stage} with {turns} turns",
+    "access": "{who} gave the agent access for {cases}"
+  },
+  "badge": {
+    "questions": {
+      "one": "{count} question",
+      "other": "{count} questions"
+    },
+    "stopped": "Stopped for a person",
+    "failed": {
+      "one": "{count} run failed",
+      "other": "{count} runs failed"
+    },
+    "runs": {
+      "one": "{count} run",
+      "other": "{count} runs"
+    }
+  },
+  "filter": {
+    "stage": "Column",
+    "all_stages": "All columns",
+    "agent": "Agent",
+    "all_agents": "All agents",
+    "order": "Order",
+    "newest": "Newest round first",
+    "oldest": "Oldest round first",
+    "system": "System events",
+    "clear": "Clear filters"
+  },
+  "reason_short": "Reason",
+  "run": {
+    "verdict": "Verdict",
+    "stopped": "Stopped for a person",
+    "sent_back": "Sent back to {stage}"
+  },
+  "legend": {
+    "passed": "passed to the next column",
+    "agent_back": "an agent sent it back",
+    "person": "a person moved it or sent it back"
+  },
+  "cost": {
+    "title": "Cost and size",
+    "spent": "spent, all agents",
+    "runs": "agent runs",
+    "tokens": "tokens",
+    "span": "from the first run to now"
+  }
+}

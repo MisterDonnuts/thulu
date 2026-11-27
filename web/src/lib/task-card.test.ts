@@ -91,8 +91,28 @@ describe("state row", () => {
     expect(html).toContain(">Running<");
     expect(html).toContain(">frontend<");
     expect(cardStateHTML(cardStateRow({ status: "failed" }, { terminal: false }))).toContain(
-      'class="badge badge-danger badge-pill" data-run="failed"',
+      'class="badge badge-danger badge-pill badge-fit" data-run="failed"',
     );
+  });
+
+  it("names the agent that blocked the task on the card", () => {
+    const row = cardStateRow(
+      {
+        status: "blocked",
+        block: {
+          cause: "verdict",
+          agent: "thulu-verifier",
+          stage: "verification",
+          reason: "gates_failed",
+        },
+      },
+      { terminal: false },
+    );
+    expect(row?.word).toMatchObject({
+      id: "blocked",
+      label: "Blocked by @thulu-verifier: gates fail",
+    });
+    expect(cardStateRow({ status: "blocked" }, { terminal: false })?.word?.label).toBe("Blocked");
   });
 
   it("says why a run did not start or has no agent on its own line", () => {
@@ -173,6 +193,15 @@ describe("meta row", () => {
 
   it("is empty for a bare task", () => {
     expect(cardMetaHTML(empty)).toBe("");
+  });
+
+  it("says how many columns ahead the task skips, and names them in the title", () => {
+    const html = cardMetaHTML({ ...empty, skips: ["Test design", "Testing"] });
+    expect(html).toContain("Skips 2 columns");
+    expect(html).toContain('title="Skips Test design, Testing"');
+    expect(html).toContain("tag-dashed");
+    expect(cardMetaHTML({ ...empty, skips: ["QA"] })).toContain("Skips 1 column<");
+    expect(cardMetaHTML({ ...empty, skips: [] })).toBe("");
   });
 
   it("draws neutral repo chips with a coloured dot", () => {

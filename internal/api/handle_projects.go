@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"log"
@@ -8,6 +9,8 @@ import (
 	"strings"
 
 	"github.com/MisterDonnuts/thulu/internal/apperr"
+	"github.com/MisterDonnuts/thulu/internal/audit"
+	"github.com/MisterDonnuts/thulu/internal/auth"
 	"github.com/MisterDonnuts/thulu/internal/credentials"
 	"github.com/MisterDonnuts/thulu/internal/github"
 	"github.com/MisterDonnuts/thulu/internal/githubapp"
@@ -70,19 +73,19 @@ func (s *Server) handleCreateProject(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusBadRequest, err)
 		return
 	}
-	auth := projectGitAuth{
+	gitAuth := projectGitAuth{
 		CredentialID:   strings.TrimSpace(body.GithubCredentialID),
 		RawToken:       strings.TrimSpace(body.GitHubToken),
 		InstallationID: body.GithubInstallationID,
 	}
-	if err := auth.valid(); err != nil {
+	if err := gitAuth.valid(); err != nil {
 		writeError(w, r, http.StatusBadRequest, err)
 		return
 	}
 
 	var cloneToken string
-	if auth.InstallationID != 0 {
-		tok, ok := s.cloneTokenForInstallation(w, r, auth.InstallationID, body.RepoURL)
+	if gitAuth.InstallationID != 0 {
+		tok, ok := s.cloneTokenForInstallation(w, r, gitAuth.InstallationID, body.RepoURL)
 		if !ok {
 			return
 		}
@@ -96,8 +99,8 @@ func (s *Server) handleCreateProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if auth.InstallationID == 0 {
-		tok, ok := s.cloneTokenFromCredential(w, r, wid, auth)
+	if gitAuth.InstallationID == 0 {
+		tok, ok := s.cloneTokenFromCredential(w, r, wid, gitAuth)
 		if !ok {
 			return
 		}
@@ -110,7 +113,7 @@ func (s *Server) handleCreateProject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("[api] %s", i18n.Log("api.projects.log.creating", "name", body.Name, "repo", body.RepoURL,
-		"credential", auth.CredentialID != "", "token", auth.RawToken != "", "installation", auth.InstallationID))
+		"credential", gitAuth.CredentialID != "", "token", gitAuth.RawToken != "", "installation", gitAuth.InstallationID))
 	opts := project.CreateOpts{
 		Description:          body.Description,
 		DefaultBranch:        body.DefaultBranch,
@@ -126,7 +129,7 @@ func (s *Server) handleCreateProject(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, projectInputStatus(err), err)
 		return
 	}
-	s.persistProjectCredential(r, wid, proj.ID, proj.Name, auth)
+	s.persistProjectCredential(r, wid, proj.ID, proj.Name, gitAuth)
 	writeJSON(w, status, proj)
 }
 
@@ -193,6 +196,12 @@ func (s *Server) handleUpdateProject(w http.ResponseWriter, r *http.Request) {
 	if !decodeBody(w, r, &p) {
 		return
 	}
+	// The profile can accept checks that never finished and relax the gates: a person decides that,
+	// never the run being gated.
+	if p.GatesProfile != nil && auth.APIKeyRunScope(r.Context()).IsRun() {
+		writeErrKey(w, r, http.StatusForbidden, "api.scope.errors.run_gates_profile")
+		return
+	}
 	if p.DefaultBoardID != nil && *p.DefaultBoardID != "" &&
 		!s.boardVisibleToCaller(r, *p.DefaultBoardID) {
 		writeErrKey(w, r, http.StatusBadRequest, "api.boards.errors.unknown_board", "board", *p.DefaultBoardID)
@@ -222,6 +231,11 @@ func (s *Server) handleUpdateProject(w http.ResponseWriter, r *http.Request) {
 	if proj.RunnerID != current.RunnerID || proj.RunnerPath != current.RunnerPath {
 		s.auditRunnerChange(r, proj, current.RunnerID, runnerName)
 	}
+	if !bytes.Equal(proj.GatesProfile, current.GatesProfile) && s.auditStore != nil {
+		s.auditStore.LogRequestIn(r, proj.WorkspaceID, audit.KindProjectGatesProfileSet, proj.ID, "project",
+			i18n.Text("api.projects.audit.gates_profile_changed", "project", proj.Name),
+			map[string]string{"gates_profile": string(proj.GatesProfile), "previous": string(current.GatesProfile)})
+	}
 	writeJSON(w, http.StatusOK, proj)
 }
 
@@ -236,6 +250,10 @@ func (s *Server) handleDeleteProject(w http.ResponseWriter, r *http.Request) {
 		logx.Warn(err, "api.evidence.log.detach_failed", "project", id)
 		removeEvidenceFiles(paths)
 	}
+
+	// The watch rows go with the project; their automations live in another store and would keep
+	// polling a project that no longer exists.
+	s.deleteProjectDeployWatches(r.Context(), id)
 
 	// Purge before the project row goes: a re-created project must not inherit them, and an
 	// orphaned cloud credential is a secret nobody can see to revoke.

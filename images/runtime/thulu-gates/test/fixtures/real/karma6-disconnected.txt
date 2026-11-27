@@ -1,0 +1,28 @@
+[32m20 11 2026 13:12:48.360:INFO [karma-server]: [39mKarma v6.4.4 server started at http://localhost:9876/
+[32m20 11 2026 13:12:48.361:INFO [launcher]: [39mLaunching browsers ChromeHeadless with concurrency unlimited
+[32m20 11 2026 13:12:48.364:INFO [launcher]: [39mStarting browser ChromeHeadless
+[32m20 11 2026 13:12:49.013:INFO [Chrome Headless 157.0.0.0 (Mac OS 10.15.7)]: [39mConnected on socket mcNBjcLzIK5w7FB_AAAA with id 455834
+Chrome Headless 157.0.0.0 (Mac OS 10.15.7): Executed 0 of 39[32m SUCCESS[39m (0 secs / 0 secs)
+[1A[2KChrome Headless 157.0.0.0 (Mac OS 10.15.7): Executed 1 of 39[32m SUCCESS[39m (0 secs / 0 secs)
+[1A[2KChrome Headless 157.0.0.0 (Mac OS 10.15.7): Executed 2 of 39[32m SUCCESS[39m (0 secs / 0 secs)
+[1A[2KChrome Headless 157.0.0.0 (Mac OS 10.15.7): Executed 3 of 39[32m SUCCESS[39m (0 secs / 0 secs)
+[1A[2KChrome Headless 157.0.0.0 (Mac OS 10.15.7): Executed 4 of 39[32m SUCCESS[39m (0 secs / 0 secs)
+[1A[2KChrome Headless 157.0.0.0 (Mac OS 10.15.7): Executed 5 of 39[32m SUCCESS[39m (0 secs / 0 secs)
+[1A[2KChrome Headless 157.0.0.0 (Mac OS 10.15.7): Executed 6 of 39[32m SUCCESS[39m (0 secs / 0 secs)
+[1A[2KChrome Headless 157.0.0.0 (Mac OS 10.15.7): Executed 7 of 39[32m SUCCESS[39m (0 secs / 0 secs)
+[1A[2KChrome Headless 157.0.0.0 (Mac OS 10.15.7): Executed 8 of 39[32m SUCCESS[39m (0 secs / 0 secs)
+[1A[2KChrome Headless 157.0.0.0 (Mac OS 10.15.7): Executed 9 of 39[32m SUCCESS[39m (0 secs / 0 secs)
+[1A[2KChrome Headless 157.0.0.0 (Mac OS 10.15.7): Executed 10 of 39[32m SUCCESS[39m (0 secs / 0 secs)
+[1A[2KChrome Headless 157.0.0.0 (Mac OS 10.15.7): Executed 11 of 39[32m SUCCESS[39m (0 secs / 0 secs)
+[1A[2KChrome Headless 157.0.0.0 (Mac OS 10.15.7): Executed 12 of 39[32m SUCCESS[39m (0 secs / 0 secs)
+[1A[2KChrome Headless 157.0.0.0 (Mac OS 10.15.7): Executed 13 of 39[32m SUCCESS[39m (0 secs / 0 secs)
+[1A[2KChrome Headless 157.0.0.0 (Mac OS 10.15.7): Executed 14 of 39[32m SUCCESS[39m (0 secs / 0 secs)
+[1A[2KChrome Headless 157.0.0.0 (Mac OS 10.15.7): Executed 15 of 39[32m SUCCESS[39m (0 secs / 0 secs)
+[1A[2KChrome Headless 157.0.0.0 (Mac OS 10.15.7): Executed 16 of 39[32m SUCCESS[39m (0 secs / 0 secs)
+[1A[2KChrome Headless 157.0.0.0 (Mac OS 10.15.7): Executed 17 of 39[32m SUCCESS[39m (0 secs / 0 secs)
+[1A[2KChrome Headless 157.0.0.0 (Mac OS 10.15.7): Executed 18 of 39[32m SUCCESS[39m (0 secs / 0 secs)
+[33m20 11 2026 13:12:54.135:WARN [Chrome Headless 157.0.0.0 (Mac OS 10.15.7)]: [39mDisconnected (0 times) , because no message in 5000 ms.
+[1A[2K[31mChrome Headless 157.0.0.0 (Mac OS 10.15.7) ERROR[39m
+  Disconnected , because no message in 5000 ms.
+Chrome Headless 157.0.0.0 (Mac OS 10.15.7): Executed 18 of 39[31m DISCONNECTED[39m (5.003 secs / 0 secs)
+[1A[2KChrome Headless 157.0.0.0 (Mac OS 10.15.7): Executed 18 of 39[31m DISCONNECTED[39m (5.003 secs / 0 secs)

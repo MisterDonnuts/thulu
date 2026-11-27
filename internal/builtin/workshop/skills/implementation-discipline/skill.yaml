@@ -1,0 +1,9 @@
+name: implementation-discipline
+description: How to implement a task against locked tests without gaming them. Reproduce before editing, stop when nothing needs to change, keep the diff inside the spec's surface, run the verifiers after every logical change, commit each green step, revert and re-plan after two failed fixes, no skip markers or lint suppressions, a size budget, triage of red tests in four causes, and a typed stop (verdict.md) when the spec and a test disagree. Use it when it is your turn to implement a task whose tests were written before the code.
+descriptions:
+  es: Cómo implementar una tarea contra tests bloqueados sin hacerles trampa. Reproducir antes de editar, frenar cuando no hay nada que cambiar, mantener el diff dentro de la superficie de la spec, correr los verificadores después de cada cambio lógico, commitear cada paso en verde, revertir y re-planear tras dos arreglos fallidos, nada de skips ni supresiones de lint, presupuesto de tamaño, triage de tests rojos en cuatro causas y un aborto tipado (verdict.md) cuando la spec y un test no coinciden. Usala cuando te toca implementar una tarea cuyos tests se escribieron antes que el código.
+type: knowledge
+enforcement: on_demand
+version: 5
+tags: [flow, code]
+requires: []

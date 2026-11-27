@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/MisterDonnuts/thulu/internal/apperr"
@@ -33,6 +35,11 @@ type CodeResolver func(taskID string) map[string]types.CodeView
 type PromptCheck func(ctx context.Context, workspaceID, agent, stage string) bool
 
 type Service struct {
+	// queueMu orders a post against a turn ending: a message queued while a turn runs is taken by
+	// that turn's driver, never left behind (see Post and drive).
+	queueMu sync.Mutex
+	queues  map[string][]queued
+
 	store     *chat.Store
 	rt        *Manager
 	bus       *chat.Bus
@@ -207,28 +214,178 @@ func (s *Service) PostMessage(ctx context.Context, chatID, author, text string) 
 }
 
 func (s *Service) PostMessageWith(ctx context.Context, chatID, author, text string, meta map[string]string) (*chat.Message, error) {
+	msg, _, err := s.Post(ctx, chatID, Post{Author: author, Text: text, Meta: meta})
+	return msg, err
+}
+
+// PostMode says what a message does while the chat's turn runs.
+type PostMode string
+
+const (
+	// PostRefuse fails with ErrTurnInFlight: the API's answer before queues existed.
+	PostRefuse PostMode = ""
+	// PostQueue sends the message when the running turn ends.
+	PostQueue PostMode = "queue"
+	// PostSteer stops the running turn and sends the message first.
+	PostSteer PostMode = "steer"
+)
+
+type Post struct {
+	Author string
+	// Text is what the chat shows; TurnText, when set, is what the agent reads instead (the text
+	// with the context of the tasks it mentions).
+	Text     string
+	TurnText string
+	Meta     map[string]string
+	Mode     PostMode
+}
+
+type queued struct {
+	msg  chat.QueuedMessage
+	post Post
+}
+
+// Post sends a person's message. With a turn running it queues the message (PostQueue,
+// PostSteer) and returns it as queued; otherwise the turn starts and the user message is returned.
+func (s *Service) Post(ctx context.Context, chatID string, p Post) (*chat.Message, *chat.QueuedMessage, error) {
 	c, err := s.store.GetChat(ctx, chatID)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if c.Archived() {
-		return nil, ErrArchived
+		return nil, nil, ErrArchived
 	}
-	userMsg, err := s.startTurn(ctx, c, author, text, meta)
-	if err != nil {
-		return nil, err
+	for {
+		if p.Mode != PostRefuse {
+			if q, ok, err := s.enqueueIfBusy(ctx, c, p); ok || err != nil {
+				return nil, q, err
+			}
+		}
+		userMsg, err := s.startTurn(ctx, c, p.Author, p.Text, p.Meta)
+		if errors.Is(err, ErrTurnInFlight) && p.Mode != PostRefuse {
+			continue // a turn began between the check and the slot: queue behind it
+		}
+		if err != nil {
+			return nil, nil, err
+		}
+		// The turn outlives the HTTP request; a browser navigating away must not cancel it.
+		// ExecTurn caps wall-clock via chat.turn_timeout_seconds.
+		go s.drive(context.WithoutCancel(ctx), c, userMsg.ID, p)
+		return userMsg, nil, nil
 	}
-
-	// The turn outlives the HTTP request; a browser navigating away must not cancel it.
-	// ExecTurn caps wall-clock via chat.turn_timeout_seconds.
-	turnCtx := context.WithoutCancel(ctx)
-	go func() {
-		defer s.rt.EndTurn(c.ID)
-		_, err := s.runTurnLocked(turnCtx, c, text, userMsg.ID, nil)
-		logx.Warn(err, "chatruntime.log.async_turn", "chat", c.ID)
-	}()
-	return userMsg, nil
 }
+
+func (s *Service) enqueueIfBusy(ctx context.Context, c *chat.Chat, p Post) (*chat.QueuedMessage, bool, error) {
+	s.queueMu.Lock()
+	if !s.rt.TurnInFlight(c.ID) {
+		s.queueMu.Unlock()
+		return nil, false, nil
+	}
+	if err := s.mayPost(ctx, c, p.Author); err != nil {
+		s.queueMu.Unlock()
+		return nil, true, err
+	}
+	item := queued{msg: chat.QueuedMessage{ID: newQueueID(), Author: p.Author, Text: p.Text, CreatedAt: time.Now().UTC()}, post: p}
+	if s.queues == nil {
+		s.queues = map[string][]queued{}
+	}
+	if p.Mode == PostSteer {
+		s.queues[c.ID] = append([]queued{item}, s.queues[c.ID]...)
+	} else {
+		s.queues[c.ID] = append(s.queues[c.ID], item)
+	}
+	s.queueMu.Unlock()
+	s.publishQueue(c)
+	if p.Mode == PostSteer {
+		s.rt.CancelTurn(c.ID)
+	}
+	return &item.msg, true, nil
+}
+
+// drive runs the turn the caller started, then each queued message, and gives the slot back when
+// the queue is empty.
+func (s *Service) drive(ctx context.Context, c *chat.Chat, turnID string, p Post) {
+	for {
+		if _, err := s.runTurnLocked(ctx, c, turnText(p), turnID, nil); !errors.Is(err, ErrTurnCanceled) {
+			logx.Warn(err, "chatruntime.log.async_turn", "chat", c.ID)
+		}
+		next, ok := s.popQueue(c.ID)
+		if !ok {
+			return
+		}
+		s.publishQueue(c)
+		userMsg, err := s.recordTurn(ctx, c, next.post.Author, next.post.Text, next.post.Meta)
+		if err != nil {
+			logx.Warn(err, "chatruntime.log.queued_turn_refused", "chat", c.ID)
+			continue
+		}
+		turnID, p = userMsg.ID, next.post
+	}
+}
+
+func turnText(p Post) string {
+	if p.TurnText != "" {
+		return p.TurnText
+	}
+	return p.Text
+}
+
+// popQueue takes the next queued message, or ends the turn slot when there is none; both under
+// queueMu so a post never queues behind a driver that already left.
+func (s *Service) popQueue(chatID string) (queued, bool) {
+	s.queueMu.Lock()
+	defer s.queueMu.Unlock()
+	q := s.queues[chatID]
+	if len(q) == 0 {
+		delete(s.queues, chatID)
+		s.rt.EndTurn(chatID)
+		return queued{}, false
+	}
+	s.queues[chatID] = q[1:]
+	return q[0], true
+}
+
+// Queue lists the messages waiting for the chat's turn.
+func (s *Service) Queue(chatID string) []chat.QueuedMessage {
+	s.queueMu.Lock()
+	defer s.queueMu.Unlock()
+	q := s.queues[chatID]
+	out := make([]chat.QueuedMessage, 0, len(q))
+	for i := range q {
+		out = append(out, q[i].msg)
+	}
+	return out
+}
+
+// Unqueue takes a waiting message back; false when it already went out or never existed.
+func (s *Service) Unqueue(ctx context.Context, chatID, id string) bool {
+	s.queueMu.Lock()
+	q := s.queues[chatID]
+	found := false
+	for i := range q {
+		if q[i].msg.ID == id {
+			s.queues[chatID] = append(q[:i:i], q[i+1:]...)
+			found = true
+			break
+		}
+	}
+	s.queueMu.Unlock()
+	if found {
+		if c, err := s.store.GetChat(ctx, chatID); err == nil {
+			s.publishQueue(c)
+		}
+	}
+	return found
+}
+
+// CancelTurn stops the chat's running turn. The queue stays: its next message goes out.
+func (s *Service) CancelTurn(chatID string) bool { return s.rt.CancelTurn(chatID) }
+
+func (s *Service) publishQueue(c *chat.Chat) {
+	s.bus.Publish(chat.Event{Type: chat.EventQueueChanged, Queue: s.Queue(c.ID)}.For(c))
+}
+
+func newQueueID() string { return "q-" + strconv.FormatInt(time.Now().UnixNano(), 36) }
 
 func (s *Service) RunTurnSync(ctx context.Context, c *chat.Chat, text string, extraMeta map[string]string) (*chat.Message, error) {
 	userMsg, err := s.startTurn(ctx, c, "system", text, extraMeta)
@@ -261,31 +418,103 @@ func (s *Service) startTurn(ctx context.Context, c *chat.Chat, author, text stri
 	if err := s.rt.BeginTurn(c.ID); err != nil {
 		return nil, err
 	}
-	// Read under the slot, not from the caller's copy: Delegate writes under the same slot, so this
-	// sees any delegation that could reach this turn.
-	fresh, err := s.store.GetChat(ctx, c.ID)
+	msg, err := s.recordTurn(ctx, c, author, text, meta)
 	if err != nil {
 		s.rt.EndTurn(c.ID)
 		return nil, err
 	}
-	if fresh.Delegated(time.Now()) && author != fresh.DelegatedBy {
-		s.rt.EndTurn(c.ID)
-		return nil, ErrNotDelegator
+	return msg, nil
+}
+
+// mayPost reads the chat fresh: Delegate writes under the turn slot, so a check made under it sees
+// any delegation that could reach the turn.
+func (s *Service) mayPost(ctx context.Context, c *chat.Chat, author string) error {
+	fresh, err := s.store.GetChat(ctx, c.ID)
+	if err != nil {
+		return err
 	}
-	if err = s.PromptReady(ctx, fresh); err != nil {
-		s.rt.EndTurn(c.ID)
+	if fresh.Delegated(time.Now()) && author != fresh.DelegatedBy {
+		return ErrNotDelegator
+	}
+	return s.PromptReady(ctx, fresh)
+}
+
+// recordTurn checks and stores the message a turn answers, under a slot the caller holds. The
+// message's id names the turn: its live feed opens here, before the container exists.
+func (s *Service) recordTurn(ctx context.Context, c *chat.Chat, author, text string, meta map[string]string) (*chat.Message, error) {
+	if err := s.mayPost(ctx, c, author); err != nil {
 		return nil, err
+	}
+	first := false
+	if last, err := s.store.LastMessage(ctx, c.ID); err == nil && last == nil {
+		first = true
 	}
 	userMsg, err := s.store.AddMessage(ctx, &chat.Message{
 		ChatID: c.ID, Role: chat.RoleUser, Author: author, Text: text, Metadata: meta,
 	})
 	if err != nil {
-		s.rt.EndTurn(c.ID)
 		return nil, err
 	}
+	if first {
+		s.autoTitle(ctx, c, text)
+	}
+	s.rt.BeginLive(c.ID, userMsg.ID)
 	s.publishMessage(c, userMsg)
 	s.bus.Publish(chat.Event{Type: chat.EventTurnStarted, TurnID: userMsg.ID}.For(c))
 	return userMsg, nil
+}
+
+// autoTitle names a chat after its first message when it still has the name it was opened with
+// (the agent's, or the agent's and its task's).
+func (s *Service) autoTitle(ctx context.Context, c *chat.Chat, text string) {
+	if c.ThreadID != "" || !c.Personal() {
+		return
+	}
+	if !defaultTitle(c) {
+		return
+	}
+	title := titleFrom(text)
+	if title == "" {
+		return
+	}
+	if err := s.store.RenameChat(ctx, c.ID, title); err != nil {
+		logx.Warn(err, "chatruntime.log.auto_title", "chat", c.ID)
+		return
+	}
+	c.Title = title
+	s.bus.Publish(chat.Event{Type: chat.EventChatUpdated, Chat: c}.For(c))
+}
+
+func defaultTitle(c *chat.Chat) bool {
+	t := strings.TrimSpace(c.Title)
+	agent := capitalize(c.AgentType)
+	return t == "" || t == agent || strings.HasPrefix(t, agent+" · ")
+}
+
+const autoTitleRunes = 60
+
+// titleFrom is the first line of a message, cut at a word near autoTitleRunes.
+func titleFrom(text string) string {
+	line := ""
+	for _, l := range strings.Split(text, "\n") {
+		if l = strings.TrimSpace(l); l != "" {
+			line = l
+			break
+		}
+	}
+	line = strings.Join(strings.Fields(line), " ")
+	r := []rune(line)
+	if len(r) <= autoTitleRunes {
+		return line
+	}
+	cut := autoTitleRunes
+	for i := autoTitleRunes; i > autoTitleRunes/2; i-- {
+		if r[i] == ' ' {
+			cut = i
+			break
+		}
+	}
+	return strings.TrimSpace(string(r[:cut])) + "…"
 }
 
 // Caller holds the chat's single-flight turn slot.
@@ -294,7 +523,8 @@ func (s *Service) runTurnLocked(ctx context.Context, c *chat.Chat, text, turnID 
 	if err != nil {
 		return s.failTurn(ctx, c, turnID, err)
 	}
-	opts := AcquireOpts{}
+	defer s.rt.EndLive(c.ID, turnID)
+	opts := AcquireOpts{TurnID: turnID}
 	if c.TaskID != "" && s.code != nil {
 		opts.Code = s.code(c.TaskID)
 	}
@@ -317,10 +547,9 @@ func (s *Service) runTurnLocked(ctx context.Context, c *chat.Chat, text, turnID 
 	for k, v := range extraMeta {
 		meta[k] = v
 	}
-	if res.RawLogPath != "" {
-		meta["raw_log_path"] = res.RawLogPath
-	}
+	turnMeta(meta, turnID, res)
 	chat.EncodeTools(meta, res.Tools, maxTurnTools)
+	chat.EncodeEffects(meta, res.Effects)
 	msg, err := s.store.AddMessage(ctx, &chat.Message{
 		ChatID: c.ID, Role: chat.RoleAssistant, Author: c.AgentType, Text: textOut,
 		DurationMs: res.DurationMs, InputTokens: res.InputTokens, Metadata: meta,
@@ -339,9 +568,15 @@ func (s *Service) failTurn(ctx context.Context, c *chat.Chat, turnID string, cau
 	failed := &chat.Message{
 		ChatID: c.ID, Role: chat.RoleAssistant, Author: c.AgentType,
 		Text:     i18n.Text("chatruntime.messages.agent_error", "error", apperr.Text(cause)),
-		Metadata: map[string]string{chat.MetaError: "true"},
+		Metadata: map[string]string{chat.MetaError: "true", chat.MetaTurnID: turnID},
 	}
-	failed.SetTexts(errorTexts(cause))
+	if errors.Is(cause, ErrTurnCanceled) {
+		failed.Text = i18n.Text("chatruntime.messages.turn_canceled")
+		failed.Metadata[chat.MetaCanceled] = "true"
+		failed.SetTexts(localized("chatruntime.messages.turn_canceled"))
+	} else {
+		failed.SetTexts(errorTexts(cause))
+	}
 	msg, addErr := s.store.AddMessage(ctx, failed)
 	logx.Warn(addErr, "chatruntime.log.persist_turn_error", "chat", c.ID)
 	if msg != nil {
@@ -349,6 +584,40 @@ func (s *Service) failTurn(ctx context.Context, c *chat.Chat, turnID string, cau
 	}
 	s.bus.Publish(chat.Event{Type: chat.EventTurnFailed, TurnID: turnID, Err: cause.Error()}.For(c))
 	return msg, cause
+}
+
+func localized(key string) map[string]string {
+	out := map[string]string{}
+	for _, l := range i18n.Default().Locales() {
+		out[l] = i18n.T(l, key)
+	}
+	return out
+}
+
+// turnMeta records what the turn cost and which transcript holds it.
+func turnMeta(meta map[string]string, turnID string, res *TurnResult) {
+	set := func(k string, v int64) {
+		if v > 0 {
+			meta[k] = strconv.FormatInt(v, 10)
+		}
+	}
+	if turnID != "" {
+		meta[chat.MetaTurnID] = turnID
+	}
+	if res.Model != "" {
+		meta[chat.MetaModel] = res.Model
+	}
+	set(chat.MetaOutputTokens, res.OutputTokens)
+	set(chat.MetaCacheRead, res.CacheRead)
+	set(chat.MetaCacheCreation, res.CacheCreation)
+	set(chat.MetaContextTokens, res.ContextTokens)
+	set(chat.MetaNumTurns, int64(res.NumTurns))
+	if res.CostUSD > 0 {
+		meta[chat.MetaCostUSD] = strconv.FormatFloat(res.CostUSD, 'f', 4, 64)
+	}
+	if res.StopReason != "" {
+		meta[chat.MetaStopReason] = res.StopReason
+	}
 }
 
 func errorTexts(cause error) map[string]string {

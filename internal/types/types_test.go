@@ -809,3 +809,53 @@ func TestParseAuditorLabels_ModelAndSkillsInvalidSuffix(t *testing.T) {
 		t.Errorf("expected no SkillsByStage entries (empty suffix), got %v", spec.SkillsByStage)
 	}
 }
+
+// A spec stored before modes existed has no mode and keeps running after every run.
+func TestAuditorSpec_Mode(t *testing.T) {
+	var none *AuditorSpec
+	if none.EffectiveMode() != AuditorModeAlways {
+		t.Errorf("nil spec mode = %q", none.EffectiveMode())
+	}
+	for mode, want := range map[string]string{
+		"": AuditorModeAlways, AuditorModeAlways: AuditorModeAlways, AuditorModeSignals: AuditorModeSignals, "bogus": AuditorModeAlways,
+	} {
+		if got := (&AuditorSpec{Mode: mode}).EffectiveMode(); got != want {
+			t.Errorf("mode %q reads %q, want %q", mode, got, want)
+		}
+	}
+	for _, m := range []string{"", AuditorModeAlways, AuditorModeSignals} {
+		if !ValidAuditorMode(m) {
+			t.Errorf("ValidAuditorMode(%q) = false", m)
+		}
+	}
+	if ValidAuditorMode("sometimes") {
+		t.Error("ValidAuditorMode accepted an unknown mode")
+	}
+}
+
+func TestAuditorSpec_DiffBudget(t *testing.T) {
+	var none *AuditorSpec
+	if l, f := none.DiffBudget(); l != DefaultAuditMaxDiffLines || f != DefaultAuditMaxDiffFiles {
+		t.Errorf("nil budget = %d/%d", l, f)
+	}
+	if l, f := (&AuditorSpec{MaxDiffLines: 900}).DiffBudget(); l != 900 || f != DefaultAuditMaxDiffFiles {
+		t.Errorf("budget = %d/%d, want 900 and the default files", l, f)
+	}
+}
+
+func TestParseAuditorLabels_ModeAndBudget(t *testing.T) {
+	spec := parseAuditorLabels(map[string]string{
+		LabelAuditorStages:       "refinement",
+		LabelAuditorMode:         "signals",
+		LabelAuditorMaxDiffLines: "600",
+		LabelAuditorMaxDiffFiles: "x",
+	}, []Stage{StageRefinement})
+	if spec.Mode != AuditorModeSignals || spec.MaxDiffLines != 600 || spec.MaxDiffFiles != 0 {
+		t.Errorf("spec = %+v", spec)
+	}
+	spec = parseAuditorLabels(map[string]string{LabelAuditorStages: "refinement", LabelAuditorMode: "bogus"},
+		[]Stage{StageRefinement})
+	if spec.Mode != "" {
+		t.Errorf("unknown mode label kept as %q", spec.Mode)
+	}
+}
